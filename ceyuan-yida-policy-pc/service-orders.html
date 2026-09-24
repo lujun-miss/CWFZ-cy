@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的订单 - 策源易答服务商城</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .gradient-orange { background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(249,115,22,0.18); }
+        .modal-mask { background: rgba(15,23,42,0.5); backdrop-filter: blur(2px); }
+        .tab-btn.active { background: linear-gradient(135deg,#f97316,#ea580c); color:#fff; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+    <!-- 顶部导航（与服务商城一致） -->
+    <header class="bg-white border-b border-slate-100 sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="goPage('service-market.html')">
+                <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+                    <i class="fa fa-shopping-bag text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-black text-slate-800 leading-tight">服务商城</h1>
+                    <p class="text-[10px] text-slate-400">策源易答 · 我的订单</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="goPage('dashboard.html')" class="hidden lg:flex items-center px-4 py-2.5 rounded-xl border border-orange-200 text-orange-600 text-sm font-bold hover:bg-orange-50 transition-all whitespace-nowrap">
+                    <i class="fa fa-reply mr-1.5"></i>返回策源易答
+                </button>
+                <button onclick="goPage('service-market.html')" class="relative w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center transition-all">
+                    <i class="fa fa-shopping-bag"></i>
+                </button>
+                <div class="flex items-center space-x-2 pl-4 border-l border-slate-100">
+                    <div class="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm">张</div>
+                    <div class="flex flex-col">
+                        <span class="text-sm font-semibold">张经理</span>
+                        <span class="text-[10px] text-slate-400">企业账户</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-6 py-8">
+        <!-- 标题 -->
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-black text-slate-800 flex items-center">
+                <i class="fa fa-list-alt text-orange-500 mr-2"></i>我的订单
+            </h2>
+            <button onclick="goPage('service-market.html')" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold transition-all">
+                <i class="fa fa-shopping-bag mr-1.5"></i>继续选购服务
+            </button>
+        </div>
+
+        <!-- 状态 Tab -->
+        <div class="flex items-center space-x-2 mb-5 bg-white p-1.5 rounded-2xl border border-slate-100 w-fit">
+            <button onclick="setTab('all')" class="tab-btn active px-5 py-2 rounded-xl text-sm font-bold text-slate-600 transition-all" data-tab="all">全部</button>
+            <button onclick="setTab('unpaid')" class="tab-btn px-5 py-2 rounded-xl text-sm font-bold text-slate-600 transition-all" data-tab="unpaid">待付款 <span id="cntUnpaid" class="ml-0.5 text-xs"></span></button>
+            <button onclick="setTab('serving')" class="tab-btn px-5 py-2 rounded-xl text-sm font-bold text-slate-600 transition-all" data-tab="serving">服务中</button>
+            <button onclick="setTab('done')" class="tab-btn px-5 py-2 rounded-xl text-sm font-bold text-slate-600 transition-all" data-tab="done">已完成</button>
+        </div>
+
+        <!-- 订单列表 -->
+        <div id="orderList" class="space-y-4"></div>
+    </main>
+
+    <!-- 支付弹窗 -->
+    <div id="payModal" class="fixed inset-0 modal-mask z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-base font-black text-slate-800"><i class="fa fa-credit-card text-orange-500 mr-2"></i>订单支付</h3>
+                <button onclick="closePay()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center justify-between p-4 bg-orange-50/60 rounded-2xl border border-orange-100 mb-5">
+                    <div>
+                        <p id="payOrderName" class="font-bold text-sm text-slate-800"></p>
+                        <p id="payOrderId" class="text-xs text-slate-400 mt-1"></p>
+                    </div>
+                    <span class="text-orange-600 font-black text-lg">¥<span id="payOrderAmt"></span></span>
+                </div>
+                <p class="text-xs font-bold text-slate-600 mb-2">选择支付方式</p>
+                <div class="space-y-2.5">
+                    <label class="pay-method flex items-center space-x-3 p-3.5 border-2 border-orange-300 bg-orange-50/50 rounded-xl cursor-pointer" data-method="微信支付">
+                        <input type="radio" name="odPay" checked class="accent-orange-500"><i class="fa fa-weixin text-2xl text-green-500"></i><span class="text-sm font-medium flex-1">微信支付</span>
+                    </label>
+                    <label class="pay-method flex items-center space-x-3 p-3.5 border-2 border-slate-200 rounded-xl cursor-pointer" data-method="支付宝">
+                        <input type="radio" name="odPay" class="accent-orange-500"><i class="fa fa-credit-card text-2xl text-blue-500"></i><span class="text-sm font-medium flex-1">支付宝</span>
+                    </label>
+                    <label class="pay-method flex items-center space-x-3 p-3.5 border-2 border-slate-200 rounded-xl cursor-pointer" data-method="对公转账">
+                        <input type="radio" name="odPay" class="accent-orange-500"><i class="fa fa-bank text-2xl text-orange-500"></i><span class="text-sm font-medium flex-1">对公转账</span>
+                    </label>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end space-x-2 bg-slate-50/60">
+                <button onclick="closePay()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
+                <button onclick="confirmPayOrder()" class="px-7 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">确认支付</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 评价弹窗 -->
+    <div id="reviewModal" class="fixed inset-0 modal-mask z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-7 text-center">
+            <h3 class="text-base font-black text-slate-800 mb-1">服务评价</h3>
+            <p id="reviewName" class="text-xs text-slate-400 mb-5"></p>
+            <div id="starBox" class="flex justify-center space-x-2 mb-5 text-3xl text-slate-300">
+                <i class="fa fa-star cursor-pointer" data-v="1" onclick="setStar(1)"></i>
+                <i class="fa fa-star cursor-pointer" data-v="2" onclick="setStar(2)"></i>
+                <i class="fa fa-star cursor-pointer" data-v="3" onclick="setStar(3)"></i>
+                <i class="fa fa-star cursor-pointer" data-v="4" onclick="setStar(4)"></i>
+                <i class="fa fa-star cursor-pointer" data-v="5" onclick="setStar(5)"></i>
+            </div>
+            <textarea id="reviewText" rows="3" placeholder="说说这次服务的感受（选填）" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 mb-5"></textarea>
+            <div class="flex space-x-2">
+                <button onclick="closeReview()" class="flex-1 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
+                <button onclick="submitReview()" class="flex-1 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">提交评价</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js"></script>
+    <script>
+        // 框架内跳转（商城为沉浸式全屏页），独立打开时直接跳
+        function goPage(file) {
+            try {
+                if (parent && parent.window && typeof parent.window.switchPage === 'function') {
+                    parent.window.switchPage(file);
+                    return;
+                }
+            } catch (e) {}
+            window.location.href = file;
+        }
+
+        let ORDERS = [];
+        let curTab = 'all';
+        let payOrderId = null;
+        let reviewOrderId = null;
+        let starVal = 5;
+
+        function fmtMoney(n) { return (Number(n) || 0).toLocaleString('zh-CN'); }
+
+        const STATUS = {
+            unpaid:   { text: '待付款', cls: 'bg-red-50 text-red-600' },
+            serving:  { text: '服务中', cls: 'bg-blue-50 text-blue-600' },
+            done:     { text: '已完成', cls: 'bg-emerald-50 text-emerald-600' },
+            reviewed: { text: '已评价', cls: 'bg-slate-100 text-slate-500' }
+        };
+        const STEPS = ['已下单', '已接单', '材料准备', '专家审核', '服务完成'];
+
+        function load() { ORDERS = (typeof DataBridge !== 'undefined') ? DataBridge.loadServiceOrders() : []; }
+
+        function setTab(t) {
+            curTab = t;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+            render();
+        }
+
+        function render() {
+            const unpaidCnt = ORDERS.filter(o => o.status === 'unpaid').length;
+            document.getElementById('cntUnpaid').textContent = unpaidCnt ? '(' + unpaidCnt + ')' : '';
+
+            let list = ORDERS;
+            if (curTab === 'unpaid') list = ORDERS.filter(o => o.status === 'unpaid');
+            else if (curTab === 'serving') list = ORDERS.filter(o => o.status === 'serving');
+            else if (curTab === 'done') list = ORDERS.filter(o => o.status === 'done' || o.status === 'reviewed');
+
+            const box = document.getElementById('orderList');
+            if (list.length === 0) {
+                box.innerHTML = `<div class="bg-white rounded-2xl border border-slate-100 py-16 text-center text-slate-400">
+                    <i class="fa fa-inbox text-4xl block mb-3"></i>
+                    <p class="text-sm">暂无相关订单</p>
+                    <button onclick="goPage('service-market.html')" class="mt-4 px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold">去商城看看</button>
+                </div>`;
+                return;
+            }
+            box.innerHTML = list.map(o => orderCard(o)).join('');
+        }
+
+        function orderCard(o) {
+            const st = STATUS[o.status] || STATUS.unpaid;
+            let body = '';
+            // 服务进度（服务中）
+            if (o.status === 'serving') {
+                const stepIdx = Math.min(STEPS.length - 1, Math.floor(o.progress / 20) + 1);
+                body = `
+                    <div class="mt-3">
+                        <div class="flex justify-between text-[11px] text-slate-400 mb-1.5">
+                            <span class="text-blue-600 font-bold"><i class="fa fa-circle-o-notch fa-spin mr-1"></i>服务进行中 · ${STEPS[stepIdx]}</span>
+                            <span>${o.progress}%</span>
+                        </div>
+                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full" style="width:${o.progress}%"></div>
+                        </div>
+                        <div class="flex justify-between mt-2 text-[10px] text-slate-400">
+                            ${STEPS.map((s, i) => `<span class="${i <= stepIdx ? 'text-orange-600 font-bold' : ''}">${s}</span>`).join('')}
+                        </div>
+                    </div>`;
+            } else if (o.status === 'done') {
+                body = `<div class="mt-3 flex items-center text-[11px] text-emerald-600 font-bold"><i class="fa fa-check-circle mr-1"></i>服务已完成，期待您的评价</div>`;
+            } else if (o.status === 'reviewed') {
+                const starIcons = Array.from({length:5},(_,i)=>`<i class="fa fa-star ${i<o.rating?'text-amber-400':'text-slate-200'}"></i>`).join('');
+                const replyHtml = o.replyText ? `<div class="mt-2 p-3 bg-blue-50 rounded-xl border border-blue-100"><div class="flex items-center space-x-2 mb-1"><div class="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold">${(o.provider||'商')[0]}</div><span class="text-[10px] font-semibold text-blue-700">${o.provider||'服务商'} · 回复</span><span class="text-[10px] text-slate-400 ml-auto">${o.replyTime||''}</span></div><p class="text-[11px] text-slate-600 pl-7">${o.replyText}</p></div>` : '';
+                body = `<div class="mt-3 p-4 bg-orange-50/50 rounded-xl border border-orange-100"><div class="flex items-center space-x-2 mb-2"><div class="flex items-center space-x-0.5 text-sm">${starIcons}</div><span class="text-xs text-slate-400">${o.rating}.0 分</span><span class="text-[10px] text-slate-400 ml-auto">${o.reviewTime||''}</span></div>${o.reviewText ? `<p class="text-xs text-slate-600">${o.reviewText}</p>` : ''}${replyHtml}</div>`;
+            }
+
+            // 操作按钮
+            let acts = '';
+            if (o.status === 'unpaid') {
+                acts = `
+                    <button onclick="removeOrder('${o.id}')" class="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50">取消订单</button>
+                    <button onclick="openPay('${o.id}')" class="px-5 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-xs font-bold">立即支付</button>`;
+            } else if (o.status === 'serving') {
+                acts = `
+                    <button class="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50"><i class="fa fa-phone mr-1"></i>联系顾问</button>
+                    <button onclick="goPage('service-market.html')" class="px-4 py-2 bg-white border border-orange-200 text-orange-600 rounded-xl text-xs font-bold hover:bg-orange-50">再次购买</button>`;
+            } else if (o.status === 'done') {
+                acts = `
+                    <button onclick="openReview('${o.id}')" class="px-4 py-2 bg-white border border-orange-200 text-orange-600 rounded-xl text-xs font-bold hover:bg-orange-50"><i class="fa fa-star mr-1"></i>去评价</button>
+                    <button onclick="goPage('service-market.html')" class="px-5 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50">再次购买</button>`;
+            } else {
+                acts = `
+                    <button onclick="goPage('service-market.html')" class="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50">再次购买</button>`;
+            }
+
+            return `
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden card-hover transition-all">
+                <div class="px-5 py-3 bg-slate-50/70 flex items-center justify-between border-b border-slate-100">
+                    <div class="flex items-center space-x-3 text-xs text-slate-400">
+                        <span>订单号：${o.id}</span>
+                        <span>${o.createTime}</span>
+                        ${o.payMethod ? `<span class="text-slate-300">|</span><span><i class="fa fa-credit-card mr-1"></i>${o.payMethod}</span>` : ''}
+                    </div>
+                    <span class="px-2.5 py-1 rounded-md text-xs font-bold ${st.cls}">${st.text}</span>
+                </div>
+                <div class="p-5 flex items-center space-x-4">
+                    <div class="w-14 h-14 gradient-orange rounded-2xl flex items-center justify-center flex-shrink-0 text-orange-500">
+                        <i class="fa ${o.icon} text-2xl"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-bold text-slate-800 truncate">${o.svcName}</p>
+                        <p class="text-xs text-slate-400 mt-1"><i class="fa fa-building-o mr-1"></i>${o.provider} · ${o.category}</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-orange-600 font-black">¥${fmtMoney(o.amount)}</p>
+                    </div>
+                </div>
+                ${body ? `<div class="px-5 pb-4">${body}</div>` : ''}
+                <div class="px-5 py-3 border-t border-slate-50 flex items-center justify-end space-x-2">${acts}</div>
+            </div>`;
+        }
+
+        // ===== 支付 =====
+        function openPay(id) {
+            payOrderId = id;
+            const o = ORDERS.find(x => x.id === id);
+            if (!o) return;
+            document.getElementById('payOrderName').textContent = o.svcName;
+            document.getElementById('payOrderId').textContent = '订单号：' + o.id;
+            document.getElementById('payOrderAmt').textContent = fmtMoney(o.amount);
+            selectMethod('微信支付');
+            show('payModal');
+        }
+        function closePay() { hide('payModal'); payOrderId = null; }
+        function selectMethod(m) {
+            document.querySelectorAll('#payModal .pay-method').forEach(l => {
+                const on = l.dataset.method === m;
+                l.classList.toggle('border-orange-300', on);
+                l.classList.toggle('bg-orange-50/50', on);
+                l.classList.toggle('border-slate-200', !on);
+                l.querySelector('input').checked = on;
+            });
+        }
+        document.querySelectorAll('#payModal .pay-method').forEach(l =>
+            l.addEventListener('click', () => selectMethod(l.dataset.method)));
+        function confirmPayOrder() {
+            const o = ORDERS.find(x => x.id === payOrderId);
+            if (!o) return;
+            const method = document.querySelector('#payModal input[name="odPay"]:checked').value;
+            o.status = 'serving';
+            o.payMethod = method;
+            o.progress = 10;
+            persist();
+            hide('payModal');
+            payOrderId = null;
+            setTab('serving');
+            alert('支付成功！订单已进入服务流程，服务顾问将尽快与您联系。');
+        }
+        function removeOrder(id) {
+            if (!confirm('确定取消该待付款订单吗？')) return;
+            ORDERS = ORDERS.filter(o => o.id !== id);
+            persist();
+            render();
+        }
+
+        // ===== 评价 =====
+        function openReview(id) {
+            reviewOrderId = id;
+            const o = ORDERS.find(x => x.id === id);
+            document.getElementById('reviewName').textContent = o.svcName;
+            document.getElementById('reviewText').value = '';
+            setStar(5);
+            show('reviewModal');
+        }
+        function closeReview() { hide('reviewModal'); reviewOrderId = null; }
+        function setStar(v) {
+            starVal = v;
+            document.querySelectorAll('#starBox i').forEach(i => {
+                const on = Number(i.dataset.v) <= v;
+                i.classList.toggle('text-amber-400', on);
+                i.classList.toggle('text-slate-300', !on);
+            });
+        }
+        function submitReview() {
+            const o = ORDERS.find(x => x.id === reviewOrderId);
+            if (o) {
+                o.status = 'reviewed';
+                o.rating = starVal;
+                o.reviewText = document.getElementById('reviewText').value.trim();
+                const n = new Date(), pad = x => String(x).padStart(2, '0');
+                o.reviewTime = n.getFullYear() + '-' + pad(n.getMonth()+1) + '-' + pad(n.getDate()) + ' ' + pad(n.getHours()) + ':' + pad(n.getMinutes());
+                persist();
+            }
+            hide('reviewModal');
+            reviewOrderId = null;
+            render();
+        }
+
+        function persist() {
+            if (typeof DataBridge !== 'undefined') DataBridge.saveServiceOrders(ORDERS);
+        }
+        function show(id) { const m = document.getElementById(id); m.classList.remove('hidden'); m.classList.add('flex'); }
+        function hide(id) { const m = document.getElementById(id); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+        // 初始化
+        load();
+        render();
+    </script>
+</body>
+</html>

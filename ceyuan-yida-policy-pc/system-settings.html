@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置 - 策源易答运营管理平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(139,92,246,0.18); }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        input:checked + .slider { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .status-green { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.15); animation: pulse-green 2s infinite; }
+        .status-orange { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.15); animation: pulse-orange 2s infinite; }
+        .status-gray { background: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.15); }
+        
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 0 3px rgba(34,197,94,0.15); }
+            50% { box-shadow: 0 0 0 6px rgba(34,197,94,0.08); }
+        }
+        @keyframes pulse-orange {
+            0%, 100% { box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
+            50% { box-shadow: 0 0 0 6px rgba(245,158,11,0.08); }
+        }
+        
+        .nav-item { transition: all 0.25s ease; }
+        .nav-item.active { background: linear-gradient(135deg, rgba(139,92,246,0.1) 0%, rgba(124,58,237,0.05) 100%); border-left: 3px solid #8b5cf6; color: #7c3aed; }
+        .nav-item:hover:not(.active) { background: #f8fafc; }
+        
+        .sub-nav-item.active { color: #7c3aed; font-weight: 700; }
+        .sub-nav-item.active:before { content: ""; position: absolute; left: 20px; top: 50%; transform: translateY(-50%); width: 5px; height: 5px; background: #8b5cf6; border-radius: 50%; }
+        
+        .input-focus:focus { outline: none; border-color: #a78bfa; box-shadow: 0 0 0 3px rgba(139,92,246,0.1); }
+        
+        .badge-channel { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+    </style>
+</head>
+<body class="bg-slate-50 p-8">
+
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-slate-800 flex items-center">
+                <i class="fa fa-cogs text-purple-600 mr-3"></i>系统设置
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">模块三 · 运营管理平台 / 系统全局配置中心</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button class="px-4 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all flex items-center shadow-sm">
+                <i class="fa fa-refresh mr-2"></i>恢复默认
+            </button>
+            <button onclick="saveAll()" class="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold transition-all flex items-center shadow-lg shadow-purple-600/25">
+                <i class="fa fa-save mr-2"></i>保存全部配置
+            </button>
+        </div>
+    </div>
+
+    <!-- 主体内容：左侧Tab导航 + 右侧配置区域 -->
+    <div class="flex gap-5">
+        
+        <!-- 左侧导航 -->
+        <div class="w-64 flex-shrink-0">
+            <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden sticky top-8">
+                <div class="p-4 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-indigo-50">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-9 h-9 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-md">
+                            <i class="fa fa-sliders"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-black text-slate-800">配置中心</div>
+                            <div class="text-[10px] text-slate-400">Setting Management</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <nav class="py-2">
+                    <!-- 一级导航：基础系统配置 -->
+                    <a href="javascript:void(0)" onclick="switchNav('basic', this)" class="nav-item active flex items-center px-5 py-3.5 text-sm font-bold text-slate-600 cursor-pointer">
+                        <i class="fa fa-cog w-5 mr-3 text-center"></i>
+                        <span>基础系统配置</span>
+                    </a>
+                    
+                    <!-- 一级导航：配置中心（带二级） -->
+                    <div>
+                        <a href="javascript:void(0)" onclick="toggleSubNav('notice-group', this)" id="nav-notice" class="nav-item flex items-center justify-between px-5 py-3.5 text-sm font-bold text-slate-600 cursor-pointer">
+                            <span class="flex items-center">
+                                <i class="fa fa-bell-o w-5 mr-3 text-center"></i>
+                                <span>配置中心</span>
+                            </span>
+                            <i class="fa fa-angle-down text-xs text-slate-400 transition-transform" id="arrow-notice"></i>
+                        </a>
+                        <div id="notice-group" class="py-1">
+                            <a href="javascript:void(0)" onclick="switchNav('notice-deadline', this)" class="sub-nav-item relative flex items-center px-12 py-2.5 text-xs text-slate-500 hover:text-purple-600 cursor-pointer">
+                                申报截止提醒模板
+                            </a>
+                            <a href="javascript:void(0)" onclick="switchNav('notice-match', this)" class="sub-nav-item relative flex items-center px-12 py-2.5 text-xs text-slate-500 hover:text-purple-600 cursor-pointer">
+                                匹配成功推送
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 一级导航：系统集成配置（带二级） -->
+                    <div>
+                        <a href="javascript:void(0)" onclick="toggleSubNav('integration-group', this)" id="nav-integration" class="nav-item flex items-center justify-between px-5 py-3.5 text-sm font-bold text-slate-600 cursor-pointer">
+                            <span class="flex items-center">
+                                <i class="fa fa-plug w-5 mr-3 text-center"></i>
+                                <span>系统集成配置</span>
+                            </span>
+                            <i class="fa fa-angle-down text-xs text-slate-400 transition-transform" id="arrow-integration"></i>
+                        </a>
+                        <div id="integration-group" class="py-1">
+                            <a href="javascript:void(0)" onclick="switchNav('integration-enterprise', this)" class="sub-nav-item relative flex items-center px-12 py-2.5 text-xs text-slate-500 hover:text-purple-600 cursor-pointer">
+                                企业平台联动
+                            </a>
+                            <a href="javascript:void(0)" onclick="switchNav('integration-sales', this)" class="sub-nav-item relative flex items-center px-12 py-2.5 text-xs text-slate-500 hover:text-purple-600 cursor-pointer">
+                                销售中心联动
+                            </a>
+                            <a href="javascript:void(0)" onclick="switchNav('integration-operation', this)" class="sub-nav-item relative flex items-center px-12 py-2.5 text-xs text-slate-500 hover:text-purple-600 cursor-pointer">
+                                运营平台联动
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 分隔线 -->
+                    <div class="my-2 mx-4 border-t border-slate-100"></div>
+                    
+                    <!-- 快捷入口 -->
+                    <div class="px-5 py-3">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">快捷入口</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button class="py-2 bg-slate-50 hover:bg-purple-50 rounded-lg text-[10px] text-slate-500 hover:text-purple-600 font-bold transition-colors">
+                                <i class="fa fa-database block mb-1 text-sm"></i>数据备份
+                            </button>
+                            <button class="py-2 bg-slate-50 hover:bg-purple-50 rounded-lg text-[10px] text-slate-500 hover:text-purple-600 font-bold transition-colors">
+                                <i class="fa fa-file-text block mb-1 text-sm"></i>变更日志
+                            </button>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- 右侧配置区域 -->
+        <div class="flex-1 min-w-0">
+            
+            <!-- ========== 面板1：基础系统配置 ========== -->
+            <div id="panel-basic" class="setting-panel">
+                <!-- 系统信息卡片 -->
+                <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden mb-5">
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="font-black text-slate-800 flex items-center text-base">
+                                <i class="fa fa-info-circle text-purple-600 mr-2"></i>系统基础信息
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">平台标识、版本等基础信息配置</p>
+                        </div>
+                        <span class="px-3 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-full flex items-center">
+                            <span class="status-dot status-green mr-2"></span>系统运行正常
+                        </span>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">系统名称 <span class="text-rose-500">*</span></label>
+                            <input type="text" value="策源易答政策智能匹配平台" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm input-focus transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">系统版本</label>
+                            <div class="flex items-center space-x-3">
+                                <input type="text" value="2.0.0" readonly class="flex-1 px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 font-mono">
+                                <span class="px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">Latest</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">系统副标题 / Slogan</label>
+                            <input type="text" value="AI驱动的一站式政策智能服务平台" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm input-focus transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">技术支持邮箱</label>
+                            <input type="email" value="support@ceyuan-yida.com" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm input-focus transition-all">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 安全与登录配置 -->
+                <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden mb-5">
+                    <div class="px-6 py-4 border-b border-slate-100">
+                        <h3 class="font-black text-slate-800 flex items-center text-base">
+                            <i class="fa fa-shield text-purple-600 mr-2"></i>安全与登录配置
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-1">会话管理、验证码、访问控制等安全策略</p>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        <div class="p-5 flex items-center justify-between">
+                            <div class="flex-1 pr-8">
+                                <div class="flex items-center">
+                                    <h4 class="text-sm font-bold text-slate-800">会话超时时间</h4>
+                                    <span class="ml-2 px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-bold rounded">推荐 30min</span>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1">用户无操作超过该时间后自动退出登录</p>
+                            </div>
+                            <div class="flex items-center space-x-2 w-64">
+                                <input type="number" value="30" min="5" max="480" class="w-20 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-center input-focus font-bold">
+                                <select class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none">
+                                    <option selected>分钟</option>
+                                    <option>小时</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="p-5 flex items-center justify-between">
+                            <div class="flex-1 pr-8">
+                                <h4 class="text-sm font-bold text-slate-800">启用登录验证码</h4>
+                                <p class="text-xs text-slate-400 mt-1">登录时需输入图形验证码，防止暴力破解</p>
+                            </div>
+                            <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                        </div>
+                        
+                        <div class="p-5 flex items-center justify-between">
+                            <div class="flex-1 pr-8">
+                                <h4 class="text-sm font-bold text-slate-800">启用双因素认证 (2FA)</h4>
+                                <p class="text-xs text-slate-400 mt-1">管理员账号强制开启，其他账号可选</p>
+                            </div>
+                            <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                        </div>
+                        
+                        <div class="p-5 flex items-center justify-between">
+                            <div class="flex-1 pr-8">
+                                <div class="flex items-center">
+                                    <h4 class="text-sm font-bold text-slate-800">启用 IP 白名单</h4>
+                                    <span class="ml-2 px-2 py-0.5 bg-rose-50 text-rose-600 text-[10px] font-bold rounded">高安全</span>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1">仅白名单内 IP 地址可访问管理后台</p>
+                            </div>
+                            <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                        </div>
+                        
+                        <div class="p-5 bg-slate-50/50">
+                            <div class="flex items-start justify-between mb-3">
+                                <div>
+                                    <h5 class="text-sm font-bold text-slate-700 pl-2 border-l-3 border-purple-500">IP 白名单列表</h5>
+                                    <p class="text-xs text-slate-400 mt-1 ml-2">支持单个IP或CIDR网段（如 192.168.1.0/24）</p>
+                                </div>
+                                <button class="px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 transition-colors flex items-center">
+                                    <i class="fa fa-plus mr-1"></i>添加IP
+                                </button>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600">
+                                    192.168.1.0/24
+                                    <button class="ml-2 text-slate-400 hover:text-rose-500"><i class="fa fa-times"></i></button>
+                                </span>
+                                <span class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600">
+                                    10.0.0.10
+                                    <button class="ml-2 text-slate-400 hover:text-rose-500"><i class="fa fa-times"></i></button>
+                                </span>
+                                <span class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600">
+                                    114.88.42.16
+                                    <button class="ml-2 text-slate-400 hover:text-rose-500"><i class="fa fa-times"></i></button>
+                                </span>
+                                <span class="inline-flex items-center px-3 py-1.5 bg-purple-50 border border-purple-200 text-purple-600 rounded-lg text-xs font-bold">
+                                    <i class="fa fa-star mr-1"></i>当前IP：192.168.1.105
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 文件上传与存储配置 -->
+                <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100">
+                        <h3 class="font-black text-slate-800 flex items-center text-base">
+                            <i class="fa fa-cloud-upload text-purple-600 mr-2"></i>文件上传与存储
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-1">附件上传限制、存储方式、文件类型控制</p>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        <div class="p-5 flex items-center justify-between">
+                            <div class="flex-1 pr-8">
+                                <h4 class="text-sm font-bold text-slate-800">单文件上传大小限制</h4>
+                                <p class="text-xs text-slate-400 mt-1">超过该大小的文件将被拒绝上传</p>
+                            </div>
+                            <div class="flex items-center space-x-3 w-72">
+                                <input type="range" min="10" max="500" value="100" id="fileSizeRange" oninput="document.getElementById('fileSizeVal').textContent=this.value+'MB'" class="flex-1 accent-purple-600">
+                                <div class="w-20 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-center font-bold text-slate-700">
+                                    <span id="fileSizeVal">100MB</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <h4 class="text-sm font-bold text-slate-800">允许上传的文件类型</h4>
+                                    <p class="text-xs text-slate-400 mt-1">勾选允许用户上传的文件格式</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <label class="flex items-center p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-purple-50 transition-colors">
+                                    <input type="checkbox" checked class="rounded text-purple-600 mr-2">
+                                    <span class="text-xs font-bold text-slate-600"><i class="fa fa-file-pdf-o text-rose-500 mr-1"></i>PDF</span>
+                                </label>
+                                <label class="flex items-center p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-purple-50 transition-colors">
+                                    <input type="checkbox" checked class="rounded text-purple-600 mr-2">
+                                    <span class="text-xs font-bold text-slate-600"><i class="fa fa-file-word-o text-blue-500 mr-1"></i>Word</span>
+                                </label>
+                                <label class="flex items-center p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-purple-50 transition-colors">
+                                    <input type="checkbox" checked class="rounded text-purple-600 mr-2">
+                                    <span class="text-xs font-bold text-slate-600"><i class="fa fa-file-excel-o text-green-500 mr-1"></i>Excel</span>
+                                </label>
+                                <label class="flex items-center p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-purple-50 transition-colors">
+                                    <input type="checkbox" checked class="rounded text-purple-600 mr-2">
+                                    <span class="text-xs font-bold text-slate-600"><i class="fa fa-file-image-o text-amber-500 mr-1"></i>图片</span>
+                                </label>
+                                <label class="flex items-center p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-purple-50 transition-colors">
+                                    <input type="checkbox" class="rounded text-purple-600 mr-2">
+                                    <span class="text-xs font-bold text-slate-600"><i class="fa fa-file-archive-o text-yellow-600 mr-1"></i>压缩包</span>
+                                </label>
+                                <label class="flex items-center p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-purple-50 transition-colors">
+                                    <input type="checkbox" class="rounded text-purple-600 mr-2">
+                                    <span class="text-xs font-bold text-slate-600"><i class="fa fa-file-video-o text-purple-500 mr-1"></i>视频</span>
+                                </label>
+                                <label class="flex items-center p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-purple-50 transition-colors">
+                                    <input type="checkbox" checked class="rounded text-purple-600 mr-2">
+                                    <span class="text-xs font-bold text-slate-600"><i class="fa fa-file-text-o text-slate-500 mr-1"></i>纯文本</span>
+                                </label>
+                                <label class="flex items-center p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-purple-50 transition-colors">
+                                    <input type="checkbox" class="rounded text-purple-600 mr-2">
+                                    <span class="text-xs font-bold text-slate-600"><i class="fa fa-file-code-o text-indigo-500 mr-1"></i>代码文件</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="p-5 flex items-center justify-between">
+                            <div class="flex-1 pr-8">
+                                <h4 class="text-sm font-bold text-slate-800">文件存储方式</h4>
+                                <p class="text-xs text-slate-400 mt-1">当前使用阿里云 OSS 对象存储服务</p>
+                            </div>
+                            <select class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none w-48">
+                                <option selected>阿里云 OSS</option>
+                                <option>腾讯云 COS</option>
+                                <option>华为云 OBS</option>
+                                <option>本地服务器</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ========== 面板2：申报截止提醒模板 ========== -->
+            <div id="panel-notice-deadline" class="setting-panel hidden">
+                <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden mb-5">
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="font-black text-slate-800 flex items-center text-base">
+                                <i class="fa fa-calendar-check-o text-purple-600 mr-2"></i>申报截止提醒模板
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">配置政策申报截止前自动推送的通知模板</p>
+                        </div>
+                        <button class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-bold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md shadow-purple-600/20 flex items-center">
+                            <i class="fa fa-plus mr-2"></i>新建模板
+                        </button>
+                    </div>
+                    <div class="p-5 border-b border-slate-100 flex flex-wrap items-center gap-3 bg-slate-50/50">
+                        <div class="relative flex-1 min-w-[200px] max-w-md">
+                            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" placeholder="搜索模板名称 / 关键词" class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm input-focus">
+                        </div>
+                        <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none">
+                            <option>全部触发场景</option>
+                            <option>截止前7天</option>
+                            <option>截止前3天</option>
+                            <option>截止前1天</option>
+                            <option>截止当天</option>
+                        </select>
+                        <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none">
+                            <option>全部状态</option>
+                            <option>已启用</option>
+                            <option>已停用</option>
+                        </select>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase">
+                                    <th class="px-5 py-3 text-left font-bold">模板名称</th>
+                                    <th class="px-5 py-3 text-left font-bold">触发场景</th>
+                                    <th class="px-5 py-3 text-left font-bold">使用渠道</th>
+                                    <th class="px-5 py-3 text-left font-bold">推送对象</th>
+                                    <th class="px-5 py-3 text-left font-bold">启用状态</th>
+                                    <th class="px-5 py-3 text-left font-bold">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="hover:bg-purple-50/30 transition-colors">
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center text-white mr-3">
+                                                <i class="fa fa-bolt text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-800">申报截止紧急提醒</div>
+                                                <div class="text-[10px] text-slate-400 mt-0.5">TEMP-001 · 更新于 2026-07-28</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4"><span class="px-2.5 py-1 bg-rose-50 text-rose-600 text-xs font-bold rounded-lg">截止前1天</span></td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="badge-channel bg-blue-50 text-blue-600"><i class="fa fa-bell-o mr-1"></i>站内信</span>
+                                            <span class="badge-channel bg-green-50 text-green-600"><i class="fa fa-comments-o mr-1"></i>微信</span>
+                                            <span class="badge-channel bg-amber-50 text-amber-600"><i class="fa fa-envelope-o mr-1"></i>邮件</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4 text-xs text-slate-600">已申报企业<br><span class="text-slate-400">共 1,256 家</span></td>
+                                    <td class="px-5 py-4">
+                                        <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <button class="text-purple-600 hover:text-purple-800 font-bold" title="预览"><i class="fa fa-eye"></i> 预览</button>
+                                            <button class="text-blue-600 hover:text-blue-800 font-bold" title="编辑"><i class="fa fa-edit"></i> 编辑</button>
+                                            <button class="text-slate-500 hover:text-slate-700 font-bold" title="复制"><i class="fa fa-copy"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-purple-50/30 transition-colors">
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg flex items-center justify-center text-white mr-3">
+                                                <i class="fa fa-calendar-times-o text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-800">申报截止3天提醒</div>
+                                                <div class="text-[10px] text-slate-400 mt-0.5">TEMP-002 · 更新于 2026-07-15</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4"><span class="px-2.5 py-1 bg-orange-50 text-orange-600 text-xs font-bold rounded-lg">截止前3天</span></td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="badge-channel bg-blue-50 text-blue-600"><i class="fa fa-bell-o mr-1"></i>站内信</span>
+                                            <span class="badge-channel bg-green-50 text-green-600"><i class="fa fa-comments-o mr-1"></i>微信</span>
+                                            <span class="badge-channel bg-purple-50 text-purple-600"><i class="fa fa-mobile mr-1"></i>短信</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4 text-xs text-slate-600">高意向企业<br><span class="text-slate-400">共 892 家</span></td>
+                                    <td class="px-5 py-4">
+                                        <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <button class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-eye"></i> 预览</button>
+                                            <button class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-edit"></i> 编辑</button>
+                                            <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-copy"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-purple-50/30 transition-colors">
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center text-white mr-3">
+                                                <i class="fa fa-calendar text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-800">申报截止一周提醒</div>
+                                                <div class="text-[10px] text-slate-400 mt-0.5">TEMP-003 · 更新于 2026-06-30</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4"><span class="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg">截止前7天</span></td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="badge-channel bg-blue-50 text-blue-600"><i class="fa fa-bell-o mr-1"></i>站内信</span>
+                                            <span class="badge-channel bg-green-50 text-green-600"><i class="fa fa-comments-o mr-1"></i>微信</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4 text-xs text-slate-600">全部匹配企业<br><span class="text-slate-400">共 3,420 家</span></td>
+                                    <td class="px-5 py-4">
+                                        <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <button class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-eye"></i> 预览</button>
+                                            <button class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-edit"></i> 编辑</button>
+                                            <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-copy"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-purple-50/30 transition-colors">
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-gradient-to-br from-slate-400 to-slate-600 rounded-lg flex items-center justify-center text-white mr-3">
+                                                <i class="fa fa-calendar-o text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-800">申报截止当天提醒</div>
+                                                <div class="text-[10px] text-slate-400 mt-0.5">TEMP-004 · 更新于 2026-05-20</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4"><span class="px-2.5 py-1 bg-purple-50 text-purple-600 text-xs font-bold rounded-lg">截止当天</span></td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="badge-channel bg-blue-50 text-blue-600"><i class="fa fa-bell-o mr-1"></i>站内信</span>
+                                            <span class="badge-channel bg-green-50 text-green-600"><i class="fa fa-comments-o mr-1"></i>微信</span>
+                                            <span class="badge-channel bg-purple-50 text-purple-600"><i class="fa fa-mobile mr-1"></i>短信</span>
+                                            <span class="badge-channel bg-amber-50 text-amber-600"><i class="fa fa-envelope-o mr-1"></i>邮件</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4 text-xs text-slate-600">已提交材料企业<br><span class="text-slate-400">共 568 家</span></td>
+                                    <td class="px-5 py-4">
+                                        <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <button class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-eye"></i> 预览</button>
+                                            <button class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-edit"></i> 编辑</button>
+                                            <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-copy"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between text-sm">
+                        <span class="text-slate-500">共 <span class="font-bold text-slate-700">4</span> 条模板</span>
+                        <div class="flex items-center space-x-1">
+                            <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50"><i class="fa fa-angle-left"></i></button>
+                            <button class="w-8 h-8 rounded-lg bg-purple-600 text-white font-bold">1</button>
+                            <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50"><i class="fa fa-angle-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ========== 面板3：匹配成功推送 ========== -->
+            <div id="panel-notice-match" class="setting-panel hidden">
+                <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden mb-5">
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="font-black text-slate-800 flex items-center text-base">
+                                <i class="fa fa-handshake-o text-purple-600 mr-2"></i>匹配成功推送模板
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">企业与政策匹配成功后自动触发的通知推送</p>
+                        </div>
+                        <button class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-bold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md shadow-purple-600/20 flex items-center">
+                            <i class="fa fa-plus mr-2"></i>新建模板
+                        </button>
+                    </div>
+                    <div class="p-5 border-b border-slate-100 flex flex-wrap items-center gap-3 bg-slate-50/50">
+                        <div class="relative flex-1 min-w-[200px] max-w-md">
+                            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" placeholder="搜索模板名称 / 关键词" class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm input-focus">
+                        </div>
+                        <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none">
+                            <option>全部匹配等级</option>
+                            <option>高度匹配 (90%+)</option>
+                            <option>中度匹配 (70-90%)</option>
+                            <option>一般匹配 (50-70%)</option>
+                        </select>
+                        <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none">
+                            <option>全部渠道</option>
+                            <option>仅站内信</option>
+                            <option>含短信推送</option>
+                        </select>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs uppercase">
+                                    <th class="px-5 py-3 text-left font-bold">模板名称</th>
+                                    <th class="px-5 py-3 text-left font-bold">触发场景</th>
+                                    <th class="px-5 py-3 text-left font-bold">使用渠道</th>
+                                    <th class="px-5 py-3 text-left font-bold">匹配度要求</th>
+                                    <th class="px-5 py-3 text-left font-bold">启用状态</th>
+                                    <th class="px-5 py-3 text-left font-bold">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="hover:bg-purple-50/30 transition-colors">
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-600 rounded-lg flex items-center justify-center text-white mr-3">
+                                                <i class="fa fa-trophy text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-800">高度匹配推送-企业端</div>
+                                                <div class="text-[10px] text-slate-400 mt-0.5">MATE-001 · 更新于 2026-08-01</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4"><span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-lg">智能匹配完成</span></td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="badge-channel bg-blue-50 text-blue-600"><i class="fa fa-bell-o mr-1"></i>站内信</span>
+                                            <span class="badge-channel bg-green-50 text-green-600"><i class="fa fa-comments-o mr-1"></i>微信</span>
+                                            <span class="badge-channel bg-purple-50 text-purple-600"><i class="fa fa-mobile mr-1"></i>短信</span>
+                                            <span class="badge-channel bg-amber-50 text-amber-600"><i class="fa fa-envelope-o mr-1"></i>邮件</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-20 h-2 bg-slate-200 rounded-full overflow-hidden mr-2">
+                                                <div class="w-[90%] h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"></div>
+                                            </div>
+                                            <span class="text-xs font-bold text-emerald-600">≥90%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <button class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-eye"></i> 预览</button>
+                                            <button class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-edit"></i> 编辑</button>
+                                            <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-copy"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-purple-50/30 transition-colors">
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-lg flex items-center justify-center text-white mr-3">
+                                                <i class="fa fa-thumbs-up text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-800">中度匹配推送-企业端</div>
+                                                <div class="text-[10px] text-slate-400 mt-0.5">MATE-002 · 更新于 2026-07-22</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4"><span class="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg">智能匹配完成</span></td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="badge-channel bg-blue-50 text-blue-600"><i class="fa fa-bell-o mr-1"></i>站内信</span>
+                                            <span class="badge-channel bg-green-50 text-green-600"><i class="fa fa-comments-o mr-1"></i>微信</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-20 h-2 bg-slate-200 rounded-full overflow-hidden mr-2">
+                                                <div class="w-[70%] h-full bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full"></div>
+                                            </div>
+                                            <span class="text-xs font-bold text-blue-600">70-89%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <button class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-eye"></i> 预览</button>
+                                            <button class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-edit"></i> 编辑</button>
+                                            <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-copy"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-purple-50/30 transition-colors">
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-lg flex items-center justify-center text-white mr-3">
+                                                <i class="fa fa-user-circle text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-800">匹配推送-销售顾问端</div>
+                                                <div class="text-[10px] text-slate-400 mt-0.5">MATE-003 · 更新于 2026-07-10</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4"><span class="px-2.5 py-1 bg-purple-50 text-purple-600 text-xs font-bold rounded-lg">客户有新匹配</span></td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="badge-channel bg-blue-50 text-blue-600"><i class="fa fa-bell-o mr-1"></i>站内信</span>
+                                            <span class="badge-channel bg-purple-50 text-purple-600"><i class="fa fa-mobile mr-1"></i>短信</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-20 h-2 bg-slate-200 rounded-full overflow-hidden mr-2">
+                                                <div class="w-[50%] h-full bg-gradient-to-r from-purple-400 to-indigo-500 rounded-full"></div>
+                                            </div>
+                                            <span class="text-xs font-bold text-purple-600">≥50%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <button class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-eye"></i> 预览</button>
+                                            <button class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-edit"></i> 编辑</button>
+                                            <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-copy"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-purple-50/30 transition-colors">
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-lg flex items-center justify-center text-white mr-3">
+                                                <i class="fa fa-star text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-800">优质政策每日精选</div>
+                                                <div class="text-[10px] text-slate-400 mt-0.5">MATE-004 · 更新于 2026-06-28</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4"><span class="px-2.5 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-lg">每日定时 09:00</span></td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span class="badge-channel bg-green-50 text-green-600"><i class="fa fa-comments-o mr-1"></i>微信</span>
+                                            <span class="badge-channel bg-amber-50 text-amber-600"><i class="fa fa-envelope-o mr-1"></i>邮件</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center">
+                                            <div class="w-20 h-2 bg-slate-200 rounded-full overflow-hidden mr-2">
+                                                <div class="w-[80%] h-full bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full"></div>
+                                            </div>
+                                            <span class="text-xs font-bold text-amber-600">Top5推荐</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center space-x-2 text-xs">
+                                            <button class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-eye"></i> 预览</button>
+                                            <button class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-edit"></i> 编辑</button>
+                                            <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-copy"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between text-sm">
+                        <span class="text-slate-500">共 <span class="font-bold text-slate-700">4</span> 条模板 · 本月累计推送 <span class="font-bold text-purple-600">12,856</span> 次</span>
+                        <div class="flex items-center space-x-1">
+                            <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50"><i class="fa fa-angle-left"></i></button>
+                            <button class="w-8 h-8 rounded-lg bg-purple-600 text-white font-bold">1</button>
+                            <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50"><i class="fa fa-angle-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ========== 面板4-6：系统集成配置（三大平台联动） ========== -->
+            <div id="panel-integration-enterprise" class="setting-panel hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                    <!-- 企业平台联动卡片 -->
+                    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden card-hover transition-all">
+                        <div class="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/25 mr-4">
+                                        <i class="fa fa-building-o text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-black text-slate-800 flex items-center">
+                                            企业平台
+                                            <span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">Enterprise</span>
+                                        </h3>
+                                        <p class="text-xs text-slate-500 mt-1">Ceyuan Enterprise Platform</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex items-center px-3 py-1.5 bg-green-50 rounded-full">
+                                        <span class="status-dot status-green mr-2"></span>
+                                        <span class="text-xs font-bold text-green-600">连接正常</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="p-4 bg-slate-50 rounded-xl">
+                                    <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">接口地址</div>
+                                    <div class="text-xs text-slate-700 font-mono break-all">https://ent.ceyuan.com/api/v2</div>
+                                </div>
+                                <div class="p-4 bg-slate-50 rounded-xl">
+                                    <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">AppID</div>
+                                    <div class="text-xs text-slate-700 font-mono">CY-ENT-20240815</div>
+                                </div>
+                                <div class="p-4 bg-green-50 rounded-xl">
+                                    <div class="text-[10px] text-green-500 uppercase font-bold mb-1">最近同步</div>
+                                    <div class="text-sm font-bold text-green-700">2026-08-13 08:30</div>
+                                </div>
+                                <div class="p-4 bg-blue-50 rounded-xl">
+                                    <div class="text-[10px] text-blue-500 uppercase font-bold mb-1">同步数据量</div>
+                                    <div class="text-sm font-bold text-blue-700">12,458 家企业</div>
+                                </div>
+                            </div>
+                            <div class="pt-3 border-t border-slate-100 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-700">企业注册信息同步</div>
+                                        <div class="text-xs text-slate-400">实时双向同步企业基本信息</div>
+                                    </div>
+                                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-700">政策匹配结果推送</div>
+                                        <div class="text-xs text-slate-400">匹配结果自动推送到企业端首页</div>
+                                    </div>
+                                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-700">申报进度回传</div>
+                                        <div class="text-xs text-slate-400">企业申报状态实时回传运营平台</div>
+                                    </div>
+                                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                </div>
+                            </div>
+                            <div class="pt-3 flex space-x-3">
+                                <button class="flex-1 py-2.5 bg-white border border-purple-200 text-purple-600 rounded-xl text-sm font-bold hover:bg-purple-50 transition-colors flex items-center justify-center">
+                                    <i class="fa fa-cog mr-2"></i>重新配置
+                                </button>
+                                <button class="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md shadow-purple-600/20 flex items-center justify-center">
+                                    <i class="fa fa-refresh mr-2"></i>立即同步
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 同步日志简表 -->
+                    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <h3 class="font-black text-slate-800 flex items-center text-base">
+                                <i class="fa fa-history text-purple-600 mr-2"></i>最近同步日志
+                            </h3>
+                            <button class="text-xs text-purple-600 font-bold hover:text-purple-800">查看全部 →</button>
+                        </div>
+                        <div class="p-5 space-y-4">
+                            <div class="flex items-start">
+                                <div class="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center text-green-600 mr-3 flex-shrink-0">
+                                    <i class="fa fa-check"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-sm font-bold text-slate-800">全量企业数据同步</span>
+                                        <span class="text-xs text-slate-400">10分钟前</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500">成功同步 12,458 家企业信息，更新 326 条，新增 48 条</p>
+                                    <div class="mt-2 flex items-center space-x-3 text-[10px]">
+                                        <span class="text-green-600 font-bold">耗时 42s</span>
+                                        <span class="text-slate-400">触发：定时任务</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center text-green-600 mr-3 flex-shrink-0">
+                                    <i class="fa fa-check"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-sm font-bold text-slate-800">匹配结果批量推送</span>
+                                        <span class="text-xs text-slate-400">2小时前</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500">向企业端推送 1,892 条政策匹配结果</p>
+                                    <div class="mt-2 flex items-center space-x-3 text-[10px]">
+                                        <span class="text-green-600 font-bold">耗时 1m 18s</span>
+                                        <span class="text-slate-400">触发：智能匹配任务</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 mr-3 flex-shrink-0">
+                                    <i class="fa fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-sm font-bold text-slate-800">申报进度回传同步</span>
+                                        <span class="text-xs text-slate-400">昨天 18:45</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500">892 条成功，23 条超时重试后成功</p>
+                                    <div class="mt-2 flex items-center space-x-3 text-[10px]">
+                                        <span class="text-amber-600 font-bold">耗时 3m 05s</span>
+                                        <span class="text-slate-400">触发：实时监听</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="panel-integration-sales" class="setting-panel hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                    <!-- 销售中心联动卡片 -->
+                    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden card-hover transition-all">
+                        <div class="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 mr-4">
+                                        <i class="fa fa-line-chart text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-black text-slate-800 flex items-center">
+                                            销售中心
+                                            <span class="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">Sales Center</span>
+                                        </h3>
+                                        <p class="text-xs text-slate-500 mt-1">Ceyuan Sales Empowerment</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex items-center px-3 py-1.5 bg-amber-50 rounded-full">
+                                        <span class="status-dot status-orange mr-2"></span>
+                                        <span class="text-xs font-bold text-amber-600">同步延迟</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="p-4 bg-slate-50 rounded-xl">
+                                    <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">接口地址</div>
+                                    <div class="text-xs text-slate-700 font-mono break-all">https://sales.ceyuan.com/api</div>
+                                </div>
+                                <div class="p-4 bg-slate-50 rounded-xl">
+                                    <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">AppID</div>
+                                    <div class="text-xs text-slate-700 font-mono">CY-SALES-20240901</div>
+                                </div>
+                                <div class="p-4 bg-amber-50 rounded-xl">
+                                    <div class="text-[10px] text-amber-500 uppercase font-bold mb-1">最近同步</div>
+                                    <div class="text-sm font-bold text-amber-700">2026-08-12 22:15</div>
+                                </div>
+                                <div class="p-4 bg-emerald-50 rounded-xl">
+                                    <div class="text-[10px] text-emerald-500 uppercase font-bold mb-1">线索推送</div>
+                                    <div class="text-sm font-bold text-emerald-700">本月 3,256 条</div>
+                                </div>
+                            </div>
+                            <div class="pt-3 border-t border-slate-100 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-700">高意向线索自动分配</div>
+                                        <div class="text-xs text-slate-400">匹配度≥85%自动推送对应销售顾问</div>
+                                    </div>
+                                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-700">客户画像数据同步</div>
+                                        <div class="text-xs text-slate-400">企业标签、需求画像双向同步</div>
+                                    </div>
+                                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-700">成交订单数据回传</div>
+                                        <div class="text-xs text-slate-400">销售订单回传用于政策服务效果分析</div>
+                                    </div>
+                                    <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                                </div>
+                            </div>
+                            <div class="pt-3 flex space-x-3">
+                                <button class="flex-1 py-2.5 bg-white border border-purple-200 text-purple-600 rounded-xl text-sm font-bold hover:bg-purple-50 transition-colors flex items-center justify-center">
+                                    <i class="fa fa-cog mr-2"></i>重新配置
+                                </button>
+                                <button class="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md shadow-purple-600/20 flex items-center justify-center">
+                                    <i class="fa fa-refresh mr-2"></i>立即同步
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 同步日志简表 -->
+                    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <h3 class="font-black text-slate-800 flex items-center text-base">
+                                <i class="fa fa-history text-purple-600 mr-2"></i>最近同步日志
+                            </h3>
+                            <button class="text-xs text-purple-600 font-bold hover:text-purple-800">查看全部 →</button>
+                        </div>
+                        <div class="p-5 space-y-4">
+                            <div class="flex items-start">
+                                <div class="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 mr-3 flex-shrink-0">
+                                    <i class="fa fa-clock-o"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-sm font-bold text-slate-800">线索分配同步</span>
+                                        <span class="text-xs text-slate-400">进行中...</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500">正在处理 156 条高意向线索分配...</p>
+                                    <div class="mt-2 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="w-2/3 h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full animate-pulse"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center text-green-600 mr-3 flex-shrink-0">
+                                    <i class="fa fa-check"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-sm font-bold text-slate-800">客户画像全量同步</span>
+                                        <span class="text-xs text-slate-400">昨天 22:15</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500">同步 8,562 个客户画像标签数据</p>
+                                    <div class="mt-2 flex items-center space-x-3 text-[10px]">
+                                        <span class="text-green-600 font-bold">耗时 2m 36s</span>
+                                        <span class="text-slate-400">触发：手动同步</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="w-9 h-9 bg-rose-100 rounded-xl flex items-center justify-center text-rose-600 mr-3 flex-shrink-0">
+                                    <i class="fa fa-times"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-sm font-bold text-slate-800">订单数据回传</span>
+                                        <span class="text-xs text-slate-400">昨天 15:30</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500">连接超时，已自动加入重试队列</p>
+                                    <div class="mt-2 flex items-center space-x-3 text-[10px]">
+                                        <span class="text-rose-600 font-bold">失败</span>
+                                        <button class="text-purple-600 font-bold hover:underline">立即重试</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="panel-integration-operation" class="setting-panel hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                    <!-- 运营平台联动卡片 -->
+                    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden card-hover transition-all">
+                        <div class="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-14 h-14 bg-gradient-to-br from-purple-500 to-fuchsia-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-500/25 mr-4">
+                                        <i class="fa fa-cubes text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-black text-slate-800 flex items-center">
+                                            运营平台
+                                            <span class="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full">Operation</span>
+                                        </h3>
+                                        <p class="text-xs text-slate-500 mt-1">Ceyuan Operation Platform（当前平台）</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex items-center px-3 py-1.5 bg-slate-50 rounded-full">
+                                        <span class="status-dot status-gray mr-2"></span>
+                                        <span class="text-xs font-bold text-slate-500">内部服务</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="p-4 bg-slate-50 rounded-xl">
+                                    <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">服务地址</div>
+                                    <div class="text-xs text-slate-700 font-mono break-all">http://internal.op.ceyuan</div>
+                                </div>
+                                <div class="p-4 bg-slate-50 rounded-xl">
+                                    <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">节点状态</div>
+                                    <div class="text-xs font-bold text-slate-700 flex items-center">
+                                        <span class="status-dot status-green mr-2"></span>
+                                        3 / 3 节点在线
+                                    </div>
+                                </div>
+                                <div class="p-4 bg-slate-50 rounded-xl">
+                                    <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">心跳检查</div>
+                                    <div class="text-sm font-bold text-green-600">正常 · 32ms</div>
+                                </div>
+                                <div class="p-4 bg-slate-50 rounded-xl">
+                                    <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">消息队列</div>
+                                    <div class="text-sm font-bold text-slate-700">Kafka · 8 个Topic</div>
+                                </div>
+                            </div>
+                            <div class="pt-3 border-t border-slate-100 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-700">数据看板实时更新</div>
+                                        <div class="text-xs text-slate-400">驾驶舱数据每5分钟自动刷新</div>
+                                    </div>
+                                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-700">操作日志审计同步</div>
+                                        <div class="text-xs text-slate-400">关键操作实时写入审计中心</div>
+                                    </div>
+                                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-700">AI模型服务调用</div>
+                                        <div class="text-xs text-slate-400">政策解析、智能匹配模型调用</div>
+                                    </div>
+                                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                                </div>
+                            </div>
+                            <div class="pt-3 flex space-x-3">
+                                <button class="flex-1 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors flex items-center justify-center" disabled>
+                                    <i class="fa fa-cog mr-2"></i>重新配置
+                                </button>
+                                <button class="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md shadow-purple-600/20 flex items-center justify-center">
+                                    <i class="fa fa-refresh mr-2"></i>立即同步
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 服务健康度面板 -->
+                    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <h3 class="font-black text-slate-800 flex items-center text-base">
+                                <i class="fa fa-heartbeat text-purple-600 mr-2"></i>内部服务健康度
+                            </h3>
+                            <span class="text-xs text-green-600 font-bold flex items-center">
+                                <span class="status-dot status-green mr-1.5"></span>整体健康
+                            </span>
+                        </div>
+                        <div class="p-5 space-y-4">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-database text-purple-500 mr-2"></i>
+                                        <span class="text-sm font-bold text-slate-700">主数据库 MySQL</span>
+                                    </div>
+                                    <span class="text-xs text-green-600 font-bold">正常 · 负载 42%</span>
+                                </div>
+                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="w-[42%] h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-search text-blue-500 mr-2"></i>
+                                        <span class="text-sm font-bold text-slate-700">搜索引擎 Elasticsearch</span>
+                                    </div>
+                                    <span class="text-xs text-green-600 font-bold">正常 · 负载 28%</span>
+                                </div>
+                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="w-[28%] h-full bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-bolt text-amber-500 mr-2"></i>
+                                        <span class="text-sm font-bold text-slate-700">缓存服务 Redis</span>
+                                    </div>
+                                    <span class="text-xs text-green-600 font-bold">正常 · 命中率 96.8%</span>
+                                </div>
+                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="w-[97%] h-full bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-brain text-fuchsia-500 mr-2"></i>
+                                        <span class="text-sm font-bold text-slate-700">AI 大模型服务</span>
+                                    </div>
+                                    <span class="text-xs text-amber-600 font-bold">繁忙 · 响应 1.8s</span>
+                                </div>
+                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="w-[78%] h-full bg-gradient-to-r from-fuchsia-400 to-purple-500 rounded-full"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-cloud text-cyan-500 mr-2"></i>
+                                        <span class="text-sm font-bold text-slate-700">对象存储 OSS</span>
+                                    </div>
+                                    <span class="text-xs text-green-600 font-bold">正常 · 已用 1.2TB</span>
+                                </div>
+                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="w-[24%] h-full bg-gradient-to-r from-cyan-400 to-teal-500 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- Toast 提示 -->
+    <div id="toast" class="fixed top-8 right-8 z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-100 p-4 flex items-center space-x-3 animate-bounce-in">
+            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+                <i class="fa fa-check text-lg"></i>
+            </div>
+            <div>
+                <div class="text-sm font-black text-slate-800">配置已保存</div>
+                <div class="text-xs text-slate-400">系统设置已成功更新并生效</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 导航切换
+        function switchNav(panelName, el) {
+            document.querySelectorAll('.setting-panel').forEach(p => p.classList.add('hidden'));
+            const panel = document.getElementById('panel-' + panelName);
+            if (panel) panel.classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.sub-nav-item').forEach(n => n.classList.remove('active'));
+            
+            if (el.classList.contains('nav-item')) {
+                el.classList.add('active');
+            } else if (el.classList.contains('sub-nav-item')) {
+                el.classList.add('active');
+                const parent = el.closest('[id$="-group"]');
+                if (parent) {
+                    const navId = parent.id.replace('-group', '');
+                    const navItem = document.getElementById('nav-' + navId);
+                    if (navItem) navItem.classList.add('active');
+                }
+            }
+        }
+        
+        // 子导航折叠
+        function toggleSubNav(groupId, el) {
+            const group = document.getElementById(groupId);
+            const arrowId = 'arrow-' + groupId.replace('-group', '');
+            const arrow = document.getElementById(arrowId);
+            if (group.style.maxHeight && group.style.maxHeight !== '0px') {
+                group.style.maxHeight = '0px';
+                group.style.overflow = 'hidden';
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                group.style.maxHeight = group.scrollHeight + 'px';
+                group.style.overflow = 'visible';
+                arrow.style.transform = 'rotate(180deg)';
+            }
+            
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+            document.querySelectorAll('.setting-panel').forEach(p => p.classList.add('hidden'));
+            
+            if (groupId === 'notice-group') {
+                document.getElementById('panel-notice-deadline').classList.remove('hidden');
+                document.querySelectorAll('.sub-nav-item').forEach(n => n.classList.remove('active'));
+                document.querySelector('#notice-group .sub-nav-item').classList.add('active');
+            } else if (groupId === 'integration-group') {
+                document.getElementById('panel-integration-enterprise').classList.remove('hidden');
+                document.querySelectorAll('.sub-nav-item').forEach(n => n.classList.remove('active'));
+                document.querySelector('#integration-group .sub-nav-item').classList.add('active');
+            }
+        }
+        
+        // 默认展开子导航
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('notice-group').style.maxHeight = '120px';
+            document.getElementById('arrow-notice').style.transform = 'rotate(180deg)';
+            document.getElementById('integration-group').style.maxHeight = '160px';
+            document.getElementById('arrow-integration').style.transform = 'rotate(180deg)';
+        });
+        
+        // 保存全部
+        function saveAll() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2500);
+        }
+    </script>
+
+    <section class="px-8 pb-10">
+        <div class="bg-white/85 backdrop-blur-xl rounded-2xl border border-purple-100 shadow-lg shadow-purple-100/40 p-6 relative overflow-hidden">
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-purple-500 via-violet-500 to-indigo-600 rounded-l-2xl"></div>
+            <div class="ml-4">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-purple-500 via-violet-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-purple-500/30">
+                            <i class="fa fa-info-circle"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                                功能详情说明
+                                <span class="ml-2 px-2.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full">模块三 · 运营管理平台</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">系统设置 · 配置中心与操作审计</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="inline-flex items-center px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>配置生效
+                        </span>
+                        <span class="inline-flex items-center px-3 py-1 bg-violet-50 text-violet-600 text-xs font-bold rounded-full">
+                            <i class="fa fa-cogs mr-1.5"></i>配置中心
+                        </span>
+                    </div>
+                </div>
+                <div class="overflow-x-auto rounded-xl border border-purple-100">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-purple-50 via-violet-50 to-indigo-50">
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">功能模块</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">核心功能</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">实现方式</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">数据输出与管理目标</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-purple-50">
+                            <tr class="hover:bg-purple-50/40 transition-colors">
+                                <td class="px-5 py-4">
+                                    <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-violet-100 text-violet-700">
+                                        <i class="fa fa-cogs"></i>
+                                        <span>系统设置</span>
+                                    </span>
+                                </td>
+                                <td class="px-5 py-4 text-slate-700 leading-relaxed">配置系统参数，管理模板、通知等</td>
+                                <td class="px-5 py-4">
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <span class="px-2 py-0.5 bg-purple-50 text-purple-700 text-[11px] font-semibold rounded-md border border-purple-100">配置中心</span>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <div class="space-y-1.5">
+                                        <div class="flex items-center text-xs text-slate-700">
+                                            <i class="fa fa-list-ul text-purple-500 mr-2"></i>系统配置清单
+                                        </div>
+                                        <div class="flex items-center text-xs text-slate-700">
+                                            <i class="fa fa-history text-violet-500 mr-2"></i>操作日志
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</body>
+</html>

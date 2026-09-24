@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全生命周期流程 - 研知π无形资产</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="asset-data.js"></script>
+    <style>
+        body { font-family:'PingFang SC','Microsoft YaHei',sans-serif; background:#f7f8fa; }
+        .field-label { font-size:11px; font-weight:800; color:#64748b; margin-bottom:4px; display:block; }
+        .field-input { width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:12px; font-size:12px; outline:none; background:#fff; }
+        .field-input:focus { border-color:#a855f7; box-shadow:0 0 0 3px rgba(168,85,247,.12); }
+        .timeline-scroll::-webkit-scrollbar { width:6px; }
+        .timeline-scroll::-webkit-scrollbar-thumb { background:#e2e8f0; border-radius:3px; }
+    </style>
+</head>
+<body class="text-slate-800 p-6 min-h-screen">
+    <div class="max-w-[1400px] mx-auto">
+        <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800"><i class="fa fa-sitemap text-purple-500 mr-2"></i>全生命周期流程管理</h1>
+                <p class="text-sm text-slate-400 mt-1">资产从"生"到"死"全过程：取得入库 → 变更 → 处置 → 摊销，业务流转全程合规可追溯</p>
+            </div>
+            <div class="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-500">
+                <i class="fa fa-circle text-purple-400 mr-1 text-[8px]"></i>事件总数 <span id="statTotal" class="text-purple-600 font-black">0</span>
+            </div>
+        </div>
+
+        <!-- 顶部：4 个统计卡 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">在途取得</p>
+                        <p class="text-2xl font-black text-blue-600 mt-1"><span id="kpiAcquire">0</span><span class="text-xs text-slate-400 ml-1">笔</span></p>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><i class="fa fa-plus-circle"></i></div>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-2">取得入库且未执行的待审批</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">本月变更</p>
+                        <p class="text-2xl font-black text-amber-600 mt-1"><span id="kpiChange">0</span><span class="text-xs text-slate-400 ml-1">笔</span></p>
+                    </div>
+                    <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center"><i class="fa fa-exchange"></i></div>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-2">名称/权属/价值/状态变更</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">待处置审批</p>
+                        <p class="text-2xl font-black text-red-600 mt-1"><span id="kpiDisposal">0</span><span class="text-xs text-slate-400 ml-1">笔</span></p>
+                    </div>
+                    <div class="w-10 h-10 bg-red-50 text-red-600 rounded-xl flex items-center justify-center"><i class="fa fa-flag"></i></div>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-2">出售/报废/失效/注销待批</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">本月摊销额</p>
+                        <p class="text-2xl font-black text-emerald-600 mt-1"><span id="kpiAmort">0</span><span class="text-xs text-slate-400 ml-1">万</span></p>
+                    </div>
+                    <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center"><i class="fa fa-calculator"></i></div>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-2">本月已生成凭证摊销合计</p>
+            </div>
+        </div>
+
+        <!-- 中部：资产维度流程时间线 -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm mb-6">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 class="text-sm font-black text-slate-800"><i class="fa fa-history text-purple-500 mr-1.5"></i>资产生命周期时间线</h2>
+                <span class="text-xs text-slate-400 font-bold">点击左侧资产切换</span>
+            </div>
+            <div class="grid grid-cols-12 gap-0">
+                <!-- 左侧资产列表 -->
+                <div class="col-span-4 border-r border-slate-100 max-h-[460px] overflow-y-auto" id="assetListBox"></div>
+                <!-- 右侧时间线 -->
+                <div class="col-span-8 p-6 timeline-scroll max-h-[460px] overflow-y-auto" id="timelineBox">
+                    <div class="text-center text-slate-300 py-12"><i class="fa fa-hand-pointer-o text-3xl block mb-2"></i><span class="text-xs font-bold">请从左侧选择资产</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部：待审批事件列表 -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 class="text-sm font-black text-slate-800"><i class="fa fa-gavel text-orange-500 mr-1.5"></i>待审批事件</h2>
+                <span id="pendingCount" class="text-xs text-slate-400 font-bold">共 0 条</span>
+            </div>
+            <div id="pendingBox" class="divide-y divide-slate-50"></div>
+        </div>
+    </div>
+
+    <!-- 审批弹窗 -->
+    <div id="approveMask" class="hidden fixed inset-0 bg-black/50 z-50 items-center justify-center">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="px-6 py-4 bg-purple-600 text-white flex justify-between items-center">
+                <div>
+                    <p class="text-sm font-black"><i class="fa fa-gavel mr-1"></i>事件审批</p>
+                    <p class="text-[10px] opacity-80 mt-0.5" id="apEventTitle">—</p>
+                </div>
+                <button onclick="closeApprove()" class="w-8 h-8 hover:bg-white/20 rounded-lg"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="apEventId">
+                <div class="p-3 bg-slate-50 rounded-xl text-xs text-slate-600" id="apEventDesc">—</div>
+                <div>
+                    <label class="field-label">审批人 <span class="text-red-400">*</span></label>
+                    <input id="apApprover" class="field-input" placeholder="如：李总">
+                </div>
+                <div>
+                    <label class="field-label">审批意见</label>
+                    <textarea id="apNote" class="field-input" rows="2" placeholder="如：同意 / 资料不齐，请补充评估报告"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button onclick="closeApprove()" class="px-4 py-2 text-slate-500 text-xs font-bold hover:bg-slate-50 rounded-xl">取消</button>
+                    <button onclick="doApprove(false)" class="px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-200 hover:bg-red-100">驳回</button>
+                    <button onclick="doApprove(true)" class="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700">通过并执行</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var _curAssetId = null;
+
+        // ===== KPI 统计 =====
+        function renderKpi() {
+            var now = new Date();
+            var ym = '' + now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+            var acquire = getAcquirePendingList().length;
+            var change = ASSET_LIFECYCLE_EVENTS.filter(function (e) {
+                return e.stage === '变更' && (e.eventDate || '').slice(0, 7) === ym;
+            }).length;
+            var disposal = ASSET_LIFECYCLE_EVENTS.filter(function (e) {
+                return e.stage === '处置' && e.status === '待审批';
+            }).length;
+            var amort = ASSET_LIFECYCLE_EVENTS.filter(function (e) {
+                return e.stage === '摊销' && (e.eventDate || '').slice(0, 7) === ym;
+            }).reduce(function (s, e) { return s + (Number(e.amount) || 0); }, 0);
+            document.getElementById('kpiAcquire').innerText = acquire;
+            document.getElementById('kpiChange').innerText = change;
+            document.getElementById('kpiDisposal').innerText = disposal;
+            document.getElementById('kpiAmort').innerText = amort.toFixed(2);
+            document.getElementById('statTotal').innerText = ASSET_LIFECYCLE_EVENTS.length;
+        }
+
+        // ===== 左侧资产列表 =====
+        function renderAssetList() {
+            var box = document.getElementById('assetListBox');
+            // 只展示有生命周期事件的资产
+            var ids = {};
+            ASSET_LIFECYCLE_EVENTS.forEach(function (e) { ids[e.assetId] = true; });
+            var list = ASSETS.filter(function (a) { return ids[a.id]; });
+            if (!list.length) {
+                box.innerHTML = '<div class="px-6 py-12 text-center text-slate-300"><i class="fa fa-inbox text-3xl block mb-2"></i><span class="text-xs font-bold">暂无资产</span></div>';
+                return;
+            }
+            box.innerHTML = list.map(function (a) {
+                var st = ASSET_TYPE_STYLE[a.type] || ASSET_TYPE_STYLE['发明专利'];
+                var cnt = ASSET_LIFECYCLE_EVENTS.filter(function (e) { return e.assetId === a.id; }).length;
+                var active = _curAssetId === a.id;
+                return '<div onclick="selectAsset(\'' + a.id + '\')" class="px-5 py-4 cursor-pointer transition-all border-l-4 ' + (active ? 'border-purple-500 bg-purple-50' : 'border-transparent hover:bg-slate-50') + '">'
+                    + '<div class="flex items-center gap-3">'
+                    +   '<div class="w-9 h-9 ' + st.bg + ' rounded-xl flex items-center justify-center"><i class="fa ' + st.icon + '"></i></div>'
+                    +   '<div class="flex-1 min-w-0">'
+                    +     '<p class="text-sm font-bold text-slate-800 truncate">' + a.name + '</p>'
+                    +     '<p class="text-[10px] text-slate-400">' + a.type + ' · ' + (a.assetCode || a.id) + '</p>'
+                    +   '</div>'
+                    +   '<span class="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-bold rounded-full">' + cnt + ' 事件</span>'
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+        }
+
+        // ===== 右侧时间线 =====
+        function renderTimeline() {
+            var box = document.getElementById('timelineBox');
+            if (!_curAssetId) {
+                box.innerHTML = '<div class="text-center text-slate-300 py-12"><i class="fa fa-hand-pointer-o text-3xl block mb-2"></i><span class="text-xs font-bold">请从左侧选择资产</span></div>';
+                return;
+            }
+            var a = getAssetById(_curAssetId);
+            if (!a) { box.innerHTML = '<p class="text-xs text-slate-400 text-center py-12">资产不存在</p>'; return; }
+            // 按时间正序展示（生 → 死）
+            var events = getLifecycleEvents(_curAssetId).slice().sort(function (x, y) {
+                return (x.eventDate || '').localeCompare(y.eventDate || '');
+            });
+            var st = ASSET_TYPE_STYLE[a.type] || ASSET_TYPE_STYLE['发明专利'];
+
+            // 资产头部
+            var head = '<div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">'
+                + '<div class="w-10 h-10 ' + st.bg + ' rounded-xl flex items-center justify-center"><i class="fa ' + st.icon + '"></i></div>'
+                + '<div class="flex-1">'
+                +   '<p class="text-sm font-black text-slate-800">' + a.name + '</p>'
+                +   '<p class="text-[10px] text-slate-400">' + a.type + ' · ' + (a.assetCode || a.id) + ' · 净值 ' + a.netValue + ' 万</p>'
+                + '</div>'
+                + '<span class="px-2 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold rounded-full border border-purple-200">' + events.length + ' 个节点</span>'
+                + '</div>';
+
+            if (!events.length) {
+                box.innerHTML = head + '<div class="text-center text-slate-300 py-10"><i class="fa fa-inbox text-2xl block mb-2"></i><span class="text-[10px] font-bold">该资产暂无生命周期事件</span></div>';
+                return;
+            }
+
+            // 阶段进度条
+            var stages = ['取得入库', '变更', '处置', '摊销'];
+            var present = {};
+            events.forEach(function (e) { present[e.stage] = true; });
+            var stageBar = '<div class="flex items-center gap-1 mb-5">'
+                + stages.map(function (s) {
+                    var has = present[s];
+                    var sty = LIFECYCLE_STAGE_STYLE[s];
+                    return '<div class="flex-1 text-center px-2 py-1.5 rounded-lg text-[10px] font-bold ' + (has ? sty.badge + ' border' : 'bg-slate-50 text-slate-300') + '">'
+                        + '<i class="fa ' + sty.icon + ' mr-1"></i>' + s + '</div>';
+                }).join('<i class="fa fa-chevron-right text-slate-300 text-[8px]"></i>')
+                + '</div>';
+
+            // 时间线节点
+            var tl = events.map(function (e, i) {
+                var last = i === events.length - 1;
+                var sty = LIFECYCLE_STAGE_STYLE[e.stage] || { icon: 'fa-circle', color: 'bg-slate-400' };
+                var statusBadge = '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold border ' + (LIFECYCLE_STATUS_STYLE[e.status] || '') + '">' + e.status + '</span>';
+                var attCnt = (e.attachments || []).length;
+                var attHtml = attCnt ? '<span class="text-[9px] text-slate-400"><i class="fa fa-paperclip mr-0.5"></i>' + attCnt + ' 个附件</span>' : '';
+                var amountHtml = (e.amount && Number(e.amount)) ? '<span class="text-[10px] text-emerald-600 font-bold">金额 ' + e.amount + ' 万</span>' : '';
+                var ftHtml = '';
+                if (e.fromVal || e.toVal) {
+                    ftHtml = '<p class="text-[10px] text-slate-500 mt-1">' + (e.fromVal || '—') + ' <i class="fa fa-long-arrow-right text-slate-300 mx-1"></i> ' + (e.toVal || '—') + '</p>';
+                }
+                return '<div class="flex gap-4 ' + (last ? '' : 'pb-5') + ' relative">'
+                    +   '<div class="flex flex-col items-center">'
+                    +     '<div class="w-9 h-9 rounded-full ' + sty.color + ' text-white flex items-center justify-center text-sm flex-shrink-0 shadow"><i class="fa ' + sty.icon + '"></i></div>'
+                    +     (last ? '' : '<div class="w-0.5 flex-1 bg-slate-200 mt-1"></div>')
+                    +   '</div>'
+                    +   '<div class="pt-1.5 flex-1">'
+                    +     '<div class="flex items-center justify-between gap-2">'
+                    +       '<p class="text-sm font-bold text-slate-800">' + e.stage + ' · ' + e.eventType + '</p>'
+                    +       statusBadge
+                    +     '</div>'
+                    +     '<p class="text-[10px] text-slate-400 mt-0.5 font-bold">' + e.eventDate + ' · 操作人 ' + (e.operator || '—') + (e.approver ? ' · 审批人 ' + e.approver : '') + '</p>'
+                    +     '<p class="text-xs text-slate-600 mt-1 leading-relaxed">' + (e.note || '') + '</p>'
+                    +     ftHtml
+                    +     '<div class="flex items-center gap-3 mt-1">' + attHtml + amountHtml + '</div>'
+                    +   '</div>'
+                    + '</div>';
+            }).join('');
+
+            box.innerHTML = head + stageBar + '<div>' + tl + '</div>';
+        }
+
+        function selectAsset(id) {
+            _curAssetId = id;
+            renderAssetList();
+            renderTimeline();
+        }
+
+        // ===== 待审批事件列表 =====
+        function renderPending() {
+            var box = document.getElementById('pendingBox');
+            var list = ASSET_LIFECYCLE_EVENTS.filter(function (e) { return e.status === '待审批'; })
+                .sort(function (a, b) { return (b.eventDate || '').localeCompare(a.eventDate || ''); });
+            document.getElementById('pendingCount').innerText = '共 ' + list.length + ' 条';
+            if (!list.length) {
+                box.innerHTML = '<div class="px-6 py-12 text-center text-slate-300"><i class="fa fa-check-circle text-3xl block mb-2"></i><span class="text-xs font-bold">暂无待审批事件</span></div>';
+                return;
+            }
+            box.innerHTML = list.map(function (e) {
+                var a = getAssetById(e.assetId);
+                var sty = LIFECYCLE_STAGE_STYLE[e.stage] || { icon: 'fa-circle', badge: '' };
+                var assetName = a ? a.name : '资产已删除';
+                var attCnt = (e.attachments || []).length;
+                return '<div class="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 transition-all">'
+                    + '<div class="w-9 h-9 rounded-xl flex items-center justify-center border ' + sty.badge + '"><i class="fa ' + sty.icon + '"></i></div>'
+                    + '<div class="flex-1 min-w-0">'
+                    +   '<div class="flex items-center gap-2">'
+                    +     '<span class="px-1.5 py-0.5 rounded text-[9px] font-bold border ' + sty.badge + '">' + e.stage + '</span>'
+                    +     '<p class="text-sm font-bold text-slate-800 truncate">' + assetName + '</p>'
+                    +   '</div>'
+                    +   '<p class="text-[10px] text-slate-400 mt-0.5">' + e.eventType + ' · ' + e.eventDate + ' · 操作人 ' + (e.operator || '—') + (attCnt ? ' · ' + attCnt + ' 附件' : '') + '</p>'
+                    +   '<p class="text-[11px] text-slate-500 mt-1 line-clamp-1">' + (e.note || '') + '</p>'
+                    + '</div>'
+                    + '<button onclick="openApprove(\'' + e.id + '\')" class="px-3 py-1.5 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-all"><i class="fa fa-check mr-1"></i>审批</button>'
+                    + '</div>';
+            }).join('');
+        }
+
+        // ===== 审批弹窗 =====
+        function openApprove(id) {
+            var ev = ASSET_LIFECYCLE_EVENTS.find(function (x) { return x.id === id; });
+            if (!ev) return;
+            var a = getAssetById(ev.assetId);
+            document.getElementById('apEventId').value = id;
+            document.getElementById('apEventTitle').innerText = ev.stage + ' · ' + ev.eventType + ' · ' + (a ? a.name : '');
+            document.getElementById('apEventDesc').innerHTML = '<div><span class="font-bold text-slate-700">日期：</span>' + ev.eventDate + ' <span class="font-bold text-slate-700 ml-3">操作人：</span>' + (ev.operator || '—') + '</div>'
+                + '<div class="mt-1"><span class="font-bold text-slate-700">说明：</span>' + (ev.note || '') + '</div>'
+                + (ev.fromVal || ev.toVal ? '<div class="mt-1"><span class="font-bold text-slate-700">变更：</span>' + (ev.fromVal || '—') + ' → ' + (ev.toVal || '—') + '</div>' : '')
+                + (ev.amount && Number(ev.amount) ? '<div class="mt-1"><span class="font-bold text-slate-700">金额：</span>' + ev.amount + ' 万</div>' : '');
+            document.getElementById('apApprover').value = '';
+            document.getElementById('apNote').value = '';
+            var mask = document.getElementById('approveMask');
+            mask.classList.remove('hidden'); mask.classList.add('flex');
+            setTimeout(function () { document.getElementById('apApprover').focus(); }, 50);
+        }
+        function closeApprove() {
+            var mask = document.getElementById('approveMask');
+            mask.classList.add('hidden'); mask.classList.remove('flex');
+        }
+        function doApprove(pass) {
+            var id = document.getElementById('apEventId').value;
+            var approver = document.getElementById('apApprover').value.trim();
+            if (!approver) { toast('请填写审批人', 'red'); return; }
+            var note = document.getElementById('apNote').value.trim();
+            var ev = approveLifecycleEvent(id, approver, pass, note);
+            if (ev) {
+                toast((pass ? '已通过并执行：' : '已驳回：') + ev.stage + ' · ' + ev.eventType, pass ? 'green' : 'red');
+                closeApprove();
+                renderAll();
+            }
+        }
+
+        function toast(msg, color) {
+            var el = document.createElement('div');
+            el.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-2xl text-white text-xs font-bold shadow-xl ' + (color === 'red' ? 'bg-red-500' : 'bg-emerald-500');
+            el.innerHTML = '<i class="fa ' + (color === 'red' ? 'fa-exclamation-circle' : 'fa-check-circle') + ' mr-2"></i>' + msg;
+            document.body.appendChild(el);
+            setTimeout(function () { el.remove(); }, 2400);
+        }
+
+        function renderAll() {
+            renderKpi();
+            renderAssetList();
+            renderTimeline();
+            renderPending();
+        }
+
+        window.addEventListener('lifecycle-changed', renderAll);
+        window.addEventListener('assets-changed', function () { renderKpi(); renderAssetList(); renderTimeline(); });
+
+        // 初始化：默认选第一个有事件的资产
+        (function init() {
+            renderKpi();
+            renderAssetList();
+            if (!_curAssetId) {
+                var ids = {};
+                ASSET_LIFECYCLE_EVENTS.forEach(function (e) { ids[e.assetId] = true; });
+                var first = ASSETS.find(function (a) { return ids[a.id]; });
+                if (first) _curAssetId = first.id;
+            }
+            renderTimeline();
+            renderPending();
+        })();
+    </script>
+</body>
+</html>

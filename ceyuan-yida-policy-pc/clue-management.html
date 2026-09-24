@@ -4,22 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>线索管理 - 策源易达政策销售平台</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <script>
-        tailwind.config = {
-            theme: { extend: { colors: { brand: {
-                50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac',
-                400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d'
-            } } } }
-        }
-    </script>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
         .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
         .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
         .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
         .drawer-transition { transition: transform 0.3s ease-in-out; }
+        /* brand 主题色（本地预编译 tailwind.css 不含 brand 色板，在此补齐） */
+        :root { --brand-50:#f0fdf4; --brand-100:#dcfce7; --brand-500:#22c55e; --brand-600:#16a34a; --brand-700:#15803d; }
+        .bg-brand-50 { background-color: var(--brand-50); }
+        .bg-brand-100 { background-color: var(--brand-100); }
+        .bg-brand-600 { background-color: var(--brand-600); }
+        .hover\:bg-brand-50:hover { background-color: var(--brand-50); }
+        .hover\:bg-brand-50\/40:hover { background-color: #f0fdf466; }
+        .hover\:bg-brand-700:hover { background-color: var(--brand-700); }
+        .text-brand-600 { color: var(--brand-600); }
+        .text-brand-700 { color: var(--brand-700); }
+        .hover\:text-brand-600:hover { color: var(--brand-600); }
+        .hover\:text-brand-700:hover { color: var(--brand-700); }
+        .border-brand-600 { border-color: var(--brand-600); }
+        .focus\:ring-brand-500:focus { --tw-ring-color: var(--brand-500); }
+        .from-brand-500 { --tw-gradient-from: #22c55e var(--tw-gradient-from-position); --tw-gradient-to: rgb(34 197 94 / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+        .to-brand-700 { --tw-gradient-to: #15803d var(--tw-gradient-to-position); }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -46,235 +54,6 @@
     </header>
 
     <main class="max-w-[1600px] mx-auto px-6 py-6">
-        <!-- 线索来源统计 -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between mb-3">
-                    <p class="text-sm text-gray-500">总线索数</p>
-                    <div class="w-10 h-10 bg-brand-50 rounded-lg flex items-center justify-center">
-                        <i class="fa fa-bullseye text-brand-600 text-lg"></i>
-                    </div>
-                </div>
-                <p class="text-3xl font-bold text-gray-800">628</p>
-                <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上周 +22.3%</p>
-            </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between mb-3">
-                    <p class="text-sm text-gray-500">政策查询触发</p>
-                    <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <i class="fa fa-search text-blue-500 text-lg"></i>
-                    </div>
-                </div>
-                <p class="text-3xl font-bold text-gray-800">312</p>
-                <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-                    <div class="bg-blue-500 h-1.5 rounded-full" style="width: 49.7%"></div>
-                </div>
-                <p class="text-xs text-gray-400 mt-1">占比 49.7%</p>
-            </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between mb-3">
-                    <p class="text-sm text-gray-500">问答触发</p>
-                    <div class="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
-                        <i class="fa fa-comments text-orange-500 text-lg"></i>
-                    </div>
-                </div>
-                <p class="text-3xl font-bold text-gray-800">186</p>
-                <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-                    <div class="bg-orange-500 h-1.5 rounded-full" style="width: 29.6%"></div>
-                </div>
-                <p class="text-xs text-gray-400 mt-1">占比 29.6%</p>
-            </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between mb-3">
-                    <p class="text-sm text-gray-500">诊断触发</p>
-                    <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
-                        <i class="fa fa-stethoscope text-purple-500 text-lg"></i>
-                    </div>
-                </div>
-                <p class="text-3xl font-bold text-gray-800">130</p>
-                <div class="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-                    <div class="bg-purple-500 h-1.5 rounded-full" style="width: 20.7%"></div>
-                </div>
-                <p class="text-xs text-gray-400 mt-1">占比 20.7%</p>
-            </div>
-        </div>
-
-        <!-- 线索看板 -->
-        <div class="mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-semibold text-gray-800">线索看板</h2>
-                <div class="flex items-center space-x-2 text-sm">
-                    <button class="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"><i class="fa fa-th mr-1"></i>看板视图</button>
-                    <button class="px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"><i class="fa fa-list mr-1"></i>列表视图</button>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- 待跟进 -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
-                            <h3 class="font-medium text-gray-700 text-sm">待跟进</h3>
-                        </div>
-                        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">42</span>
-                    </div>
-                    <div class="p-3 space-y-2 max-h-[280px] overflow-y-auto scrollbar-thin">
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">蓝海智能科技</p>
-                                <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-xs">紧急</span>
-                            </div>
-                            <p class="text-xs text-gray-400">政策查询 · 高企认定</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-clock-o mr-1"></i>2 小时前</p>
-                        </div>
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">瑞晶光电有限公司</p>
-                                <span class="px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded text-xs">高</span>
-                            </div>
-                            <p class="text-xs text-gray-400">问答触发 · 研发费用</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-clock-o mr-1"></i>5 小时前</p>
-                        </div>
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">创联信息技术</p>
-                                <span class="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">中</span>
-                            </div>
-                            <p class="text-xs text-gray-400">诊断触发 · 专精特新</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-clock-o mr-1"></i>1 天前</p>
-                        </div>
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">恒达机械制造</p>
-                                <span class="px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">低</span>
-                            </div>
-                            <p class="text-xs text-gray-400">政策查询 · 设备补贴</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-clock-o mr-1"></i>2 天前</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 跟进中 -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-4 py-3 bg-blue-50/50 border-b border-gray-100 flex items-center justify-between">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                            <h3 class="font-medium text-gray-700 text-sm">跟进中</h3>
-                        </div>
-                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">86</span>
-                    </div>
-                    <div class="p-3 space-y-2 max-h-[280px] overflow-y-auto scrollbar-thin">
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">康泰生物制药</p>
-                                <span class="px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded text-xs">高</span>
-                            </div>
-                            <p class="text-xs text-gray-400">问答触发 · 临床试验</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-user mr-1"></i>张销售</p>
-                        </div>
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">星河智造科技</p>
-                                <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-xs">紧急</span>
-                            </div>
-                            <p class="text-xs text-gray-400">政策查询 · 高企复审</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-user mr-1"></i>张销售</p>
-                        </div>
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">智远装备制造</p>
-                                <span class="px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded text-xs">高</span>
-                            </div>
-                            <p class="text-xs text-gray-400">诊断触发 · 智能制造</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-user mr-1"></i>李销售</p>
-                        </div>
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">锐达新材料</p>
-                                <span class="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">中</span>
-                            </div>
-                            <p class="text-xs text-gray-400">政策查询 · 新材料</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-user mr-1"></i>王销售</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 已转化 -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-4 py-3 bg-brand-50/50 border-b border-gray-100 flex items-center justify-between">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-2 h-2 bg-brand-500 rounded-full"></span>
-                            <h3 class="font-medium text-gray-700 text-sm">已转化</h3>
-                        </div>
-                        <span class="px-2 py-0.5 bg-brand-100 text-brand-700 rounded text-xs">168</span>
-                    </div>
-                    <div class="p-3 space-y-2 max-h-[280px] overflow-y-auto scrollbar-thin">
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">云图信息技术</p>
-                                <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-xs">已成交</span>
-                            </div>
-                            <p class="text-xs text-gray-400">政策查询 · 软件退税</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-money mr-1"></i>签约 8.6 万</p>
-                        </div>
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">新能源科技发展</p>
-                                <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-xs">已成交</span>
-                            </div>
-                            <p class="text-xs text-gray-400">诊断触发 · 储能补贴</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-money mr-1"></i>签约 12.8 万</p>
-                        </div>
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">博创生物科技</p>
-                                <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-xs">已成交</span>
-                            </div>
-                            <p class="text-xs text-gray-400">问答触发 · 临床加速</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-money mr-1"></i>签约 6.2 万</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 已流失 -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-4 py-3 bg-red-50/50 border-b border-gray-100 flex items-center justify-between">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-2 h-2 bg-red-400 rounded-full"></span>
-                            <h3 class="font-medium text-gray-700 text-sm">已流失</h3>
-                        </div>
-                        <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">38</span>
-                    </div>
-                    <div class="p-3 space-y-2 max-h-[280px] overflow-y-auto scrollbar-thin">
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer opacity-75" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">远东贸易有限公公司</p>
-                                <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-xs">已流失</span>
-                            </div>
-                            <p class="text-xs text-gray-400">政策查询 · 出口退税</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-clock-o mr-1"></i>流失于 7-15</p>
-                        </div>
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer opacity-75" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">宏图电子科技</p>
-                                <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-xs">已流失</span>
-                            </div>
-                            <p class="text-xs text-gray-400">问答触发 · 集成电路</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-clock-o mr-1"></i>流失于 7-10</p>
-                        </div>
-                        <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 cursor-pointer opacity-75" onclick="openDrawer()">
-                            <div class="flex items-center justify-between mb-1">
-                                <p class="text-sm font-medium text-gray-800">盛达金属材料</p>
-                                <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-xs">已流失</span>
-                            </div>
-                            <p class="text-xs text-gray-400">诊断触发 · 节能改造</p>
-                            <p class="text-xs text-gray-400 mt-1"><i class="fa fa-clock-o mr-1"></i>流失于 7-05</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- 线索列表 -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
@@ -293,6 +72,13 @@
                     <button class="px-3 py-1.5 bg-brand-600 text-white rounded-md text-sm hover:bg-brand-700"><i class="fa fa-plus mr-1"></i>录入线索</button>
                 </div>
             </div>
+            <!-- 状态流转与字段口径备注 -->
+            <div class="px-6 py-3 bg-brand-50/60 border-b border-gray-100 flex items-start gap-2">
+                <i class="fa fa-info-circle text-brand-600 mt-0.5 flex-shrink-0"></i>
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    <span class="font-semibold text-gray-700">状态流转：</span>待跟进 → 跟进中 → <span class="text-brand-700 font-medium">已转化</span>（自动转入「客户管理」成为跟踪客户：潜在客户 → 意向客户 → 成交客户）；客户明确拒绝或长期无响应则标记<span class="text-red-600 font-medium">已流失</span>（线索关闭，不进入客户管理）。
+                </p>
+            </div>
             <div class="overflow-x-auto scrollbar-thin">
                 <table class="w-full text-sm">
                     <thead>
@@ -300,13 +86,12 @@
                             <th class="px-6 py-3 font-medium">企业名称</th>
                             <th class="px-6 py-3 font-medium">线索来源</th>
                             <th class="px-6 py-3 font-medium">意向政策</th>
-                            <th class="px-6 py-3 font-medium">紧急程度</th>
                             <th class="px-6 py-3 font-medium">分配销售</th>
                             <th class="px-6 py-3 font-medium">阶段</th>
                             <th class="px-6 py-3 font-medium text-right">操作</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody id="clueTbody" class="divide-y divide-gray-100">
                         <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer()">
                             <td class="px-6 py-4">
                                 <p class="font-medium text-gray-800">星河智造科技有限公司</p>
@@ -316,7 +101,6 @@
                                 <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs"><i class="fa fa-search mr-1"></i>政策查询</span>
                             </td>
                             <td class="px-6 py-4 text-gray-600">高企认定复审</td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-red-50 text-red-600 rounded text-xs">紧急</span></td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center space-x-2">
                                     <div class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs">张</div>
@@ -339,7 +123,6 @@
                                 <span class="px-2 py-0.5 bg-orange-50 text-orange-700 rounded text-xs"><i class="fa fa-comments mr-1"></i>问答触发</span>
                             </td>
                             <td class="px-6 py-4 text-gray-600">临床试验加速</td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-orange-50 text-orange-600 rounded text-xs">高</span></td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center space-x-2">
                                     <div class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs">张</div>
@@ -362,7 +145,6 @@
                                 <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs"><i class="fa fa-search mr-1"></i>政策查询</span>
                             </td>
                             <td class="px-6 py-4 text-gray-600">人工智能专项</td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-red-50 text-red-600 rounded text-xs">紧急</span></td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center space-x-2">
                                     <div class="w-6 h-6 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center text-xs">-</div>
@@ -385,7 +167,6 @@
                                 <span class="px-2 py-0.5 bg-purple-50 text-purple-700 rounded text-xs"><i class="fa fa-stethoscope mr-1"></i>诊断触发</span>
                             </td>
                             <td class="px-6 py-4 text-gray-600">新材料专项</td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">中</span></td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center space-x-2">
                                     <div class="w-6 h-6 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-xs">王</div>
@@ -408,7 +189,6 @@
                                 <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs"><i class="fa fa-search mr-1"></i>政策查询</span>
                             </td>
                             <td class="px-6 py-4 text-gray-600">软件退税</td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-orange-50 text-orange-600 rounded text-xs">高</span></td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center space-x-2">
                                     <div class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs">张</div>
@@ -416,6 +196,28 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4"><span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs">已转化</span></td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="text-brand-600 hover:text-brand-700 mr-2"><i class="fa fa-eye"></i></button>
+                                <button class="text-gray-500 hover:text-brand-600 mr-2"><i class="fa fa-edit"></i></button>
+                                <button class="text-gray-500 hover:text-red-500"><i class="fa fa-ellipsis-h"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer()">
+                            <td class="px-6 py-4">
+                                <p class="font-medium text-gray-800">远东贸易有限公司</p>
+                                <p class="text-xs text-gray-400">流失于 07-15</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs"><i class="fa fa-search mr-1"></i>政策查询</span>
+                            </td>
+                            <td class="px-6 py-4 text-gray-600">出口退税</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-6 h-6 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-xs">王</div>
+                                    <span class="text-gray-700">王销售</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-red-50 text-red-600 rounded text-xs">已流失</span></td>
                             <td class="px-6 py-4 text-right">
                                 <button class="text-brand-600 hover:text-brand-700 mr-2"><i class="fa fa-eye"></i></button>
                                 <button class="text-gray-500 hover:text-brand-600 mr-2"><i class="fa fa-edit"></i></button>
@@ -440,12 +242,9 @@
         <div class="p-6">
             <!-- 线索概览 -->
             <div class="mb-6">
-                <div class="flex items-start justify-between mb-3">
-                    <div>
-                        <h4 class="text-lg font-bold text-gray-800">星河智造科技有限公司</h4>
-                        <p class="text-sm text-gray-500 mt-0.5">2 小时前由政策查询触发</p>
-                    </div>
-                    <span class="px-2 py-1 bg-red-50 text-red-600 rounded text-xs">紧急</span>
+                <div class="mb-3">
+                    <h4 class="text-lg font-bold text-gray-800">星河智造科技有限公司</h4>
+                    <p class="text-sm text-gray-500 mt-0.5">2 小时前由政策查询触发</p>
                 </div>
                 <div class="grid grid-cols-2 gap-3 text-sm">
                     <div class="bg-gray-50 rounded-lg p-3">
@@ -528,7 +327,41 @@
         </div>
     </aside>
 
+    <script src="data-bridge.js"></script>
     <script>
+        // 渲染线索列表（从 DataBridge 读取，企业端问答/雷达/诊断行为自动回流写入）
+        function renderClues() {
+            var tbody = document.getElementById('clueTbody');
+            if (!tbody) return;
+            if (!window.DataBridge || !DataBridge.loadClues) return;
+            var list = DataBridge.loadClues();
+            if (!Array.isArray(list) || list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-400"><i class="fa fa-inbox text-2xl mb-2 block"></i>暂无线索</td></tr>';
+                return;
+            }
+            // 来源→样式映射（与原种子配色对齐）
+            var SRC_BG = { blue:'bg-blue-50 text-blue-700', orange:'bg-orange-50 text-orange-700', purple:'bg-purple-50 text-purple-700', indigo:'bg-indigo-50 text-indigo-700' };
+            var STAGE_BG = { blue:'bg-blue-50 text-blue-700', gray:'bg-gray-100 text-gray-600', brand:'bg-brand-50 text-brand-700', red:'bg-red-50 text-red-600' };
+            tbody.innerHTML = list.map(function(c) {
+                var srcCls = SRC_BG[c.sourceColor] || SRC_BG.blue;
+                var stageCls = STAGE_BG[c.stageColor] || STAGE_BG.gray;
+                var salesCell = c.sales
+                    ? '<div class="flex items-center space-x-2"><div class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs">' + c.salesInitial + '</div><span class="text-gray-700">' + c.sales + '</span></div>'
+                    : '<div class="flex items-center space-x-2"><div class="w-6 h-6 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center text-xs">-</div><span class="text-gray-400">未分配</span></div>';
+                return '<tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer()">' +
+                    '<td class="px-6 py-4"><p class="font-medium text-gray-800">' + (c.company || '') + '</p><p class="text-xs text-gray-400">' + (c.enterTime || '') + '</p></td>' +
+                    '<td class="px-6 py-4"><span class="px-2 py-0.5 ' + srcCls + ' rounded text-xs"><i class="fa ' + (c.sourceIcon || 'fa-search') + ' mr-1"></i>' + (c.source || '') + '</span></td>' +
+                    '<td class="px-6 py-4 text-gray-600">' + (c.intent || '-') + '</td>' +
+                    '<td class="px-6 py-4">' + salesCell + '</td>' +
+                    '<td class="px-6 py-4"><span class="px-2 py-0.5 ' + stageCls + ' rounded text-xs">' + (c.stage || '待跟进') + '</span></td>' +
+                    '<td class="px-6 py-4 text-right">' +
+                        '<button class="text-brand-600 hover:text-brand-700 mr-2"><i class="fa fa-eye"></i></button>' +
+                        '<button class="text-gray-500 hover:text-brand-600 mr-2"><i class="fa fa-edit"></i></button>' +
+                        '<button class="text-gray-500 hover:text-red-500"><i class="fa fa-ellipsis-h"></i></button>' +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+        }
         function openDrawer() {
             document.getElementById('overlay').classList.remove('hidden');
             document.getElementById('drawer').classList.remove('translate-x-full');
@@ -537,6 +370,8 @@
             document.getElementById('overlay').classList.add('hidden');
             document.getElementById('drawer').classList.add('translate-x-full');
         }
+        // 初始化：从 DataBridge 渲染线索列表（覆盖原 HTML 种子，确保与 localStorage 最新数据一致）
+        renderClues();
     </script>
 </body>
 </html>

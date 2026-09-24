@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>评价体系 - 策源易答服务交易模块</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -163,64 +163,7 @@
                     <div class="w-1 h-6 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></div>
                     <h2 class="text-lg font-bold">评分维度分布</h2>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="text-center">
-                        <div class="relative w-24 h-24 mx-auto mb-3">
-                            <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" stroke-width="10"></circle>
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="#f97316" stroke-width="10" stroke-dasharray="251.2" stroke-dashoffset="25.12" stroke-linecap="round"></circle>
-                            </svg>
-                            <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span class="text-2xl font-black text-orange-600">4.9</span>
-                                <span class="text-[10px] text-slate-400">分</span>
-                            </div>
-                        </div>
-                        <p class="text-sm font-semibold">服务态度</p>
-                        <p class="text-[10px] text-slate-400 mt-1">98% 好评</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="relative w-24 h-24 mx-auto mb-3">
-                            <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" stroke-width="10"></circle>
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="#f97316" stroke-width="10" stroke-dasharray="251.2" stroke-dashoffset="35.17" stroke-linecap="round"></circle>
-                            </svg>
-                            <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span class="text-2xl font-black text-orange-600">4.8</span>
-                                <span class="text-[10px] text-slate-400">分</span>
-                            </div>
-                        </div>
-                        <p class="text-sm font-semibold">专业度</p>
-                        <p class="text-[10px] text-slate-400 mt-1">96% 好评</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="relative w-24 h-24 mx-auto mb-3">
-                            <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" stroke-width="10"></circle>
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="#f97316" stroke-width="10" stroke-dasharray="251.2" stroke-dashoffset="40.19" stroke-linecap="round"></circle>
-                            </svg>
-                            <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span class="text-2xl font-black text-orange-600">4.7</span>
-                                <span class="text-[10px] text-slate-400">分</span>
-                            </div>
-                        </div>
-                        <p class="text-sm font-semibold">响应速度</p>
-                        <p class="text-[10px] text-slate-400 mt-1">94% 好评</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="relative w-24 h-24 mx-auto mb-3">
-                            <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" stroke-width="10"></circle>
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="#f97316" stroke-width="10" stroke-dasharray="251.2" stroke-dashoffset="30.14" stroke-linecap="round"></circle>
-                            </svg>
-                            <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span class="text-2xl font-black text-orange-600">4.8</span>
-                                <span class="text-[10px] text-slate-400">分</span>
-                            </div>
-                        </div>
-                        <p class="text-sm font-semibold">性价比</p>
-                        <p class="text-[10px] text-slate-400 mt-1">97% 好评</p>
-                    </div>
-                </div>
+                
             </div>
         </section>
 
@@ -530,5 +473,83 @@
         // 初始化
         renderEvaluations();
     </script>
+
+    <section class="max-w-7xl mx-auto px-6 pb-10">
+        <div class="bg-white/85 backdrop-blur-xl rounded-2xl border border-orange-100 shadow-lg shadow-orange-100/40 p-6 relative overflow-hidden">
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-orange-500 via-amber-500 to-yellow-500 rounded-l-2xl"></div>
+            <div class="ml-4">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+                            <i class="fa fa-info-circle"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                                功能详情说明
+                                <span class="ml-2 px-2.5 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded-full">模块五 · 服务交易中心</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">评价体系 · 星级评分+文字评价+服务商回复</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="inline-flex items-center px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>4.86 平均分
+                        </span>
+                        <span class="inline-flex items-center px-3 py-1 bg-orange-50 text-orange-600 text-xs font-bold rounded-full">
+                            <i class="fa fa-star mr-1.5"></i>信誉分驱动
+                        </span>
+                    </div>
+                </div>
+                <div class="overflow-x-auto rounded-xl border border-orange-100">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50">
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">功能模块</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">服务内容</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">核心交易流程</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">联动关系</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-orange-50">
+                            <tr class="hover:bg-orange-50/40 transition-colors">
+                                <td class="px-5 py-4">
+                                    <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700">
+                                        <i class="fa fa-star"></i>
+                                        <span>评价体系</span>
+                                    </span>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <span class="px-2 py-0.5 bg-orange-50 text-orange-700 text-[11px] font-semibold rounded-md border border-orange-100">星级评分</span>
+                                        <span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[11px] font-semibold rounded-md border border-amber-100">文字评价</span>
+                                        <span class="px-2 py-0.5 bg-yellow-50 text-yellow-700 text-[11px] font-semibold rounded-md border border-yellow-100">服务商回复</span>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <span class="px-2 py-0.5 bg-orange-50 text-orange-700 text-[11px] font-semibold rounded-md border border-orange-100">评价模型</span>
+                                        <span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[11px] font-semibold rounded-md border border-amber-100">信誉分计算</span>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <div class="space-y-1.5">
+                                        <div class="flex items-center text-xs text-slate-700">
+                                            <span class="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] font-semibold rounded-md mr-2">运营平台</span>
+                                            <span>(质量监控)</span>
+                                        </div>
+                                        <div class="flex items-center text-xs text-slate-700">
+                                            <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-md mr-2">销售中心</span>
+                                            <span>(绩效考核)</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
 </body>
 </html>

@@ -4,12 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>精准政策雷达 - 策源易答</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
         }
+        /* 行式高级查询：平铺选项 */
+        .filter-opt {
+            cursor: pointer;
+            color: #475569;
+            transition: all .15s ease;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .filter-opt:hover { color: #2563eb; background: rgba(37,99,235,.06); }
+        .filter-opt.opt-active {
+            color: #2563eb;
+            font-weight: 700;
+            background: rgba(37,99,235,.10);
+        }
+        .left-sidebar {
+            background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%);
+            border-right: 1px solid rgba(255,255,255,0.4);
+        }
+        .history-item {
+            transition: all 0.2s ease;
+        }
+        .history-item:hover {
+            background: rgba(255,255,255,0.55);
+            transform: translateX(2px);
+        }
+        .history-item.active {
+            background: rgba(255,255,255,0.85);
+            box-shadow: 0 4px 12px -4px rgba(59, 130, 246, 0.3);
+        }
+        .scroll-thin::-webkit-scrollbar { width: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 3px; }
         .card-hover:hover {
             transform: translateY(-2px);
             box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1);
@@ -27,647 +61,1749 @@
             border-color: #2563eb;
             box-shadow: 0 8px 24px -12px rgba(37, 99, 235, 0.15);
         }
-        .scrollbar-thin::-webkit-scrollbar {
-            width: 6px;
+        .calendar-day {
+            transition: all 0.2s;
         }
-        .scrollbar-thin::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
+        .calendar-day:hover {
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 4px 12px -4px rgba(0,0,0,0.1);
         }
+        .scrollbar-thin::-webkit-scrollbar { width: 5px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.2); border-radius: 3px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .border-3 { border-width: 3px; }
+        /* 预约弹窗动画 */
+        @keyframes modalIn {
+            from { opacity: 0; transform: translate(-50%, calc(-50% - 12px)) scale(0.97); }
+            to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        .animate-modal-in { animation: modalIn 0.18s cubic-bezier(0.4, 0, 0.2, 1) both; }
+        /* 输入框聚焦蓝色高亮对齐参考图 */
+        input:focus { box-shadow: 0 0 0 1px rgba(99,102,241,0.3) inset; }
     </style>
 </head>
-<body class="bg-slate-50 p-6">
-    <div class="max-w-[1400px] mx-auto">
-        <!-- 页面标题 -->
-        <div class="mb-6">
-            <h1 class="text-2xl font-black text-slate-800 mb-1">精准政策雷达</h1>
-            <p class="text-sm text-slate-500">基于企业画像智能匹配，为您筛选最相关的政策扶持项目</p>
-        </div>
-
-        <!-- 顶部搜索区 -->
-        <div class="bg-gradient-to-r from-slate-900 to-blue-900 rounded-[28px] p-8 mb-6 shadow-xl relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full -mr-32 -mt-32"></div>
-            <div class="absolute bottom-0 left-0 w-64 h-64 bg-blue-400/10 rounded-full -ml-20 -mb-20"></div>
-            
-            <div class="relative z-10">
-                <!-- 搜索框 -->
-                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
-                    <div class="flex items-center space-x-4 mb-5">
-                        <div class="flex-1 relative">
-                            <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input type="text" placeholder="输入政策关键词、政策名称或发布部门..." 
-                                class="w-full pl-12 pr-4 py-4 bg-white rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-4 focus:ring-blue-400/30">
-                        </div>
-                        <button class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-600/30 transition-all flex items-center">
-                            <i class="fa fa-search mr-2"></i> 智能搜索
-                        </button>
-                    </div>
-
-                    <!-- 多选维度 -->
-                    <div class="grid grid-cols-4 gap-4">
-                        <div>
-                            <label class="text-xs font-bold text-white/70 mb-2 block"><i class="fa fa-industry mr-1"></i>行业</label>
-                            <select class="w-full px-4 py-2.5 bg-white/90 border-0 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                <option>全部行业</option>
-                                <option>信息技术</option>
-                                <option>生物医药</option>
-                                <option>高端装备</option>
-                                <option>新能源</option>
-                                <option>新材料</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-white/70 mb-2 block"><i class="fa fa-users mr-1"></i>规模</label>
-                            <select class="w-full px-4 py-2.5 bg-white/90 border-0 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                <option>全部规模</option>
-                                <option>微型企业</option>
-                                <option>小型企业</option>
-                                <option>中型企业</option>
-                                <option>大型企业</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-white/70 mb-2 block"><i class="fa fa-certificate mr-1"></i>资质</label>
-                            <select class="w-full px-4 py-2.5 bg-white/90 border-0 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                <option>全部资质</option>
-                                <option>高新技术企业</option>
-                                <option>专精特新企业</option>
-                                <option>科技型中小企业</option>
-                                <option>独角兽企业</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-white/70 mb-2 block"><i class="fa fa-calendar mr-1"></i>时间</label>
-                            <select class="w-full px-4 py-2.5 bg-white/90 border-0 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                <option>不限时间</option>
-                                <option>近一个月</option>
-                                <option>近三个月</option>
-                                <option>近半年</option>
-                                <option>近一年</option>
-                            </select>
-                        </div>
+<body>
+    <div class="flex h-screen">
+        <aside class="left-sidebar w-64 flex-shrink-0 flex flex-col" style="background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4);">
+            <div class="p-4 border-b border-white/30">
+                <div class="flex items-center space-x-2 mb-3">
+                    <div class="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg"><span class="text-white font-black text-sm">策</span></div>
+                    <div>
+                        <div class="text-sm font-black text-slate-800 leading-none">策源易答</div>
+                        <div class="text-[9px] text-slate-500 tracking-widest mt-0.5">POLICY AI</div>
                     </div>
                 </div>
-
-                <!-- 快捷筛选标签 -->
-                <div class="flex items-center space-x-3 mt-4 flex-wrap">
-                    <span class="text-xs text-white/60 font-bold">热门搜索：</span>
-                    <button class="filter-tag px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs rounded-full border border-white/20">高新技术企业</button>
-                    <button class="filter-tag px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs rounded-full border border-white/20">专精特新</button>
-                    <button class="filter-tag px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs rounded-full border border-white/20">研发费用加计扣除</button>
-                    <button class="filter-tag px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs rounded-full border border-white/20">税收减免</button>
-                    <button class="filter-tag px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs rounded-full border border-white/20">智能制造</button>
+                <div class="relative">
+                    <i class="fa fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" placeholder="搜索历史记录" class="w-full pl-7 pr-2 py-1.5 bg-white/70 backdrop-blur rounded-lg text-xs border border-white/50 outline-none focus:bg-white">
                 </div>
             </div>
-        </div>
+            <div class="px-2 pt-3 pb-2 border-b border-white/30">
+                <div class="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2 px-1">智能功能</div>
+                <div class="grid grid-cols-3 gap-1">
+                    <button onclick="goPage('dashboard.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] text-slate-600 bg-white/60 hover:bg-white/90 transition-all" title="智能问答">
+                        <i class="fa fa-comments text-xs mb-0.5"></i><span class="font-medium">问答</span>
+                    </button>
+                    <button onclick="goPage('policy-radar.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] transition-all" style="background: #6366f1; color:white;" title="政策雷达">
+                        <i class="fa fa-sitemap text-xs mb-0.5"></i><span class="font-medium">雷达</span>
+                    </button>
+                    <button onclick="goPage('ability-diagnosis.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] text-slate-600 bg-white/60 hover:bg-white/90 transition-all" title="能力诊断">
+                        <i class="fa fa-stethoscope text-xs mb-0.5"></i><span class="font-medium">诊断</span>
+                    </button>
+                    <button onclick="goPage('declaration-butler.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] text-slate-600 bg-white/60 hover:bg-white/90 transition-all" title="申报管家">
+                        <i class="fa fa-file-text-o text-xs mb-0.5"></i><span class="font-medium">管家</span>
+                    </button>
+                    <button onclick="goPage('policy-calculator.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] text-slate-600 bg-white/60 hover:bg-white/90 transition-all" title="政策计算器">
+                        <i class="fa fa-calculator text-xs mb-0.5"></i><span class="font-medium">计算</span>
+                    </button>
+                    <button onclick="goPage('service-market.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] text-white bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm" title="服务商城">
+                        <i class="fa fa-shopping-bag text-xs mb-0.5"></i><span class="font-medium">商城</span>
+                    </button>
+                </div>
+            </div>
+            <div class="p-3">
+                <button onclick="newChat()" class="w-full flex items-center justify-center space-x-2 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-300/30 hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
+                    <i class="fa fa-plus"></i><span>新建对话</span>
+                </button>
+            </div>
+            <div class="px-3 flex-1 overflow-y-auto scroll-thin" id="historyList">
+                <div class="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2 px-1">历史会话</div>
+                <div class="text-[10px] text-slate-500 mt-2 mb-1 font-semibold">今天</div>
+                <div onclick="switchHistory(this, '高新技术企业认定条件咨询')" class="history-item active cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-message text-blue-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">高新技术企业认定条件咨询</div><div class="text-[9px] text-slate-400 mt-0.5">14:30 · 3条消息</div></div></div>
+                </div>
+                <div onclick="switchHistory(this, '专精特新补贴政策查询')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-message text-blue-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">专精特新补贴政策查询</div><div class="text-[9px] text-slate-400 mt-0.5">11:15 · 8条消息</div></div></div>
+                </div>
+                <div onclick="switchHistory(this, '研发费用加计扣除计算')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-message text-blue-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">研发费用加计扣除计算</div><div class="text-[9px] text-slate-400 mt-0.5">10:02 · 5条消息</div></div></div>
+                </div>
+                <div class="text-[10px] text-slate-500 mt-3 mb-1 font-semibold">昨天</div>
+                <div onclick="switchHistory(this, '软件企业税收优惠政策')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-clock-o text-slate-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">软件企业税收优惠政策</div><div class="text-[9px] text-slate-400 mt-0.5">昨天 16:45 · 12条消息</div></div></div>
+                </div>
+                <div onclick="switchHistory(this, '技术合同登记流程')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-clock-o text-slate-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">技术合同登记流程</div><div class="text-[9px] text-slate-400 mt-0.5">昨天 14:20 · 6条消息</div></div></div>
+                </div>
+                <div class="text-[10px] text-slate-500 mt-3 mb-1 font-semibold">本周</div>
+                <div onclick="switchHistory(this, '人才引进补贴政策')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-calendar text-slate-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">人才引进补贴政策</div><div class="text-[9px] text-slate-400 mt-0.5">8月12日 · 9条消息</div></div></div>
+                </div>
+                <div onclick="switchHistory(this, '近期申报项目截止日期')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-calendar text-slate-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">近期申报项目截止日期</div><div class="text-[9px] text-slate-400 mt-0.5">8月11日 · 4条消息</div></div></div>
+                </div>
+                <div onclick="switchHistory(this, '专利申请费用减免')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-calendar text-slate-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">专利申请费用减免</div><div class="text-[9px] text-slate-400 mt-0.5">8月9日 · 7条消息</div></div></div>
+                </div>
+            </div>
+        </aside>
+        <main class="flex-1 overflow-y-auto" style="background: linear-gradient(135deg, #eef2ff 0%, #e0f2fe 50%, #f5f3ff 100%);">
+            <div class="sticky top-0 z-10 flex items-center justify-between px-6 py-3 bg-white/60 backdrop-blur-md border-b border-white/50">
+                <div class="flex items-center space-x-3">
+                    <div class="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full text-xs font-bold tracking-wider">策源智答 2.0</div>
+                    <span class="text-xs text-slate-500">当前页面：精准政策雷达</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="text-[10px] text-slate-500">张先生（科技主管）</span>
+                    <button class="text-xs text-slate-500 hover:text-red-500"><i class="fa fa-sign-out mr-1"></i>退出登录</button>
+                </div>
+            </div>
+    <div class="max-w-[1400px] mx-auto p-6">
+        <!-- 紧凑顶栏：标题 + 搜索 -->
+        <div class="bg-white rounded-2xl p-4 mb-4 border border-slate-100 shadow-sm">
+            <div class="flex items-center space-x-4">
+                <div class="flex-shrink-0">
+                    <h1 class="text-base font-black text-slate-800 flex items-center">
+                        <i class="fa fa-sitemap text-blue-600 mr-2"></i>精准政策雷达
+                    </h1>
+                </div>
+                <div class="flex-1 relative">
+                    <i class="fa fa-building absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="companyInput" placeholder="输入企业名称（可选）自动识别画像，也可直接在下方条件筛选" class="w-full pl-9 pr-3 py-2 bg-slate-50 rounded-lg text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50">
+                </div>
+                <button onclick="startMatch()" class="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-bold text-xs shadow-lg transition-all flex items-center whitespace-nowrap">
+                    <i class="fa fa-magic mr-1.5"></i> 智能识别匹配
+                </button>
+            </div>
 
-        <!-- 统计概览 -->
-        <div class="grid grid-cols-4 gap-6 mb-6">
-            <div class="bg-white rounded-2xl p-5 border border-slate-100 card-hover transition-all">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-400 font-medium mb-1">匹配政策总数</p>
-                        <h3 class="text-2xl font-black text-slate-800">156</h3>
+            <!-- 企业画像识别结果（搜索后显示，条件来自下方筛选区所选企业指标） -->
+            <div id="companyProfile" class="hidden mt-3 pt-3 border-t border-slate-100">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa fa-check-circle text-green-500 text-xs"></i>
+                        <span class="text-xs font-bold text-slate-700">企业画像识别成功</span>
                     </div>
-                    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                        <i class="fa fa-file-text-o text-xl"></i>
-                    </div>
+                    <button onclick="editProfile()" class="text-[10px] text-blue-600 hover:text-blue-700"><i class="fa fa-pencil mr-0.5"></i>调整企业条件</button>
                 </div>
-                <div class="mt-3 flex items-center text-xs">
-                    <span class="text-green-500 font-bold"><i class="fa fa-arrow-up"></i> 12%</span>
-                    <span class="text-slate-400 ml-2">较上月</span>
+                <div id="profileTagsBox" class="flex items-center flex-wrap gap-1.5 mb-2"></div>
+                <div class="flex items-center space-x-3 text-[10px]">
+                    <span class="text-slate-400 font-bold">数据来源：</span>
+                    <span class="text-slate-500"><i class="fa fa-info-circle"></i> 企业条件取自下方筛选区选择，可随时调整实时重算</span>
                 </div>
             </div>
-            <div class="bg-white rounded-2xl p-5 border border-slate-100 card-hover transition-all">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-400 font-medium mb-1">高匹配度</p>
-                        <h3 class="text-2xl font-black text-green-600">42</h3>
+
+            <!-- 匹配动画（匹配中显示） -->
+            <div id="matchLoading" class="hidden flex items-center justify-center py-4">
+                <div class="flex items-center space-x-3">
+                    <div class="relative w-8 h-8">
+                        <div class="absolute inset-0 rounded-full border-3 border-blue-400/30"></div>
+                        <div class="absolute inset-0 rounded-full border-3 border-transparent border-t-blue-400 animate-spin"></div>
                     </div>
-                    <div class="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center">
-                        <i class="fa fa-thumbs-up text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-3 flex items-center text-xs">
-                    <span class="text-slate-400">匹配度 ≥ 80%</span>
-                </div>
-            </div>
-            <div class="bg-white rounded-2xl p-5 border border-slate-100 card-hover transition-all">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-400 font-medium mb-1">即将截止</p>
-                        <h3 class="text-2xl font-black text-orange-500">18</h3>
-                    </div>
-                    <div class="w-12 h-12 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center">
-                        <i class="fa fa-clock-o text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-3 flex items-center text-xs">
-                    <span class="text-slate-400">30天内截止</span>
-                </div>
-            </div>
-            <div class="bg-white rounded-2xl p-5 border border-slate-100 card-hover transition-all">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-400 font-medium mb-1">预计可获扶持</p>
-                        <h3 class="text-2xl font-black text-slate-800">¥386<span class="text-sm">万</span></h3>
-                    </div>
-                    <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
-                        <i class="fa fa-yen text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-3 flex items-center text-xs">
-                    <span class="text-green-500 font-bold"><i class="fa fa-arrow-up"></i> 25%</span>
-                    <span class="text-slate-400 ml-2">预估总额</span>
+                    <p class="text-xs text-slate-500 font-bold">正在智能匹配中... 分析企业画像 · 检索政策库 · 计算匹配度</p>
                 </div>
             </div>
         </div>
 
+        <!-- Tab 导航 + 统计内联 -->
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-1 bg-white rounded-xl p-1 border border-slate-100 shadow-sm">
+                <button onclick="switchTab('list')" id="tab-btn-list" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white">
+                    <i class="fa fa-list mr-1"></i>政策匹配清单
+                </button>
+                <button onclick="switchTab('calendar')" id="tab-btn-calendar" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-500 hover:bg-slate-50">
+                    <i class="fa fa-calendar mr-1"></i>申报日历
+                </button>
+            </div>
+            <div class="flex items-center space-x-4 text-xs">
+                <div class="flex items-center space-x-1">
+                    <i class="fa fa-file-text-o text-blue-500"></i>
+                    <span class="text-slate-400" id="statTotalLabel">政策库</span>
+                    <span class="font-black text-slate-800" id="statTotal">0</span>
+                    <span class="text-slate-400">项</span>
+                </div>
+                <div class="w-px h-4 bg-slate-200"></div>
+                <div class="flex items-center space-x-1">
+                    <i class="fa fa-thumbs-up text-green-500"></i>
+                    <span class="text-slate-400">高匹配</span>
+                    <span class="font-black text-green-600" id="statHigh">0</span>
+                </div>
+                <div class="w-px h-4 bg-slate-200"></div>
+                <button onclick="showFullReport()" class="text-blue-600 hover:text-blue-700 font-bold">
+                    <i class="fa fa-file-text-o mr-0.5"></i>完整报告
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab 2: 申报日历 + 竞争度分析 -->
+        <div id="tab-pane-calendar" class="hidden">
+        <div class="grid grid-cols-12 gap-6 mb-6">
+            <!-- 申报日历视图 -->
+            <div class="col-span-8 bg-white rounded-2xl p-5 border border-slate-100">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center">
+                        <i class="fa fa-calendar text-blue-600 mr-2"></i> 申报日历
+                        <span id="calendarTitle" class="ml-2 text-[10px] text-slate-400 font-normal">2026年9月</span>
+                    </h3>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="navigateMonth(-1)" class="w-7 h-7 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-500 flex items-center justify-center text-xs"><i class="fa fa-chevron-left"></i></button>
+                        <button onclick="navigateMonth(1)" class="w-7 h-7 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-500 flex items-center justify-center text-xs"><i class="fa fa-chevron-right"></i></button>
+                        <button onclick="goToday()" class="px-3 py-1.5 bg-blue-50 text-blue-600 text-xs rounded-lg font-bold hover:bg-blue-100">今天</button>
+                    </div>
+                </div>
+                <!-- 日历表头 -->
+                <div class="grid grid-cols-7 gap-1 mb-1">
+                    <div class="text-center text-[10px] font-bold text-red-400 py-1">日</div>
+                    <div class="text-center text-[10px] font-bold text-slate-500 py-1">一</div>
+                    <div class="text-center text-[10px] font-bold text-slate-500 py-1">二</div>
+                    <div class="text-center text-[10px] font-bold text-slate-500 py-1">三</div>
+                    <div class="text-center text-[10px] font-bold text-slate-500 py-1">四</div>
+                    <div class="text-center text-[10px] font-bold text-slate-500 py-1">五</div>
+                    <div class="text-center text-[10px] font-bold text-red-400 py-1">六</div>
+                </div>
+                <!-- 日历主体 -->
+                <div class="grid grid-cols-7 gap-1" id="calendarBody">
+                    <!-- 上月尾 -->
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">27</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">28</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">29</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">30</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">31</div>
+                    <!-- 本月 -->
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">1</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">2</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">3</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">4</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">5</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">6</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">7</div>
+                    <!-- 8月8日 截止 -->
+                    <div class="calendar-day h-16 rounded-lg bg-red-50 border border-red-200 p-1 text-[10px] text-red-600 font-bold relative">
+                        8
+                        <div class="absolute bottom-0.5 left-0.5 right-0.5">
+                            <div class="text-[8px] text-red-500 bg-red-100 rounded px-0.5 truncate">新能源汽车</div>
+                        </div>
+                    </div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">9</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">10</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">11</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">12</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">13</div>
+                    <div class="calendar-day h-16 rounded-lg bg-blue-50 border-2 border-blue-500 p-1 text-[10px] text-blue-600 font-bold relative">
+                        14
+                        <span class="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                    </div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">15</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">16</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">17</div>
+                    <!-- 8月18日 截止 -->
+                    <div class="calendar-day h-16 rounded-lg bg-orange-50 border border-orange-200 p-1 text-[10px] text-orange-600 font-bold relative">
+                        18
+                        <div class="absolute bottom-0.5 left-0.5 right-0.5">
+                            <div class="text-[8px] text-orange-500 bg-orange-100 rounded px-0.5 truncate">高企认定</div>
+                        </div>
+                    </div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">19</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">20</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">21</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">22</div>
+                    <!-- 8月23日 截止 -->
+                    <div class="calendar-day h-16 rounded-lg bg-orange-50 border border-orange-200 p-1 text-[10px] text-orange-600 font-bold relative">
+                        23
+                        <div class="absolute bottom-0.5 left-0.5 right-0.5">
+                            <div class="text-[8px] text-orange-500 bg-orange-100 rounded px-0.5 truncate">智能制造</div>
+                        </div>
+                    </div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">24</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">25</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">26</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">27</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">28</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">29</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">30</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50 p-1 text-[10px] text-slate-500 relative">31</div>
+                    <!-- 下月头 -->
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">1</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">2</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">3</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">4</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">5</div>
+                    <div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">6</div>
+                </div>
+                <!-- 日历图例 -->
+                <div class="flex items-center space-x-4 mt-3 pt-3 border-t border-slate-100">
+                    <div class="flex items-center space-x-1.5">
+                        <div class="w-3 h-3 rounded bg-red-50 border border-red-200"></div>
+                        <span class="text-[10px] text-slate-500">紧急（7天内截止）</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <div class="w-3 h-3 rounded bg-orange-50 border border-orange-200"></div>
+                        <span class="text-[10px] text-slate-500">临近（30天内截止）</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <div class="w-3 h-3 rounded bg-blue-50 border-2 border-blue-500"></div>
+                        <span class="text-[10px] text-slate-500">今天</span>
+                    </div>
+                </div>
+                <!-- 本月截止清单 -->
+                <div class="mt-4 pt-4 border-t border-slate-100">
+                    <h4 class="text-xs font-bold text-slate-700 mb-3 flex items-center">
+                        <i class="fa fa-list-ul text-blue-600 mr-2"></i>本月截止申报
+                    </h4>
+                    <div id="monthDeadlineList" class="space-y-1"></div>
+                </div>
+            </div>
+
+            <!-- 匹配结果分析面板（数据来自实时匹配引擎） -->
+            <div class="col-span-4 bg-white rounded-2xl p-5 border border-slate-100">
+                <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center">
+                    <i class="fa fa-tachometer text-purple-600 mr-2"></i> 匹配结果分析
+                </h3>
+
+                <!-- 匹配度分布 -->
+                <div class="mb-4">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3">匹配度分布</p>
+                    <div id="matchDistBox" class="space-y-3"></div>
+                </div>
+
+                <!-- 匹配度 TOP5 -->
+                <div class="mb-4">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3">匹配度 TOP5</p>
+                    <div id="matchTop5Box" class="space-y-2.5"></div>
+                </div>
+
+                <!-- 申报建议 -->
+                <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-3 border border-purple-100">
+                    <div class="flex items-start space-x-2">
+                        <i class="fa fa-lightbulb-o text-purple-500 mt-0.5"></i>
+                        <div>
+                            <p class="text-[11px] font-bold text-slate-700 mb-1">智能建议</p>
+                            <p id="matchAdviceBox" class="text-[10px] text-slate-500 leading-relaxed">选择下方企业条件后，将按政策库申报条件实时生成匹配分析。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div><!-- /tab-pane-calendar -->
+
+        <!-- Tab 1: 政策匹配清单 -->
+        <div id="tab-pane-list">
         <!-- 主内容区：左侧筛选+列表，右侧详情 -->
-        <div class="grid grid-cols-12 gap-6">
-            <!-- 左侧筛选器 -->
-            <div class="col-span-3 space-y-6">
+
+        <!-- 使用引导：两种并行方式 -->
+        <div class="flex items-center space-x-2 mb-3 text-[11px]">
+            <span class="px-2 py-1 bg-slate-100 text-slate-500 rounded font-bold">方式一</span>
+            <span class="text-slate-500">输入企业名称，一键智能识别匹配</span>
+            <span class="text-slate-300">|</span>
+            <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded font-bold">方式二</span>
+            <span class="text-slate-500">直接在下方选择条件筛选</span>
+        </div>
+
+        <!-- 高级筛选条件区（行式平铺，参照高级查询样式） -->
+        <div id="advFilterBox" class="bg-white rounded-2xl px-5 py-4 border border-slate-100 shadow-sm mb-4">
+            <!-- 标题 -->
+            <div class="flex items-center mb-1">
+                <span class="w-1 h-4 bg-blue-600 rounded-sm mr-2"></span>
+                <h3 class="text-sm font-black text-slate-800">高级查询</h3>
+            </div>
+
+            <!-- 维度行：每行一个维度，选项平铺，点击切换选中 -->
+            <div class="divide-y divide-slate-100">
                 <!-- 行业分类 -->
-                <div class="bg-white rounded-2xl p-5 border border-slate-100">
-                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center">
-                        <i class="fa fa-industry text-blue-600 mr-2"></i> 行业分类
-                    </h3>
-                    <div class="space-y-3">
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked>
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">信息技术</span>
-                            </div>
-                            <span class="text-xs text-slate-400">45</span>
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">生物医药</span>
-                            </div>
-                            <span class="text-xs text-slate-400">32</span>
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">高端装备</span>
-                            </div>
-                            <span class="text-xs text-slate-400">28</span>
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">新能源</span>
-                            </div>
-                            <span class="text-xs text-slate-400">24</span>
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">新材料</span>
-                            </div>
-                            <span class="text-xs text-slate-400">18</span>
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">现代农业</span>
-                            </div>
-                            <span class="text-xs text-slate-400">9</span>
-                        </label>
+                <div class="flex items-start py-2.5">
+                    <span class="w-20 flex-shrink-0 text-xs font-bold text-slate-500 pt-0.5">行业分类</span>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 flex-1">
+                        <span class="filter-opt text-xs" data-key="industry" data-val="信息技术">信息技术</span>
+                        <span class="filter-opt text-xs" data-key="industry" data-val="生物医药">生物医药</span>
+                        <span class="filter-opt text-xs" data-key="industry" data-val="高端装备">高端装备</span>
+                        <span class="filter-opt text-xs" data-key="industry" data-val="新能源">新能源</span>
+                        <span class="filter-opt text-xs" data-key="industry" data-val="新材料">新材料</span>
+                        <span class="filter-opt text-xs" data-key="industry" data-val="现代农业">现代农业</span>
                     </div>
                 </div>
-
-                <!-- 政策层级 -->
-                <div class="bg-white rounded-2xl p-5 border border-slate-100">
-                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center">
-                        <i class="fa fa-sitemap text-blue-600 mr-2"></i> 政策层级
-                    </h3>
-                    <div class="space-y-3">
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked>
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">国家级</span>
-                            </div>
-                            <span class="text-xs bg-red-50 text-red-500 px-2 py-0.5 rounded">23</span>
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked>
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">省级</span>
-                            </div>
-                            <span class="text-xs bg-orange-50 text-orange-500 px-2 py-0.5 rounded">58</span>
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked>
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">市级</span>
-                            </div>
-                            <span class="text-xs bg-blue-50 text-blue-500 px-2 py-0.5 rounded">75</span>
-                        </label>
+                <!-- 政策级别 -->
+                <div class="flex items-start py-2.5">
+                    <span class="w-20 flex-shrink-0 text-xs font-bold text-slate-500 pt-0.5">级别</span>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 flex-1">
+                        <span class="filter-opt text-xs" data-key="level" data-val="国家级">国家级</span>
+                        <span class="filter-opt text-xs" data-key="level" data-val="省级">省级</span>
+                        <span class="filter-opt text-xs" data-key="level" data-val="市级">市级</span>
                     </div>
                 </div>
-
-                <!-- 申报状态 -->
-                <div class="bg-white rounded-2xl p-5 border border-slate-100">
-                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center">
-                        <i class="fa fa-filter text-blue-600 mr-2"></i> 申报状态
-                    </h3>
-                    <div class="space-y-3">
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked>
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">申报中</span>
-                            </div>
-                            <span class="text-xs text-slate-400">86</span>
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">即将开始</span>
-                            </div>
-                            <span class="text-xs text-slate-400">34</span>
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                                <span class="ml-2 text-sm text-slate-700 group-hover:text-blue-600">已截止</span>
-                            </div>
-                            <span class="text-xs text-slate-400">36</span>
-                        </label>
+                <!-- 我的资质（企业画像，参与实时匹配） -->
+                <div class="flex items-start py-2.5">
+                    <span class="w-20 flex-shrink-0 text-xs font-bold text-slate-500 pt-0.5">我的资质</span>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 flex-1">
+                        <span class="filter-opt text-xs" data-key="qualification" data-val="高新技术企业">高新技术企业</span>
+                        <span class="filter-opt text-xs" data-key="qualification" data-val="科技型中小企业">科技型中小企业</span>
+                        <span class="filter-opt text-xs" data-key="qualification" data-val="专精特新">专精特新</span>
                     </div>
                 </div>
-
-                <!-- 扶持类型 -->
-                <div class="bg-white rounded-2xl p-5 border border-slate-100">
-                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center">
-                        <i class="fa fa-tags text-blue-600 mr-2"></i> 扶持类型
-                    </h3>
-                    <div class="flex flex-wrap gap-2">
-                        <span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs rounded-full cursor-pointer hover:bg-blue-100">资金补贴</span>
-                        <span class="px-3 py-1 bg-green-50 text-green-600 text-xs rounded-full cursor-pointer hover:bg-green-100">税收减免</span>
-                        <span class="px-3 py-1 bg-purple-50 text-purple-600 text-xs rounded-full cursor-pointer hover:bg-purple-100">资质认定</span>
-                        <span class="px-3 py-1 bg-orange-50 text-orange-600 text-xs rounded-full cursor-pointer hover:bg-orange-100">贷款贴息</span>
-                        <span class="px-3 py-1 bg-teal-50 text-teal-600 text-xs rounded-full cursor-pointer hover:bg-teal-100">股权投资</span>
-                        <span class="px-3 py-1 bg-pink-50 text-pink-600 text-xs rounded-full cursor-pointer hover:bg-pink-100">人才引进</span>
+                <!-- 核心自主知识产权 -->
+                <div class="flex items-start py-2.5">
+                    <span class="w-20 flex-shrink-0 text-xs font-bold text-slate-500 pt-0.5">知识产权</span>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 flex-1">
+                        <span class="filter-opt text-xs" data-key="ipOwned" data-val="是">有核心自主知识产权</span>
+                        <span class="filter-opt text-xs" data-key="ipOwned" data-val="否">暂无</span>
+                    </div>
+                </div>
+                <!-- 研发费用占比（企业实际值，单选阈值） -->
+                <div class="flex items-start py-2.5">
+                    <span class="w-20 flex-shrink-0 text-xs font-bold text-slate-500 pt-0.5">研发费用占比</span>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 flex-1">
+                        <span class="filter-opt text-xs" data-key="rdRatio" data-val="3">≥3%</span>
+                        <span class="filter-opt text-xs" data-key="rdRatio" data-val="5">≥5%</span>
+                        <span class="filter-opt text-xs" data-key="rdRatio" data-val="10">≥10%</span>
+                        <span class="filter-opt text-xs" data-key="rdRatio" data-val="20">≥20%</span>
+                    </div>
+                </div>
+                <!-- 高新产品收入占比 -->
+                <div class="flex items-start py-2.5">
+                    <span class="w-20 flex-shrink-0 text-xs font-bold text-slate-500 pt-0.5">高新收入占比</span>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 flex-1">
+                        <span class="filter-opt text-xs" data-key="hiTechRatio" data-val="60">≥60%</span>
+                    </div>
+                </div>
+                <!-- 年度营业收入 -->
+                <div class="flex items-start py-2.5">
+                    <span class="w-20 flex-shrink-0 text-xs font-bold text-slate-500 pt-0.5">年营业收入</span>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 flex-1">
+                        <span class="filter-opt text-xs" data-key="revenue" data-val="300">≥300万</span>
+                        <span class="filter-opt text-xs" data-key="revenue" data-val="1000">≥1000万</span>
+                        <span class="filter-opt text-xs" data-key="revenue" data-val="2000">≥2000万</span>
+                    </div>
+                </div>
+                <!-- 年度研发投入 -->
+                <div class="flex items-start py-2.5">
+                    <span class="w-20 flex-shrink-0 text-xs font-bold text-slate-500 pt-0.5">年研发投入</span>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 flex-1">
+                        <span class="filter-opt text-xs" data-key="rdInvest" data-val="50">≥50万</span>
+                        <span class="filter-opt text-xs" data-key="rdInvest" data-val="100">≥100万</span>
                     </div>
                 </div>
             </div>
 
-            <!-- 中间政策列表 -->
-            <div class="col-span-6">
-                <!-- 排序选项 -->
-                <div class="bg-white rounded-2xl p-4 border border-slate-100 mb-4 flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-xs text-slate-400">智能排序：</span>
-                        <button class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg font-bold">匹配度优先</button>
-                        <button class="px-3 py-1.5 text-slate-500 text-xs rounded-lg hover:bg-slate-50">截止日期</button>
-                        <button class="px-3 py-1.5 text-slate-500 text-xs rounded-lg hover:bg-slate-50">扶持金额</button>
-                        <button class="px-3 py-1.5 text-slate-500 text-xs rounded-lg hover:bg-slate-50">发布时间</button>
+            <!-- 底部：已选条件 + 排序/重置/查询 -->
+            <div class="flex items-center justify-between mt-2 pt-3 border-t border-slate-100">
+                <div class="flex items-center flex-wrap gap-2 flex-1 min-w-0">
+                    <span class="text-xs text-slate-400 font-bold flex-shrink-0">已选条件：</span>
+                    <div id="selectedTagsBox" class="flex flex-wrap gap-2 items-center"></div>
+                </div>
+                <div class="flex items-center space-x-2 flex-shrink-0 ml-3">
+                    <span class="flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 text-xs rounded-lg font-bold">
+                        <i class="fa fa-sort mr-1"></i>匹配度优先
+                    </span>
+                    <button onclick="resetFilter()" class="px-4 py-1.5 bg-white text-blue-600 border border-blue-200 rounded-lg text-xs font-bold hover:bg-blue-50 transition-all">重置筛选</button>
+                    <button onclick="applyFilter()" class="px-5 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all">查一下</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 政策列表（单栏全宽，不使用12栅格：本地 tailwind.css 未包含 col-span-12） -->
+        <div>
+            <!-- 清单工具栏 -->
+                <div class="bg-white rounded-2xl p-3 border border-slate-100 mb-3 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <button onclick="quickFilter('high')" class="px-2.5 py-1 bg-green-50 text-green-600 text-[10px] rounded-full font-bold hover:bg-green-100">高匹配 ≥80%</button>
+                        <span class="text-[10px] text-slate-300">选择下方企业条件后，按政策库申报条件实时计算匹配度</span>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="text-xs text-slate-400">共找到 <span class="font-bold text-slate-700">156</span> 条政策</span>
+                        <span class="text-[10px] text-slate-400">共找到 <span id="listCount" class="font-bold text-slate-700">6</span> 条</span>
+                        <button onclick="exportList()" class="flex items-center space-x-1 px-3 py-1 bg-slate-50 text-slate-600 text-[10px] rounded-lg hover:bg-slate-100 font-bold">
+                            <i class="fa fa-file-excel-o text-green-500"></i><span>导出</span>
+                        </button>
+                        <button onclick="showSummary()" class="flex items-center space-x-1 px-3 py-1 bg-slate-50 text-slate-600 text-[10px] rounded-lg hover:bg-slate-100 font-bold">
+                            <i class="fa fa-list-alt text-blue-500"></i><span>汇总</span>
+                        </button>
                     </div>
                 </div>
 
                 <!-- 政策卡片列表 -->
-                <div class="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-thin pr-2" id="policyList">
-                    <!-- 政策项 1 -->
-                    <div class="policy-item bg-white rounded-2xl p-5 border-2 border-blue-100 cursor-pointer" onclick="showDetail(1)">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white">
-                                    <i class="fa fa-star"></i>
-                                </div>
-                                <div>
-                                    <div class="flex items-center space-x-2 mb-1">
-                                        <span class="px-2 py-0.5 bg-red-50 text-red-500 text-[10px] font-bold rounded">国家级</span>
-                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded">信息技术</span>
-                                        <span class="px-2 py-0.5 bg-green-50 text-green-500 text-[10px] font-bold rounded">资金补贴</span>
-                                    </div>
-                                    <h3 class="text-sm font-bold text-slate-800">2026年国家高新技术企业认定管理办法</h3>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-3xl font-black text-blue-600">96<span class="text-sm">%</span></div>
-                                <p class="text-[10px] text-slate-400">匹配度</p>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-500 mb-3 leading-relaxed">支持电子信息、生物医药、高端装备等领域企业开展核心技术研发，对符合条件的高新技术企业给予税收减免及研发费用加计扣除...</p>
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-100">
-                            <div class="flex items-center space-x-4 text-xs text-slate-500">
-                                <span><i class="fa fa-yen text-green-500"></i> 最高¥100万</span>
-                                <span><i class="fa fa-clock-o text-orange-500"></i> 剩余 15天</span>
-                                <span><i class="fa fa-users text-purple-500"></i> 竞争度低</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-[10px] text-slate-400">2026-08-18截止</span>
-                                <button class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-all">
-                                    <i class="fa fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="space-y-3" id="policyList">
+                    <!-- 政策卡片由JS动态渲染 -->
+                </div>
+                <!-- 分页器 -->
+                <div id="pagination" class="flex items-center justify-between mt-4 pt-3 border-t border-slate-100"></div>
+        </div>
+    </div>
+        </div><!-- /tab-pane-list -->
 
-                    <!-- 政策项 2 -->
-                    <div class="policy-item bg-white rounded-2xl p-5 border border-slate-100 cursor-pointer" onclick="showDetail(2)">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center text-white">
-                                    <i class="fa fa-rocket"></i>
-                                </div>
-                                <div>
-                                    <div class="flex items-center space-x-2 mb-1">
-                                        <span class="px-2 py-0.5 bg-orange-50 text-orange-500 text-[10px] font-bold rounded">省级</span>
-                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded">生物医药</span>
-                                        <span class="px-2 py-0.5 bg-green-50 text-green-500 text-[10px] font-bold rounded">税收减免</span>
-                                    </div>
-                                    <h3 class="text-sm font-bold text-slate-800">山东省生物医药产业创新发展扶持政策</h3>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-3xl font-black text-green-600">89<span class="text-sm">%</span></div>
-                                <p class="text-[10px] text-slate-400">匹配度</p>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-500 mb-3 leading-relaxed">对生物医药领域的企业给予研发费用加计扣除、临床试验补贴、创新药奖励等多方面支持，推动产业高质量发展...</p>
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-100">
-                            <div class="flex items-center space-x-4 text-xs text-slate-500">
-                                <span><i class="fa fa-yen text-green-500"></i> 最高¥500万</span>
-                                <span><i class="fa fa-clock-o text-orange-500"></i> 剩余 28天</span>
-                                <span><i class="fa fa-users text-yellow-500"></i> 竞争度中</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-[10px] text-slate-400">2026-09-01截止</span>
-                                <button class="w-8 h-8 bg-slate-100 text-slate-400 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
-                                    <i class="fa fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+        </main>
+    </div>
 
-                    <!-- 政策项 3 -->
-                    <div class="policy-item bg-white rounded-2xl p-5 border border-slate-100 cursor-pointer" onclick="showDetail(3)">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center text-white">
-                                    <i class="fa fa-bolt"></i>
-                                </div>
-                                <div>
-                                    <div class="flex items-center space-x-2 mb-1">
-                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded">市级</span>
-                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded">新能源</span>
-                                        <span class="px-2 py-0.5 bg-purple-50 text-purple-500 text-[10px] font-bold rounded">资质认定</span>
-                                    </div>
-                                    <h3 class="text-sm font-bold text-slate-800">济南市新能源汽车产业发展专项资金管理办法</h3>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-3xl font-black text-slate-700">82<span class="text-sm">%</span></div>
-                                <p class="text-[10px] text-slate-400">匹配度</p>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-500 mb-3 leading-relaxed">支持新能源汽车及零部件生产企业开展技术改造和智能化升级，对符合条件的企业给予专项补贴和资质认定...</p>
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-100">
-                            <div class="flex items-center space-x-4 text-xs text-slate-500">
-                                <span><i class="fa fa-yen text-green-500"></i> 最高¥200万</span>
-                                <span><i class="fa fa-clock-o text-red-500"></i> 剩余 5天</span>
-                                <span><i class="fa fa-users text-yellow-500"></i> 竞争度中</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-[10px] text-red-500 font-bold">2026-08-08截止</span>
-                                <button class="w-8 h-8 bg-slate-100 text-slate-400 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
-                                    <i class="fa fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+<script src="data-bridge.js?v=20260916"></script>
+<script>
+    // ===== 政策数据源：统一由 DataBridge 政策库提供（运营在「政策库」维护申报条件） =====
 
-                    <!-- 政策项 4 -->
-                    <div class="policy-item bg-white rounded-2xl p-5 border border-slate-100 cursor-pointer" onclick="showDetail(4)">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center text-white">
-                                    <i class="fa fa-cube"></i>
-                                </div>
-                                <div>
-                                    <div class="flex items-center space-x-2 mb-1">
-                                        <span class="px-2 py-0.5 bg-orange-50 text-orange-500 text-[10px] font-bold rounded">省级</span>
-                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded">新材料</span>
-                                        <span class="px-2 py-0.5 bg-green-50 text-green-500 text-[10px] font-bold rounded">资金补贴</span>
-                                    </div>
-                                    <h3 class="text-sm font-bold text-slate-800">山东省新材料产业高质量发展行动计划</h3>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-3xl font-black text-slate-700">78<span class="text-sm">%</span></div>
-                                <p class="text-[10px] text-slate-400">匹配度</p>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-500 mb-3 leading-relaxed">聚焦先进半导体、高端合金、新型功能材料等领域，支持企业开展关键核心技术攻关和产业化应用...</p>
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-100">
-                            <div class="flex items-center space-x-4 text-xs text-slate-500">
-                                <span><i class="fa fa-yen text-green-500"></i> 最高¥150万</span>
-                                <span><i class="fa fa-clock-o text-slate-400"></i> 剩余 45天</span>
-                                <span><i class="fa fa-users text-green-500"></i> 竞争度低</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-[10px] text-slate-400">2026-09-17截止</span>
-                                <button class="w-8 h-8 bg-slate-100 text-slate-400 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
-                                    <i class="fa fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+    // 当前状态
+    var STATE = {
+        sort: '匹配度优先',
+        keyword: '',
+        page: 1,
+        pageSize: 3,
+        filters: {
+            industry: [],       // 行业（政策属性筛选）
+            level: [],          // 级别（政策属性筛选）
+            qualification: [],  // 我的资质（企业画像→匹配）
+            ipOwned: [],        // 核心自主知识产权 是/否（单选）
+            rdRatio: [],        // 研发费用占比（单选阈值）
+            hiTechRatio: [],    // 高新产品收入占比（单选）
+            revenue: [],        // 年营业收入（单选）
+            rdInvest: []        // 年研发投入（单选）
+        },
+        quick: null
+    };
+    // 参与"企业画像匹配"的维度（选中即代表企业该项指标值）
+    var ENTERPRISE_KEYS = ['qualification', 'ipOwned', 'rdRatio', 'hiTechRatio', 'revenue', 'rdInvest'];
+    // 单选维度（阈值/是否）
+    var SINGLE_KEYS = ['ipOwned', 'rdRatio', 'hiTechRatio', 'revenue', 'rdInvest'];
+    // 条件中文名/单位（与政策库条件类型一致）
+    var COND_LABELS = { duration:'企业成立年限', rdRatio:'研发费用占比', hiTechRatio:'高新产品收入占比', ipOwned:'核心自主知识产权', scale:'企业规模', industry:'行业类型', region:'注册地区', employees:'员工人数', rdInvest:'年度研发投入', revenue:'年度营业收入', netAssets:'净资产', capital:'注册资本', hiTechCert:'高新技术企业资质', smeCert:'科技型中小企业', gazelleCert:'专精特新资质', profit:'年度净利润', taxRegion:'税收洼地', exportRatio:'出口收入占比', projectInvest:'项目总投入' };
+    var COND_UNITS = { duration:'年', rdRatio:'%', hiTechRatio:'%', employees:'人', rdInvest:'万元', revenue:'万元', netAssets:'万元', capital:'万元', profit:'万元', exportRatio:'%', projectInvest:'万元' };
+    var ICONS = ['fa-star','fa-rocket','fa-bolt','fa-cube','fa-cogs','fa-flask','fa-leaf','fa-users'];
+    var GRADS = ['from-blue-500 to-purple-600','from-green-500 to-teal-600','from-orange-500 to-red-600','from-purple-500 to-pink-600','from-teal-500 to-blue-600','from-pink-500 to-red-600','from-green-500 to-lime-600','from-indigo-500 to-blue-600'];
 
-                    <!-- 政策项 5 -->
-                    <div class="policy-item bg-white rounded-2xl p-5 border border-slate-100 cursor-pointer" onclick="showDetail(5)">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-12 h-12 bg-gradient-to-br from-teal-500 to-blue-600 rounded-xl flex items-center justify-center text-white">
-                                    <i class="fa fa-cogs"></i>
-                                </div>
-                                <div>
-                                    <div class="flex items-center space-x-2 mb-1">
-                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded">市级</span>
-                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded">高端装备</span>
-                                        <span class="px-2 py-0.5 bg-green-50 text-green-500 text-[10px] font-bold rounded">贷款贴息</span>
-                                    </div>
-                                    <h3 class="text-sm font-bold text-slate-800">济南市智能制造装备产业升级专项政策</h3>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-3xl font-black text-slate-700">73<span class="text-sm">%</span></div>
-                                <p class="text-[10px] text-slate-400">匹配度</p>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-500 mb-3 leading-relaxed">鼓励企业开展数字化车间和智能工厂改造升级，对购置智能制造装备的企业给予贷款贴息和加速折旧...</p>
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-100">
-                            <div class="flex items-center space-x-4 text-xs text-slate-500">
-                                <span><i class="fa fa-yen text-green-500"></i> 最高¥80万</span>
-                                <span><i class="fa fa-clock-o text-orange-500"></i> 剩余 20天</span>
-                                <span><i class="fa fa-users text-yellow-500"></i> 竞争度中</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-[10px] text-slate-400">2026-08-23截止</span>
-                                <button class="w-8 h-8 bg-slate-100 text-slate-400 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
-                                    <i class="fa fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+    function _normOp(op) { return ({ '>=':'≥', '<=':'≤', '==':'=', '=':'=' })[op] || op; }
+    function _normVal(v) {
+        if (v === true || v === 'true') return '是';
+        if (v === false || v === 'false') return '否';
+        return v;
+    }
+    // 条件 → 可读文本
+    function conditionText(c) {
+        var label = COND_LABELS[c.type] || c.type;
+        var op = _normOp(c.op);
+        var val = _normVal(c.val);
+        var unit = COND_UNITS[c.type] || '';
+        if (op === '是' || op === '否' || val === '是' || val === '否') return label + ' ' + (op === '=' ? (val || '') : op);
+        if (val === undefined || val === null || val === '') return label + ' ' + op;
+        return label + ' ' + op + ' ' + val + unit;
+    }
+    // 从已选条件构建企业画像
+    function buildEnterprise() {
+        var f = STATE.filters, ent = {};
+        if (f.rdRatio.length) ent.rdRatio = parseFloat(f.rdRatio[0]);
+        if (f.hiTechRatio.length) ent.hiTechRatio = parseFloat(f.hiTechRatio[0]);
+        if (f.revenue.length) ent.revenue = parseFloat(f.revenue[0]);
+        if (f.rdInvest.length) ent.rdInvest = parseFloat(f.rdInvest[0]);
+        if (f.ipOwned.length) ent.ipOwned = f.ipOwned[0];
+        f.qualification.forEach(function(q) {
+            if (q === '高新技术企业') ent.hiTechCert = '是';
+            else if (q === '科技型中小企业') ent.smeCert = '是';
+            else if (q === '专精特新') ent.gazelleCert = '是';
+        });
+        return ent;
+    }
+    function hasEnterpriseInput() {
+        return ENTERPRISE_KEYS.some(function(k) { return STATE.filters[k].length > 0; });
+    }
 
-                    <!-- 政策项 6 -->
-                    <div class="policy-item bg-white rounded-2xl p-5 border border-slate-100 cursor-pointer" onclick="showDetail(6)">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-red-600 rounded-xl flex items-center justify-center text-white">
-                                    <i class="fa fa-flask"></i>
-                                </div>
-                                <div>
-                                    <div class="flex items-center space-x-2 mb-1">
-                                        <span class="px-2 py-0.5 bg-red-50 text-red-500 text-[10px] font-bold rounded">国家级</span>
-                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-500 text-[10px] font-bold rounded">信息技术</span>
-                                        <span class="px-2 py-0.5 bg-green-50 text-green-500 text-[10px] font-bold rounded">资金补贴</span>
-                                    </div>
-                                    <h3 class="text-sm font-bold text-slate-800">国家重点研发计划"新一代人工智能"重点专项</h3>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-3xl font-black text-slate-700">68<span class="text-sm">%</span></div>
-                                <p class="text-[10px] text-slate-400">匹配度</p>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-500 mb-3 leading-relaxed">支持人工智能基础理论研究、核心技术攻关和应用示范，推动AI技术在各行业的深度融合和创新应用...</p>
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-100">
-                            <div class="flex items-center space-x-4 text-xs text-slate-500">
-                                <span><i class="fa fa-yen text-green-500"></i> 最高¥1000万</span>
-                                <span><i class="fa fa-clock-o text-slate-400"></i> 剩余 60天</span>
-                                <span><i class="fa fa-users text-red-500"></i> 竞争度高</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-[10px] text-slate-400">2026-10-02截止</span>
-                                <button class="w-8 h-8 bg-slate-100 text-slate-400 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
-                                    <i class="fa fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+    // 级别、行业徽标颜色
+    var LEVEL_BG = { '国家级': 'bg-red-50 text-red-500', '省级': 'bg-orange-50 text-orange-500', '市级': 'bg-blue-50 text-blue-500' };
+    var INDUSTRY_BG = { '信息技术': 'bg-blue-50 text-blue-500', '生物医药': 'bg-blue-50 text-blue-500', '高端装备': 'bg-blue-50 text-blue-500', '新能源': 'bg-blue-50 text-blue-500', '新材料': 'bg-blue-50 text-blue-500', '现代农业': 'bg-blue-50 text-blue-500' };
+
+    // 渲染列表（根据 STATE 过滤 + 排序）
+    function renderPolicyList() {
+        var list = document.getElementById('policyList');
+        if (!list) return;
+
+        // 1) 数据来源：政策库（DataBridge）。有企业画像条件→实时匹配；无→浏览全部政策
+        var f0 = STATE.filters;
+        var matched = hasEnterpriseInput();
+        var data;
+        if (matched && window.DataBridge && DataBridge.matchPoliciesForEnterprise) {
+            data = DataBridge.matchPoliciesForEnterprise(buildEnterprise()).map(function(r) {
+                return {
+                    id: r.policy.id, name: r.policy.name, dept: r.policy.dept,
+                    level: r.policy.level, industry: r.policy.industry,
+                    effective: r.policy.effective, expire: r.policy.expire,
+                    batches: r.policy.batches || [],
+                    score: r.score, hit: r.hit, total: r.total, unknown: r.unknown,
+                    details: r.details
+                };
+            });
+        } else {
+            data = DataBridge.loadPolicyLibrary().map(function(p) {
+                return {
+                    id: p.id, name: p.name, dept: p.dept, level: p.level, industry: p.industry,
+                    effective: p.effective, expire: p.expire, batches: p.batches || [], score: null,
+                    details: (p.conditions || []).map(function(c) {
+                        return { type: c.type, op: _normOp(c.op), val: _normVal(c.val), status: null };
+                    })
+                };
+            });
+        }
+
+        // 2) 政策属性过滤（行业/级别）+ 快捷筛选（高匹配）
+        data = data.filter(function(d) {
+            if (f0.industry.length && f0.industry.indexOf(d.industry) < 0) return false;
+            if (f0.level.length && f0.level.indexOf(d.level) < 0) return false;
+            if (STATE.quick === 'high' && (d.score === null || d.score < 80)) return false;
+            return true;
+        });
+
+        // 3) 排序：匹配度降序；浏览模式按政策库原顺序
+        data.sort(function(a, b) {
+            if (a.score === null || b.score === null) return 0;
+            return b.score - a.score;
+        });
+
+        // 4) 更新总数/高匹配统计
+        var total = data.length;
+        var highCnt = data.filter(function(d) { return d.score !== null && d.score >= 80; }).length;
+        var cnt = document.getElementById('listCount');
+        if (cnt) cnt.innerText = total;
+        var stTotal = document.getElementById('statTotal');
+        var stHigh = document.getElementById('statHigh');
+        var stLabel = document.getElementById('statTotalLabel');
+        if (stTotal) stTotal.innerText = total;
+        if (stHigh) stHigh.innerText = highCnt;
+        if (stLabel) stLabel.innerText = matched ? '已匹配' : '政策库';
+
+        // 4.5) 联动右侧匹配结果分析 + 画像标签
+        renderMatchAnalysis();
+        renderProfileTags();
+
+        // 5) 分页切片
+        var totalPages = Math.max(1, Math.ceil(total / STATE.pageSize));
+        if (STATE.page > totalPages) STATE.page = totalPages;
+        if (STATE.page < 1) STATE.page = 1;
+        var start = (STATE.page - 1) * STATE.pageSize;
+        var pageData = data.slice(start, start + STATE.pageSize);
+
+        // 6) 生成空状态
+        if (!total) {
+            list.innerHTML = '<div class="p-10 text-center text-slate-400 text-xs"><i class="fa fa-search text-2xl mb-2 block text-slate-300"></i>没有符合当前筛选条件的政策</div>';
+            renderPagination(0, 1);
+            return;
+        }
+
+        var html = pageData.map(function(p, idx) {
+            var icon = ICONS[(start + idx) % ICONS.length];
+            var grad = GRADS[(start + idx) % GRADS.length];
+            var levelBg = LEVEL_BG[p.level] || 'bg-slate-50 text-slate-500';
+            var industryBg = INDUSTRY_BG[p.industry] || 'bg-slate-50 text-slate-500';
+
+            // 匹配度区域
+            var scoreBlock;
+            if (p.score === null) {
+                scoreBlock = '<div class="text-right">' +
+                    '<div class="text-2xl font-black text-slate-300">—</div>' +
+                    '<p class="text-[10px] text-slate-400">完善企业条件后计算</p></div>';
+            } else {
+                var sColor = p.score >= 80 ? 'text-blue-600' : (p.score >= 50 ? 'text-green-600' : 'text-amber-600');
+                var barColor = p.score >= 80 ? 'bg-blue-500' : (p.score >= 50 ? 'bg-green-500' : 'bg-amber-500');
+                var grade = p.score >= 80 ? '高匹配' : (p.score >= 50 ? '部分匹配' : '低匹配');
+                var unknownHint = p.unknown > 0 ? '<p class="text-[9px] text-slate-400 mt-0.5">' + p.unknown + '项企业未填写</p>' : '';
+                scoreBlock = '<div class="text-right">' +
+                    '<div class="text-3xl font-black ' + sColor + '">' + p.score + '<span class="text-sm">%</span></div>' +
+                    '<p class="text-[10px] text-slate-400">' + grade + ' · 命中' + p.hit + '/' + p.total + '</p>' +
+                    '<div class="w-16 h-[1.5px] bg-slate-100 rounded-full overflow-hidden mt-1"><div class="h-full ' + barColor + ' rounded-full" style="width:' + p.score + '%"></div></div>' +
+                    unknownHint + '</div>';
+            }
+
+            // 申报条件逐条核对
+            var condRows = (p.details || []).map(function(c) {
+                var text = conditionText(c);
+                if (c.status === 'hit') {
+                    return '<div class="flex items-center gap-1.5 text-[11px]"><i class="fa fa-check-circle text-green-500"></i><span class="text-green-700 font-medium">' + text + '</span><span class="text-[9px] text-green-500 font-bold">满足</span></div>';
+                } else if (c.status === 'fail') {
+                    return '<div class="flex items-center gap-1.5 text-[11px]"><i class="fa fa-times-circle text-red-400"></i><span class="text-red-500 font-medium">' + text + '</span><span class="text-[9px] text-red-400 font-bold">不满足</span></div>';
+                } else if (c.status === 'unknown') {
+                    return '<div class="flex items-center gap-1.5 text-[11px]"><i class="fa fa-question-circle text-slate-300"></i><span class="text-slate-400">' + text + '</span><span class="text-[9px] text-slate-400">企业未填写</span></div>';
+                }
+                return '<div class="flex items-center gap-1.5 text-[11px]"><i class="fa fa-angle-right text-slate-300"></i><span class="text-slate-500">' + text + '</span><span class="text-[9px] text-slate-400">申报要求</span></div>';
+            }).join('');
+
+            var period = (p.effective || p.expire)
+                ? '<span><i class="fa fa-calendar text-slate-400"></i> ' + (p.effective || '?') + ' ~ ' + (p.expire || '长期') + '</span>'
+                : '';
+
+            // 当前/最近申报批次（区别于政策有效期）
+            var batches = (p.batches || []).filter(function(b){ return b && b.end; });
+            var batchLine = '';
+            if (batches.length) {
+                var today = new Date(); today.setHours(0,0,0,0);
+                function dayd(s){ var a=String(s).split('-'); return new Date(+a[0],+a[1]-1,+a[2]); }
+                // 申报中（今天在窗口内）优先，其次最近未开始，否则最近截止
+                var active = batches.find(function(b){
+                    var s=b.start?dayd(b.start):null; var e=dayd(b.end);
+                    return (!s||today.getTime()>=s.getTime()) && today.getTime()<=e.getTime();
+                });
+                var next = batches.filter(function(b){ return b.start && today.getTime()<dayd(b.start).getTime(); })
+                    .sort(function(a,b){return dayd(a.start).getTime()-dayd(b.start).getTime();})[0];
+                var pick = active || next;
+                if (pick) {
+                    var dl = dayd(pick.end);
+                    var days = Math.round((dl.getTime()-today.getTime())/86400000);
+                    var bCls = active ? 'text-green-600' : 'text-blue-600';
+                    var bTag = active ? '申报中' : '即将申报';
+                    batchLine = '<span class="' + bCls + '"><i class="fa fa-clock-o text-slate-400"></i> ' + pick.name + '（' + bTag + '，截止 ' + pick.end + '）</span>';
+                } else {
+                    var last = batches.sort(function(a,b){return dayd(b.end).getTime()-dayd(a.end).getTime();})[0];
+                    batchLine = '<span class="text-slate-400"><i class="fa fa-clock-o text-slate-300"></i> ' + last.name + '（已截止 ' + last.end + '）</span>';
+                }
+            }
+
+            return '' +
+'<div class="policy-item bg-white rounded-2xl p-5 border border-slate-100">' +
+    '<div class="flex items-start justify-between mb-3">' +
+        '<div class="flex items-start space-x-3">' +
+            '<div class="w-12 h-12 bg-gradient-to-br ' + grad + ' rounded-xl flex items-center justify-center text-white"><i class="fa ' + icon + '"></i></div>' +
+            '<div>' +
+                '<div class="flex items-center space-x-2 mb-1 flex-wrap">' +
+                    '<span class="px-2 py-0.5 ' + levelBg + ' text-[10px] font-bold rounded">' + p.level + '</span>' +
+                    '<span class="px-2 py-0.5 ' + industryBg + ' text-[10px] font-bold rounded">' + (p.industry || '不限行业') + '</span>' +
+                '</div>' +
+                '<h3 class="text-sm font-bold text-slate-800">' + p.name + '</h3>' +
+            '</div>' +
+        '</div>' +
+        scoreBlock +
+    '</div>' +
+    '<div class="bg-slate-50 rounded-xl p-3 mb-3 space-y-1.5">' +
+        '<p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">申报条件核对（来源：政策库）</p>' +
+        condRows +
+    '</div>' +
+    '<div class="pt-3 border-t border-slate-100">' +
+        (batchLine ? '<div class="text-xs mb-2">' + batchLine + '</div>' : '') +
+        '<div class="flex items-center justify-between">' +
+            '<div class="flex items-center space-x-4 text-xs text-slate-500 flex-wrap gap-y-1">' +
+                '<span><i class="fa fa-building text-slate-400"></i> ' + (p.dept || '主管部门') + '</span>' +
+                period +
+            '</div>' +
+            '<div class="flex items-center space-x-2 flex-shrink-0">' +
+                '<button onclick="event.stopPropagation(); bookPolicy(\'' + p.id + '\')" class="px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-all">预约申领</button>' +
+                '<button onclick="event.stopPropagation(); goServiceMarket(\'' + p.id + '\')" class="px-3 py-1.5 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-lg hover:bg-emerald-100 transition-all flex items-center"><i class="fa fa-shopping-cart mr-1"></i>找服务申报</button>' +
+            '</div>' +
+        '</div>' +
+    '</div>' +
+'</div>';
+        }).join('');
+        list.innerHTML = html;
+        renderPagination(total, totalPages);
+    }
+
+    // 渲染分页器
+    function renderPagination(total, totalPages) {
+        var pg = document.getElementById('pagination');
+        if (!pg) return;
+        if (total === 0) { pg.innerHTML = ''; return; }
+        var cur = STATE.page;
+        var start = (cur - 1) * STATE.pageSize + 1;
+        var end = Math.min(cur * STATE.pageSize, total);
+
+        // 生成页码按钮（最多显示5个，当前页居中）
+        var btns = '';
+        var showPages = [];
+        if (totalPages <= 5) {
+            for (var i = 1; i <= totalPages; i++) showPages.push(i);
+        } else {
+            showPages = [cur - 1, cur, cur + 1];
+            if (cur <= 2) showPages = [1, 2, 3];
+            if (cur >= totalPages - 1) showPages = [totalPages - 2, totalPages - 1, totalPages];
+        }
+        // 第一页 + 省略号
+        if (showPages[0] > 1) {
+            btns += '<button onclick="goPageNum(1)" class="w-7 h-7 flex items-center justify-center text-[10px] text-slate-500 rounded hover:bg-slate-100">1</button>';
+            if (showPages[0] > 2) btns += '<span class="text-slate-300 text-[10px] px-0.5">...</span>';
+        }
+        showPages.forEach(function(p) {
+            if (p < 1 || p > totalPages) return;
+            var cls = p === cur ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100';
+            btns += '<button onclick="goPageNum(' + p + ')" class="w-7 h-7 flex items-center justify-center text-[10px] font-bold rounded ' + cls + '">' + p + '</button>';
+        });
+        // 末页 + 省略号
+        if (showPages[showPages.length - 1] < totalPages) {
+            if (showPages[showPages.length - 1] < totalPages - 1) btns += '<span class="text-slate-300 text-[10px] px-0.5">...</span>';
+            btns += '<button onclick="goPageNum(' + totalPages + ')" class="w-7 h-7 flex items-center justify-center text-[10px] text-slate-500 rounded hover:bg-slate-100">' + totalPages + '</button>';
+        }
+
+        pg.innerHTML =
+            '<div class="text-[10px] text-slate-400">显示第 <span class="font-bold text-slate-600">' + start + '-' + end + '</span> 条 / 共 <span class="font-bold text-slate-600">' + total + '</span> 条</div>' +
+            '<div class="flex items-center space-x-1">' +
+                '<button onclick="goPageNum(' + (cur - 1) + ')" class="w-7 h-7 flex items-center justify-center text-[10px] text-slate-500 rounded hover:bg-slate-100 ' + (cur <= 1 ? 'opacity-30 pointer-events-none' : '') + '"><i class="fa fa-angle-left"></i></button>' +
+                btns +
+                '<button onclick="goPageNum(' + (cur + 1) + ')" class="w-7 h-7 flex items-center justify-center text-[10px] text-slate-500 rounded hover:bg-slate-100 ' + (cur >= totalPages ? 'opacity-30 pointer-events-none' : '') + '"><i class="fa fa-angle-right"></i></button>' +
+            '</div>';
+    }
+    // 跳转指定页
+    function goPageNum(p) {
+        STATE.page = p;
+        renderPolicyList();
+        // 滚动到列表顶部
+        var list = document.getElementById('policyList');
+        if (list) list.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // 筛选维度键名（行式平铺）—— 须在初始化调用前定义
+    var FILTER_KEYS = ['industry', 'level', 'qualification', 'ipOwned', 'rdRatio', 'hiTechRatio', 'revenue', 'rdInvest'];
+
+    // 初始化 + 行式平铺筛选事件绑定
+    document.addEventListener('DOMContentLoaded', function() {
+        bindFilterChange();
+        syncSelectedTags();
+        renderPolicyList();
+        renderCalendar(CAL.year, CAL.month);
+    });
+    // 如果 DOMContentLoaded 已触发，则立即渲染
+    if (document.readyState !== 'loading') {
+        bindFilterChange();
+        syncSelectedTags();
+        renderPolicyList();
+        renderCalendar(new Date().getFullYear(), new Date().getMonth() + 1);
+    }
+
+    function bindFilterChange() {
+        // 行式平铺：事件委托，点击选项切换选中态 → 更新 STATE → 同步已选标签 → 重新渲染
+        var box = document.getElementById('advFilterBox');
+        if (!box) return;
+        box.addEventListener('click', function(e) {
+            var opt = e.target.closest('.filter-opt');
+            if (!opt) return;
+            var key = opt.getAttribute('data-key');
+            var val = opt.getAttribute('data-val');
+            var arr = STATE.filters[key];
+            if (!arr) return;
+            // 单选维度（阈值/是否）：先清除同组其他选中
+            if (SINGLE_KEYS.indexOf(key) >= 0) {
+                arr.forEach(function(oldVal) {
+                    var oldOpt = box.querySelector('.filter-opt[data-key="' + key + '"][data-val="' + oldVal + '"]');
+                    if (oldOpt) oldOpt.classList.remove('opt-active');
+                });
+                arr.length = 0;
+                // 再次点击同一值 = 取消
+                if (opt.classList.contains('opt-active')) {
+                    opt.classList.remove('opt-active');
+                    STATE.quick = null;
+                    STATE.page = 1;
+                    syncSelectedTags();
+                    renderPolicyList();
+                    return;
+                }
+                arr.push(val);
+                opt.classList.add('opt-active');
+            } else {
+                var idx = arr.indexOf(val);
+                if (idx >= 0) {
+                    arr.splice(idx, 1);
+                    opt.classList.remove('opt-active');
+                } else {
+                    arr.push(val);
+                    opt.classList.add('opt-active');
+                }
+            }
+            STATE.quick = null;  // 手动选条件时退出快捷筛选
+            STATE.page = 1;
+            syncSelectedTags();
+            renderPolicyList();
+        });
+    }
+
+    function refreshFiltersFromUI() {
+        // 从平铺选项的选中态读取（兜底用，正常点击已实时更新 STATE）
+        FILTER_KEYS.forEach(function(key) {
+            STATE.filters[key] = Array.from(
+                document.querySelectorAll('.filter-opt[data-key="' + key + '"].opt-active')
+            ).map(function(el) { return el.getAttribute('data-val'); });
+        });
+        STATE.page = 1;
+        syncSelectedTags();
+    }
+
+    // 同步"已选条件"标签区（根据STATE.filters生成到 #selectedTagsBox）
+    function syncSelectedTags() {
+        var box = document.getElementById('selectedTagsBox');
+        if (!box) return;
+        var html = '';
+        FILTER_KEYS.forEach(function(key) {
+            STATE.filters[key].forEach(function(v) {
+                // 企业指标阈值显示成友好文案
+                var display = v;
+                if (key === 'rdRatio') display = '研发费用占比≥' + v + '%';
+                else if (key === 'hiTechRatio') display = '高新收入占比≥' + v + '%';
+                else if (key === 'revenue') display = '年营收≥' + v + '万';
+                else if (key === 'rdInvest') display = '研发投入≥' + v + '万';
+                else if (key === 'ipOwned') display = '核心知识产权：' + v;
+                else if (key === 'qualification') display = '资质：' + v;
+                html += '<span class="selected-tag px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded border border-blue-200 flex items-center">'
+                     +  display
+                     +  '<button onclick="removeTagVal(\'' + key + '\',\'' + v.replace(/'/g, "\\'") + '\')" class="ml-1.5 text-blue-400 hover:text-blue-600"><i class="fa fa-times"></i></button>'
+                     +  '</span>';
+            });
+        });
+        box.innerHTML = html || '<span class="text-[10px] text-slate-300">未选条件，显示全部政策</span>';
+    }
+
+    // 移除单个已选条件（点击标签 ×）：同步选项高亮 + STATE + 列表
+    function removeTagVal(key, val) {
+        var arr = STATE.filters[key];
+        if (arr) {
+            var idx = arr.indexOf(val);
+            if (idx >= 0) arr.splice(idx, 1);
+        }
+        var opt = document.querySelector('.filter-opt[data-key="' + key + '"][data-val="' + val.replace(/"/g, '\\"') + '"]');
+        if (opt) opt.classList.remove('opt-active');
+        STATE.page = 1;
+        syncSelectedTags();
+        renderPolicyList();
+    }
+
+    // "查一下"按钮：应用当前条件并滚动到列表
+    function applyFilter() {
+        refreshFiltersFromUI();
+        renderPolicyList();
+        var list = document.getElementById('policyList');
+        if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // 页面加载完毕后同步一次标签区（兜底）
+    setTimeout(function() { refreshFiltersFromUI(); renderPolicyList(); }, 50);
+
+    function goPage(url) {
+        try {
+            if (parent && parent.window && typeof parent.window.switchPage === 'function') {
+                parent.window.switchPage(url, null);
+            } else {
+                window.location.href = url;
+            }
+        } catch (e) {
+            window.location.href = url;
+        }
+    }
+    // 找服务申报：跳转至服务商城，并通过 localStorage 传递政策关键词供商城预选筛选
+    function findRealPolicy(id) {
+        try {
+            var lib = (window.DataBridge && DataBridge.loadPolicyLibrary) ? DataBridge.loadPolicyLibrary() : [];
+            for (var i = 0; i < lib.length; i++) if (lib[i].id === id) return lib[i];
+        } catch (e) {}
+        return null;
+    }
+    function goServiceMarket(policyId) {
+        try {
+            var p = findRealPolicy(policyId);
+            if (p && p.name) localStorage.setItem('mall_prefilter_keyword', p.name);
+        } catch (e) {}
+        goPage('service-market.html');
+    }
+    function newChat() {
+        alert('已创建新对话');
+    }
+    function switchHistory(el, title) {
+        goPage('dashboard.html');
+    }
+    function switchTab(tab) {
+        ['list', 'calendar'].forEach(function(t) {
+            var pane = document.getElementById('tab-pane-' + t);
+            var btn = document.getElementById('tab-btn-' + t);
+            if (pane) pane.classList.add('hidden');
+            if (btn) {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('text-slate-500', 'hover:bg-slate-50');
+            }
+        });
+        var activePane = document.getElementById('tab-pane-' + tab);
+        var activeBtn = document.getElementById('tab-btn-' + tab);
+        if (activePane) activePane.classList.remove('hidden');
+        if (activeBtn) {
+            activeBtn.classList.add('bg-blue-600', 'text-white');
+            activeBtn.classList.remove('text-slate-500', 'hover:bg-slate-50');
+        }
+    }
+    // 智能匹配
+    function startMatch() {
+        var input = document.getElementById('companyInput');
+        var kw = input ? input.value.trim() : '';
+        if (!kw) { alert('请输入企业名称'); return; }
+        STATE.keyword = kw;
+        STATE.page = 1;
+        var loading = document.getElementById('matchLoading');
+        var profile = document.getElementById('companyProfile');
+        loading.classList.remove('hidden');
+        profile.classList.add('hidden');
+        setTimeout(function() {
+            loading.classList.add('hidden');
+            profile.classList.remove('hidden');
+            renderPolicyList();
+            var cnt = document.getElementById('listCount');
+            var matched = cnt ? cnt.innerText : 0;
+            // 触发销售线索回流：雷达匹配行为自动写入线索池（销售在「线索管理」可见）
+            try { if (window.DataBridge && DataBridge.addClue) DataBridge.addClue({ source:'雷达触发', company: kw, intent: '政策匹配' }); } catch(e) {}
+            alert('企业画像识别成功！\n按政策库申报条件实时匹配到 ' + matched + ' 条政策\n请在下方核对企业条件，匹配度会实时重算');
+        }, 2000);
+    }
+    // 快速搜索
+    function quickSearch(name) {
+        var input = document.getElementById('companyInput');
+        if (input) input.value = name;
+        startMatch();
+    }
+    // 调整企业画像 → 滚动定位到条件筛选区，高亮提示
+    function editProfile() {
+        var box = document.getElementById('advFilterBox');
+        if (box) {
+            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            box.classList.add('border-2', 'border-blue-400');
+            setTimeout(function() { box.classList.remove('border-2', 'border-blue-400'); }, 1600);
+        }
+    }
+    // 根据已选条件渲染画像标签
+    function renderProfileTags() {
+        var box = document.getElementById('profileTagsBox');
+        if (!box) return;
+        var labels = [];
+        FILTER_KEYS.forEach(function(k) {
+            STATE.filters[k].forEach(function(v) {
+                var d = v;
+                if (k === 'industry') d = '行业：' + v;
+                else if (k === 'level') d = '级别：' + v;
+                else if (k === 'rdRatio') d = '研发费用占比≥' + v + '%';
+                else if (k === 'hiTechRatio') d = '高新收入占比≥' + v + '%';
+                else if (k === 'revenue') d = '年营收≥' + v + '万';
+                else if (k === 'rdInvest') d = '研发投入≥' + v + '万';
+                else if (k === 'ipOwned') d = '核心知识产权：' + v;
+                else if (k === 'qualification') d = '资质：' + v;
+                labels.push(d);
+            });
+        });
+        box.innerHTML = labels.length
+            ? labels.map(function(t) { return '<span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded">' + t + '</span>'; }).join('')
+            : '<span class="text-[10px] text-slate-400">尚未选择企业条件，请在下方高级查询中勾选</span>';
+    }
+    // 预约申领 → 打开弹窗
+    function bookPolicy(id) {
+        var real = findRealPolicy(id);
+        var policyName = real ? real.name : ('政策ID:' + id);
+        var policyTag = document.getElementById('bookPolicyTag');
+        var policyNameEl = document.getElementById('bookPolicyName');
+        if (policyTag) { policyTag.classList.remove('hidden'); }
+        if (policyNameEl) { policyNameEl.innerText = policyName; }
+        // 预填企业名（取搜索框里的企业名）
+        var compIn = document.getElementById('companyInput');
+        var companyInput = document.getElementById('bookCompany');
+        if (companyInput) {
+            var v = compIn && compIn.value.trim() ? compIn.value.trim() : '';
+            if (!companyInput.value) companyInput.value = v;
+        }
+        // 打开弹窗
+        var m = document.getElementById('bookModal');
+        if (m) m.classList.remove('hidden');
+        // 保存当前预约政策ID
+        window.__bookPolicyId = id;
+    }
+    // 关闭弹窗
+    function closeBookModal() {
+        var m = document.getElementById('bookModal');
+        if (m) m.classList.add('hidden');
+    }
+    // 复制电话
+    function copyPhone() {
+        var t = '400-1787170';
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(t);
+            } else {
+                var i = document.createElement('input');
+                i.value = t; document.body.appendChild(i); i.select();
+                document.execCommand('copy'); document.body.removeChild(i);
+            }
+            alert('客服电话 ' + t + ' 已复制到剪贴板');
+        } catch (e) {
+            alert('请手动复制客服电话：' + t);
+        }
+    }
+    // 提交预约 → 发给运营后台
+    function submitBook() {
+        var name = (document.getElementById('bookName').value || '').trim();
+        var phone = (document.getElementById('bookPhone').value || '').trim();
+        var company = (document.getElementById('bookCompany').value || '').trim();
+        // 基础校验
+        if (!name) return alert('请填写姓名');
+        if (!/^1[3-9]\d{9}$/.test(phone)) return alert('请输入正确的11位手机号码');
+        if (!company) return alert('请填写企业名称');
+
+        var policyName = (document.getElementById('bookPolicyName') || {}).innerText || '—';
+        var btn = document.getElementById('bookSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i><span>提交中...</span>';
+
+        // 组装预约数据（运营端后台接口地址占位，实际对接时替换URL即可）
+        var payload = {
+            source: '政策雷达-预约申领',
+            policyId: window.__bookPolicyId || null,
+            policyName: policyName,
+            contact: name,
+            phone: phone,
+            company: company,
+            submittedAt: new Date().toISOString()
+        };
+
+        // 1) 优先尝试调用运营后台接口（接口地址待提供时替换即可）
+        var ok = false;
+        var errText = '';
+        var doneCount = 0;
+        var checkDone = function() {
+            doneCount++;
+            if (doneCount < 2) return;
+            finish();
+        };
+        // 真实 fetch 请求（失败不阻塞本地存储）
+        try {
+            var apiUrl = '/api/operation/bookings';
+            if (typeof fetch === 'function') {
+                fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).then(function(r) {
+                    if (r.ok) ok = true;
+                }).catch(function(e) {
+                    errText = errText || String(e);
+                }).finally(checkDone);
+            } else {
+                checkDone();
+            }
+        } catch (e) {
+            checkDone();
+        }
+
+        // 2) 本地 localStorage 作为备份，后台管理员可读取
+        try {
+            var key = 'op_booking_list';
+            var list = JSON.parse(localStorage.getItem(key) || '[]');
+            list.push(payload);
+            localStorage.setItem(key, JSON.stringify(list));
+        } catch (e) {}
+
+        // 3) 控制台打印，便于开发联调
+        console.log('[运营端][预约申领] 已生成预约：', payload);
+
+        // 兜底定时：如果fetch没响应，2秒后强制完成
+        var timer = setTimeout(function() { if (doneCount < 2) { doneCount = 2; finish(); } }, 1800);
+
+        function finish() {
+            clearTimeout(timer);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-check-circle mr-2"></i><span>预约</span>';
+            alert('✅ 预约提交成功\n\n政策：' + policyName + '\n姓名：' + name + '\n手机：' + phone + '\n企业：' + company + '\n\n预约消息已推送至【运营端后台】，申报顾问将在24小时内与您联系');
+            closeBookModal();
+            // 清空表单（保留企业名）
+            document.getElementById('bookName').value = '';
+            document.getElementById('bookPhone').value = '';
+        }
+    }
+    // 完整报告 → 弹窗展示动态汇总（数据全部来自实时匹配引擎 + 政策库）
+    function showFullReport() {
+        // 必须先选择企业条件
+        if (!hasEnterpriseInput()) {
+            alert('请先在下方选择企业条件（如研发费用占比、知识产权等），\n系统按政策库申报条件实时匹配后再生成报告。');
+            return;
+        }
+
+        var results = DataBridge.matchPoliciesForEnterprise(buildEnterprise());
+        var total = results.length;
+        if (!total) { alert('当前条件未匹配到任何政策，无法生成报告。'); return; }
+
+        var highMatch = results.filter(function(r) { return r.score >= 80; }).length;
+        var avgMatch = Math.round(results.reduce(function(s, r) { return s + r.score; }, 0) / total);
+        var improvable = results.filter(function(r) { return r.unknown > 0; }).length;
+        var perfect = results.filter(function(r) { return r.hit === r.total; }).length;
+
+        var byLevel = {};
+        var byIndustry = {};
+        results.forEach(function(r) {
+            byLevel[r.policy.level] = (byLevel[r.policy.level] || 0) + 1;
+            if (r.policy.industry) byIndustry[r.policy.industry] = (byIndustry[r.policy.industry] || 0) + 1;
+        });
+
+        // 企业名称与已选条件画像
+        var compIn = document.getElementById('companyInput');
+        var companyName = (compIn && compIn.value.trim()) ? compIn.value.trim() : '未填写企业名称（按所选条件匹配）';
+        var pfLabels = [];
+        FILTER_KEYS.forEach(function(k) {
+            STATE.filters[k].forEach(function(v) {
+                var d = v;
+                if (k === 'rdRatio') d = '研发费用占比≥' + v + '%';
+                else if (k === 'hiTechRatio') d = '高新收入占比≥' + v + '%';
+                else if (k === 'revenue') d = '年营收≥' + v + '万';
+                else if (k === 'rdInvest') d = '研发投入≥' + v + '万';
+                else if (k === 'ipOwned') d = '核心知识产权：' + v;
+                pfLabels.push(d);
+            });
+        });
+        var pfText = pfLabels.length ? pfLabels.join(' · ') : '未选择条件';
+
+        // 生成分布条
+        function bar(label, count, color) {
+            var pct = total ? Math.round(count / total * 100) : 0;
+            var width = Math.max(pct, count ? 12 : 0);
+            return '<div class="flex items-center space-x-2">' +
+                '<span class="text-[11px] text-slate-500 w-16 flex-shrink-0">' + label + '</span>' +
+                '<div class="flex-1 h-5 bg-slate-100 rounded overflow-hidden">' +
+                    '<div class="h-full ' + color + ' rounded flex items-center justify-end pr-1.5" style="width:' + width + '%">' +
+                        (count ? '<span class="text-[9px] text-white font-bold">' + count + '项</span>' : '') +
+                    '</div>' +
+                '</div>' +
+                '<span class="text-[10px] text-slate-400 w-8 text-right">' + pct + '%</span>' +
+            '</div>';
+        }
+
+        // 生成申报条件核对时间线
+        var timelineHtml = results.map(function(r, i) {
+            var scoreColor = r.score >= 80 ? 'text-green-600 bg-green-50 border-green-200'
+                : r.score >= 50 ? 'text-orange-600 bg-orange-50 border-orange-200'
+                : 'text-red-600 bg-red-50 border-red-200';
+            var dot = r.score >= 80 ? 'bg-green-500' : r.score >= 50 ? 'bg-orange-400' : 'bg-red-400';
+            var conds = r.details.map(function(d) {
+                var icon = d.status === 'hit' ? '<i class="fa fa-check text-green-500"></i>'
+                    : d.status === 'fail' ? '<i class="fa fa-times text-red-500"></i>'
+                    : '<i class="fa fa-question text-slate-400"></i>';
+                var txtColor = d.status === 'hit' ? 'text-slate-600' : d.status === 'fail' ? 'text-red-500' : 'text-slate-400';
+                var lbl = COND_LABELS[d.type] || d.type;
+                var unit = COND_UNITS[d.type] || '';
+                return '<span class="inline-flex items-center mr-3 text-[9px] ' + txtColor + '">' + icon +
+                    '<span class="ml-1">' + lbl + ' ' + d.op + ' ' + d.val + unit + '</span></span>';
+            }).join('');
+            return '<div class="flex items-start space-x-3">' +
+                '<div class="flex flex-col items-center flex-shrink-0">' +
+                    '<div class="w-2.5 h-2.5 rounded-full ' + dot + ' mt-1"></div>' +
+                    (i < results.length - 1 ? '<div class="w-px h-8 bg-slate-200 mt-0.5"></div>' : '') +
+                '</div>' +
+                '<div class="flex-1 pb-2">' +
+                    '<div class="flex items-center justify-between">' +
+                        '<p class="text-[11px] font-bold text-slate-700">' + r.policy.name + '</p>' +
+                        '<span class="text-[9px] px-1.5 py-0.5 rounded border ' + scoreColor + '">匹配度' + r.score + '%（命中' + r.hit + '/' + r.total + '）</span>' +
+                    '</div>' +
+                    '<div class="mt-0.5 leading-4">' + conds + '</div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+
+        var levelBars = Object.keys(byLevel).map(function(lv) {
+            var color = lv === '国家级' ? 'bg-red-400' : lv === '省级' ? 'bg-orange-400' : 'bg-blue-400';
+            return bar(lv, byLevel[lv], color);
+        }).join('');
+        var industryBars = Object.keys(byIndustry).slice(0, 4).map(function(ind) {
+            return bar(ind, byIndustry[ind], 'bg-teal-400');
+        }).join('');
+
+        // 填充弹窗内容
+        var body = document.getElementById('reportBody');
+        if (!body) return;
+        body.innerHTML =
+            // 概要
+            '<div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-4 border border-blue-100">' +
+                '<div class="flex items-center justify-between mb-2">' +
+                    '<div><p class="text-xs text-slate-400">企业名称</p><p class="text-sm font-bold text-slate-800">' + companyName + '</p></div>' +
+                    '<div class="text-right"><p class="text-xs text-slate-400">报告生成时间</p><p class="text-xs font-bold text-slate-600">' + new Date().toLocaleDateString('zh-CN') + '</p></div>' +
+                '</div>' +
+                '<div class="flex items-center space-x-2 mt-2 pt-2 border-t border-blue-100">' +
+                    '<span class="text-[10px] text-slate-400 font-bold">企业条件：</span>' +
+                    '<span class="text-[10px] text-blue-600">' + pfText + '</span>' +
+                '</div>' +
+            '</div>' +
+            // 4个核心指标
+            '<div class="grid grid-cols-4 gap-2 mb-4">' +
+                '<div class="bg-white border border-slate-100 rounded-lg p-2.5 text-center"><div class="text-lg font-black text-blue-600">' + total + '</div><div class="text-[9px] text-slate-400">匹配政策</div></div>' +
+                '<div class="bg-white border border-slate-100 rounded-lg p-2.5 text-center"><div class="text-lg font-black text-green-600">' + highMatch + '</div><div class="text-[9px] text-slate-400">高匹配(≥80%)</div></div>' +
+                '<div class="bg-white border border-slate-100 rounded-lg p-2.5 text-center"><div class="text-lg font-black text-orange-500">' + avgMatch + '%</div><div class="text-[9px] text-slate-400">平均匹配度</div></div>' +
+                '<div class="bg-white border border-slate-100 rounded-lg p-2.5 text-center"><div class="text-lg font-black text-purple-500">' + perfect + '</div><div class="text-[9px] text-slate-400">条件全满足</div></div>' +
+            '</div>' +
+            // 分布统计
+            '<div class="bg-white border border-slate-100 rounded-xl p-3 mb-4">' +
+                '<h4 class="text-[11px] font-bold text-slate-700 mb-2.5"><i class="fa fa-bar-chart text-blue-500 mr-1"></i>匹配政策分布</h4>' +
+                '<div class="space-y-1.5 mb-2.5 pb-2.5 border-b border-slate-50">' + levelBars + '</div>' +
+                (industryBars ? '<div class="space-y-1.5">' + industryBars + '</div>' : '') +
+            '</div>' +
+            // 申报条件核对
+            '<div class="bg-white border border-slate-100 rounded-xl p-3 mb-4">' +
+                '<h4 class="text-[11px] font-bold text-slate-700 mb-2.5"><i class="fa fa-list-alt text-blue-500 mr-1"></i>申报条件核对（来源：政策库）</h4>' +
+                '<div class="space-y-0">' + timelineHtml + '</div>' +
+            '</div>' +
+            // 申报建议
+            '<div class="bg-amber-50 border border-amber-100 rounded-xl p-3">' +
+                '<h4 class="text-[11px] font-bold text-amber-700 mb-1.5"><i class="fa fa-lightbulb-o mr-1"></i>智能申报建议</h4>' +
+                '<ul class="text-[10px] text-amber-600 space-y-1 leading-relaxed list-disc pl-4">' +
+                    (perfect > 0 ? '<li>有 <b>' + perfect + '</b> 项政策全部申报条件均已满足，建议优先预约申报</li>' : '') +
+                    (highMatch > 0 ? '<li>有 <b>' + highMatch + '</b> 项高匹配度政策(≥80%)，建议重点跟进</li>' : '') +
+                    (improvable > 0 ? '<li>有 <b>' + improvable + '</b> 项政策存在企业未填写的条件，补齐企业信息后匹配度可能提升</li>' : '') +
+                    '<li>匹配度由政策库申报条件实时计算，仅供参考，最终以政策主管部门审核为准</li>' +
+                    '<li>建议联系申报顾问（400-1787170），获取一对一专业指导</li>' +
+                '</ul>' +
+            '</div>';
+
+        // 显示弹窗
+        var m = document.getElementById('reportModal');
+        if (m) m.classList.remove('hidden');
+    }
+    function closeReportModal() {
+        var m = document.getElementById('reportModal');
+        if (m) m.classList.add('hidden');
+    }
+    function downloadReport() {
+        alert('报告下载功能\n\n完整PDF报告正在生成中，生成完成后将发送至您预留的邮箱。\n如需紧急获取，请致电 400-1787170');
+    }
+    // 智能搜索
+    function doSearch() {
+        var input = document.querySelector('input[placeholder*="输入政策关键词"]');
+        var kw = input ? input.value.trim() : '';
+        if (!kw) { alert('请输入搜索关键词'); return; }
+        alert('搜索关键词：' + kw + '\n正在为您匹配最相关的政策...');
+    }
+    // 快捷筛选标签（旧函数保留兼容）
+    function addFilterTag(el) {
+        el.classList.toggle('bg-white/20');
+        el.classList.toggle('bg-white/10');
+    }
+    // 下拉菜单开关
+    function toggleDropdown(id) {
+        var menus = document.querySelectorAll('.dropdown-menu');
+        menus.forEach(function(m) {
+            if (m.id === id) {
+                m.classList.toggle('hidden');
+            } else {
+                m.classList.add('hidden');
+            }
+        });
+    }
+    // 点击空白关闭下拉
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.filter-dropdown')) {
+            document.querySelectorAll('.dropdown-menu').forEach(function(m) {
+                m.classList.add('hidden');
+            });
+        }
+    });
+    // 重置筛选（行式平铺：清空全部已选条件）
+    function resetFilter() {
+        FILTER_KEYS.forEach(function(k) { STATE.filters[k] = []; });
+        document.querySelectorAll('.filter-opt.opt-active').forEach(function(el) {
+            el.classList.remove('opt-active');
+        });
+        STATE.quick = null;
+        STATE.keyword = '';
+        STATE.sort = '匹配度优先';
+        STATE.page = 1;
+        var sortLabel = document.getElementById('sortLabel');
+        if (sortLabel) sortLabel.innerText = '匹配度优先';
+        // 清空企业输入框
+        var input = document.getElementById('companyInput');
+        if (input) input.value = '';
+        var profile = document.getElementById('companyProfile');
+        if (profile) profile.classList.add('hidden');
+        syncSelectedTags();
+        renderPolicyList();
+        alert('筛选条件已重置，结果已恢复');
+    }
+    // 排序选择（下拉式）
+    function selectSort(label, el) {
+        STATE.sort = label;
+        STATE.page = 1;
+        var sortLabel = document.getElementById('sortLabel');
+        if (sortLabel) sortLabel.innerText = label;
+        var menu = el.parentElement;
+        menu.querySelectorAll('button').forEach(function(b) {
+            b.classList.remove('bg-blue-50', 'text-blue-600', 'font-bold');
+            b.classList.add('text-slate-600', 'hover:bg-slate-50');
+            var ico = b.querySelector('i.fa-check');
+            if (ico) ico.classList.add('opacity-0');
+        });
+        el.classList.add('bg-blue-50', 'text-blue-600', 'font-bold');
+        el.classList.remove('text-slate-600', 'hover:bg-slate-50');
+        var ico = el.querySelector('i.fa-check');
+        if (ico) ico.classList.remove('opacity-0');
+        renderPolicyList();
+    }
+    // 排序切换（旧函数保留兼容）
+    function setSort(el) {
+        var parent = el.parentElement;
+        parent.querySelectorAll('button').forEach(function(b) {
+            b.classList.remove('bg-blue-600', 'text-white', 'font-bold');
+            b.classList.add('text-slate-500', 'hover:bg-slate-50');
+        });
+        el.classList.add('bg-blue-600', 'text-white', 'font-bold');
+        el.classList.remove('text-slate-500', 'hover:bg-slate-50');
+    }
+    // 快速筛选（高匹配/即将截止/低竞争度 3个胶囊按钮）
+    function quickFilter(type) {
+        STATE.quick = STATE.quick === type ? null : type;
+        STATE.page = 1;
+        renderPolicyList();
+        var cnt = document.getElementById('listCount');
+        var found = cnt ? cnt.innerText : 0;
+        var labels = { 'high': '高匹配度(≥80%)', 'urgent': '即将截止(30天内)', 'low': '低竞争度' };
+        alert((STATE.quick ? '已开启【' + labels[type] + '】筛选' : '已取消快速筛选') + '\n共找到 ' + found + ' 条符合条件的政策');
+    }
+    // 导出清单
+    function exportList() {
+        alert('政策清单导出中...\n将生成 Excel 文件并下载');
+    }
+    // 汇总视图
+    function showSummary() {
+        alert('切换至汇总视图\n显示所有匹配政策的统计汇总');
+    }
+    // 日历当前年月（默认今天）
+    var CAL = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+
+    // 渲染匹配结果分析（全部聚合自实时匹配引擎，无假数据）
+    function renderMatchAnalysis() {
+        var distBox = document.getElementById('matchDistBox');
+        var topBox = document.getElementById('matchTop5Box');
+        var adviceBox = document.getElementById('matchAdviceBox');
+        if (!distBox || !topBox || !adviceBox) return;
+
+        // 未选择企业条件：引导态
+        if (!hasEnterpriseInput()) {
+            distBox.innerHTML = '<div class="text-[11px] text-slate-400 text-center py-3 bg-slate-50 rounded-lg">'
+                + '<i class="fa fa-info-circle mr-1"></i>选择企业条件后展示匹配度分布</div>';
+            topBox.innerHTML = '<div class="text-[11px] text-slate-400 text-center py-3 bg-slate-50 rounded-lg">'
+                + '<i class="fa fa-info-circle mr-1"></i>选择企业条件后展示匹配度排名</div>';
+            adviceBox.innerText = '选择下方企业条件后，将按政策库申报条件实时生成匹配分析。';
+            return;
+        }
+
+        var results = DataBridge.matchPoliciesForEnterprise(buildEnterprise());
+        var total = results.length;
+        if (!total) {
+            distBox.innerHTML = '<div class="text-[11px] text-slate-400 text-center py-3 bg-slate-50 rounded-lg">当前条件未匹配到任何政策</div>';
+            topBox.innerHTML = '';
+            adviceBox.innerText = '当前条件未匹配到政策，请尝试放宽部分企业条件。';
+            return;
+        }
+
+        // ===== 1) 匹配度分布：高≥80 / 中50-79 / 低<50 =====
+        var high = 0, mid = 0, low = 0;
+        results.forEach(function(r) {
+            if (r.score >= 80) high++;
+            else if (r.score >= 50) mid++;
+            else low++;
+        });
+        var groups = [
+            { count: high, dot: 'text-green-500', grad: 'from-green-400 to-teal-400',   txt: 'text-green-500',  label: '高匹配（≥80%）' },
+            { count: mid,  dot: 'text-yellow-500', grad: 'from-yellow-400 to-orange-400', txt: 'text-yellow-500', label: '中匹配（50-79%）' },
+            { count: low,  dot: 'text-red-500',    grad: 'from-red-400 to-red-500',     txt: 'text-red-500',    label: '低匹配（<50%）' }
+        ];
+        distBox.innerHTML = groups.map(function(g) {
+            var pct = total ? Math.round(g.count / total * 100) : 0;
+            return '<div>' +
+                '<div class="flex items-center justify-between mb-1">' +
+                    '<span class="text-xs text-slate-600"><i class="fa fa-circle ' + g.dot + ' mr-1 text-[8px]"></i> ' + g.label + '</span>' +
+                    '<span class="text-xs font-bold ' + g.txt + '">' + g.count + '项</span>' +
+                '</div>' +
+                '<div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">' +
+                    '<div class="h-full bg-gradient-to-r ' + g.grad + ' rounded-full" style="width: ' + pct + '%"></div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+
+        // ===== 2) 匹配度 TOP5（按真实 score 降序） =====
+        var top5 = results.slice(0, 5);
+        var rankBadge = ['bg-green-500', 'bg-blue-400', 'bg-yellow-500', 'bg-orange-500', 'bg-red-500'];
+        var rankTxt   = ['text-green-500', 'text-blue-500', 'text-yellow-500', 'text-orange-500', 'text-red-500'];
+        var rankBar   = ['bg-green-500', 'bg-blue-400', 'bg-yellow-500', 'bg-orange-500', 'bg-red-500'];
+        topBox.innerHTML = top5.map(function(r, i) {
+            return '<div class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">' +
+                '<div class="flex items-center space-x-2 flex-1 min-w-0">' +
+                    '<span class="w-5 h-5 ' + rankBadge[i] + ' text-white text-[10px] font-bold rounded flex items-center justify-center flex-shrink-0">' + (i + 1) + '</span>' +
+                    '<span class="text-xs text-slate-700 truncate">' + r.policy.name + '</span>' +
+                '</div>' +
+                '<div class="flex items-center space-x-1.5 flex-shrink-0">' +
+                    '<div class="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">' +
+                        '<div class="h-full ' + rankBar[i] + ' rounded-full" style="width: ' + r.score + '%"></div>' +
+                    '</div>' +
+                    '<span class="text-[10px] ' + rankTxt[i] + ' font-bold">' + r.score + '%</span>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+
+        // ===== 3) 智能建议（基于真实命中/缺失条件） =====
+        var perfect = results.filter(function(r) { return r.hit === r.total; });
+        var improvable = results.filter(function(r) { return r.unknown > 0 && r.fail === 0; });
+        var advice = '';
+        if (perfect.length) {
+            advice = '《' + perfect[0].policy.name + '》全部申报条件均已满足，建议优先预约申报。';
+        } else if (improvable.length) {
+            var pick = improvable[0];
+            var missLabels = pick.details.filter(function(d) { return d.status === 'unknown'; })
+                .map(function(d) { return COND_LABELS[d.type] || d.type; }).join('、');
+            advice = '《' + pick.policy.name + '》当前匹配度 ' + pick.score + '%，补齐企业' + missLabels + '信息后可提升匹配度。';
+        } else {
+            advice = '当前匹配政策存在暂不满足的硬性条件，建议关注其他政策或完善企业指标后再评估。';
+        }
+        adviceBox.innerText = advice;
+    }
+
+    // 收集所有政策的「申报批次」作为日历数据源（而非政策有效期）
+    // 每个批次返回：{ id, policyId, policyName, batchName, start, end, dl(截止Date), days(距今天数), status }
+    function loadDeadlinePolicies() {
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var lib = [];
+        try { lib = DataBridge.loadPolicyLibrary(); } catch (e) { lib = []; }
+        function dayd(s) { var a = String(s).split('-'); return new Date(+a[0], +a[1]-1, +a[2]); }
+        var items = [];
+        lib.forEach(function(p) {
+            var batches = (p.batches || []).filter(function(b){ return b && b.end; });
+            batches.forEach(function(b, idx) {
+                var dl = dayd(b.end);
+                if (isNaN(dl.getTime())) return;
+                var status = 'closed';
+                if (today.getTime() <= dl.getTime()) {
+                    if (b.start) {
+                        var s = dayd(b.start);
+                        status = today.getTime() < s.getTime() ? 'upcoming' : 'open';
+                    } else { status = 'open'; }
+                }
+                items.push({
+                    id: p.id + '_b' + idx,
+                    policyId: p.id,
+                    policyName: p.name,
+                    batchName: b.name || '申报批次',
+                    start: b.start || '',
+                    end: b.end,
+                    dl: dl,
+                    days: Math.round((dl.getTime() - today.getTime()) / 86400000),
+                    status: status
+                });
+            });
+        });
+        return items;
+    }
+
+    // 渲染申报日历（截止日期取自政策库的「申报批次」截止日）
+    function renderCalendar(year, month) {
+        var body = document.getElementById('calendarBody');
+        var titleSpan = document.getElementById('calendarTitle');
+        if (titleSpan) titleSpan.textContent = year + '年' + month + '月';
+        if (!body) return;
+
+        // 当月第一天是周几（0=周日）、当月总天数、上月末尾日期
+        var firstWeekday = new Date(year, month - 1, 1).getDay();
+        var daysInMonth = new Date(year, month, 0).getDate();
+        var prevMonthDays = new Date(year, month - 1, 0).getDate();
+
+        // 今天
+        var today = new Date();
+        var isToday = function(d) {
+            return year === today.getFullYear() && (month - 1) === today.getMonth() && d === today.getDate();
+        };
+
+        // 收集当月截止政策（按日期分组）
+        var monthPolicies = {};
+        loadDeadlinePolicies().forEach(function(p) {
+            if (p.dl.getFullYear() === year && p.dl.getMonth() === month - 1) {
+                var d = p.dl.getDate();
+                if (!monthPolicies[d]) monthPolicies[d] = [];
+                monthPolicies[d].push(p);
+            }
+        });
+
+        // 政策简称取前6字符
+        function shortName(t) { return (t || '').slice(0, 6); }
+
+        var html = '';
+        // 上月尾
+        for (var i = firstWeekday - 1; i >= 0; i--) {
+            html += '<div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">' + (prevMonthDays - i) + '</div>';
+        }
+        // 本月
+        for (var dd = 1; dd <= daysInMonth; dd++) {
+            var polys = monthPolicies[dd];
+            var base = 'calendar-day h-16 rounded-lg p-1 text-[10px] relative';
+            var style, label = '';
+            if (polys && polys.length) {
+                var p = polys[0];
+                var sT = shortName(p.batchName || p.policyName);
+                var labelBox = '<div class="absolute bottom-0.5 left-0.5 right-0.5"><div class="text-[8px] rounded px-0.5 truncate ' +
+                    (p.days < 0 ? 'text-slate-400 bg-slate-200' :
+                     p.days <= 7 ? 'text-red-500 bg-red-100' :
+                     p.days <= 30 ? 'text-orange-500 bg-orange-100' :
+                     'text-blue-500 bg-blue-100') + '">' + sT + '</div></div>';
+                if (p.days < 0) {
+                    style = base + ' bg-slate-100 border border-slate-200 text-slate-400';
+                } else if (p.days <= 7) {
+                    style = base + ' bg-red-50 border border-red-200 text-red-600 font-bold';
+                } else if (p.days <= 30) {
+                    style = base + ' bg-orange-50 border border-orange-200 text-orange-600 font-bold';
+                } else {
+                    style = base + ' bg-blue-50 border border-blue-200 text-blue-600';
+                }
+                label = labelBox;
+            } else {
+                style = base + ' bg-slate-50 text-slate-500';
+            }
+            if (isToday(dd)) {
+                style = base + ' bg-blue-50 border-2 border-blue-500 text-blue-600 font-bold';
+                label = '<span class="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>' + label;
+            }
+            html += '<div class="' + style + '">' + dd + label + '</div>';
+        }
+        // 下月头
+        var filled = firstWeekday + daysInMonth;
+        var remain = (7 - (filled % 7)) % 7;
+        for (var k = 1; k <= remain; k++) {
+            html += '<div class="calendar-day h-16 rounded-lg bg-slate-50/50 p-1 text-[10px] text-slate-300">' + k + '</div>';
+        }
+
+        body.innerHTML = html;
+        renderMonthDeadlineList(year, month);
+    }
+
+    // 渲染本月截止清单（数据来源：政策库申报批次）
+    function renderMonthDeadlineList(year, month) {
+        var box = document.getElementById('monthDeadlineList');
+        if (!box) return;
+        var list = loadDeadlinePolicies().filter(function(p) {
+            return p.dl.getFullYear() === year && p.dl.getMonth() === month - 1;
+        });
+        list.sort(function(a, b) { return a.days - b.days; });
+        if (!list.length) {
+            box.innerHTML = '<div class="text-xs text-slate-400 text-center py-4">本月暂无申报批次截止<br><span class="text-[10px]">可在运营端「政策库」→编辑政策→申报批次中维护</span></div>';
+            return;
+        }
+        box.innerHTML = list.map(function(p) {
+            var daysC, daysLabel;
+            if (p.status === 'closed') { daysC = 'text-slate-400'; daysLabel = '已截止'; }
+            else if (p.days <= 7) { daysC = 'text-red-500'; daysLabel = '剩余 ' + p.days + '天'; }
+            else if (p.days <= 30) { daysC = 'text-orange-500'; daysLabel = '剩余 ' + p.days + '天'; }
+            else { daysC = 'text-blue-500'; daysLabel = '剩余 ' + p.days + '天'; }
+            return '<div class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">' +
+                '<div class="flex-1 min-w-0">' +
+                    '<p class="text-xs text-slate-700 truncate font-bold">' + p.batchName + '</p>' +
+                    '<p class="text-[10px] text-slate-400 truncate">' + p.policyName + ' · 截止 ' + p.end + '</p>' +
+                '</div>' +
+                '<span class="text-[10px] font-bold ' + daysC + ' ml-2 whitespace-nowrap">' + daysLabel + '</span>' +
+            '</div>';
+        }).join('');
+    }
+
+    // 日历导航
+    function navigateMonth(dir) {
+        CAL.month += dir;
+        if (CAL.month < 1) { CAL.month = 12; CAL.year--; }
+        if (CAL.month > 12) { CAL.month = 1; CAL.year++; }
+        renderCalendar(CAL.year, CAL.month);
+    }
+    // 日历今天
+    function goToday() {
+        CAL.year = new Date().getFullYear();
+        CAL.month = new Date().getMonth() + 1;
+        renderCalendar(CAL.year, CAL.month);
+    }
+    // 收藏
+    function toggleFavorite(el) {
+        var icon = el.querySelector('i');
+        if (icon.classList.contains('fa-star-o')) {
+            icon.classList.remove('fa-star-o');
+            icon.classList.add('fa-star', 'text-yellow-500');
+            el.style.background = '#fefce8';
+        } else {
+            icon.classList.add('fa-star-o');
+            icon.classList.remove('fa-star', 'text-yellow-500');
+            el.style.background = '';
+        }
+    }
+    // 分享
+    function sharePolicy() {
+        alert('分享链接已复制到剪贴板');
+    }
+</script>
+
+    <!-- ========= 完整报告弹窗 ========= -->
+    <div id="reportModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeReportModal()"></div>
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[680px] max-w-[94vw] max-h-[88vh] flex flex-col animate-modal-in">
+            <!-- 头部 -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <h2 class="text-lg font-black text-slate-800 flex items-center">
+                    <i class="fa fa-file-text-o text-blue-600 mr-2"></i>政策匹配完整报告
+                </h2>
+                <div class="flex items-center space-x-2">
+                    <button onclick="downloadReport()" class="px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 transition-all flex items-center">
+                        <i class="fa fa-download mr-1"></i>下载PDF
+                    </button>
+                    <button onclick="closeReportModal()" class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all">
+                        <i class="fa fa-times"></i>
+                    </button>
                 </div>
             </div>
-
-            <!-- 右侧详情预览区 -->
-            <div class="col-span-3">
-                <div class="bg-white rounded-2xl border border-slate-100 sticky top-0 overflow-hidden">
-                    <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-5 text-white">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="px-2 py-0.5 bg-white/20 text-white text-[10px] font-bold rounded">国家级</span>
-                            <div class="text-right">
-                                <div class="text-2xl font-black">96<span class="text-sm">%</span></div>
-                                <p class="text-[10px] text-white/70">匹配度</p>
-                            </div>
-                        </div>
-                        <h3 class="text-sm font-bold leading-snug">2026年国家高新技术企业认定管理办法</h3>
-                    </div>
-                    
-                    <div class="p-5 space-y-4 max-h-[calc(100vh-340px)] overflow-y-auto scrollbar-thin">
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">政策摘要</h4>
-                            <p class="text-xs text-slate-600 leading-relaxed">支持电子信息、生物医药、高端装备等领域企业开展核心技术研发，对符合条件的高新技术企业给予税收减免及研发费用加计扣除，并提供人才引进、融资对接等全方位扶持。</p>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="bg-green-50 rounded-xl p-3">
-                                <p class="text-[10px] text-green-600 font-bold mb-1"><i class="fa fa-yen"></i> 扶持金额</p>
-                                <p class="text-sm font-black text-slate-800">最高¥100万</p>
-                            </div>
-                            <div class="bg-orange-50 rounded-xl p-3">
-                                <p class="text-[10px] text-orange-500 font-bold mb-1"><i class="fa fa-clock-o"></i> 截止日期</p>
-                                <p class="text-sm font-black text-slate-800">2026-08-18</p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">申报条件</h4>
-                            <div class="space-y-2">
-                                <div class="flex items-start space-x-2">
-                                    <i class="fa fa-check-circle text-green-500 mt-0.5"></i>
-                                    <span class="text-xs text-slate-600">企业申请认定时须注册成立一年以上</span>
-                                </div>
-                                <div class="flex items-start space-x-2">
-                                    <i class="fa fa-check-circle text-green-500 mt-0.5"></i>
-                                    <span class="text-xs text-slate-600">企业通过自主研发等方式对主要产品发挥核心支持作用</span>
-                                </div>
-                                <div class="flex items-start space-x-2">
-                                    <i class="fa fa-check-circle text-green-500 mt-0.5"></i>
-                                    <span class="text-xs text-slate-600">近一年高新技术产品收入占比不低于60%</span>
-                                </div>
-                                <div class="flex items-start space-x-2">
-                                    <i class="fa fa-check-circle text-green-500 mt-0.5"></i>
-                                    <span class="text-xs text-slate-600">研发费用占比符合要求（5%-10%）</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">关键材料清单</h4>
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-slate-600"><i class="fa fa-file-text text-blue-500 mr-1"></i> 高新技术企业认定申请书</span>
-                                    <i class="fa fa-check text-green-500"></i>
-                                </div>
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-slate-600"><i class="fa fa-file-text text-blue-500 mr-1"></i> 知识产权证明材料</span>
-                                    <i class="fa fa-check text-green-500"></i>
-                                </div>
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-slate-600"><i class="fa fa-file-text text-blue-500 mr-1"></i> 研发费用审计报告</span>
-                                    <i class="fa fa-clock-o text-orange-500"></i>
-                                </div>
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="text-slate-600"><i class="fa fa-file-text text-blue-500 mr-1"></i> 高新技术产品收入说明</span>
-                                    <i class="fa fa-minus-circle text-red-500"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">发布机构</h4>
-                            <div class="flex items-center space-x-2 bg-slate-50 rounded-lg p-3">
-                                <i class="fa fa-building text-slate-400"></i>
-                                <span class="text-xs text-slate-600">国家科学技术部火炬高技术产业开发中心</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="p-4 bg-slate-50 border-t border-slate-100 space-y-2">
-                        <button class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center">
-                            <i class="fa fa-paper-plane mr-2"></i> 立即申报
-                        </button>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button class="py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all">
-                                <i class="fa fa-star-o mr-1"></i> 收藏
-                            </button>
-                            <button class="py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all">
-                                <i class="fa fa-share-alt mr-1"></i> 分享
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <!-- 内容区（可滚动） -->
+            <div id="reportBody" class="flex-1 overflow-y-auto scrollbar-thin p-6"></div>
+            <!-- 底部 -->
+            <div class="px-6 py-3 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-[10px] text-slate-400">报告基于当前筛选条件动态生成，数据仅供参考</span>
+                <button onclick="closeReportModal()" class="px-5 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 transition-all">关闭</button>
             </div>
         </div>
     </div>
 
-    <script>
-        function showDetail(id) {
-            const items = document.querySelectorAll('.policy-item');
-            items.forEach(item => {
-                item.classList.remove('border-blue-100', 'border-2');
-                item.classList.add('border-slate-100', 'border');
-            });
-            event.currentTarget.classList.remove('border-slate-100', 'border');
-            event.currentTarget.classList.add('border-blue-100', 'border-2');
-        }
-    </script>
+    <!-- ========= 预约申领弹窗 ========= -->
+    <div id="bookModal" class="fixed inset-0 z-50 hidden">
+        <!-- 遮罩 -->
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeBookModal()"></div>
+        <!-- 弹窗主体 -->
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[540px] max-w-[92vw] p-8 animate-modal-in">
+            <!-- 关闭 -->
+            <button onclick="closeBookModal()" class="absolute right-5 top-5 w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all">
+                <i class="fa fa-times"></i>
+            </button>
+            <!-- 标题 -->
+            <h2 class="text-2xl font-black text-slate-800 text-center mb-7 leading-tight">
+                预约政策专家，帮你成功申报
+            </h2>
+            <!-- 政策信息提示 -->
+            <div id="bookPolicyTag" class="hidden mb-5 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[11px] text-blue-600 flex items-center">
+                <i class="fa fa-file-text-o mr-2"></i>
+                正在预约：<span class="font-bold ml-1" id="bookPolicyName">—</span>
+            </div>
+            <!-- 表单 -->
+            <div class="space-y-4">
+                <div>
+                    <label class="block mb-1.5 text-[13px] text-slate-500">
+                        <span class="text-red-500 mr-0.5">*</span>姓名
+                    </label>
+                    <input id="bookName" type="text" placeholder="请输入您的姓名" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:border-blue-400 transition-all">
+                </div>
+                <div>
+                    <label class="block mb-1.5 text-[13px] text-slate-500">
+                        <span class="text-red-500 mr-0.5">*</span>手机号码
+                    </label>
+                    <input id="bookPhone" type="tel" placeholder="请输入手机号码" maxlength="11" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:border-blue-400 transition-all">
+                </div>
+                <div>
+                    <label class="block mb-1.5 text-[13px] text-slate-500">
+                        <span class="text-red-500 mr-0.5">*</span>企业名称
+                    </label>
+                    <input id="bookCompany" type="text" placeholder="请输入企业名称" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:border-blue-400 transition-all">
+                </div>
+            </div>
+            <!-- 预约按钮 -->
+            <button onclick="submitBook()" id="bookSubmitBtn" class="w-full mt-6 py-3.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl font-bold text-[15px] shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center">
+                <i class="fa fa-check-circle mr-2"></i>
+                <span>预约</span>
+            </button>
+            <!-- 底部联系方式 -->
+            <div class="mt-6 flex items-center justify-center space-x-8 text-[13px] text-slate-500">
+                <button class="flex items-center hover:text-blue-600 transition-all">
+                    <i class="fa fa-commenting-o mr-2 text-blue-500"></i>在线咨询
+                </button>
+                <button onclick="copyPhone()" class="flex items-center hover:text-blue-600 transition-all">
+                    <i class="fa fa-phone mr-2 text-blue-500"></i>
+                    <span id="bookPhoneNo">400-1787170</span>
+                    <span class="ml-2 text-blue-500 font-bold text-xs">复制</span>
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

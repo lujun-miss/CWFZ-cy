@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>申报材料配置 - 策源易答</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 3px; }
+        .tab-active { color:#2563eb; border-bottom-color:#2563eb; }
+        .editor-field label { @apply block text-xs font-bold text-slate-600 mb-1; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <div class="max-w-[1400px] mx-auto p-6">
+        <!-- 页面标题 -->
+        <div class="mb-5 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800">申报材料配置</h1>
+                <p class="text-sm text-slate-500">管理申报项目的材料模板、填写提示、样例参考 · 配置后前端材料自查助手自动同步</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="resetToDefault()" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50">
+                    <i class="fa fa-refresh mr-1.5"></i>恢复默认
+                </button>
+                <button onclick="goPage('declaration-butler.html')" class="px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-50">
+                    <i class="fa fa-eye mr-1.5"></i>预览前端
+                </button>
+                <button onclick="saveAll()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-100">
+                    <i class="fa fa-save mr-1.5"></i>保存全部配置
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-5">
+            <!-- 左侧：项目列表 -->
+            <div class="col-span-4">
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden sticky top-6">
+                    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                        <h3 class="text-sm font-black text-slate-700 flex items-center">
+                            <i class="fa fa-list-alt text-blue-500 mr-2"></i>申报项目列表
+                        </h3>
+                        <button onclick="addProject()" class="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700">
+                            <i class="fa fa-plus mr-1"></i>新增项目
+                        </button>
+                    </div>
+                    <div id="projectList" class="divide-y divide-slate-100 max-h-[calc(100vh-240px)] overflow-y-auto scroll-thin">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：编辑器 -->
+            <div class="col-span-8">
+                <div id="editorArea" class="bg-white rounded-2xl border border-slate-200 min-h-[500px]">
+                    <!-- 由JS渲染 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="data-bridge.js"></script>
+<script>
+    let PROJECTS = [];
+    let CURRENT_ID = null;
+    let CURRENT_TAB = 'basic';
+
+    const STATUS_OPTIONS = [
+        { v:'申报中', c:'bg-green-50 text-green-600' },
+        { v:'即将截止', c:'bg-orange-50 text-orange-500' },
+        { v:'待申报', c:'bg-blue-50 text-blue-600' },
+        { v:'已完成', c:'bg-slate-100 text-slate-500' }
+    ];
+    const LEVEL_OPTIONS = ['国家级', '省级', '市级'];
+    const TYPE_OPTIONS = ['资金补贴', '税收减免', '资质认定', '资质入库'];
+    const ICON_COLORS = ['blue', 'emerald', 'orange', 'purple', 'indigo', 'cyan', 'amber'];
+    const MATERIAL_COLORS = ['blue', 'orange', 'green', 'purple', 'indigo', 'amber', 'cyan'];
+
+    function goPage(url) {
+        if (parent && parent.window && parent.window.switchPage) {
+            parent.window.switchPage(url, null);
+        } else {
+            window.location.href = url;
+        }
+    }
+
+    function load() {
+        PROJECTS = JSON.parse(JSON.stringify(DataBridge.loadDeclarationProjects()));
+        if (PROJECTS.length > 0) CURRENT_ID = PROJECTS[0].id;
+        renderList();
+        renderEditor();
+    }
+
+    function renderList() {
+        const box = document.getElementById('projectList');
+        if (PROJECTS.length === 0) {
+            box.innerHTML = '<div class="p-8 text-center text-slate-400 text-sm">暂无项目，点击上方「新增项目」开始</div>';
+            return;
+        }
+        box.innerHTML = PROJECTS.map(p => {
+            const statusCfg = STATUS_OPTIONS.find(s => s.v === p.status) || STATUS_OPTIONS[0];
+            const active = p.id === CURRENT_ID ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-slate-50 border-l-4 border-transparent';
+            const totalItems = (p.groups || []).reduce((s, g) => s + (g.items || []).length, 0);
+            const doneItems = (p.groups || []).reduce((s, g) => s + (g.items || []).filter(i => i.status === 'done').length, 0);
+            return `<div class="project-item ${active} cursor-pointer px-4 py-3 transition-all" onclick="selectProject('${p.id}')">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-bold text-slate-800 truncate flex-1">${p.name}</span>
+                    <span class="px-1.5 py-0.5 rounded ${statusCfg.c} text-[10px] font-bold ml-2 flex-shrink-0">${p.status}</span>
+                </div>
+                <div class="flex items-center space-x-2 text-[10.5px] text-slate-500">
+                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold">${p.level}</span>
+                    <span>${p.deadline.split(' ')[0]}</span>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                    <span class="text-[10px] text-slate-400">材料 ${doneItems}/${totalItems} · 完成度 ${totalItems>0?Math.round(doneItems/totalItems*100):0}%</span>
+                    <div class="w-20 h-1 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-500 rounded-full" style="width:${totalItems>0?Math.round(doneItems/totalItems*100):0}%"></div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function selectProject(id) {
+        CURRENT_ID = id;
+        CURRENT_TAB = 'basic';
+        renderList();
+        renderEditor();
+    }
+
+    function getCurrent() {
+        return PROJECTS.find(p => p.id === CURRENT_ID);
+    }
+
+    function renderEditor() {
+        const area = document.getElementById('editorArea');
+        const p = getCurrent();
+        if (!p) {
+            area.innerHTML = '<div class="p-12 text-center text-slate-400">请选择或新增一个申报项目</div>';
+            return;
+        }
+
+        const tabs = [
+            { k:'basic', t:'基本信息', i:'fa-info-circle' },
+            { k:'material', t:'材料模板', i:'fa-file-text-o' }
+        ];
+
+        area.innerHTML = `
+            <div class="border-b border-slate-200 px-5 pt-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-base font-black text-slate-800">
+                        <i class="fa fa-flag text-blue-500 mr-2"></i>${p.name}
+                    </h2>
+                    <button onclick="deleteProject('${p.id}')" class="px-3 py-1.5 text-xs font-bold text-red-500 border border-red-200 rounded-lg hover:bg-red-50">
+                        <i class="fa fa-trash mr-1"></i>删除项目
+                    </button>
+                </div>
+                <div class="flex space-x-1">
+                    ${tabs.map(t => `
+                        <button onclick="switchTab('${t.k}')" class="px-4 py-2 text-xs font-bold border-b-2 transition-all ${CURRENT_TAB===t.k?'tab-active':'border-transparent text-slate-500 hover:text-slate-700'}">
+                            <i class="fa ${t.i} mr-1"></i>${t.t}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+            <div id="tabContent" class="p-5 min-h-[400px]"></div>
+        `;
+        renderTab();
+    }
+
+    function switchTab(tab) {
+        CURRENT_TAB = tab;
+        renderEditor();
+    }
+
+    function renderTab() {
+        const p = getCurrent();
+        if (!p) return;
+        const box = document.getElementById('tabContent');
+        if (CURRENT_TAB === 'basic') box.innerHTML = renderBasicTab(p);
+        else if (CURRENT_TAB === 'material') box.innerHTML = renderMaterialTab(p);
+    }
+
+    function field(label, id, value, type, opts) {
+        type = type || 'text';
+        opts = opts || {};
+        if (type === 'select') {
+            return `<div class="editor-field">
+                <label>${label}</label>
+                <select id="${id}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400" onchange="onFieldChange('${id}', this.value)">
+                    ${opts.options.map(o => `<option value="${o}" ${o===value?'selected':''}>${o}</option>`).join('')}
+                </select>
+            </div>`;
+        }
+        if (type === 'textarea') {
+            return `<div class="editor-field">
+                <label>${label}</label>
+                <textarea id="${id}" rows="${opts.rows||2}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400" oninput="onFieldChange('${id}', this.value)">${value||''}</textarea>
+            </div>`;
+        }
+        if (type === 'number') {
+            return `<div class="editor-field">
+                <label>${label}</label>
+                <input id="${id}" type="number" value="${value||0}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400" oninput="onFieldChange('${id}', Number(this.value))">
+            </div>`;
+        }
+        return `<div class="editor-field">
+            <label>${label}</label>
+            <input id="${id}" type="text" value="${value||''}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400" oninput="onFieldChange('${id}', this.value)">
+        </div>`;
+    }
+
+    function onFieldChange(id, val) {
+        const p = getCurrent();
+        const fieldMap = {
+            'f_name':'name','f_level':'level','f_type':'type','f_status':'status',
+            'f_dept':'dept','f_deadline':'deadline','f_subsidy':'subsidy',
+            'f_icon':'icon','f_iconColor':'iconColor'
+        };
+        const key = fieldMap[id];
+        if (key) {
+            p[key] = val;
+            renderList();
+        }
+    }
+
+    function renderBasicTab(p) {
+        const statusOpts = STATUS_OPTIONS.map(s => s.v);
+        return `
+            <div class="grid grid-cols-2 gap-4">
+                ${field('项目名称', 'f_name', p.name)}
+                ${field('项目ID', 'f_id', p.id)}
+                ${field('主管部门', 'f_dept', p.dept)}
+                ${field('申报截止', 'f_deadline', p.deadline)}
+                ${field('项目级别', 'f_level', p.level, 'select', {options:LEVEL_OPTIONS})}
+                ${field('政策类型', 'f_type', p.type, 'select', {options:TYPE_OPTIONS})}
+                ${field('申报状态', 'f_status', p.status, 'select', {options:statusOpts})}
+                ${field('项目图标', 'f_icon', p.icon, 'select', {options:['fa-star','fa-rocket','fa-bolt','fa-flask','fa-building','fa-file-text-o','fa-shield','fa-lightbulb-o','fa-cogs','fa-area-chart']})}
+                ${field('图标颜色', 'f_iconColor', p.iconColor, 'select', {options:ICON_COLORS})}
+                <div class="col-span-2">${field('预计扶持金额', 'f_subsidy', p.subsidy, 'textarea', {rows:2})}</div>
+            </div>
+        `;
+    }
+
+    function renderMaterialTab(p) {
+        const groups = p.groups || [];
+        return `
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-slate-700">材料分组与条目</h3>
+                <button onclick="addGroup()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700">
+                    <i class="fa fa-plus mr-1"></i>新增分组
+                </button>
+            </div>
+            <div class="space-y-4" id="groupsContainer">
+                ${groups.map((g, gi) => renderGroupBlock(g, gi)).join('')}
+                ${groups.length === 0 ? '<div class="p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">暂无材料分组，点击上方新增</div>' : ''}
+            </div>
+        `;
+    }
+
+    function renderGroupBlock(g, gi) {
+        const color = g.color || 'blue';
+        return `<div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="px-4 py-3 bg-${color}-50 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <input type="text" value="${g.title}" class="font-bold text-sm bg-transparent outline-none border-b border-transparent focus:border-slate-300 px-1" oninput="updateGroup(${gi},'title',this.value)">
+                    <span class="text-slate-400 text-xs">(${g.items.length}项)</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <select onchange="updateGroup(${gi},'color',this.value)" class="text-[10px] px-1.5 py-0.5 rounded border border-slate-200 bg-white">
+                        ${MATERIAL_COLORS.map(c => `<option value="${c}" ${c===color?'selected':''}>${c}</option>`).join('')}
+                    </select>
+                    <button onclick="addItem(${gi})" class="px-2 py-1 bg-white border border-slate-200 text-[10px] font-bold rounded hover:bg-slate-50"><i class="fa fa-plus"></i></button>
+                    <button onclick="removeGroup(${gi})" class="px-2 py-1 bg-white border border-red-200 text-red-500 text-[10px] font-bold rounded hover:bg-red-50"><i class="fa fa-trash"></i></button>
+                </div>
+            </div>
+            <div class="divide-y divide-slate-100">
+                ${g.items.map((m, mi) => renderItemRow(m, gi, mi)).join('')}
+                ${g.items.length === 0 ? '<div class="p-4 text-center text-slate-400 text-xs">暂无材料条目</div>' : ''}
+            </div>
+        </div>`;
+    }
+
+    function renderItemRow(m, gi, mi) {
+        return `<div class="px-4 py-3 grid grid-cols-12 gap-3 items-center text-[11px]">
+            <div class="col-span-3">
+                <input type="text" value="${m.name}" class="w-full px-2 py-1 border border-slate-200 rounded text-sm outline-none focus:ring-1 focus:ring-blue-400" oninput="updateItem(${gi},${mi},'name',this.value)">
+            </div>
+            <div class="col-span-5">
+                <input type="text" value="${(m.tip||'').substring(0,80)}" class="w-full px-2 py-1 border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-blue-400" placeholder="填写提示..." oninput="updateItem(${gi},${mi},'tip',this.value)">
+            </div>
+            <div class="col-span-2 flex items-center space-x-1">
+                <select onchange="updateItem(${gi},${mi},'required',this.value==='true')" class="text-[10px] px-1 py-0.5 rounded border border-slate-200">
+                    <option value="true" ${m.required?'selected':''}>必填</option>
+                    <option value="false" ${!m.required?'selected':''}>选填</option>
+                </select>
+                <select onchange="updateItem(${gi},${mi},'status',this.value)" class="text-[10px] px-1 py-0.5 rounded border border-slate-200">
+                    <option value="done" ${m.status==='done'?'selected':''}>已准备</option>
+                    <option value="todo" ${m.status!=='done'?'selected':''}>未准备</option>
+                </select>
+            </div>
+            <div class="col-span-2 flex items-center space-x-1">
+                <button onclick="editItemDetail(${gi},${mi})" class="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded hover:bg-blue-100" title="编辑详细提示与样例"><i class="fa fa-edit"></i></button>
+                <button onclick="removeItem(${gi},${mi})" class="px-2 py-1 bg-red-50 text-red-500 text-[10px] font-bold rounded hover:bg-red-100"><i class="fa fa-trash"></i></button>
+            </div>
+        </div>`;
+    }
+
+    // ===== 操作函数 =====
+    function addProject() {
+        const id = 'new_' + Date.now().toString(36);
+        const newP = {
+            id, name:'新增申报项目', level:'国家级', type:'资金补贴', status:'待申报', statusColor:'blue',
+            icon:'fa-star', iconColor:'blue', dept:'', deadline:'', subsidy:'', progress:0,
+            groups:[]
+        };
+        PROJECTS.push(newP);
+        CURRENT_ID = id;
+        CURRENT_TAB = 'basic';
+        renderList();
+        renderEditor();
+    }
+
+    function deleteProject(id) {
+        if (!confirm('确定删除此项目及其所有材料配置？')) return;
+        PROJECTS = PROJECTS.filter(p => p.id !== id);
+        if (CURRENT_ID === id) CURRENT_ID = PROJECTS.length > 0 ? PROJECTS[0].id : null;
+        renderList();
+        renderEditor();
+    }
+
+    function addGroup() {
+        const p = getCurrent();
+        if (!p) return;
+        p.groups = p.groups || [];
+        p.groups.push({ title:'新分组', icon:'fa-folder', color:'blue', items:[] });
+        renderTab();
+        renderList();
+    }
+
+    function removeGroup(gi) {
+        if (!confirm('确定删除此分组及其所有材料条目？')) return;
+        const p = getCurrent();
+        p.groups.splice(gi, 1);
+        renderTab();
+        renderList();
+    }
+
+    function updateGroup(gi, key, val) {
+        const p = getCurrent();
+        p.groups[gi][key] = val;
+        if (key === 'title') renderList();
+    }
+
+    function addItem(gi) {
+        const p = getCurrent();
+        p.groups[gi].items.push({
+            id: 'item_' + Date.now().toString(36),
+            name:'新材料', required:true, status:'todo',
+            tip:'', sampleName:'', samplePreview:''
+        });
+        renderTab();
+    }
+
+    function removeItem(gi, mi) {
+        const p = getCurrent();
+        p.groups[gi].items.splice(mi, 1);
+        renderTab();
+        renderList();
+    }
+
+    function updateItem(gi, mi, key, val) {
+        const p = getCurrent();
+        p.groups[gi].items[mi][key] = val;
+        if (key === 'status') renderList();
+    }
+
+    function editItemDetail(gi, mi) {
+        const p = getCurrent();
+        const m = p.groups[gi].items[mi];
+        var mask = document.createElement('div');
+        mask.className = 'modal-mask';
+        mask.id = 'editItemMask';
+        mask.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        mask.onclick = function(e){ if(e.target.id==='editItemMask') mask.remove(); };
+        mask.innerHTML =
+        '<div style="width:640px;max-height:88vh;background:white;border-radius:20px;overflow:hidden;box-shadow:0 30px 60px -15px rgba(15,23,42,0.4);display:flex;flex-direction:column;">'
+        + '<div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-100 flex items-center justify-between">'
+        + '  <div class="flex items-center space-x-2"><i class="fa fa-edit text-blue-600 text-lg"></i><div><div class="text-sm font-black text-slate-800">编辑材料详情</div><div class="text-[10.5px] text-slate-500">'+m.name+'</div></div></div>'
+        + '  <button onclick="document.getElementById(\'editItemMask\').remove()" class="w-8 h-8 rounded-lg bg-white/70 hover:bg-white text-slate-500 flex items-center justify-center"><i class="fa fa-times"></i></button>'
+        + '</div>'
+        + '<div class="flex-1 overflow-y-auto scroll-thin px-6 py-4 space-y-4">'
+        // 填写提示
+        + '  <div>'
+        + '    <label class="block text-xs font-bold text-slate-600 mb-1.5"><i class="fa fa-info-circle text-blue-400 mr-1"></i>填写提示（用户hover时看到的详细说明）</label>'
+        + '    <textarea id="editTip" rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400 resize-y" placeholder="例如：需提供近3年研发费用占比≥5%的审计报告...">'+(m.tip||'')+'</textarea>'
+        + '  </div>'
+        // 样例文件名
+        + '  <div>'
+        + '    <label class="block text-xs font-bold text-slate-600 mb-1.5"><i class="fa fa-file-text-o text-indigo-400 mr-1"></i>样例文件名</label>'
+        + '    <input id="editSampleName" type="text" value="'+(m.sampleName||'')+'" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400" placeholder="例如：研发费用审计报告.pdf">'
+        + '  </div>'
+        // 样例内容预览
+        + '  <div>'
+        + '    <label class="block text-xs font-bold text-slate-600 mb-1.5"><i class="fa fa-eye text-purple-400 mr-1"></i>样例内容预览（用户点击「样例」按钮时展示的内容）</label>'
+        + '    <div class="flex items-center gap-2 mb-2">'
+        + '      <label class="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-[11px] font-bold rounded-lg border border-indigo-200 hover:bg-indigo-100 cursor-pointer transition-all"><i class="fa fa-upload mr-1"></i>上传样例文件'
+        + '        <input type="file" accept=".txt,.pdf,.doc,.docx,.xls,.xlsx" class="hidden" onchange="uploadSampleFile(this)">'
+        + '      </label>'
+        + '      <span class="text-[10px] text-slate-400" id="uploadFileName">支持 txt/pdf/doc/xls，上传后内容自动填入下方文本框</span>'
+        + '    </div>'
+        + '    <textarea id="editSamplePreview" rows="8" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-400 resize-y font-mono leading-relaxed" placeholder="可上传文件自动填入，或直接粘贴样例内容...">'+(m.samplePreview||'')+'</textarea>'
+        + '  </div>'
+        + '</div>'
+        + '<div class="px-6 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">'
+        + '  <span class="text-[10.5px] text-slate-500"><i class="fa fa-shield mr-1"></i>修改后需点击顶部「保存全部配置」才生效</span>'
+        + '  <div class="flex items-center space-x-2">'
+        + '    <button onclick="document.getElementById(\'editItemMask\').remove()" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">取消</button>'
+        + '    <button onclick="confirmEditItem('+gi+','+mi+')" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-700">保存修改</button>'
+        + '  </div>'
+        + '</div>'
+        + '</div>';
+        document.body.appendChild(mask);
+    }
+
+    function confirmEditItem(gi, mi) {
+        const p = getCurrent();
+        const m = p.groups[gi].items[mi];
+        m.tip = document.getElementById('editTip').value;
+        m.sampleName = document.getElementById('editSampleName').value;
+        m.samplePreview = document.getElementById('editSamplePreview').value;
+        document.getElementById('editItemMask').remove();
+        renderTab();
+        showToast('材料详情已更新，记得点击顶部「保存全部配置」', 'success');
+    }
+
+    function uploadSampleFile(input) {
+        const file = input.files[0];
+        if (!file) return;
+        document.getElementById('uploadFileName').innerText = file.name + ' · 正在读取...';
+        // 如果样例文件名为空，自动填入文件名
+        const nameInput = document.getElementById('editSampleName');
+        if (!nameInput.value) nameInput.value = file.name;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            var text = e.target.result || '';
+            // 截取前5000字符防止localStorage溢出
+            if (text.length > 5000) text = text.substring(0, 5000) + '\n\n（内容过长，已截取前5000字符）';
+            document.getElementById('editSamplePreview').value = text;
+            document.getElementById('uploadFileName').innerText = file.name + ' · 已读取 ' + text.length + ' 字符';
+        };
+        reader.onerror = function() {
+            document.getElementById('uploadFileName').innerText = file.name + ' · 读取失败，请手动粘贴内容';
+        };
+        // txt直接读文本，其他类型也尝试以文本方式读取
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    function saveAll() {
+        // Clean up before save
+        PROJECTS.forEach(p => {
+            if (!p.groups) p.groups = [];
+        });
+        const ok = DataBridge.saveDeclarationProjects(PROJECTS);
+        if (ok) showToast('配置已保存，前端材料自查助手将自动同步', 'success');
+        else showToast('保存失败', 'error');
+    }
+
+    function resetToDefault() {
+        if (!confirm('确定恢复默认配置？当前所有修改将被覆盖。')) return;
+        localStorage.removeItem(DataBridge.KEYS.DECLARATION_PROJECTS);
+        PROJECTS = JSON.parse(JSON.stringify(DataBridge.DEFAULT_DECLARATION_PROJECTS));
+        CURRENT_ID = PROJECTS[0] ? PROJECTS[0].id : null;
+        renderList();
+        renderEditor();
+        showToast('已恢复默认配置', 'success');
+    }
+
+    function showToast(msg, type) {
+        type = type || 'success';
+        const colors = { success:'bg-green-500', error:'bg-red-500', info:'bg-blue-500' };
+        const icons = { success:'check-circle', error:'times-circle', info:'info-circle' };
+        const d = document.createElement('div');
+        d.className = `${colors[type]} text-white px-5 py-3 rounded-xl shadow-xl fixed top-6 right-6 z-[9999] text-sm font-bold flex items-center space-x-2`;
+        d.style.cssText = 'opacity:0;transform:translateX(20px);transition:all .3s;';
+        d.innerHTML = `<i class="fa fa-${icons[type]}"></i><span>${msg}</span>`;
+        document.body.appendChild(d);
+        requestAnimationFrame(() => { d.style.opacity='1'; d.style.transform='translateX(0)'; });
+        setTimeout(() => { d.style.opacity='0'; setTimeout(() => d.remove(), 300); }, 2600);
+    }
+
+    document.addEventListener('DOMContentLoaded', load);
+</script>
+</body>
+</html>

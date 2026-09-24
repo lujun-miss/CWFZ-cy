@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>非结构化数据抽取 - AI智能引擎</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #fdf4ff 0%, #f5f3ff 40%, #fae8ff 100%);
+            min-height: 100vh;
+        }
+        .card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 32px -12px rgba(168, 85, 247, 0.25);
+        }
+        .glow-purple {
+            box-shadow: 0 0 40px -8px rgba(168, 85, 247, 0.35);
+        }
+        .glow-pink {
+            box-shadow: 0 0 40px -8px rgba(236, 72, 153, 0.3);
+        }
+        .gradient-purple {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+        }
+        .gradient-card-1 {
+            background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%);
+        }
+        .gradient-card-2 {
+            background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+        }
+        .gradient-card-3 {
+            background: linear-gradient(135deg, #818cf8 0%, #a855f7 100%);
+        }
+        .gradient-card-4 {
+            background: linear-gradient(135deg, #fb7185 0%, #f472b6 100%);
+        }
+        .scan-anim {
+            animation: scan 3s ease-in-out infinite;
+        }
+        @keyframes scan {
+            0%, 100% { transform: translateY(0); opacity: 0.8; }
+            50% { transform: translateY(160px); opacity: 1; }
+        }
+        .pulse-dot {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+        }
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease forwards;
+            opacity: 0;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #e9d5ff; border-radius: 3px; }
+        .step-connector {
+            position: relative;
+        }
+        .step-connector::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(to bottom, #d8b4fe, #f5f3ff);
+        }
+        .step-connector:last-child::after {
+            display: none;
+        }
+        .confidence-high {
+            background: linear-gradient(135deg, #10b981, #34d399);
+        }
+        .confidence-mid {
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        }
+        .confidence-low {
+            background: linear-gradient(135deg, #ef4444, #f87171);
+        }
+    </style>
+</head>
+<body class="p-8">
+
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between mb-8 fade-in-up">
+        <div>
+            <div class="flex items-center space-x-3 mb-2">
+                <div class="w-12 h-12 rounded-2xl gradient-purple flex items-center justify-center shadow-xl shadow-purple-300">
+                    <i class="fa fa-magic text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800">非结构化数据抽取</h1>
+                    <p class="text-sm text-slate-500 mt-0.5">模块四 · AI智能引擎 / OCR+NLP信息抽取</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4 ml-15">
+                <div class="inline-flex items-center text-xs text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full font-medium">
+                    <i class="fa fa-check-circle mr-1.5"></i>OCR + NLP 双引擎驱动
+                </div>
+                <div class="inline-flex items-center text-xs text-pink-600 bg-pink-50 px-3 py-1.5 rounded-full font-medium">
+                    <i class="fa fa-bolt mr-1.5"></i>抽取准确率 ≥ 95%
+                </div>
+                <div class="inline-flex items-center text-xs text-fuchsia-600 bg-fuchsia-50 px-3 py-1.5 rounded-full font-medium">
+                    <i class="fa fa-clock-o mr-1.5"></i>处理速度 ≤ 3秒/页
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <select class="px-4 py-2.5 bg-white border border-purple-100 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-400 shadow-sm">
+                <option>最近7天</option><option>最近30天</option><option>本季度</option><option>本年度</option>
+            </select>
+            <button class="px-4 py-2.5 gradient-purple hover:opacity-90 text-white rounded-xl text-sm font-bold transition-all flex items-center shadow-lg shadow-purple-400/30">
+                <i class="fa fa-cloud-upload mr-2"></i>上传文档
+            </button>
+        </div>
+    </div>
+
+    <!-- 顶部4指标 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6 fade-in-up" style="animation-delay: 0.1s">
+        <div class="bg-white/80 backdrop-blur p-6 rounded-[22px] border border-white shadow-sm card-hover transition-all relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3 relative z-10">
+                <div class="w-12 h-12 gradient-card-1 rounded-xl flex items-center justify-center shadow-lg shadow-purple-200">
+                    <i class="fa fa-file-text-o text-white text-lg"></i>
+                </div>
+                <span class="text-xs font-bold text-green-500 bg-green-50 px-2.5 py-1 rounded-lg"><i class="fa fa-arrow-up"></i> 23.5%</span>
+            </div>
+            <p class="text-slate-500 text-sm font-medium">累计抽取文档</p>
+            <div class="flex items-baseline space-x-2 mt-1">
+                <h3 class="text-3xl font-black text-slate-800">56,320</h3>
+                <span class="text-xs text-slate-400">份</span>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-12 opacity-15">
+                <svg viewBox="0 0 100 35" class="w-full h-full" preserveAspectRatio="none"><path d="M0 30 Q 20 18, 40 22 T 80 10 T 100 14 V 35 H 0 Z" fill="#a855f7"></path></svg>
+            </div>
+        </div>
+        <div class="bg-white/80 backdrop-blur p-6 rounded-[22px] border border-white shadow-sm card-hover transition-all relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3 relative z-10">
+                <div class="w-12 h-12 gradient-card-2 rounded-xl flex items-center justify-center shadow-lg shadow-pink-200">
+                    <i class="fa fa-database text-white text-lg"></i>
+                </div>
+                <span class="text-xs font-bold text-green-500 bg-green-50 px-2.5 py-1 rounded-lg"><i class="fa fa-arrow-up"></i> 18.9%</span>
+            </div>
+            <p class="text-slate-500 text-sm font-medium">抽取字段总数</p>
+            <div class="flex items-baseline space-x-2 mt-1">
+                <h3 class="text-3xl font-black text-slate-800">382<span class="text-xl">万</span></h3>
+                <span class="text-xs text-slate-400">条</span>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-12 opacity-15">
+                <svg viewBox="0 0 100 35" class="w-full h-full" preserveAspectRatio="none"><path d="M0 26 Q 25 20, 50 16 T 100 8 V 35 H 0 Z" fill="#ec4899"></path></svg>
+            </div>
+        </div>
+        <div class="bg-white/80 backdrop-blur p-6 rounded-[22px] border border-white shadow-sm card-hover transition-all relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3 relative z-10">
+                <div class="w-12 h-12 gradient-card-3 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                    <i class="fa fa-bullseye text-white text-lg"></i>
+                </div>
+                <span class="text-xs font-bold text-green-500 bg-green-50 px-2.5 py-1 rounded-lg"><i class="fa fa-arrow-up"></i> 1.2%</span>
+            </div>
+            <p class="text-slate-500 text-sm font-medium">抽取准确率</p>
+            <div class="flex items-baseline space-x-2 mt-1">
+                <h3 class="text-3xl font-black text-slate-800">96.1<span class="text-lg">%</span></h3>
+            </div>
+            <div class="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full gradient-card-3 rounded-full" style="width: 96.1%"></div>
+            </div>
+        </div>
+        <div class="bg-white/80 backdrop-blur p-6 rounded-[22px] border border-white shadow-sm card-hover transition-all relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3 relative z-10">
+                <div class="w-12 h-12 gradient-card-4 rounded-xl flex items-center justify-center shadow-lg shadow-rose-200">
+                    <i class="fa fa-bolt text-white text-lg"></i>
+                </div>
+                <span class="text-xs font-bold text-green-500 bg-green-50 px-2.5 py-1 rounded-lg"><i class="fa fa-arrow-down"></i> 12.4%</span>
+            </div>
+            <p class="text-slate-500 text-sm font-medium">平均处理速度</p>
+            <div class="flex items-baseline space-x-2 mt-1">
+                <h3 class="text-3xl font-black text-slate-800">2.3<span class="text-lg">秒/页</span></h3>
+            </div>
+            <div class="mt-3 flex items-center space-x-2">
+                <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full gradient-card-4 rounded-full" style="width: 77%"></div>
+                </div>
+                <span class="text-xs text-slate-400">优于3s</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主体三栏：流水线 + 实时演示 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
+        
+        <!-- 左侧：文档抽取流水线 -->
+        <div class="lg:col-span-3 fade-in-up" style="animation-delay: 0.2s">
+            <div class="bg-white/80 backdrop-blur rounded-[22px] border border-white shadow-sm p-5 h-full">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="font-black text-slate-800 flex items-center text-base">
+                        <i class="fa fa-sitemap text-purple-500 mr-2"></i>文档抽取流水线
+                    </h3>
+                    <span class="text-[10px] bg-purple-50 text-purple-600 px-2 py-1 rounded-full font-bold">4步流程</span>
+                </div>
+
+                <div class="space-y-2">
+                    <!-- Step1 上传 -->
+                    <div class="step-connector">
+                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100 relative overflow-hidden">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 gradient-card-1 rounded-xl flex items-center justify-center text-white shadow-md">
+                                        <i class="fa fa-upload"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center space-x-1.5">
+                                            <span class="text-xs font-bold text-white bg-purple-500 w-5 h-5 rounded-full flex items-center justify-center">1</span>
+                                            <span class="font-bold text-sm text-slate-800">文档上传</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500 mt-0.5">支持PDF/图片/Word</p>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-bold"><i class="fa fa-check-circle"></i></span>
+                            </div>
+                            <div class="bg-white rounded-xl p-3 mb-2">
+                                <div class="flex items-center justify-between text-xs mb-1.5">
+                                    <span class="text-slate-500">处理量</span>
+                                    <span class="font-black text-slate-800">8,245 份</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-slate-500">成功率</span>
+                                    <span class="font-bold text-purple-600">99.6%</span>
+                                </div>
+                            </div>
+                            <svg viewBox="0 0 200 60" class="w-full h-14">
+                                <rect x="10" y="8" width="60" height="44" rx="4" fill="#fff" stroke="#e9d5ff" stroke-width="1.5"/>
+                                <rect x="18" y="14" width="44" height="4" rx="2" fill="#f3e8ff"/>
+                                <rect x="18" y="22" width="36" height="3" rx="1.5" fill="#f3e8ff"/>
+                                <rect x="18" y="29" width="44" height="3" rx="1.5" fill="#f3e8ff"/>
+                                <rect x="18" y="36" width="30" height="3" rx="1.5" fill="#f3e8ff"/>
+                                <path d="M95 30 L125 30" stroke="#c084fc" stroke-width="2" stroke-dasharray="4 3"/>
+                                <polygon points="125,30 118,26 118,34" fill="#c084fc"/>
+                                <rect x="135" y="12" width="55" height="36" rx="4" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1"/>
+                                <path d="M145 32 L152 40 L162 22 L172 38 L180 28" stroke="#a855f7" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                <circle cx="145" cy="32" r="2" fill="#a855f7"/>
+                                <circle cx="180" cy="28" r="2" fill="#a855f7"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center"><i class="fa fa-angle-down text-purple-300 text-xl"></i></div>
+
+                    <!-- Step2 OCR识别 -->
+                    <div class="step-connector">
+                        <div class="bg-gradient-to-br from-fuchsia-50 to-pink-50 rounded-2xl p-4 border border-fuchsia-100 relative overflow-hidden">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 gradient-card-2 rounded-xl flex items-center justify-center text-white shadow-md">
+                                        <i class="fa fa-eye"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center space-x-1.5">
+                                            <span class="text-xs font-bold text-white bg-pink-500 w-5 h-5 rounded-full flex items-center justify-center">2</span>
+                                            <span class="font-bold text-sm text-slate-800">OCR识别</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500 mt-0.5">文字版面分析</p>
+                                    </div>
+                                </div>
+                                <span class="inline-flex items-center text-[10px] text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-bold">
+                                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1 pulse-dot"></i>处理中
+                                </span>
+                            </div>
+                            <div class="bg-white rounded-xl p-3 mb-2">
+                                <div class="flex items-center justify-between text-xs mb-1.5">
+                                    <span class="text-slate-500">识别字符</span>
+                                    <span class="font-black text-slate-800">2.1亿 字</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-slate-500">识别率</span>
+                                    <span class="font-bold text-pink-600">98.7%</span>
+                                </div>
+                            </div>
+                            <svg viewBox="0 0 200 60" class="w-full h-14">
+                                <rect x="12" y="6" width="56" height="48" rx="3" fill="#fff" stroke="#fce7f3" stroke-width="1.5"/>
+                                <rect x="18" y="12" width="44" height="3" rx="1.5" fill="#fbcfe8"/>
+                                <rect x="18" y="18" width="38" height="3" rx="1.5" fill="#fce7f3"/>
+                                <rect x="18" y="24" width="44" height="3" rx="1.5" fill="#fbcfe8"/>
+                                <rect x="18" y="30" width="30" height="3" rx="1.5" fill="#fce7f3"/>
+                                <rect x="18" y="36" width="44" height="3" rx="1.5" fill="#fbcfe8"/>
+                                <rect x="18" y="42" width="34" height="3" rx="1.5" fill="#fce7f3"/>
+                                <rect x="80" y="6" width="32" height="48" rx="16" fill="#ec4899" opacity="0.15"/>
+                                <circle cx="96" cy="30" r="12" fill="none" stroke="#ec4899" stroke-width="2"/>
+                                <circle cx="96" cy="30" r="4" fill="#ec4899"/>
+                                <line x1="105" y1="39" x2="108" y2="42" stroke="#ec4899" stroke-width="2" stroke-linecap="round"/>
+                                <rect x="130" y="8" width="58" height="44" rx="3" fill="#fdf2f8" stroke="#fce7f3" stroke-width="1"/>
+                                <text x="138" y="20" font-size="6" fill="#831843" font-weight="bold">识别文字行1</text>
+                                <text x="138" y="30" font-size="6" fill="#831843" font-weight="bold">识别文字行2文字</text>
+                                <text x="138" y="40" font-size="6" fill="#831843" font-weight="bold">识别文字行3</text>
+                                <text x="138" y="48" font-size="5" fill="#9d174d">识别文字行4字符</text>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center"><i class="fa fa-angle-down text-pink-300 text-xl"></i></div>
+
+                    <!-- Step3 NLP抽取 -->
+                    <div class="step-connector">
+                        <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-4 border border-indigo-100 relative overflow-hidden">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 gradient-card-3 rounded-xl flex items-center justify-center text-white shadow-md">
+                                        <i class="fa fa-cogs"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center space-x-1.5">
+                                            <span class="text-xs font-bold text-white bg-indigo-500 w-5 h-5 rounded-full flex items-center justify-center">3</span>
+                                            <span class="font-bold text-sm text-slate-800">NLP智能抽取</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500 mt-0.5">实体识别 · 字段提取</p>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-bold"><i class="fa fa-check-circle"></i></span>
+                            </div>
+                            <div class="bg-white rounded-xl p-3 mb-2">
+                                <div class="flex items-center justify-between text-xs mb-1.5">
+                                    <span class="text-slate-500">提取字段</span>
+                                    <span class="font-black text-slate-800">58,420 个</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-slate-500">抽取准确率</span>
+                                    <span class="font-bold text-indigo-600">96.1%</span>
+                                </div>
+                            </div>
+                            <svg viewBox="0 0 200 60" class="w-full h-14">
+                                <rect x="10" y="16" width="70" height="28" rx="4" fill="#fff" stroke="#c7d2fe" stroke-width="1.5"/>
+                                <rect x="16" y="22" width="58" height="3" rx="1.5" fill="#e0e7ff"/>
+                                <rect x="16" y="28" width="42" height="3" rx="1.5" fill="#e0e7ff"/>
+                                <rect x="16" y="34" width="50" height="3" rx="1.5" fill="#e0e7ff"/>
+                                <rect x="90" y="10" width="30" height="40" rx="4" fill="#818cf8" opacity="0.2" stroke="#818cf8" stroke-width="1"/>
+                                <circle cx="100" cy="22" r="2.5" fill="#6366f1"/>
+                                <circle cx="100" cy="32" r="2.5" fill="#818cf8"/>
+                                <circle cx="110" cy="27" r="2.5" fill="#a855f7"/>
+                                <line x1="100" y1="24.5" x2="100" y2="29.5" stroke="#6366f1" stroke-width="1"/>
+                                <line x1="102.2" y1="23.3" x2="107.8" y2="26.2" stroke="#818cf8" stroke-width="1"/>
+                                <line x1="102.2" y1="30.7" x2="107.8" y2="27.8" stroke="#818cf8" stroke-width="1"/>
+                                <rect x="130" y="14" width="14" height="14" rx="2" fill="#ede9fe" stroke="#818cf8" stroke-width="1"/>
+                                <text x="134" y="24" font-size="6" fill="#4f46e5" font-weight="bold">A</text>
+                                <rect x="148" y="14" width="14" height="14" rx="2" fill="#fce7f3" stroke="#ec4899" stroke-width="1"/>
+                                <text x="152" y="24" font-size="6" fill="#be185d" font-weight="bold">B</text>
+                                <rect x="166" y="14" width="14" height="14" rx="2" fill="#d1fae5" stroke="#10b981" stroke-width="1"/>
+                                <text x="170" y="24" font-size="6" fill="#047857" font-weight="bold">C</text>
+                                <rect x="130" y="32" width="14" height="14" rx="2" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+                                <text x="134" y="42" font-size="6" fill="#92400e" font-weight="bold">D</text>
+                                <rect x="148" y="32" width="14" height="14" rx="2" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+                                <text x="152" y="42" font-size="6" fill="#1d4ed8" font-weight="bold">E</text>
+                                <rect x="166" y="32" width="14" height="14" rx="2" fill="#fae8ff" stroke="#d946ef" stroke-width="1"/>
+                                <text x="170" y="42" font-size="6" fill="#86198f" font-weight="bold">F</text>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center"><i class="fa fa-angle-down text-indigo-300 text-xl"></i></div>
+
+                    <!-- Step4 质检入库 -->
+                    <div>
+                        <div class="bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl p-4 border border-rose-100 relative overflow-hidden">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 gradient-card-4 rounded-xl flex items-center justify-center text-white shadow-md">
+                                        <i class="fa fa-check-square-o"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center space-x-1.5">
+                                            <span class="text-xs font-bold text-white bg-rose-500 w-5 h-5 rounded-full flex items-center justify-center">4</span>
+                                            <span class="font-bold text-sm text-slate-800">质检入库</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500 mt-0.5">自动+人工双重校验</p>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-bold"><i class="fa fa-check-circle"></i></span>
+                            </div>
+                            <div class="bg-white rounded-xl p-3 mb-2">
+                                <div class="flex items-center justify-between text-xs mb-1.5">
+                                    <span class="text-slate-500">已入库</span>
+                                    <span class="font-black text-slate-800">55,108 份</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-slate-500">自动通过率</span>
+                                    <span class="font-bold text-rose-600">93.2%</span>
+                                </div>
+                            </div>
+                            <svg viewBox="0 0 200 60" class="w-full h-14">
+                                <circle cx="42" cy="30" r="20" fill="#fff" stroke="#fecdd3" stroke-width="1.5"/>
+                                <circle cx="42" cy="30" r="14" fill="#fff1f2" stroke="#fb7185" stroke-width="1"/>
+                                <path d="M36 30 L40 34 L50 24" stroke="#e11d48" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                                <rect x="75" y="22" width="4" height="18" fill="#fda4af" rx="1"/>
+                                <rect x="83" y="14" width="4" height="26" fill="#fb7185" rx="1"/>
+                                <rect x="91" y="20" width="4" height="20" fill="#fda4af" rx="1"/>
+                                <rect x="99" y="10" width="4" height="30" fill="#f43f5e" rx="1"/>
+                                <rect x="107" y="24" width="4" height="16" fill="#fda4af" rx="1"/>
+                                <rect x="120" y="8" width="68" height="44" rx="4" fill="#fff" stroke="#fecdd3" stroke-width="1.5"/>
+                                <rect x="128" y="16" width="30" height="4" rx="2" fill="#fecdd3"/>
+                                <rect x="128" y="26" width="52" height="3" rx="1.5" fill="#fce7f3"/>
+                                <rect x="128" y="33" width="46" height="3" rx="1.5" fill="#fce7f3"/>
+                                <rect x="128" y="40" width="38" height="3" rx="1.5" fill="#fce7f3"/>
+                                <path d="M160 14 L160 14" stroke="#e11d48" stroke-width="2" stroke-dasharray="2 1"/>
+                                <circle cx="178" cy="18" r="7" fill="#10b981"/>
+                                <path d="M175 18 L177 20 L181 15" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中央：实时抽取演示 -->
+        <div class="lg:col-span-9 fade-in-up" style="animation-delay: 0.3s">
+            <div class="bg-white/80 backdrop-blur rounded-[22px] border border-white shadow-sm p-6 h-full">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h3 class="font-black text-slate-800 flex items-center text-base">
+                            <i class="fa fa-play-circle text-pink-500 mr-2"></i>实时抽取演示
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1">OCR识别区域 → 结构化字段提取</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="inline-flex items-center text-xs bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 px-3 py-1.5 rounded-full font-bold border border-purple-100">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 pulse-dot"></span>
+                            引擎运行中
+                        </div>
+                        <select class="px-3 py-1.5 bg-purple-50 border border-purple-100 rounded-lg text-xs text-slate-600 focus:outline-none font-medium">
+                            <option>营业执照_样本1</option>
+                            <option>审计报告_样本2</option>
+                            <option>资质证书_样本3</option>
+                            <option>银行流水_样本4</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-5">
+                    <!-- 左：扫描件缩略图 -->
+                    <div class="md:col-span-2">
+                        <div class="bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl p-4 relative overflow-hidden h-[440px] shadow-inner border border-slate-200">
+                            <div class="bg-white rounded-xl shadow-lg p-4 relative h-full overflow-hidden">
+                                <div class="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-slate-50 to-transparent z-10"></div>
+                                <div class="scan-anim absolute left-4 right-4 h-1 bg-gradient-to-r from-transparent via-pink-400 to-transparent opacity-70 z-20 rounded-full"></div>
+                                
+                                <div class="mt-2 mb-4 text-center">
+                                    <div class="text-lg font-black text-slate-700 tracking-widest">营业执照</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5">BUSINESS LICENSE</div>
+                                </div>
+
+                                <div class="space-y-3 relative">
+                                    <div class="relative">
+                                        <div class="absolute -top-2 -left-2 -right-2 -bottom-2 border-2 border-dashed border-red-400 rounded-lg bg-red-50/30 z-10"></div>
+                                        <div class="absolute -top-6 left-0 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded z-20 whitespace-nowrap">
+                                            <i class="fa fa-tag mr-1"></i>企业名称
+                                        </div>
+                                        <div class="text-[11px] text-slate-500">企业名称：</div>
+                                        <div class="text-sm font-bold text-slate-800 mt-0.5">深圳策源易答科技有限公司</div>
+                                    </div>
+
+                                    <div class="flex space-x-4 mt-4">
+                                        <div class="flex-1 relative">
+                                            <div class="absolute -top-2 -left-2 -right-2 -bottom-2 border-2 border-dashed border-red-400 rounded-lg bg-red-50/30 z-10"></div>
+                                            <div class="absolute -top-6 left-0 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded z-20 whitespace-nowrap">
+                                                <i class="fa fa-tag mr-1"></i>统一社会信用代码
+                                            </div>
+                                            <div class="text-[10px] text-slate-500">统一社会信用代码：</div>
+                                            <div class="text-xs font-bold text-slate-800 mt-0.5">91440300MA5FXXXX9A</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3 mt-4">
+                                        <div class="relative">
+                                            <div class="absolute -top-2 -left-2 -right-2 -bottom-2 border-2 border-dashed border-red-400 rounded-lg bg-red-50/30 z-10"></div>
+                                            <div class="absolute -top-6 left-0 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded z-20 whitespace-nowrap">
+                                                <i class="fa fa-tag mr-1"></i>法人代表
+                                            </div>
+                                            <div class="text-[10px] text-slate-500">法定代表人：</div>
+                                            <div class="text-xs font-bold text-slate-800 mt-0.5">张策源</div>
+                                        </div>
+                                        <div class="relative">
+                                            <div class="absolute -top-2 -left-2 -right-2 -bottom-2 border-2 border-dashed border-red-400 rounded-lg bg-red-50/30 z-10"></div>
+                                            <div class="absolute -top-6 left-0 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded z-20 whitespace-nowrap">
+                                                <i class="fa fa-tag mr-1"></i>注册资本
+                                            </div>
+                                            <div class="text-[10px] text-slate-500">注册资本：</div>
+                                            <div class="text-xs font-bold text-slate-800 mt-0.5">500万元人民币</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3 mt-4">
+                                        <div class="relative">
+                                            <div class="absolute -top-2 -left-2 -right-2 -bottom-2 border-2 border-dashed border-rose-400 rounded-lg bg-rose-50/30 z-10"></div>
+                                            <div class="absolute -top-6 left-0 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded z-20 whitespace-nowrap">
+                                                <i class="fa fa-tag mr-1"></i>成立日期
+                                            </div>
+                                            <div class="text-[10px] text-slate-500">成立日期：</div>
+                                            <div class="text-xs font-bold text-slate-800 mt-0.5">2023年08月15日</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-[10px] text-slate-500">企业类型：</div>
+                                            <div class="text-xs font-bold text-slate-800 mt-0.5">有限责任公司</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="relative mt-4">
+                                        <div class="absolute -top-2 -left-2 -right-2 -bottom-2 border-2 border-dashed border-rose-400 rounded-lg bg-rose-50/30 z-10"></div>
+                                        <div class="absolute -top-6 left-0 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded z-20 whitespace-nowrap">
+                                            <i class="fa fa-tag mr-1"></i>经营范围
+                                        </div>
+                                        <div class="text-[10px] text-slate-500">经营范围：</div>
+                                        <div class="text-[10px] font-bold text-slate-800 mt-0.5 leading-relaxed">
+                                            人工智能软件开发；政策咨询服务；数据处理与存储服务；企业管理咨询；信息技术咨询服务；计算机系统集成服务；…
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="absolute bottom-3 right-3 w-14 h-14 bg-slate-100 rounded flex items-center justify-center border border-slate-200">
+                                    <svg viewBox="0 0 40 40" class="w-10 h-10 opacity-40">
+                                        <rect x="4" y="20" width="32" height="16" rx="2" fill="none" stroke="#64748b" stroke-width="1.5"/>
+                                        <rect x="8" y="28" width="3" height="6" fill="#64748b"/>
+                                        <rect x="14" y="26" width="3" height="8" fill="#64748b"/>
+                                        <rect x="20" y="25" width="3" height="9" fill="#64748b"/>
+                                        <rect x="26" y="27" width="3" height="7" fill="#64748b"/>
+                                        <circle cx="20" cy="14" r="7" fill="none" stroke="#64748b" stroke-width="1.5"/>
+                                        <circle cx="20" cy="14" r="3" fill="#64748b"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右：结构化字段列表 -->
+                    <div class="md:col-span-3">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-sm font-bold text-slate-700 flex items-center">
+                                <i class="fa fa-list-ul text-purple-500 mr-2"></i>提取结构化字段
+                                <span class="ml-2 text-xs text-slate-400 font-normal">共 6 个字段</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="inline-flex items-center text-[10px] confidence-high text-white px-2 py-1 rounded-full font-bold"><i class="fa fa-circle mr-1" style="font-size:6px"></i>高 5</span>
+                                <span class="inline-flex items-center text-[10px] confidence-mid text-white px-2 py-1 rounded-full font-bold"><i class="fa fa-circle mr-1" style="font-size:6px"></i>中 1</span>
+                                <span class="inline-flex items-center text-[10px] confidence-low text-white px-2 py-1 rounded-full font-bold"><i class="fa fa-circle mr-1" style="font-size:6px"></i>低 0</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
+                            <div class="bg-gradient-to-r from-purple-50 to-white border border-purple-100 rounded-xl p-3.5 hover:shadow-md hover:border-purple-200 transition-all">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-1.5">
+                                            <span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">字段01</span>
+                                            <span class="text-sm font-bold text-slate-800">企业名称</span>
+                                        </div>
+                                        <div class="text-sm font-black text-purple-700 bg-white/60 rounded-lg px-3 py-2 inline-block">深圳策源易答科技有限公司</div>
+                                        <div class="text-[10px] text-slate-400 mt-1"><i class="fa fa-map-marker mr-1"></i>定位：第1页 / 第1区域</div>
+                                    </div>
+                                    <div class="ml-3 flex flex-col items-end space-y-1">
+                                        <span class="confidence-high text-white text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center">
+                                            <i class="fa fa-check-circle mr-1"></i>高置信度
+                                        </span>
+                                        <span class="text-[11px] font-bold text-green-600">99.2%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-pink-50 to-white border border-pink-100 rounded-xl p-3.5 hover:shadow-md hover:border-pink-200 transition-all">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-1.5">
+                                            <span class="text-[10px] bg-pink-100 text-pink-700 px-2 py-0.5 rounded font-bold">字段02</span>
+                                            <span class="text-sm font-bold text-slate-800">统一社会信用代码</span>
+                                        </div>
+                                        <div class="text-sm font-black text-pink-700 bg-white/60 rounded-lg px-3 py-2 inline-block font-mono tracking-wider">91440300MA5FXXXX9A</div>
+                                        <div class="text-[10px] text-slate-400 mt-1"><i class="fa fa-map-marker mr-1"></i>定位：第1页 / 第2区域</div>
+                                    </div>
+                                    <div class="ml-3 flex flex-col items-end space-y-1">
+                                        <span class="confidence-high text-white text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center">
+                                            <i class="fa fa-check-circle mr-1"></i>高置信度
+                                        </span>
+                                        <span class="text-[11px] font-bold text-green-600">98.7%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-fuchsia-50 to-white border border-fuchsia-100 rounded-xl p-3.5 hover:shadow-md hover:border-fuchsia-200 transition-all">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-1.5">
+                                            <span class="text-[10px] bg-fuchsia-100 text-fuchsia-700 px-2 py-0.5 rounded font-bold">字段03</span>
+                                            <span class="text-sm font-bold text-slate-800">法人代表</span>
+                                        </div>
+                                        <div class="text-sm font-black text-fuchsia-700 bg-white/60 rounded-lg px-3 py-2 inline-block">张策源</div>
+                                        <div class="text-[10px] text-slate-400 mt-1"><i class="fa fa-map-marker mr-1"></i>定位：第1页 / 第3区域</div>
+                                    </div>
+                                    <div class="ml-3 flex flex-col items-end space-y-1">
+                                        <span class="confidence-high text-white text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center">
+                                            <i class="fa fa-check-circle mr-1"></i>高置信度
+                                        </span>
+                                        <span class="text-[11px] font-bold text-green-600">97.8%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-violet-50 to-white border border-violet-100 rounded-xl p-3.5 hover:shadow-md hover:border-violet-200 transition-all">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-1.5">
+                                            <span class="text-[10px] bg-violet-100 text-violet-700 px-2 py-0.5 rounded font-bold">字段04</span>
+                                            <span class="text-sm font-bold text-slate-800">注册资本</span>
+                                        </div>
+                                        <div class="flex items-baseline space-x-2">
+                                            <span class="text-xl font-black text-violet-700">500</span>
+                                            <span class="text-xs font-bold text-violet-500">万元人民币</span>
+                                        </div>
+                                        <div class="text-[10px] text-slate-400 mt-1"><i class="fa fa-map-marker mr-1"></i>定位：第1页 / 第4区域</div>
+                                    </div>
+                                    <div class="ml-3 flex flex-col items-end space-y-1">
+                                        <span class="confidence-high text-white text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center">
+                                            <i class="fa fa-check-circle mr-1"></i>高置信度
+                                        </span>
+                                        <span class="text-[11px] font-bold text-green-600">96.4%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-rose-50 to-white border border-rose-100 rounded-xl p-3.5 hover:shadow-md hover:border-rose-200 transition-all">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-1.5">
+                                            <span class="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold">字段05</span>
+                                            <span class="text-sm font-bold text-slate-800">成立日期</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="bg-white rounded-lg px-3 py-1.5 border border-rose-100">
+                                                <span class="text-sm font-black text-rose-700">2023-08-15</span>
+                                            </div>
+                                            <span class="text-[10px] text-slate-400">（已标准化）</span>
+                                        </div>
+                                        <div class="text-[10px] text-slate-400 mt-1"><i class="fa fa-map-marker mr-1"></i>定位：第1页 / 第5区域</div>
+                                    </div>
+                                    <div class="ml-3 flex flex-col items-end space-y-1">
+                                        <span class="confidence-mid text-white text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center">
+                                            <i class="fa fa-exclamation-circle mr-1"></i>中置信度
+                                        </span>
+                                        <span class="text-[11px] font-bold text-amber-600">91.5%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-indigo-50 to-white border border-indigo-100 rounded-xl p-3.5 hover:shadow-md hover:border-indigo-200 transition-all">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-1.5">
+                                            <span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-bold">字段06</span>
+                                            <span class="text-sm font-bold text-slate-800">经营范围</span>
+                                        </div>
+                                        <div class="text-xs font-bold text-indigo-700 bg-white/60 rounded-lg px-3 py-2 leading-relaxed">
+                                            人工智能软件开发；政策咨询服务；数据处理与存储服务；企业管理咨询；信息技术咨询服务；计算机系统集成服务；…
+                                        </div>
+                                        <div class="text-[10px] text-slate-400 mt-1"><i class="fa fa-map-marker mr-1"></i>定位：第1页 / 第6区域 · 长度128字符</div>
+                                    </div>
+                                    <div class="ml-3 flex flex-col items-end space-y-1">
+                                        <span class="confidence-high text-white text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center">
+                                            <i class="fa fa-check-circle mr-1"></i>高置信度
+                                        </span>
+                                        <span class="text-[11px] font-bold text-green-600">94.8%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 趋势图 + 质检清单 -->
+    <div class="space-y-5 fade-in-up" style="animation-delay: 0.4s">
+        
+        <!-- 近7日抽取任务量趋势 -->
+        <div class="bg-white/80 backdrop-blur rounded-[22px] border border-white shadow-sm p-6">
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h3 class="font-black text-slate-800 flex items-center text-base">
+                        <i class="fa fa-area-chart text-purple-500 mr-2"></i>近7日抽取任务量趋势
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-1">柱状图=任务量，折线图=平均准确率</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-sm gradient-purple"></span>
+                        <span class="text-xs text-slate-600 font-medium">抽取任务量</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-6 h-0.5 bg-rose-500"></span>
+                        <span class="text-xs text-slate-600 font-medium">平均准确率</span>
+                    </div>
+                </div>
+            </div>
+            <div style="height: 280px;">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 抽取字段质检清单 -->
+        <div class="bg-white/80 backdrop-blur rounded-[22px] border border-white shadow-sm p-6">
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <h3 class="font-black text-slate-800 flex items-center text-base">
+                        <i class="fa fa-clipboard-check text-pink-500 mr-2"></i>抽取字段质检清单
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-1">自动+人工双重校验流程追踪</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="relative">
+                        <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" placeholder="搜索批次ID / 文档名" class="pl-8 pr-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-300 w-56">
+                    </div>
+                    <select class="px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-slate-600 focus:outline-none">
+                        <option>全部状态</option><option>已入库</option><option>复核中</option><option>失败</option>
+                    </select>
+                    <select class="px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-slate-600 focus:outline-none">
+                        <option>全部类型</option><option>PDF</option><option>图片</option><option>WORD</option>
+                    </select>
+                    <button class="px-4 py-2 gradient-purple text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-purple-300/40">
+                        <i class="fa fa-download mr-1.5"></i>导出清单
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-purple-50">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gradient-to-r from-purple-50 to-pink-50 text-slate-600 text-xs">
+                            <th class="px-4 py-3 text-left font-bold rounded-tl-xl">批次ID</th>
+                            <th class="px-4 py-3 text-left font-bold">文档名</th>
+                            <th class="px-4 py-3 text-left font-bold">识别文档类型</th>
+                            <th class="px-4 py-3 text-center font-bold">抽取字段数</th>
+                            <th class="px-4 py-3 text-center font-bold">自动通过率</th>
+                            <th class="px-4 py-3 text-center font-bold">人工复核字段数</th>
+                            <th class="px-4 py-3 text-center font-bold">状态</th>
+                            <th class="px-4 py-3 text-center font-bold rounded-tr-xl">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-purple-50">
+                        <tr class="hover:bg-purple-50/40 transition-colors">
+                            <td class="px-4 py-3.5">
+                                <span class="text-xs font-mono font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg">BATCH-20260812001</span>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa fa-file-pdf-o text-red-500"></i>
+                                    <span class="font-medium text-slate-700">深圳策源易答_营业执照.pdf</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <span class="inline-flex items-center text-xs bg-red-50 text-red-600 px-2.5 py-1 rounded-lg font-bold border border-red-100">
+                                    <i class="fa fa-file-pdf-o mr-1.5"></i>PDF
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center font-black text-slate-800">38</td>
+                            <td class="px-4 py-3.5 text-center">
+                                <div class="inline-flex items-center flex-col">
+                                    <span class="text-sm font-black text-green-600">97.4%</span>
+                                    <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full" style="width: 97.4%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg">1 项</span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="inline-flex items-center text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full font-bold border border-green-100">
+                                    <i class="fa fa-check-circle mr-1.5"></i>已入库
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <button class="text-xs text-purple-600 hover:text-purple-800 font-medium px-2 py-1 hover:bg-purple-50 rounded-lg transition-colors"><i class="fa fa-eye mr-1"></i>详情</button>
+                                <button class="text-xs text-slate-500 hover:text-slate-700 font-medium px-2 py-1 hover:bg-slate-50 rounded-lg transition-colors ml-1"><i class="fa fa-download"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-purple-50/40 transition-colors">
+                            <td class="px-4 py-3.5">
+                                <span class="text-xs font-mono font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg">BATCH-20260812002</span>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa fa-file-image-o text-amber-500"></i>
+                                    <span class="font-medium text-slate-700">企业审计报告_2025.jpg</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <span class="inline-flex items-center text-xs bg-amber-50 text-amber-600 px-2.5 py-1 rounded-lg font-bold border border-amber-100">
+                                    <i class="fa fa-picture-o mr-1.5"></i>图片
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center font-black text-slate-800">126</td>
+                            <td class="px-4 py-3.5 text-center">
+                                <div class="inline-flex items-center flex-col">
+                                    <span class="text-sm font-black text-amber-600">89.7%</span>
+                                    <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full" style="width: 89.7%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg">13 项</span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="inline-flex items-center text-xs bg-amber-50 text-amber-700 px-3 py-1 rounded-full font-bold border border-amber-100">
+                                    <span class="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1.5 pulse-dot"></span>复核中
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <button class="text-xs text-purple-600 hover:text-purple-800 font-medium px-2 py-1 hover:bg-purple-50 rounded-lg transition-colors"><i class="fa fa-eye mr-1"></i>详情</button>
+                                <button class="text-xs text-slate-500 hover:text-slate-700 font-medium px-2 py-1 hover:bg-slate-50 rounded-lg transition-colors ml-1"><i class="fa fa-download"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-purple-50/40 transition-colors">
+                            <td class="px-4 py-3.5">
+                                <span class="text-xs font-mono font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg">BATCH-20260812003</span>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa fa-file-word-o text-blue-500"></i>
+                                    <span class="font-medium text-slate-700">高新技术企业认定材料.docx</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <span class="inline-flex items-center text-xs bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-bold border border-blue-100">
+                                    <i class="fa fa-file-word-o mr-1.5"></i>WORD
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center font-black text-slate-800">84</td>
+                            <td class="px-4 py-3.5 text-center">
+                                <div class="inline-flex items-center flex-col">
+                                    <span class="text-sm font-black text-green-600">95.2%</span>
+                                    <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full" style="width: 95.2%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="text-xs font-bold text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg">4 项</span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="inline-flex items-center text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full font-bold border border-green-100">
+                                    <i class="fa fa-check-circle mr-1.5"></i>已入库
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <button class="text-xs text-purple-600 hover:text-purple-800 font-medium px-2 py-1 hover:bg-purple-50 rounded-lg transition-colors"><i class="fa fa-eye mr-1"></i>详情</button>
+                                <button class="text-xs text-slate-500 hover:text-slate-700 font-medium px-2 py-1 hover:bg-slate-50 rounded-lg transition-colors ml-1"><i class="fa fa-download"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-purple-50/40 transition-colors">
+                            <td class="px-4 py-3.5">
+                                <span class="text-xs font-mono font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg">BATCH-20260812004</span>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa fa-file-pdf-o text-red-500"></i>
+                                    <span class="font-medium text-slate-700">软件企业资质证书.pdf</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <span class="inline-flex items-center text-xs bg-red-50 text-red-600 px-2.5 py-1 rounded-lg font-bold border border-red-100">
+                                    <i class="fa fa-file-pdf-o mr-1.5"></i>PDF
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center font-black text-slate-800">22</td>
+                            <td class="px-4 py-3.5 text-center">
+                                <div class="inline-flex items-center flex-col">
+                                    <span class="text-sm font-black text-green-600">100%</span>
+                                    <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-lg">0 项</span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="inline-flex items-center text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full font-bold border border-green-100">
+                                    <i class="fa fa-check-circle mr-1.5"></i>已入库
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <button class="text-xs text-purple-600 hover:text-purple-800 font-medium px-2 py-1 hover:bg-purple-50 rounded-lg transition-colors"><i class="fa fa-eye mr-1"></i>详情</button>
+                                <button class="text-xs text-slate-500 hover:text-slate-700 font-medium px-2 py-1 hover:bg-slate-50 rounded-lg transition-colors ml-1"><i class="fa fa-download"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-purple-50/40 transition-colors">
+                            <td class="px-4 py-3.5">
+                                <span class="text-xs font-mono font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg">BATCH-20260812005</span>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa fa-file-image-o text-amber-500"></i>
+                                    <span class="font-medium text-slate-700">银行流水扫描件_模糊.png</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <span class="inline-flex items-center text-xs bg-amber-50 text-amber-600 px-2.5 py-1 rounded-lg font-bold border border-amber-100">
+                                    <i class="fa fa-picture-o mr-1.5"></i>图片
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center font-black text-slate-800">—</td>
+                            <td class="px-4 py-3.5 text-center">
+                                <div class="inline-flex items-center flex-col">
+                                    <span class="text-sm font-black text-red-500">—</span>
+                                    <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-red-400 to-rose-500 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-lg">—</span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="inline-flex items-center text-xs bg-red-50 text-red-700 px-3 py-1 rounded-full font-bold border border-red-100">
+                                    <i class="fa fa-times-circle mr-1.5"></i>失败
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <button class="text-xs text-red-600 hover:text-red-800 font-medium px-2 py-1 hover:bg-red-50 rounded-lg transition-colors"><i class="fa fa-refresh mr-1"></i>重试</button>
+                                <button class="text-xs text-purple-600 hover:text-purple-800 font-medium px-2 py-1 hover:bg-purple-50 rounded-lg transition-colors ml-1"><i class="fa fa-eye"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-purple-50/40 transition-colors">
+                            <td class="px-4 py-3.5">
+                                <span class="text-xs font-mono font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg">BATCH-20260812006</span>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa fa-file-pdf-o text-red-500"></i>
+                                    <span class="font-medium text-slate-700">专精特新申报材料_附件包.pdf</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5">
+                                <span class="inline-flex items-center text-xs bg-red-50 text-red-600 px-2.5 py-1 rounded-lg font-bold border border-red-100">
+                                    <i class="fa fa-file-pdf-o mr-1.5"></i>PDF
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center font-black text-slate-800">215</td>
+                            <td class="px-4 py-3.5 text-center">
+                                <div class="inline-flex items-center flex-col">
+                                    <span class="text-sm font-black text-amber-600">92.1%</span>
+                                    <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full" style="width: 92.1%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg">17 项</span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <span class="inline-flex items-center text-xs bg-amber-50 text-amber-700 px-3 py-1 rounded-full font-bold border border-amber-100">
+                                    <span class="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1.5 pulse-dot"></span>复核中
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <button class="text-xs text-purple-600 hover:text-purple-800 font-medium px-2 py-1 hover:bg-purple-50 rounded-lg transition-colors"><i class="fa fa-eye mr-1"></i>详情</button>
+                                <button class="text-xs text-slate-500 hover:text-slate-700 font-medium px-2 py-1 hover:bg-slate-50 rounded-lg transition-colors ml-1"><i class="fa fa-download"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex items-center justify-between mt-5 pt-4 border-t border-purple-50">
+                <div class="text-xs text-slate-500">
+                    共 <span class="font-black text-slate-700">56,320</span> 条记录，当前显示第 <span class="font-black text-slate-700">1-6</span> 条
+                </div>
+                <div class="flex items-center space-x-1">
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-400 text-xs flex items-center justify-center hover:bg-slate-50 transition-colors"><i class="fa fa-angle-left"></i></button>
+                    <button class="w-8 h-8 rounded-lg gradient-purple text-white text-xs font-bold flex items-center justify-center shadow-md shadow-purple-300/40">1</button>
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium flex items-center justify-center hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 transition-colors">2</button>
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium flex items-center justify-center hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 transition-colors">3</button>
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium flex items-center justify-center hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 transition-colors">4</button>
+                    <span class="w-8 h-8 flex items-center justify-center text-slate-400 text-xs">…</span>
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium flex items-center justify-center hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 transition-colors">9387</button>
+                    <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-600 text-xs flex items-center justify-center hover:bg-slate-50 transition-colors"><i class="fa fa-angle-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        
+        const gradientPurple = ctx.createLinearGradient(0, 0, 0, 280);
+        gradientPurple.addColorStop(0, 'rgba(168, 85, 247, 0.8)');
+        gradientPurple.addColorStop(1, 'rgba(236, 72, 153, 0.5)');
+
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['08-06', '08-07', '08-08', '08-09', '08-10', '08-11', '08-12'],
+                datasets: [
+                    {
+                        type: 'bar',
+                        label: '抽取任务量',
+                        data: [1820, 2150, 1980, 2380, 2890, 2650, 3120],
+                        backgroundColor: gradientPurple,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                        barPercentage: 0.5,
+                        categoryPercentage: 0.7,
+                        yAxisID: 'y',
+                        order: 2
+                    },
+                    {
+                        type: 'line',
+                        label: '平均准确率',
+                        data: [95.2, 95.8, 96.0, 95.5, 96.3, 96.5, 96.1],
+                        borderColor: '#f43f5e',
+                        backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#f43f5e',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y1',
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 27, 75, 0.95)',
+                        titleColor: '#fff',
+                        bodyColor: '#e9d5ff',
+                        borderColor: 'rgba(168, 85, 247, 0.3)',
+                        borderWidth: 1,
+                        padding: 12,
+                        cornerRadius: 10,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    return ' 抽取任务量：' + context.parsed.y + ' 份';
+                                } else {
+                                    return ' 平均准确率：' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#94a3b8',
+                            font: { size: 11, weight: '600' },
+                            padding: 10
+                        },
+                        border: { display: false }
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'left',
+                        grid: {
+                            color: '#f3e8ff',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#94a3b8',
+                            font: { size: 11 },
+                            padding: 10,
+                            callback: function(value) {
+                                return value + ' 份';
+                            }
+                        },
+                        border: { display: false },
+                        min: 0,
+                        max: 3500
+                    },
+                    y1: {
+                        type: 'linear',
+                        position: 'right',
+                        grid: { display: false },
+                        ticks: {
+                            color: '#94a3b8',
+                            font: { size: 11 },
+                            padding: 10,
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        border: { display: false },
+                        min: 93,
+                        max: 98
+                    }
+                }
+            }
+        });
+    </script>
+
+    <section class="px-8 lg:px-8 pb-10">
+        <div class="bg-white/85 backdrop-blur-xl rounded-2xl border border-purple-100 shadow-lg shadow-purple-100/40 p-6 relative overflow-hidden">
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-pink-500 via-fuchsia-500 to-purple-500 rounded-l-2xl"></div>
+            <div class="ml-4">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-2xl gradient-purple flex items-center justify-center glow-purple shadow-md text-white">
+                            <i class="fa fa-info-circle"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                                功能详情说明
+                                <span class="ml-2 px-2.5 py-0.5 bg-pink-100 text-pink-700 text-[10px] font-bold rounded-full">模块四 · AI智能引擎</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">非结构化数据抽取 · OCR + NLP 信息抽取模型</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="inline-flex items-center px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>抽取服务正常
+                        </span>
+                        <span class="inline-flex items-center px-3 py-1 bg-pink-50 text-pink-600 text-xs font-bold rounded-full">
+                            <i class="fa fa-filter mr-1.5"></i>准确率 96.1%
+                        </span>
+                    </div>
+                </div>
+                <div class="overflow-x-auto rounded-xl border border-pink-100">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-pink-50 via-fuchsia-50 to-purple-50">
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">能力模块</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">技术实现</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">应用场景</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">目标性能指标(当前值)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-pink-50">
+                            <tr class="hover:bg-pink-50/40 transition-colors">
+                                <td class="px-5 py-4">
+                                    <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-violet-100 text-violet-700">
+                                        <i class="fa fa-filter"></i>
+                                        <span>非结构化数据抽取</span>
+                                    </span>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <span class="px-2 py-0.5 bg-purple-50 text-purple-700 text-[11px] font-semibold rounded-md border border-purple-100">OCR 识别</span>
+                                        <span class="px-2 py-0.5 bg-fuchsia-50 text-fuchsia-700 text-[11px] font-semibold rounded-md border border-fuchsia-100">NLP 信息抽取</span>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <div class="space-y-1.5 text-xs text-slate-700">
+                                        <div class="flex items-center"><i class="fa fa-file-image-o text-pink-500 mr-2"></i>企业上传证件自动抽取</div>
+                                        <div class="flex items-center"><i class="fa fa-file-pdf-o text-fuchsia-500 mr-2"></i>企业上传报告自动抽取</div>
+                                        <div class="flex items-center"><i class="fa fa-database text-purple-500 mr-2"></i>结构化数据入库</div>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-slate-600">信息抽取准确率</span>
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-20 h-1.5 bg-purple-100 rounded-full overflow-hidden">
+                                                    <div class="h-full gradient-purple rounded-full" style="width:96.1%"></div>
+                                                </div>
+                                                <span class="text-xs font-black text-purple-600">≥88% (当前 96.1%)</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-slate-600">处理速度</span>
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-20 h-1.5 bg-fuchsia-100 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-gradient-to-r from-fuchsia-500 to-pink-500 rounded-full" style="width:77%"></div>
+                                                </div>
+                                                <span class="text-xs font-black text-fuchsia-600">≤3秒/页 (当前 2.3s)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</body>
+</html>

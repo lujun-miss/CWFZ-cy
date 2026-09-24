@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
-        .filter-item { @apply px-4 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100 transition-all cursor-pointer; }
-        .filter-item.active { @apply bg-blue-600 text-white shadow-md shadow-blue-100; }
+        .filter-item { padding-inline:calc(var(--spacing) * 4);padding-block:calc(var(--spacing) * 1.5);border-radius:var(--radius-lg);font-size:var(--text-xs);line-height:var(--tw-leading,var(--text-xs--line-height));--tw-font-weight:var(--font-weight-medium);font-weight:var(--font-weight-medium);color:var(--color-slate-500);transition-property:all;transition-timing-function:var(--tw-ease,var(--default-transition-timing-function));transition-duration:var(--tw-duration,var(--default-transition-duration));cursor:pointer; }
+        .filter-item:hover { background-color:var(--color-slate-100); }
+        .filter-item.active { background-color:var(--color-blue-600);color:var(--color-white);--tw-shadow:0 4px 6px -1px var(--tw-shadow-color,#0000001a),0 2px 4px -2px var(--tw-shadow-color,#0000001a);box-shadow:var(--tw-inset-shadow),var(--tw-inset-ring-shadow),var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow);--tw-shadow-color:oklch(93.2% .032 255.585); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>

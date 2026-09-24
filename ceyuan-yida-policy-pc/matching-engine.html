@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能匹配引擎 - 策源易答AI智能引擎</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #faf5ff 0%, #fdf2f8 50%, #f5f3ff 100%);
+            min-height: 100vh;
+        }
+        .card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 32px -12px rgba(168, 85, 247, 0.25);
+        }
+        .glow-purple-pink {
+            box-shadow: 0 0 40px -8px rgba(217, 70, 239, 0.3);
+        }
+        .algorithm-node {
+            transition: all 0.3s ease;
+        }
+        .algorithm-node:hover {
+            transform: translateY(-4px) scale(1.02);
+        }
+        .flow-arrow {
+            position: relative;
+        }
+        .flow-arrow::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -24px;
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-left: 14px solid #c084fc;
+            transform: translateY(-50%);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .medal-gold {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+        .medal-silver {
+            background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+            box-shadow: 0 4px 12px rgba(148, 163, 184, 0.4);
+        }
+        .medal-bronze {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            box-shadow: 0 4px 12px rgba(180, 83, 9, 0.4);
+        }
+        .progress-animate {
+            animation: progressFill 1.5s ease-out forwards;
+        }
+        @keyframes progressFill {
+            from { width: 0; }
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #e9d5ff; border-radius: 3px; }
+    </style>
+</head>
+<body class="p-8">
+
+    <!-- 页面头部 -->
+    <div class="bg-white/80 backdrop-blur-xl rounded-[32px] p-8 border border-white shadow-xl shadow-purple-100/50 mb-8 flex items-center justify-between">
+        <div class="flex items-center space-x-6">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-fuchsia-500 flex items-center justify-center shadow-xl shadow-pink-200">
+                <i class="fa fa-cogs text-white text-3xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-slate-800">智能匹配引擎</h1>
+                <p class="text-slate-500 mt-1 text-sm">模块四 · AI智能引擎 | 混合推荐算法驱动政策精准匹配</p>
+            </div>
+            <div class="ml-4 flex items-center space-x-2">
+                <span class="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full shadow-md">规则引擎 + 机器学习</span>
+                <span class="px-3 py-1.5 bg-purple-50 text-purple-600 text-xs font-bold rounded-full border border-purple-100">匹配准确率 ≥ 85%</span>
+            </div>
+        </div>
+        <div class="flex space-x-3">
+            <button class="px-5 py-3 bg-white text-slate-600 border border-purple-100 rounded-2xl font-bold text-sm hover:bg-purple-50 transition-all flex items-center shadow-sm">
+                <i class="fa fa-sliders mr-2 text-purple-500"></i> 算法参数配置
+            </button>
+            <button class="px-5 py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-fuchsia-500 text-white rounded-2xl font-bold text-sm hover:shadow-xl hover:shadow-pink-200 transition-all flex items-center shadow-lg shadow-purple-200">
+                <i class="fa fa-rocket mr-2"></i> 启动全量匹配
+            </button>
+        </div>
+    </div>
+
+    
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <!-- 左侧和中间主内容区 -->
+        <div class="xl:col-span-2 space-y-8">
+            <!-- 匹配算法架构可视化 -->
+            <div class="bg-white rounded-[32px] p-8 border border-purple-50 shadow-xl shadow-purple-100/40">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 flex items-center">
+                            <i class="fa fa-sitemap mr-3 gradient-text"></i>
+                            匹配算法架构
+                        </h3>
+                        <p class="text-sm text-slate-400 mt-1">混合推荐算法 · 规则引擎与机器学习深度融合</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        <span class="text-xs font-bold text-slate-500">系统运行中</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+                    <!-- 输入层 -->
+                    <div class="algorithm-node bg-gradient-to-br from-purple-50 to-pink-50 rounded-[24px] p-6 border border-purple-100 flow-arrow lg:pr-10 relative">
+                        <div class="flex items-center mb-5">
+                            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white shadow-md shadow-purple-200 mr-3">
+                                <i class="fa fa-database"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-black text-slate-800">输入层</h4>
+                                <p class="text-[10px] text-slate-400">Input Layer</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="bg-white rounded-xl p-4 border border-purple-100 shadow-sm">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-building-o text-purple-500 mr-2"></i>
+                                        <span class="text-sm font-bold text-slate-700">企业画像</span>
+                                    </div>
+                                    <span class="text-xs font-bold text-purple-600">45%</span>
+                                </div>
+                                <div class="h-2 bg-purple-50 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-purple-500 to-purple-400 rounded-full progress-animate" style="width: 45%"></div>
+                                </div>
+                                <div class="mt-2 flex flex-wrap gap-1">
+                                    <span class="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full">行业标签</span>
+                                    <span class="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full">资质证书</span>
+                                    <span class="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full">营收规模</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl p-4 border border-pink-100 shadow-sm">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-book text-pink-500 mr-2"></i>
+                                        <span class="text-sm font-bold text-slate-700">政策库</span>
+                                    </div>
+                                    <span class="text-xs font-bold text-pink-600">55%</span>
+                                </div>
+                                <div class="h-2 bg-pink-50 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-pink-500 to-fuchsia-400 rounded-full progress-animate" style="width: 55%"></div>
+                                </div>
+                                <div class="mt-2 flex flex-wrap gap-1">
+                                    <span class="text-[10px] px-2 py-0.5 bg-pink-50 text-pink-600 rounded-full">申报条件</span>
+                                    <span class="text-[10px] px-2 py-0.5 bg-pink-50 text-pink-600 rounded-full">扶持标准</span>
+                                    <span class="text-[10px] px-2 py-0.5 bg-pink-50 text-pink-600 rounded-full">截止日期</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 中间箭头 -->
+                    <div class="hidden lg:flex absolute left-1/3 top-1/2 transform -translate-y-1/2 -translate-x-1/2 z-20">
+                    </div>
+
+                    <!-- 算法层 -->
+                    <div class="algorithm-node bg-gradient-to-br from-fuchsia-50 via-purple-50 to-pink-50 rounded-[24px] p-6 border-2 border-purple-200 glow-purple-pink flow-arrow lg:pr-10 relative z-10">
+                        <div class="flex items-center mb-5">
+                            <div class="w-10 h-10 bg-gradient-to-br from-fuchsia-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white shadow-md shadow-fuchsia-200 mr-3">
+                                <i class="fa fa-brain"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-black text-slate-800">算法层</h4>
+                                <p class="text-[10px] text-slate-400">Algorithm Layer · 核心引擎</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="bg-white rounded-xl p-3 border border-purple-100 shadow-sm">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <div class="flex items-center">
+                                        <div class="w-7 h-7 bg-purple-100 rounded-lg flex items-center justify-center mr-2">
+                                            <i class="fa fa-filter text-purple-600 text-xs"></i>
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-700">规则引擎</span>
+                                    </div>
+                                    <span class="text-[10px] font-black text-purple-600">32%</span>
+                                </div>
+                                <div class="h-1.5 bg-purple-50 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-purple-500 to-purple-400 rounded-full" style="width: 32%"></div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl p-3 border border-pink-100 shadow-sm">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <div class="flex items-center">
+                                        <div class="w-7 h-7 bg-pink-100 rounded-lg flex items-center justify-center mr-2">
+                                            <i class="fa fa-users text-pink-600 text-xs"></i>
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-700">协同过滤</span>
+                                    </div>
+                                    <span class="text-[10px] font-black text-pink-600">23%</span>
+                                </div>
+                                <div class="h-1.5 bg-pink-50 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-pink-500 to-fuchsia-400 rounded-full" style="width: 23%"></div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl p-3 border border-fuchsia-100 shadow-sm">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <div class="flex items-center">
+                                        <div class="w-7 h-7 bg-fuchsia-100 rounded-lg flex items-center justify-center mr-2">
+                                            <i class="fa fa-sitemap text-fuchsia-600 text-xs"></i>
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-700">深度学习</span>
+                                    </div>
+                                    <span class="text-[10px] font-black text-fuchsia-600">25%</span>
+                                </div>
+                                <div class="h-1.5 bg-fuchsia-50 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-fuchsia-500 to-purple-500 rounded-full" style="width: 25%"></div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl p-3 border border-violet-100 shadow-sm">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <div class="flex items-center">
+                                        <div class="w-7 h-7 bg-violet-100 rounded-lg flex items-center justify-center mr-2">
+                                            <i class="fa fa-language text-violet-600 text-xs"></i>
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-700">语义相似度</span>
+                                    </div>
+                                    <span class="text-[10px] font-black text-violet-600">20%</span>
+                                </div>
+                                <div class="h-1.5 bg-violet-50 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full" style="width: 20%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-white/60 backdrop-blur rounded-xl border border-white text-center">
+                            <p class="text-[10px] text-slate-500">加权融合输出</p>
+                            <p class="text-xs font-black gradient-text mt-0.5">综合匹配分 = Σ(算法得分 × 权重)</p>
+                        </div>
+                    </div>
+
+                    <!-- 输出层 -->
+                    <div class="algorithm-node bg-gradient-to-br from-pink-50 to-fuchsia-50 rounded-[24px] p-6 border border-pink-100 relative">
+                        <div class="flex items-center mb-5">
+                            <div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-fuchsia-500 rounded-xl flex items-center justify-center text-white shadow-md shadow-pink-200 mr-3">
+                                <i class="fa fa-line-chart"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-black text-slate-800">输出层</h4>
+                                <p class="text-[10px] text-slate-400">Output Layer</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="bg-white rounded-xl p-4 border border-pink-100 shadow-sm">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-list-ul text-pink-500 mr-2"></i>
+                                        <span class="text-sm font-bold text-slate-700">匹配清单</span>
+                                    </div>
+                                    <span class="text-xs font-bold text-pink-600">40%</span>
+                                </div>
+                                <div class="h-2 bg-pink-50 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-pink-500 to-pink-400 rounded-full progress-animate" style="width: 40%"></div>
+                                </div>
+                                <p class="text-[10px] text-slate-400 mt-2">Top-K 政策候选列表</p>
+                            </div>
+
+                            <div class="bg-white rounded-xl p-4 border border-fuchsia-100 shadow-sm">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-percent text-fuchsia-500 mr-2"></i>
+                                        <span class="text-sm font-bold text-slate-700">置信度</span>
+                                    </div>
+                                    <span class="text-xs font-bold text-fuchsia-600">35%</span>
+                                </div>
+                                <div class="h-2 bg-fuchsia-50 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-fuchsia-500 to-purple-400 rounded-full progress-animate" style="width: 35%"></div>
+                                </div>
+                                <p class="text-[10px] text-slate-400 mt-2">0-100% 匹配可信评分</p>
+                            </div>
+
+                            <div class="bg-white rounded-xl p-4 border border-purple-100 shadow-sm">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fa fa-fire text-purple-500 mr-2"></i>
+                                        <span class="text-sm font-bold text-slate-700">竞争热度</span>
+                                    </div>
+                                    <span class="text-xs font-bold text-purple-600">25%</span>
+                                </div>
+                                <div class="h-2 bg-purple-50 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-purple-500 to-violet-400 rounded-full progress-animate" style="width: 25%"></div>
+                                </div>
+                                <p class="text-[10px] text-slate-400 mt-2">同期申报企业数量分析</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部流程连接 -->
+                <div class="mt-8 flex items-center justify-center space-x-6 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 rounded-full bg-purple-500"></div>
+                        <span class="text-slate-500 font-medium">政策精准雷达</span>
+                    </div>
+                    <i class="fa fa-long-arrow-right text-purple-300"></i>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 rounded-full bg-pink-500"></div>
+                        <span class="text-slate-500 font-medium">个性化推荐</span>
+                    </div>
+                    <i class="fa fa-long-arrow-right text-pink-300"></i>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 rounded-full bg-fuchsia-500"></div>
+                        <span class="text-slate-500 font-medium">AI智能匹配</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 近30日匹配效果折线 -->
+            <div class="bg-white rounded-[32px] p-8 border border-purple-50 shadow-xl shadow-purple-100/40">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 flex items-center">
+                            <i class="fa fa-line-chart mr-3 gradient-text"></i>
+                            近30日匹配效果趋势
+                        </h3>
+                        <p class="text-sm text-slate-400 mt-1">准确率与召回率双指标监控</p>
+                    </div>
+                    <div class="flex items-center space-x-6">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 rounded-full bg-gradient-to-r from-purple-500 to-purple-600"></div>
+                            <span class="text-xs font-bold text-slate-600">匹配准确率</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 rounded-full bg-gradient-to-r from-pink-500 to-fuchsia-500"></div>
+                            <span class="text-xs font-bold text-slate-600">召回率</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-72">
+                    <canvas id="matchTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 匹配案例排行表格 -->
+            <div class="bg-white rounded-[32px] p-8 border border-purple-50 shadow-xl shadow-purple-100/40">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 flex items-center">
+                            <i class="fa fa-trophy mr-3 gradient-text"></i>
+                            匹配案例排行
+                        </h3>
+                        <p class="text-sm text-slate-400 mt-1">按高置信度匹配政策数量排序</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="relative">
+                            <input type="text" placeholder="搜索企业名称..." class="pl-9 pr-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-white transition-all w-56">
+                            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-purple-400 text-xs"></i>
+                        </div>
+                        <select class="px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-400">
+                            <option>全部行业</option>
+                            <option>信息技术</option>
+                            <option>智能制造</option>
+                            <option>生物医药</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-purple-50">
+                                <th class="pb-4 font-bold pl-2">排名</th>
+                                <th class="pb-4 font-bold">企业名称</th>
+                                <th class="pb-4 font-bold text-center">匹配政策数</th>
+                                <th class="pb-4 font-bold text-center">高置信度(≥85%)</th>
+                                <th class="pb-4 font-bold text-center">平均匹配分</th>
+                                <th class="pb-4 font-bold text-right pr-2">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr class="border-b border-purple-50 hover:bg-purple-50/30 transition-colors">
+                                <td class="py-5 pl-2">
+                                    <div class="w-9 h-9 medal-gold rounded-xl flex items-center justify-center text-white text-xs font-black">
+                                        <i class="fa fa-trophy"></i>
+                                    </div>
+                                </td>
+                                <td class="py-5">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-gradient-to-br from-amber-100 to-yellow-100 rounded-xl flex items-center justify-center">
+                                            <i class="fa fa-microchip text-amber-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800">山东芯动半导体科技有限公司</p>
+                                            <p class="text-[10px] text-slate-400 mt-0.5">集成电路 · 高新技术企业</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-sm font-black border border-purple-100">42</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-black border border-green-100">38</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <div class="inline-flex items-center flex-col">
+                                        <span class="text-lg font-black gradient-text">93.7</span>
+                                        <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                            <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 93.7%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-right pr-2">
+                                    <button class="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-purple-200 transition-all">
+                                        <i class="fa fa-eye mr-1"></i> 查看详情
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-purple-50 hover:bg-purple-50/30 transition-colors">
+                                <td class="py-5 pl-2">
+                                    <div class="w-9 h-9 medal-silver rounded-xl flex items-center justify-center text-white text-xs font-black">
+                                        <i class="fa fa-trophy"></i>
+                                    </div>
+                                </td>
+                                <td class="py-5">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-gradient-to-br from-slate-100 to-gray-100 rounded-xl flex items-center justify-center">
+                                            <i class="fa fa-cogs text-slate-500"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800">济南智联智能制造股份有限公司</p>
+                                            <p class="text-[10px] text-slate-400 mt-0.5">高端装备 · 专精特新小巨人</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-sm font-black border border-purple-100">36</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-black border border-green-100">31</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <div class="inline-flex items-center flex-col">
+                                        <span class="text-lg font-black gradient-text">91.2</span>
+                                        <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                            <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 91.2%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-right pr-2">
+                                    <button class="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-purple-200 transition-all">
+                                        <i class="fa fa-eye mr-1"></i> 查看详情
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-purple-50 hover:bg-purple-50/30 transition-colors">
+                                <td class="py-5 pl-2">
+                                    <div class="w-9 h-9 medal-bronze rounded-xl flex items-center justify-center text-white text-xs font-black">
+                                        <i class="fa fa-trophy"></i>
+                                    </div>
+                                </td>
+                                <td class="py-5">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl flex items-center justify-center">
+                                            <i class="fa fa-flask text-orange-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800">青岛蓝海生物医药科技有限公司</p>
+                                            <p class="text-[10px] text-slate-400 mt-0.5">生物医药 · 科技型中小企业</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-sm font-black border border-purple-100">31</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-black border border-green-100">26</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <div class="inline-flex items-center flex-col">
+                                        <span class="text-lg font-black gradient-text">89.4</span>
+                                        <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                            <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 89.4%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-right pr-2">
+                                    <button class="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-purple-200 transition-all">
+                                        <i class="fa fa-eye mr-1"></i> 查看详情
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-purple-50 hover:bg-purple-50/30 transition-colors">
+                                <td class="py-5 pl-2">
+                                    <div class="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 text-sm font-black">4</div>
+                                </td>
+                                <td class="py-5">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl flex items-center justify-center">
+                                            <i class="fa fa-cloud text-blue-500"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800">烟台云海信息技术有限公司</p>
+                                            <p class="text-[10px] text-slate-400 mt-0.5">云计算 · 双软认证企业</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-sm font-black border border-purple-100">28</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-black border border-green-100">22</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <div class="inline-flex items-center flex-col">
+                                        <span class="text-lg font-black gradient-text">87.8</span>
+                                        <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                            <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 87.8%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-right pr-2">
+                                    <button class="px-4 py-2 bg-white border border-purple-200 text-purple-600 text-xs font-bold rounded-xl hover:bg-purple-50 transition-all">
+                                        <i class="fa fa-eye mr-1"></i> 查看详情
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-purple-50 hover:bg-purple-50/30 transition-colors">
+                                <td class="py-5 pl-2">
+                                    <div class="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 text-sm font-black">5</div>
+                                </td>
+                                <td class="py-5">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl flex items-center justify-center">
+                                            <i class="fa fa-leaf text-green-500"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800">潍坊绿能环保科技有限公司</p>
+                                            <p class="text-[10px] text-slate-400 mt-0.5">新能源 · 高新技术企业</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-sm font-black border border-purple-100">24</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-black border border-green-100">19</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <div class="inline-flex items-center flex-col">
+                                        <span class="text-lg font-black gradient-text">86.5</span>
+                                        <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                            <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 86.5%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-right pr-2">
+                                    <button class="px-4 py-2 bg-white border border-purple-200 text-purple-600 text-xs font-bold rounded-xl hover:bg-purple-50 transition-all">
+                                        <i class="fa fa-eye mr-1"></i> 查看详情
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-purple-50/30 transition-colors">
+                                <td class="py-5 pl-2">
+                                    <div class="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 text-sm font-black">6</div>
+                                </td>
+                                <td class="py-5">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-gradient-to-br from-red-100 to-rose-100 rounded-xl flex items-center justify-center">
+                                            <i class="fa fa-car text-red-500"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800">淄博新能源汽车零部件有限公司</p>
+                                            <p class="text-[10px] text-slate-400 mt-0.5">汽车制造 · 专精特新企业</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-sm font-black border border-purple-100">21</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <span class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-black border border-green-100">16</span>
+                                </td>
+                                <td class="py-5 text-center">
+                                    <div class="inline-flex items-center flex-col">
+                                        <span class="text-lg font-black gradient-text">85.9</span>
+                                        <div class="w-20 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                            <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 85.9%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-5 text-right pr-2">
+                                    <button class="px-4 py-2 bg-white border border-purple-200 text-purple-600 text-xs font-bold rounded-xl hover:bg-purple-50 transition-all">
+                                        <i class="fa fa-eye mr-1"></i> 查看详情
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-6 flex items-center justify-between">
+                    <p class="text-xs text-slate-400">共 <span class="font-bold text-purple-600">2,856</span> 家企业 · 显示前6条</p>
+                    <div class="flex items-center space-x-1">
+                        <button class="w-8 h-8 bg-white border border-slate-200 rounded-lg text-slate-400 hover:bg-slate-50 transition-all flex items-center justify-center text-xs">
+                            <i class="fa fa-angle-left"></i>
+                        </button>
+                        <button class="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-xs font-bold shadow-md shadow-purple-200">1</button>
+                        <button class="w-8 h-8 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-purple-50 transition-all flex items-center justify-center text-xs font-bold">2</button>
+                        <button class="w-8 h-8 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-purple-50 transition-all flex items-center justify-center text-xs font-bold">3</button>
+                        <button class="w-8 h-8 bg-white border border-slate-200 rounded-lg text-slate-400 hover:bg-slate-50 transition-all flex items-center justify-center text-xs">
+                            <i class="fa fa-angle-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧匹配异常监控 -->
+        <div class="space-y-8">
+            <!-- 匹配异常监控卡片 -->
+            <div class="bg-white rounded-[32px] p-7 border border-purple-50 shadow-xl shadow-purple-100/40">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-lg font-black text-slate-800 flex items-center">
+                            <i class="fa fa-exclamation-triangle mr-2 text-amber-500"></i>
+                            匹配异常监控
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-1">近7日异常案例分析</p>
+                    </div>
+                    <span class="px-2.5 py-1 bg-red-50 text-red-500 text-[10px] font-bold rounded-lg border border-red-100 flex items-center">
+                        <i class="fa fa-bell mr-1"></i> 3 待处理
+                    </span>
+                </div>
+
+                <div class="bg-gradient-to-br from-red-50 via-amber-50 to-orange-50 rounded-2xl p-5 mb-6 border border-red-100">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium mb-1">近7日异常案例数</p>
+                            <div class="flex items-baseline space-x-1">
+                                <span class="text-3xl font-black text-red-500">128</span>
+                                <span class="text-xs font-bold text-slate-400">例</span>
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                            <i class="fa fa-exclamation-circle text-red-500 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center space-x-2">
+                        <span class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg flex items-center">
+                            <i class="fa fa-arrow-down mr-1"></i> 环比下降 12.5%
+                        </span>
+                        <span class="text-[10px] text-slate-400">整体趋势改善</span>
+                    </div>
+                </div>
+
+                <h4 class="text-sm font-bold text-slate-700 mb-4 flex items-center">
+                    <i class="fa fa-bar-chart mr-2 text-purple-500 text-xs"></i>
+                    失败原因 TOP3
+                </h4>
+
+                <div class="space-y-4">
+                    <div class="bg-white rounded-xl p-4 border border-slate-100 shadow-sm hover:border-purple-100 transition-all">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center text-white shadow-md shadow-red-100">
+                                    <span class="text-xs font-black">1</span>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-700">缺少核心字段</p>
+                                    <p class="text-[10px] text-slate-400">企业画像关键信息缺失</p>
+                                </div>
+                            </div>
+                            <span class="text-lg font-black text-red-500">48%</span>
+                        </div>
+                        <div class="h-2.5 bg-red-50 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-red-500 to-rose-500 rounded-full" style="width: 48%"></div>
+                        </div>
+                        <div class="mt-2 flex items-center justify-between text-[10px]">
+                            <span class="text-slate-400">62 例</span>
+                            <button class="text-purple-600 font-bold hover:underline">查看详情 <i class="fa fa-angle-right ml-0.5"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-4 border border-slate-100 shadow-sm hover:border-purple-100 transition-all">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center text-white shadow-md shadow-amber-100">
+                                    <span class="text-xs font-black">2</span>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-700">政策条款更新未同步</p>
+                                    <p class="text-[10px] text-slate-400">政策库数据滞后</p>
+                                </div>
+                            </div>
+                            <span class="text-lg font-black text-amber-500">32%</span>
+                        </div>
+                        <div class="h-2.5 bg-amber-50 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full" style="width: 32%"></div>
+                        </div>
+                        <div class="mt-2 flex items-center justify-between text-[10px]">
+                            <span class="text-slate-400">41 例</span>
+                            <button class="text-purple-600 font-bold hover:underline">查看详情 <i class="fa fa-angle-right ml-0.5"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-4 border border-slate-100 shadow-sm hover:border-purple-100 transition-all">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-violet-500 rounded-lg flex items-center justify-center text-white shadow-md shadow-purple-100">
+                                    <span class="text-xs font-black">3</span>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-700">画像不完整</p>
+                                    <p class="text-[10px] text-slate-400">企业资质/财务信息不全</p>
+                                </div>
+                            </div>
+                            <span class="text-lg font-black text-purple-500">20%</span>
+                        </div>
+                        <div class="h-2.5 bg-purple-50 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-purple-500 to-violet-500 rounded-full" style="width: 20%"></div>
+                        </div>
+                        <div class="mt-2 flex items-center justify-between text-[10px]">
+                            <span class="text-slate-400">25 例</span>
+                            <button class="text-purple-600 font-bold hover:underline">查看详情 <i class="fa fa-angle-right ml-0.5"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-5 border-t border-purple-50">
+                    <button class="w-full py-3 bg-gradient-to-r from-purple-600 via-pink-500 to-fuchsia-500 text-white text-sm font-bold rounded-xl hover:shadow-xl hover:shadow-pink-200 transition-all shadow-md shadow-purple-200 flex items-center justify-center">
+                        <i class="fa fa-wrench mr-2"></i> 一键修复异常
+                    </button>
+                </div>
+            </div>
+
+            <!-- 算法模型状态卡片 -->
+            <div class="bg-gradient-to-br from-purple-900 via-purple-800 to-fuchsia-900 rounded-[32px] p-7 text-white shadow-xl shadow-purple-900/30">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-black flex items-center">
+                        <i class="fa fa-cube mr-2"></i>
+                        算法模型状态
+                    </h3>
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse shadow-lg shadow-green-400/50"></span>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-white/60">规则引擎模型</span>
+                            <span class="text-xs font-bold text-green-400">v2.3.1</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-green-400 to-emerald-400 rounded-full" style="width: 96%"></div>
+                            </div>
+                            <span class="text-xs font-bold">96%</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-white/60">协同过滤模型</span>
+                            <span class="text-xs font-bold text-cyan-400">v1.8.0</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full" style="width: 89%"></div>
+                            </div>
+                            <span class="text-xs font-bold">89%</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-white/60">深度学习模型</span>
+                            <span class="text-xs font-bold text-pink-400">v3.1.2</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-pink-400 to-fuchsia-400 rounded-full" style="width: 93%"></div>
+                            </div>
+                            <span class="text-xs font-bold">93%</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-white/60">语义相似度模型</span>
+                            <span class="text-xs font-bold text-amber-400">v2.0.5</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full" style="width: 91%"></div>
+                            </div>
+                            <span class="text-xs font-bold">91%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 p-4 bg-white/10 backdrop-blur rounded-xl border border-white/10 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] text-white/60">下次模型训练</p>
+                        <p class="text-sm font-bold mt-0.5">2026-08-15 02:00</p>
+                    </div>
+                    <button class="px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/20 rounded-lg text-xs font-bold transition-all">
+                        <i class="fa fa-refresh mr-1"></i> 立即训练
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('matchTrendChart').getContext('2d');
+
+        const labels = Array.from({length: 30}, (_, i) => {
+            const d = new Date(2026, 6, 15 + i);
+            return `${d.getMonth() + 1}/${d.getDate()}`;
+        });
+
+        const precisionData = [
+            82.1, 82.8, 83.2, 83.5, 83.0, 84.1, 84.3, 84.8, 84.5, 85.2,
+            85.1, 85.6, 85.8, 85.4, 86.0, 86.3, 86.1, 86.7, 86.9, 86.5,
+            87.2, 87.0, 87.4, 87.6, 87.3, 87.8, 88.0, 87.9, 88.1, 88.3
+        ];
+
+        const recallData = [
+            80.5, 81.0, 81.3, 82.1, 81.8, 82.5, 83.0, 82.8, 83.4, 83.8,
+            83.6, 84.2, 84.5, 84.1, 84.8, 85.0, 85.3, 85.7, 85.5, 86.0,
+            85.8, 86.4, 86.7, 86.9, 87.1, 87.0, 87.3, 87.5, 87.4, 87.6
+        ];
+
+        const gradient1 = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient1.addColorStop(0, 'rgba(168, 85, 247, 0.25)');
+        gradient1.addColorStop(1, 'rgba(168, 85, 247, 0.01)');
+
+        const gradient2 = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient2.addColorStop(0, 'rgba(236, 72, 153, 0.25)');
+        gradient2.addColorStop(1, 'rgba(236, 72, 153, 0.01)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '匹配准确率 (%)',
+                        data: precisionData,
+                        borderColor: '#a855f7',
+                        backgroundColor: gradient1,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#a855f7',
+                        pointHoverBorderWidth: 3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '召回率 (%)',
+                        data: recallData,
+                        borderColor: '#ec4899',
+                        backgroundColor: gradient2,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#ec4899',
+                        pointHoverBorderWidth: 3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(168, 85, 247, 0.3)',
+                        borderWidth: 1,
+                        padding: 12,
+                        cornerRadius: 12,
+                        titleFont: { size: 12, weight: 'bold' },
+                        bodyFont: { size: 11 },
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            maxTicksLimit: 10,
+                            color: '#94a3b8',
+                            font: { size: 10 }
+                        },
+                        border: { display: false }
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'left',
+                        min: 78,
+                        max: 92,
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.5)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#a855f7',
+                            font: { size: 10, weight: 'bold' },
+                            callback: value => value + '%'
+                        },
+                        border: { display: false },
+                        title: {
+                            display: true,
+                            text: '准确率',
+                            color: '#a855f7',
+                            font: { size: 10, weight: 'bold' }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        position: 'right',
+                        min: 78,
+                        max: 92,
+                        grid: { display: false },
+                        ticks: {
+                            color: '#ec4899',
+                            font: { size: 10, weight: 'bold' },
+                            callback: value => value + '%'
+                        },
+                        border: { display: false },
+                        title: {
+                            display: true,
+                            text: '召回率',
+                            color: '#ec4899',
+                            font: { size: 10, weight: 'bold' }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+    <section class="px-8 lg:px-8 pb-10">
+        <div class="bg-white/75 backdrop-blur-xl rounded-2xl border border-purple-100 shadow-lg shadow-purple-100/30 p-6 relative overflow-hidden">
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-pink-500 via-fuchsia-500 to-purple-500 rounded-l-2xl"></div>
+            <div class="ml-4">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/30">
+                            <i class="fa fa-info-circle"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                                功能详情说明
+                                <span class="ml-2 px-2.5 py-0.5 bg-pink-100 text-pink-700 text-[10px] font-bold rounded-full">模块四 · AI智能引擎</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">智能匹配引擎 · 混合推荐算法驱动</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="inline-flex items-center px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>引擎在线
+                        </span>
+                        <span class="inline-flex items-center px-3 py-1 bg-fuchsia-50 text-fuchsia-600 text-xs font-bold rounded-full">
+                            <i class="fa fa-bullseye mr-1.5"></i>准确率 88.3%
+                        </span>
+                    </div>
+                </div>
+                <div class="overflow-x-auto rounded-xl border border-pink-100">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-pink-50 via-fuchsia-50 to-purple-50">
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">能力模块</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">技术实现</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">应用场景</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">目标性能指标(当前值)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-pink-50">
+                            <tr class="hover:bg-pink-50/40 transition-colors">
+                                <td class="px-5 py-4">
+                                    <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-fuchsia-100 text-fuchsia-700">
+                                        <i class="fa fa-cogs"></i>
+                                        <span>智能匹配引擎</span>
+                                    </span>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <span class="px-2 py-0.5 bg-purple-50 text-purple-700 text-[11px] font-semibold rounded-md border border-purple-100">规则推荐</span>
+                                        <span class="px-2 py-0.5 bg-pink-50 text-pink-700 text-[11px] font-semibold rounded-md border border-pink-100">机器学习</span>
+                                        <span class="px-2 py-0.5 bg-fuchsia-50 text-fuchsia-700 text-[11px] font-semibold rounded-md border border-fuchsia-100">语义匹配</span>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <div class="space-y-1.5 text-xs text-slate-700">
+                                        <div class="flex items-center"><i class="fa fa-radar text-pink-500 mr-2"></i>精准政策雷达</div>
+                                        <div class="flex items-center"><i class="fa fa-user-circle-o text-fuchsia-500 mr-2"></i>个性化推荐</div>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-4">
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-slate-600">匹配准确率</span>
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-20 h-1.5 bg-purple-100 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-full" style="width:88.3%"></div>
+                                                </div>
+                                                <span class="text-xs font-black text-purple-600">≥85% (当前 88.3%)</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-slate-600">召回率</span>
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-20 h-1.5 bg-pink-100 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-gradient-to-r from-pink-500 to-rose-500 rounded-full" style="width:87.6%"></div>
+                                                </div>
+                                                <span class="text-xs font-black text-pink-600">≥85% (当前 87.6%)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</body>
+</html>

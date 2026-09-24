@@ -3,600 +3,447 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>交付管理 - 策源易答服务交易模块</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <title>交付管理 - 策源易答运营平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f7f8fa;
-        }
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px -10px rgba(249, 115, 22, 0.15);
-        }
-        .kanban-card {
-            cursor: grab;
-            transition: all 0.2s;
-        }
-        .kanban-card:active { cursor: grabbing; }
-        .kanban-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px -4px rgba(0,0,0,0.1);
-        }
-        .progress-bar {
-            transition: width 0.6s ease;
-        }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7f8fa; }
+        .progress-bar { transition: width 0.6s ease; }
         .scroll-hide::-webkit-scrollbar { display: none; }
         .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        .timeline-dot {
-            transition: all 0.2s;
-        }
+        .timeline-dot { transition: all 0.2s; }
+        .modal-mask { background: rgba(15,23,42,0.5); backdrop-filter: blur(2px); }
     </style>
 </head>
 <body class="text-slate-800">
-    <!-- 顶部导航栏 -->
-    <header class="bg-white sticky top-0 z-40 border-b border-slate-100 shadow-sm">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
-                    <i class="fa fa-truck text-xl"></i>
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-xl font-black tracking-tight leading-none">交付管理</span>
-                    <span class="text-[10px] text-orange-500 uppercase tracking-widest mt-1">Delivery Management</span>
-                </div>
+
+    <div class="p-8">
+        <!-- 页面标题 -->
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 flex items-center">
+                    <i class="fa fa-truck text-orange-500 mr-3"></i>交付管理
+                </h1>
+                <p class="text-sm text-slate-400 mt-1">运营管理平台 / 服务交易运营 / 交付管理</p>
             </div>
-            <div class="flex items-center space-x-3">
-                <div class="flex items-center bg-slate-50 rounded-xl p-1">
-                    <button onclick="switchView('kanban', this)" class="view-btn active px-4 py-2 bg-white text-orange-600 rounded-lg text-sm font-medium shadow-sm">
-                        <i class="fa fa-th-large mr-1"></i>看板视图
-                    </button>
-                    <button onclick="switchView('list', this)" class="view-btn px-4 py-2 text-slate-500 hover:text-orange-600 rounded-lg text-sm transition-all">
-                        <i class="fa fa-list mr-1"></i>列表视图
-                    </button>
-                </div>
-                <button class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm hover:shadow-lg hover:shadow-orange-500/30 transition-all">
-                    <i class="fa fa-plus"></i>
-                    <span>新建交付</span>
-                </button>
-                <div class="flex items-center space-x-2 pl-4 border-l border-slate-100">
-                    <div class="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm">张</div>
-                    <div class="flex flex-col">
-                        <span class="text-sm font-semibold">张经理</span>
-                        <span class="text-[10px] text-slate-400">企业账户</span>
-                    </div>
-                </div>
-            </div>
+            <button onclick="render()" class="px-4 py-2.5 bg-slate-50 hover:bg-orange-50 text-slate-600 hover:text-orange-600 rounded-xl text-sm font-bold transition-all flex items-center">
+                <i class="fa fa-refresh mr-1.5"></i>刷新
+            </button>
         </div>
-    </header>
 
-    <main class="max-w-7xl mx-auto px-6 py-8">
-        <!-- 交付概览统计 -->
-        <section class="mb-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
-                        <i class="fa fa-inbox text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-slate-400">待接单</p>
-                        <p class="text-2xl font-black">5</p>
-                    </div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                        <i class="fa fa-cogs text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-slate-400">进行中</p>
-                        <p class="text-2xl font-black">18</p>
-                    </div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
-                        <i class="fa fa-flag-checkered text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-slate-400">待验收</p>
-                        <p class="text-2xl font-black">7</p>
-                    </div>
-                </div>
-                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center">
-                        <i class="fa fa-check-circle-o text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-slate-400">已完成</p>
-                        <p class="text-2xl font-black">132</p>
-                    </div>
-                </div>
-            </div>
-        </section>
+        <!-- 说明条 -->
+        <div class="mb-4 px-4 py-2.5 bg-blue-50/60 border border-blue-100 rounded-xl">
+            <p class="text-xs text-slate-600 leading-relaxed">
+                <span class="font-semibold text-slate-700">定位：</span>从订单接单后进入交付阶段，跟踪服务进度、管理交付物（成果文件）、联动销售中心同步进度、企业平台查看成果。
+                <span class="font-semibold text-slate-700 ml-1">联动：</span>进度更新 → 企业侧「我的订单」进度条同步变化；成果交付 → 企业平台可查看下载。
+            </p>
+        </div>
 
-        <!-- 看板视图 -->
-        <section id="kanbanView" class="mb-8">
-            <div class="flex items-center justify-between mb-5">
+        <!-- 搜索 + 列表 -->
+        <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex flex-wrap items-center gap-3">
                 <div class="flex items-center space-x-3">
                     <div class="w-1 h-6 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></div>
-                    <h2 class="text-lg font-bold">交付看板</h2>
-                    <span class="text-xs text-slate-400">拖拽卡片可调整状态</span>
+                    <h2 class="text-lg font-bold">交付列表</h2>
+                    <span class="text-xs text-slate-400">共 <span id="dCount" class="text-orange-600 font-bold">0</span> 项交付</span>
+                </div>
+                <div class="flex-1"></div>
+                <div class="relative">
+                    <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input id="q" oninput="render()" type="text" placeholder="搜索订单号、服务、企业..." class="pl-9 pr-4 py-2 bg-slate-50 rounded-xl text-sm border border-transparent focus:border-orange-300 focus:bg-white focus:outline-none w-56 transition-all">
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                <!-- 待接单列 -->
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 bg-orange-500 rounded-full"></div>
-                            <span class="font-bold text-sm">待接单</span>
-                            <span class="text-[10px] bg-white text-slate-500 px-2 py-0.5 rounded-full">5</span>
-                        </div>
-                        <button class="text-slate-400 hover:text-orange-600"><i class="fa fa-plus"></i></button>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="kanban-card bg-white p-4 rounded-xl border border-slate-100 shadow-sm" onclick="openModal()">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] text-orange-500 font-mono">#CY20240108001</span>
-                                <span class="text-[10px] bg-orange-50 text-orange-600 px-2 py-0.5 rounded">政策咨询</span>
-                            </div>
-                            <p class="text-sm font-semibold mb-2">高新技术企业认定辅导</p>
-                            <p class="text-[10px] text-slate-400 mb-3"><i class="fa fa-building-o mr-1"></i>北京智造科技有限公司</p>
-                            <div class="flex items-center justify-between text-[10px]">
-                                <span class="text-slate-400"><i class="fa fa-user mr-1"></i>待分配</span>
-                                <span class="text-orange-500 font-bold">2024-01-20</span>
-                            </div>
-                        </div>
-                        <div class="kanban-card bg-white p-4 rounded-xl border border-slate-100 shadow-sm" onclick="openModal()">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] text-orange-500 font-mono">#CY20240108003</span>
-                                <span class="text-[10px] bg-orange-50 text-orange-600 px-2 py-0.5 rounded">申报代理</span>
-                            </div>
-                            <p class="text-sm font-semibold mb-2">专精特新企业申报</p>
-                            <p class="text-[10px] text-slate-400 mb-3"><i class="fa fa-building-o mr-1"></i>广州创新材料科技</p>
-                            <div class="flex items-center justify-between text-[10px]">
-                                <span class="text-slate-400"><i class="fa fa-user mr-1"></i>待分配</span>
-                                <span class="text-orange-500 font-bold">2024-02-15</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- 进行中列 -->
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
-                            <span class="font-bold text-sm">进行中</span>
-                            <span class="text-[10px] bg-white text-slate-500 px-2 py-0.5 rounded-full">18</span>
-                        </div>
-                        <button class="text-slate-400 hover:text-orange-600"><i class="fa fa-plus"></i></button>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="kanban-card bg-white p-4 rounded-xl border border-slate-100 shadow-sm" onclick="openModal()">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] text-blue-500 font-mono">#CY20240107004</span>
-                                <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded">财务审计</span>
-                            </div>
-                            <p class="text-sm font-semibold mb-2">年度财务审计报告</p>
-                            <p class="text-[10px] text-slate-400 mb-3"><i class="fa fa-building-o mr-1"></i>上海华信生物制药</p>
-                            <div class="mb-2">
-                                <div class="flex items-center justify-between text-[10px] mb-1">
-                                    <span class="text-slate-400">进度</span>
-                                    <span class="text-blue-600 font-bold">60%</span>
-                                </div>
-                                <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div class="progress-bar h-full bg-blue-500" style="width: 60%"></div>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between text-[10px]">
-                                <span class="text-slate-400"><i class="fa fa-user mr-1"></i>李专家</span>
-                                <span class="text-blue-500 font-bold">2024-01-25</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- 待验收列 -->
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
-                            <span class="font-bold text-sm">待验收</span>
-                            <span class="text-[10px] bg-white text-slate-500 px-2 py-0.5 rounded-full">7</span>
-                        </div>
-                        <button class="text-slate-400 hover:text-orange-600"><i class="fa fa-plus"></i></button>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="kanban-card bg-white p-4 rounded-xl border border-slate-100 shadow-sm" onclick="openModal()">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] text-purple-500 font-mono">#CY20240106005</span>
-                                <span class="text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded">知识产权</span>
-                            </div>
-                            <p class="text-sm font-semibold mb-2">软件著作权登记</p>
-                            <p class="text-[10px] text-slate-400 mb-3"><i class="fa fa-building-o mr-1"></i>深圳软云网络科技</p>
-                            <div class="mb-2">
-                                <div class="flex items-center justify-between text-[10px] mb-1">
-                                    <span class="text-slate-400">进度</span>
-                                    <span class="text-purple-600 font-bold">95%</span>
-                                </div>
-                                <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div class="progress-bar h-full bg-purple-500" style="width: 95%"></div>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between text-[10px]">
-                                <span class="text-slate-400"><i class="fa fa-user mr-1"></i>王顾问</span>
-                                <span class="text-purple-500 font-bold">2024-01-12</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- 已完成列 -->
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                            <span class="font-bold text-sm">已完成</span>
-                            <span class="text-[10px] bg-white text-slate-500 px-2 py-0.5 rounded-full">132</span>
-                        </div>
-                        <button class="text-slate-400 hover:text-orange-600"><i class="fa fa-plus"></i></button>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="kanban-card bg-white p-4 rounded-xl border border-slate-100 shadow-sm opacity-90" onclick="openModal()">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] text-green-500 font-mono">#CY20240105006</span>
-                                <span class="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded">检验检测</span>
-                            </div>
-                            <p class="text-sm font-semibold mb-2">产品质检报告</p>
-                            <p class="text-[10px] text-slate-400 mb-3"><i class="fa fa-building-o mr-1"></i>苏州精密制造科技</p>
-                            <div class="flex items-center justify-between text-[10px]">
-                                <span class="text-slate-400"><i class="fa fa-check-circle text-green-500 mr-1"></i>已完成</span>
-                                <span class="text-green-500 font-bold">2024-01-05</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 text-xs text-slate-500 uppercase">
+                            <th class="px-6 py-4 text-left font-semibold">订单号</th>
+                            <th class="px-6 py-4 text-left font-semibold">服务名称</th>
+                            <th class="px-6 py-4 text-left font-semibold">企业名称</th>
+                            <th class="px-6 py-4 text-left font-semibold">当前里程碑</th>
+                            <th class="px-6 py-4 text-left font-semibold">进度</th>
+                            <th class="px-6 py-4 text-left font-semibold">交付物</th>
+                            <th class="px-6 py-4 text-center font-semibold">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody" class="divide-y divide-slate-50"></tbody>
+                </table>
             </div>
-        </section>
-
-        <!-- 交付列表 -->
-        <section>
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                <div class="p-6 border-b border-slate-100">
-                    <div class="flex items-center justify-between flex-wrap gap-4">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-1 h-6 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></div>
-                            <h2 class="text-lg font-bold">交付列表</h2>
-                            <span class="text-xs text-slate-400">共 <span class="text-orange-600 font-bold">162</span> 项交付</span>
-                        </div>
-                        <div class="flex items-center space-x-3">
-                            <div class="relative">
-                                <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                                <input type="text" placeholder="搜索订单号、服务名称..." class="pl-9 pr-4 py-2 bg-slate-50 rounded-xl text-sm border border-transparent focus:border-orange-300 focus:bg-white focus:outline-none w-64 transition-all">
-                            </div>
-                            <button class="flex items-center space-x-1 px-4 py-2 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 rounded-xl text-sm transition-all text-slate-600">
-                                <i class="fa fa-filter"></i>
-                                <span>筛选</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead>
-                            <tr class="bg-slate-50 text-xs text-slate-500 uppercase">
-                                <th class="px-6 py-4 text-left font-semibold">订单号</th>
-                                <th class="px-6 py-4 text-left font-semibold">服务名称</th>
-                                <th class="px-6 py-4 text-left font-semibold">企业名称</th>
-                                <th class="px-6 py-4 text-left font-semibold">负责人</th>
-                                <th class="px-6 py-4 text-left font-semibold">截止日期</th>
-                                <th class="px-6 py-4 text-left font-semibold">进度</th>
-                                <th class="px-6 py-4 text-center font-semibold">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="deliveryTableBody" class="divide-y divide-slate-50">
-                            <!-- 由JS渲染 -->
-                        </tbody>
-                    </table>
-                </div>
+            <div class="px-5 py-4 border-t border-slate-100 flex justify-between text-sm">
+                <span class="text-slate-500">共 <span id="dCount2" class="font-bold text-slate-700">0</span> 项</span>
+                <span class="text-xs text-slate-400"><i class="fa fa-check-circle text-emerald-500 mr-1"></i>进度联动企业侧「我的订单」、成果联动企业平台</span>
             </div>
-        </section>
-    </main>
+        </div>
+    </div>
 
     <!-- 交付详情弹窗 -->
-    <div id="deliveryDetailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div id="detailModal" class="fixed inset-0 modal-mask z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto scroll-hide">
             <div class="sticky top-0 bg-white border-b border-slate-100 px-8 py-5 flex items-center justify-between z-10">
                 <h3 class="text-lg font-bold flex items-center space-x-2">
                     <i class="fa fa-truck text-orange-500"></i>
                     <span>交付详情</span>
                 </h3>
-                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-all">
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500">
                     <i class="fa fa-times"></i>
                 </button>
             </div>
-            <div class="p-8 space-y-8">
-                <!-- 交付概要 -->
-                <div class="flex items-center justify-between p-5 bg-gradient-to-r from-orange-50 to-orange-100 rounded-2xl">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center">
-                            <i class="fa fa-cogs text-xl"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-base">高新技术企业认定全程辅导</h4>
-                            <p class="text-xs text-slate-500 mt-1">订单号：CY20240108001 · 北京智造科技有限公司</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[10px] text-slate-500">总进度</p>
-                        <p class="text-2xl font-black text-orange-600">40%</p>
-                    </div>
-                </div>
+            <div id="detailBody" class="p-8 space-y-8"></div>
+        </div>
+    </div>
 
-                <!-- 交付里程碑 -->
+    <!-- 上传交付物弹窗 -->
+    <div id="uploadModal" class="fixed inset-0 modal-mask z-[55] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-base font-bold"><i class="fa fa-upload text-orange-500 mr-2"></i>上传交付物</h3>
+                <button onclick="closeUpload()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
                 <div>
-                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2">
-                        <i class="fa fa-flag-o text-orange-500"></i>
-                        <span>交付里程碑</span>
-                    </h3>
-                    <div class="relative pl-6">
-                        <!-- 时间轴竖线 -->
-                        <div class="absolute left-2 top-2 bottom-2 w-0.5 bg-slate-100"></div>
-
-                        <div class="relative mb-6">
-                            <div class="timeline-dot absolute -left-6 top-0 w-4 h-4 bg-green-500 rounded-full border-4 border-white shadow"></div>
-                            <div class="ml-4 p-4 bg-green-50 rounded-xl border border-green-100">
-                                <div class="flex items-center justify-between mb-2">
-                                    <h4 class="font-bold text-sm">需求沟通与确认</h4>
-                                    <span class="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full">已完成</span>
-                                </div>
-                                <p class="text-xs text-slate-500 mb-3">完成时间：2024-01-08</p>
-                                <div class="bg-white rounded-lg p-3">
-                                    <p class="text-[10px] text-slate-400 mb-1">交付物：</p>
-                                    <div class="flex items-center space-x-2">
-                                        <i class="fa fa-file-pdf-o text-red-400"></i>
-                                        <span class="text-xs">需求确认书.pdf</span>
-                                        <button class="text-orange-500 text-[10px] hover:underline ml-2"><i class="fa fa-download"></i> 下载</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="relative mb-6">
-                            <div class="timeline-dot absolute -left-6 top-0 w-4 h-4 bg-green-500 rounded-full border-4 border-white shadow"></div>
-                            <div class="ml-4 p-4 bg-green-50 rounded-xl border border-green-100">
-                                <div class="flex items-center justify-between mb-2">
-                                    <h4 class="font-bold text-sm">方案制定</h4>
-                                    <span class="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full">已完成</span>
-                                </div>
-                                <p class="text-xs text-slate-500 mb-3">完成时间：2024-01-10</p>
-                                <div class="bg-white rounded-lg p-3">
-                                    <p class="text-[10px] text-slate-400 mb-1">交付物：</p>
-                                    <div class="flex items-center space-x-2">
-                                        <i class="fa fa-file-powerpoint-o text-orange-400"></i>
-                                        <span class="text-xs">高企申报方案.pptx</span>
-                                        <button class="text-orange-500 text-[10px] hover:underline ml-2"><i class="fa fa-download"></i> 下载</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="relative mb-6">
-                            <div class="timeline-dot absolute -left-6 top-0 w-4 h-4 bg-orange-500 rounded-full border-4 border-white shadow animate-pulse"></div>
-                            <div class="ml-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
-                                <div class="flex items-center justify-between mb-2">
-                                    <h4 class="font-bold text-sm">材料准备</h4>
-                                    <span class="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full">进行中</span>
-                                </div>
-                                <p class="text-xs text-slate-500 mb-3">预计完成：2024-01-15</p>
-                                <div class="bg-white rounded-lg p-3">
-                                    <p class="text-[10px] text-slate-400 mb-1">交付物（暂无，待提交）：</p>
-                                    <div class="flex items-center space-x-2 text-slate-400">
-                                        <i class="fa fa-file-text-o"></i>
-                                        <span class="text-xs">申报材料.docx</span>
-                                        <span class="text-[10px]">待上传</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="relative mb-6">
-                            <div class="timeline-dot absolute -left-6 top-0 w-4 h-4 bg-slate-200 rounded-full border-4 border-white"></div>
-                            <div class="ml-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <div class="flex items-center justify-between mb-2">
-                                    <h4 class="font-bold text-sm text-slate-500">提交申报</h4>
-                                    <span class="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full">待开始</span>
-                                </div>
-                                <p class="text-xs text-slate-400">预计开始：2024-01-16</p>
-                            </div>
-                        </div>
-
-                        <div class="relative">
-                            <div class="timeline-dot absolute -left-6 top-0 w-4 h-4 bg-slate-200 rounded-full border-4 border-white"></div>
-                            <div class="ml-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <div class="flex items-center justify-between mb-2">
-                                    <h4 class="font-bold text-sm text-slate-500">跟踪维护</h4>
-                                    <span class="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full">待开始</span>
-                                </div>
-                                <p class="text-xs text-slate-400">预计开始：2024-01-20</p>
-                            </div>
-                        </div>
-                    </div>
+                    <p class="text-xs font-bold text-slate-600 mb-1.5">里程碑</p>
+                    <p id="uploadMilestone" class="text-sm text-slate-700 bg-slate-50 rounded-xl px-4 py-2.5">—</p>
                 </div>
-
-                <!-- 交付记录 -->
                 <div>
-                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2">
-                        <i class="fa fa-comments-o text-orange-500"></i>
-                        <span>交付记录</span>
-                    </h3>
-                    <div class="space-y-4">
-                        <!-- 沟通记录 -->
-                        <div class="p-4 bg-slate-50 rounded-2xl">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">李</div>
-                                <div class="flex-1">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="text-sm font-semibold">李专家</span>
-                                        <span class="text-[10px] text-slate-400">2024-01-09 14:25</span>
-                                    </div>
-                                    <p class="text-xs text-slate-600">已完成需求沟通，方案制定中，预计1月10日完成方案初稿，请企业关注。</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="p-4 bg-slate-50 rounded-2xl">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">张</div>
-                                <div class="flex-1">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <span class="text-sm font-semibold">张经理（企业）</span>
-                                        <span class="text-[10px] text-slate-400">2024-01-09 15:30</span>
-                                    </div>
-                                    <p class="text-xs text-slate-600">收到，方案中知识产权布局部分请重点关注，我们专利数量较少。</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 文件上传 -->
-                        <div class="p-4 bg-orange-50 rounded-2xl border border-orange-100">
-                            <div class="flex items-center space-x-3 mb-3">
-                                <i class="fa fa-upload text-orange-500"></i>
-                                <span class="text-sm font-semibold">文件上传</span>
-                            </div>
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between p-3 bg-white rounded-xl">
-                                    <div class="flex items-center space-x-3">
-                                        <i class="fa fa-file-excel-o text-green-500 text-xl"></i>
-                                        <div>
-                                            <p class="text-sm font-medium">企业财务数据.xlsx</p>
-                                            <p class="text-[10px] text-slate-400">2.3MB · 2024-01-09 上传</p>
-                                        </div>
-                                    </div>
-                                    <button class="text-orange-500 text-xs hover:underline">下载</button>
-                                </div>
-                                <div class="flex items-center justify-between p-3 bg-white rounded-xl">
-                                    <div class="flex items-center space-x-3">
-                                        <i class="fa fa-file-pdf-o text-red-500 text-xl"></i>
-                                        <div>
-                                            <p class="text-sm font-medium">知识产权清单.pdf</p>
-                                            <p class="text-[10px] text-slate-400">1.8MB · 2024-01-08 上传</p>
-                                        </div>
-                                    </div>
-                                    <button class="text-orange-500 text-xs hover:underline">下载</button>
-                                </div>
-                            </div>
-                            <button class="w-full mt-3 py-3 border-2 border-dashed border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-500 rounded-xl text-sm transition-all">
-                                <i class="fa fa-plus mr-1"></i>上传新文件
-                            </button>
-                        </div>
-                    </div>
+                    <p class="text-xs font-bold text-slate-600 mb-1.5">交付物名称 <span class="text-rose-500">*</span></p>
+                    <input id="uploadName" type="text" placeholder="如：高企申报方案.pptx" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white">
                 </div>
-
-                <!-- 操作按钮 -->
-                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
-                    <button class="px-6 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-2xl text-sm font-medium transition-all">联系负责人</button>
-                    <button class="px-6 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-2xl text-sm font-medium transition-all">查看订单</button>
-                    <button class="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/30 transition-all">
-                        <i class="fa fa-refresh mr-1"></i>更新进度
-                    </button>
+                <div>
+                    <p class="text-xs font-bold text-slate-600 mb-1.5">文件类型</p>
+                    <select id="uploadType" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                        <option value="pdf">PDF 文档 (.pdf)</option>
+                        <option value="word">Word 文档 (.docx)</option>
+                        <option value="excel">Excel 表格 (.xlsx)</option>
+                        <option value="ppt">PPT 演示 (.pptx)</option>
+                        <option value="other">其他文件</option>
+                    </select>
                 </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end space-x-2 bg-slate-50/60">
+                <button onclick="closeUpload()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
+                <button onclick="confirmUpload()" class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">确认上传</button>
             </div>
         </div>
     </div>
 
-    <script>
-        // 视图切换
-        function switchView(view, btn) {
-            document.querySelectorAll('.view-btn').forEach(b => {
-                b.classList.remove('active', 'bg-white', 'text-orange-600', 'shadow-sm');
-                b.classList.add('text-slate-500');
-            });
-            btn.classList.add('active', 'bg-white', 'text-orange-600', 'shadow-sm');
-            btn.classList.remove('text-slate-500');
-        }
+    <!-- 添加沟通记录弹窗 -->
+    <div id="noteModal" class="fixed inset-0 modal-mask z-[55] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-base font-bold"><i class="fa fa-comment-o text-orange-500 mr-2"></i>添加交付记录</h3>
+                <button onclick="closeNote()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <p class="text-xs font-bold text-slate-600 mb-1.5">记录内容 <span class="text-rose-500">*</span></p>
+                    <textarea id="noteText" rows="4" placeholder="如：已完成需求沟通，方案制定中，预计1月10日完成方案初稿。" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end space-x-2 bg-slate-50/60">
+                <button onclick="closeNote()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
+                <button onclick="confirmNote()" class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">发布记录</button>
+            </div>
+        </div>
+    </div>
 
-        // 模拟交付数据
-        const deliveries = [
-            { id: 'CY20240108001', service: '高新技术企业认定全程辅导', company: '北京智造科技有限公司', owner: '李专家', deadline: '2024-01-20', progress: 40, status: 'processing' },
-            { id: 'CY20240107004', service: '年度财务审计报告', company: '上海华信生物制药有限公司', owner: '李专家', deadline: '2024-01-25', progress: 60, status: 'processing' },
-            { id: 'CY20240106005', service: '软件著作权登记代理', company: '深圳软云网络科技有限公司', owner: '王顾问', deadline: '2024-01-12', progress: 95, status: 'review' },
-            { id: 'CY20240105006', service: '产品质检报告服务', company: '苏州精密制造科技有限公司', owner: '刘检测', deadline: '2024-01-05', progress: 100, status: 'completed' },
-            { id: 'CY20240108003', service: '专精特新企业申报', company: '广州创新材料科技股份有限公司', owner: '待分配', deadline: '2024-02-15', progress: 0, status: 'pending' },
-            { id: 'CY20240104007', service: '商标注册全程代理', company: '杭州电商品牌管理有限公司', owner: '王顾问', deadline: '2024-01-15', progress: 80, status: 'processing' },
-            { id: 'CY20240103008', service: '研发费用加计扣除咨询', company: '北京科创智能装备有限公司', owner: '陈顾问', deadline: '2024-01-18', progress: 45, status: 'processing' },
-            { id: 'CY20240101008', service: '技术合同认定登记', company: '南京科转桥信息技术有限公司', owner: '赵专员', deadline: '2024-01-01', progress: 100, status: 'completed' }
+    <script src="data-bridge.js"></script>
+    <script>
+        let ORDERS = [];
+        let detailId = null;
+        let uploadMsIdx = null;
+        let noteMsIdx = null;
+
+        // 5 个交付里程碑（与订单管理的 STEPS 一致，但这里关注"交付物"）
+        const MILESTONES = [
+            { name: '需求沟通', deliv: '需求确认书' },
+            { name: '方案制定', deliv: '服务方案书' },
+            { name: '材料准备', deliv: '申报材料/审计底稿' },
+            { name: '审核提交', deliv: '受理回执/审查意见' },
+            { name: '完成交付', deliv: '最终成果报告' }
         ];
 
-        const statusConfig = {
-            pending: { color: 'orange', text: '待接单' },
-            processing: { color: 'blue', text: '进行中' },
-            review: { color: 'purple', text: '待验收' },
-            completed: { color: 'green', text: '已完成' }
+        // 每个里程碑的交付物种子（演示用）
+        const SEED_DELIVERABLES = {
+            0: [{ name: '需求确认书.pdf', type: 'pdf', date: '2026-09-01' }],
+            1: [{ name: '高企申报方案.pptx', type: 'ppt', date: '2026-09-02' }],
+            2: [], // 进行中，待上传
+            3: [],
+            4: []
         };
+        const SEED_NOTES = [
+            { who: '李专家（运营）', avatar: '李', color: 'blue', time: '2026-09-01 14:25', text: '已完成需求沟通，企业知识产权情况已确认，进入方案制定阶段。' },
+            { who: '张经理（企业）', avatar: '张', color: 'orange', time: '2026-09-01 15:30', text: '收到，方案中知识产权布局部分请重点关注，我们专利数量较少。' }
+        ];
 
-        // 渲染交付列表
-        function renderDeliveries() {
-            const tbody = document.getElementById('deliveryTableBody');
-            tbody.innerHTML = deliveries.map(d => {
-                const status = statusConfig[d.status];
-                const isUrgent = new Date(d.deadline) < new Date('2024-01-15') && d.status !== 'completed';
+        // 运行时交付物与记录（按订单 id 存储）
+        let deliverables = {}; // { orderId: [ {msIdx, name, type, date} ] }
+        let notes = {};        // { orderId: [ {who, avatar, color, time, text} ] }
+
+        function fmtMoney(n) { return (Number(n) || 0).toLocaleString('zh-CN'); }
+
+        function load() {
+            ORDERS = (typeof DataBridge !== 'undefined') ? DataBridge.loadServiceOrders() : [];
+            // 只看已付款的（serving + done + reviewed），unpaid 不进交付
+            ORDERS = ORDERS.filter(o => o.status !== 'unpaid');
+        }
+
+        function curMsIdx(o) {
+            return Math.min(MILESTONES.length - 1, Math.floor((o.progress || 0) / 20));
+        }
+
+        function render() {
+            const q = document.getElementById('q').value.trim().toLowerCase();
+            const list = ORDERS.filter(o => {
+                if (q && !(o.id.toLowerCase().includes(q) || o.svcName.toLowerCase().includes(q) || o.company.toLowerCase().includes(q))) return false;
+                return true;
+            });
+            document.getElementById('dCount').textContent = list.length;
+            document.getElementById('dCount2').textContent = list.length;
+
+            const tb = document.getElementById('tbody');
+            if (list.length === 0) {
+                tb.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400"><i class="fa fa-inbox text-2xl block mb-2"></i>暂无交付任务（待付款订单接单后进入交付）</td></tr>`;
+                return;
+            }
+            tb.innerHTML = list.map(o => {
+                const msIdx = curMsIdx(o);
+                const ms = MILESTONES[msIdx];
+                const delivs = (deliverables[o.id] || []).filter(d => d.msIdx === msIdx);
+                const delivBadge = delivs.length > 0
+                    ? `<span class="text-xs text-emerald-600 font-bold"><i class="fa fa-paperclip mr-1"></i>${delivs.length} 份</span>`
+                    : `<span class="text-xs text-slate-400">待上传</span>`;
+                const isDone = o.status === 'done' || o.status === 'reviewed';
                 return `
                 <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-6 py-4">
-                        <span class="text-xs font-mono text-slate-500">${d.id}</span>
-                    </td>
+                    <td class="px-6 py-4"><span class="text-xs font-mono text-slate-500">${o.id}</span></td>
                     <td class="px-6 py-4">
                         <div class="flex items-center space-x-2">
-                            <div class="w-8 h-8 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center"><i class="fa fa-cube text-xs"></i></div>
-                            <span class="text-sm font-medium">${d.service}</span>
+                            <div class="w-8 h-8 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center"><i class="fa ${o.icon || 'fa-cube'} text-xs"></i></div>
+                            <span class="text-sm font-medium">${o.svcName}</span>
                         </div>
                     </td>
-                    <td class="px-6 py-4 text-sm text-slate-600">${d.company}</td>
-                    <td class="px-6 py-4">
-                        ${d.owner === '待分配' 
-                            ? '<span class="text-xs text-slate-400">待分配</span>'
-                            : `<div class="flex items-center space-x-2"><div class="w-6 h-6 bg-${status.color}-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">${d.owner.charAt(0)}</div><span class="text-xs">${d.owner}</span></div>`}
+                    <td class="px-6 py-4 text-sm text-slate-600">
+                        <div>${o.company}</div>
+                        <div class="text-xs text-slate-400">${o.contact}</div>
                     </td>
                     <td class="px-6 py-4">
-                        <span class="text-xs ${isUrgent ? 'text-red-500 font-bold' : 'text-slate-500'}">${d.deadline}</span>
-                        ${isUrgent ? '<span class="ml-1 text-[10px] text-red-500">紧急</span>' : ''}
+                        <span class="text-xs font-medium ${isDone ? 'text-emerald-600' : 'text-orange-600'}">${isDone ? '✓ ' : ''}${ms.name}</span>
+                        <span class="text-[10px] text-slate-400 block">第 ${msIdx + 1}/${MILESTONES.length} 步</span>
                     </td>
                     <td class="px-6 py-4">
-                        <div class="w-32">
+                        <div class="w-28">
                             <div class="flex items-center justify-between text-[10px] mb-1">
-                                <span class="text-slate-400">${status.text}</span>
-                                <span class="text-${status.color}-600 font-bold">${d.progress}%</span>
+                                <span class="text-slate-400">${isDone ? '已完成' : '进行中'}</span>
+                                <span class="text-orange-600 font-bold">${o.progress}%</span>
                             </div>
                             <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="progress-bar h-full bg-${status.color}-500" style="width: ${d.progress}%"></div>
+                                <div class="progress-bar h-full ${isDone ? 'bg-emerald-500' : 'bg-orange-500'}" style="width: ${o.progress}%"></div>
                             </div>
                         </div>
                     </td>
+                    <td class="px-6 py-4">${delivBadge}</td>
                     <td class="px-6 py-4">
-                        <div class="flex items-center justify-center space-x-2">
-                            <button onclick="openModal()" class="px-3 py-1.5 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 text-slate-600 text-xs rounded-lg transition-all">详情</button>
-                            ${d.status === 'pending' ? `<button class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg transition-all">接单</button>` : ''}
-                            ${d.status === 'processing' ? `<button onclick="openModal()" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg transition-all">更新</button>` : ''}
-                            ${d.status === 'review' ? `<button class="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-xs rounded-lg transition-all">验收</button>` : ''}
+                        <div class="flex items-center justify-center">
+                            <button onclick="openDetail('${o.id}')" class="px-3 py-1.5 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 text-slate-600 text-xs rounded-lg transition-all">交付详情</button>
                         </div>
                     </td>
-                </tr>
-                `;
+                </tr>`;
             }).join('');
         }
 
-        // 弹窗控制
-        function openModal() {
-            const modal = document.getElementById('deliveryDetailModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+        // ===== 详情弹窗 =====
+        function openDetail(id) {
+            const o = ORDERS.find(x => x.id === id);
+            if (!o) return;
+            detailId = id;
+            // 初始化该订单的交付物和记录
+            if (!deliverables[id]) {
+                deliverables[id] = [];
+                // 种子：已完成的里程碑自动带交付物
+                const msIdx = curMsIdx(o);
+                for (let i = 0; i <= msIdx; i++) {
+                    const seed = SEED_DELIVERABLES[i] || [];
+                    seed.forEach(d => deliverables[id].push({ msIdx: i, name: d.name, type: d.type, date: d.date }));
+                }
+            }
+            if (!notes[id]) notes[id] = [...SEED_NOTES];
+
+            const msIdx = curMsIdx(o);
+            const isDone = o.status === 'done' || o.status === 'reviewed';
+
+            // 里程碑时间轴
+            const stepsHtml = MILESTONES.map((m, i) => {
+                const done = isDone || i < msIdx;
+                const cur = !isDone && i === msIdx;
+                const delivs = (deliverables[id] || []).filter(d => d.msIdx === i);
+                const dotCls = done ? 'bg-emerald-500' : cur ? 'bg-orange-500 animate-pulse' : 'bg-slate-200';
+                const cardCls = done ? 'bg-emerald-50 border-emerald-100' : cur ? 'bg-orange-50 border-orange-100' : 'bg-slate-50 border-slate-100';
+                const badge = done ? '<span class="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full">已完成</span>' : cur ? '<span class="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full">进行中</span>' : '<span class="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full">待开始</span>';
+
+                let delivHtml = '';
+                if (delivs.length > 0) {
+                    delivHtml = delivs.map(d => {
+                        const icon = d.type === 'pdf' ? 'fa-file-pdf-o text-red-400' : d.type === 'word' ? 'fa-file-word-o text-blue-400' : d.type === 'excel' ? 'fa-file-excel-o text-green-500' : d.type === 'ppt' ? 'fa-file-powerpoint-o text-orange-400' : 'fa-file-o text-slate-400';
+                        return `<div class="flex items-center space-x-2 bg-white rounded-lg px-3 py-2 mb-1">
+                            <i class="fa ${icon}"></i>
+                            <span class="text-xs flex-1">${d.name}</span>
+                            <span class="text-[10px] text-slate-400">${d.date}</span>
+                        </div>`;
+                    }).join('');
+                } else if (cur) {
+                    delivHtml = `<div class="text-[10px] text-slate-400 italic">待上传交付物</div>`;
+                }
+
+                const actions = cur ? `
+                    <button onclick="openUpload(${i})" class="text-[10px] text-orange-600 hover:underline ml-2"><i class="fa fa-upload mr-0.5"></i>上传交付物</button>
+                    <button onclick="openNote(${i})" class="text-[10px] text-blue-600 hover:underline ml-2"><i class="fa fa-comment-o mr-0.5"></i>添加记录</button>
+                ` : '';
+
+                return `<div class="relative mb-5">
+                    <div class="timeline-dot absolute -left-6 top-0 w-4 h-4 ${dotCls} rounded-full border-4 border-white shadow"></div>
+                    <div class="ml-4 p-4 ${cardCls} rounded-xl border">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-bold text-sm ${done || cur ? '' : 'text-slate-500'}">${m.name}</h4>
+                            ${badge}
+                        </div>
+                        <p class="text-[10px] text-slate-400 mb-2">交付物：${m.deliv}</p>
+                        ${delivHtml}
+                        ${actions}
+                    </div>
+                </div>`;
+            }).join('');
+
+            // 沟通记录
+            const notesHtml = (notes[id] || []).map(n => `
+                <div class="p-4 bg-slate-50 rounded-2xl">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 bg-${n.color}-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">${n.avatar}</div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm font-semibold">${n.who}</span>
+                                <span class="text-[10px] text-slate-400">${n.time}</span>
+                            </div>
+                            <p class="text-xs text-slate-600">${n.text}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // 底部操作
+            let acts = '';
+            if (!isDone) {
+                acts = `<button onclick="advanceProgress()" class="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/30 transition-all">
+                    <i class="fa fa-arrow-up mr-1"></i>推进至下一里程碑
+                </button>`;
+            } else {
+                acts = `<span class="text-sm text-emerald-600 font-bold"><i class="fa fa-check-circle mr-1"></i>所有里程碑已完成，交付闭环</span>`;
+            }
+
+            document.getElementById('detailBody').innerHTML = `
+                <div class="flex items-center justify-between p-5 bg-gradient-to-r from-orange-50 to-orange-100 rounded-2xl">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center"><i class="fa ${o.icon || 'fa-cogs'} text-xl"></i></div>
+                        <div>
+                            <h4 class="font-bold text-base">${o.svcName}</h4>
+                            <p class="text-xs text-slate-500 mt-1">订单号：${o.id} · ${o.company}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-slate-500">总进度</p>
+                        <p class="text-2xl font-black text-orange-600">${o.progress}%</p>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-flag-o text-orange-500"></i><span>交付里程碑</span></h3>
+                    <div class="relative pl-6">
+                        <div class="absolute left-2 top-2 bottom-2 w-0.5 bg-slate-100"></div>
+                        ${stepsHtml}
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-comments-o text-orange-500"></i><span>交付记录</span></h3>
+                    <div class="space-y-3">${notesHtml}</div>
+                </div>
+                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">${acts}</div>
+            `;
+            const m = document.getElementById('detailModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
         }
         function closeModal() {
-            const modal = document.getElementById('deliveryDetailModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
+            const m = document.getElementById('detailModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+            detailId = null;
+        }
+
+        // ===== 推进进度（联动订单管理 + 企业侧我的订单） =====
+        function advanceProgress() {
+            const o = ORDERS.find(x => x.id === detailId);
+            if (!o) return;
+            o.progress = Math.min(100, o.progress + 20);
+            if (o.progress >= 100) o.status = 'done';
+            persist();
+            // 刷新详情弹窗
+            openDetail(detailId);
+            render();
+            if (o.status === 'done') alert('所有里程碑已完成！订单状态变更为「已完成」，企业侧可查看并评价。');
+        }
+
+        // ===== 上传交付物 =====
+        function openUpload(msIdx) {
+            uploadMsIdx = msIdx;
+            document.getElementById('uploadMilestone').textContent = MILESTONES[msIdx].name + ' · ' + MILESTONES[msIdx].deliv;
+            document.getElementById('uploadName').value = '';
+            const m = document.getElementById('uploadModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeUpload() {
+            const m = document.getElementById('uploadModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+            uploadMsIdx = null;
+        }
+        function confirmUpload() {
+            const name = document.getElementById('uploadName').value.trim();
+            if (!name) { alert('请填写交付物名称'); return; }
+            const type = document.getElementById('uploadType').value;
+            const today = new Date().toISOString().slice(0, 10);
+            if (!deliverables[detailId]) deliverables[detailId] = [];
+            deliverables[detailId].push({ msIdx: uploadMsIdx, name, type, date: today });
+            closeUpload();
+            openDetail(detailId); // 刷新详情
+            render(); // 刷新列表交付物计数
+        }
+
+        // ===== 添加交付记录 =====
+        function openNote(msIdx) {
+            noteMsIdx = msIdx;
+            document.getElementById('noteText').value = '';
+            const m = document.getElementById('noteModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeNote() {
+            const m = document.getElementById('noteModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+            noteMsIdx = null;
+        }
+        function confirmNote() {
+            const text = document.getElementById('noteText').value.trim();
+            if (!text) { alert('请填写记录内容'); return; }
+            const now = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const time = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+            if (!notes[detailId]) notes[detailId] = [];
+            notes[detailId].push({ who: '运营管理员', avatar: '运', color: 'orange', time, text });
+            closeNote();
+            openDetail(detailId);
+        }
+
+        function persist() {
+            if (typeof DataBridge !== 'undefined') DataBridge.saveServiceOrders(ORDERS);
         }
 
         // 初始化
-        renderDeliveries();
+        load();
+        render();
     </script>
 </body>
 </html>

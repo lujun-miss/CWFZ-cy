@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>数据驾驶舱 - 策源易答运营平台</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(139,92,246,0.18); }
@@ -43,65 +43,7 @@
         </div>
     </div>
 
-    <!-- 全局指标 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div class="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm card-hover transition-all relative overflow-hidden">
-            <div class="flex items-center justify-between mb-3 relative z-10">
-                <div class="w-11 h-11 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center"><i class="fa fa-search text-lg"></i></div>
-                <span class="text-xs font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg"><i class="fa fa-arrow-up"></i> 18.6%</span>
-            </div>
-            <p class="text-slate-500 text-sm font-medium">政策查询次数</p>
-            <div class="flex items-baseline space-x-2 mt-1">
-                <h3 class="text-3xl font-black text-slate-800">52,840</h3>
-                <span class="text-xs text-slate-400">次</span>
-            </div>
-            <div class="absolute bottom-0 left-0 right-0 h-10 opacity-20">
-                <svg viewBox="0 0 100 30" class="w-full h-full" preserveAspectRatio="none"><path d="M0 25 Q 20 15, 40 20 T 80 8 T 100 12 V 30 H 0 Z" fill="#7c3aed"></path></svg>
-            </div>
-        </div>
-        <div class="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm card-hover transition-all relative overflow-hidden">
-            <div class="flex items-center justify-between mb-3 relative z-10">
-                <div class="w-11 h-11 bg-green-50 text-green-600 rounded-xl flex items-center justify-center"><i class="fa fa-bullseye text-lg"></i></div>
-                <span class="text-xs font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg"><i class="fa fa-arrow-up"></i> 12.3%</span>
-            </div>
-            <p class="text-slate-500 text-sm font-medium">匹配成功数</p>
-            <div class="flex items-baseline space-x-2 mt-1">
-                <h3 class="text-3xl font-black text-slate-800">8,624</h3>
-                <span class="text-xs text-slate-400">次</span>
-            </div>
-            <div class="absolute bottom-0 left-0 right-0 h-10 opacity-20">
-                <svg viewBox="0 0 100 30" class="w-full h-full" preserveAspectRatio="none"><path d="M0 22 Q 25 18, 50 14 T 100 10 V 30 H 0 Z" fill="#16a34a"></path></svg>
-            </div>
-        </div>
-        <div class="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm card-hover transition-all relative overflow-hidden">
-            <div class="flex items-center justify-between mb-3 relative z-10">
-                <div class="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center"><i class="fa fa-jpy text-lg"></i></div>
-                <span class="text-xs font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg"><i class="fa fa-arrow-up"></i> 24.1%</span>
-            </div>
-            <p class="text-slate-500 text-sm font-medium">服务成交额</p>
-            <div class="flex items-baseline space-x-2 mt-1">
-                <h3 class="text-3xl font-black text-slate-800">¥1,286</h3>
-                <span class="text-xs text-slate-400">万元</span>
-            </div>
-            <div class="absolute bottom-0 left-0 right-0 h-10 opacity-20">
-                <svg viewBox="0 0 100 30" class="w-full h-full" preserveAspectRatio="none"><path d="M0 26 Q 30 20, 50 16 T 100 5 V 30 H 0 Z" fill="#d97706"></path></svg>
-            </div>
-        </div>
-        <div class="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm card-hover transition-all relative overflow-hidden">
-            <div class="flex items-center justify-between mb-3 relative z-10">
-                <div class="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><i class="fa fa-building text-lg"></i></div>
-                <span class="text-xs font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg"><i class="fa fa-arrow-up"></i> 9.8%</span>
-            </div>
-            <p class="text-slate-500 text-sm font-medium">活跃企业数</p>
-            <div class="flex items-baseline space-x-2 mt-1">
-                <h3 class="text-3xl font-black text-slate-800">3,452</h3>
-                <span class="text-xs text-slate-400">家</span>
-            </div>
-            <div class="absolute bottom-0 left-0 right-0 h-10 opacity-20">
-                <svg viewBox="0 0 100 30" class="w-full h-full" preserveAspectRatio="none"><path d="M0 24 Q 20 18, 45 20 T 80 12 T 100 14 V 30 H 0 Z" fill="#2563eb"></path></svg>
-            </div>
-        </div>
-    </div>
+    
 
     <!-- 流程漏斗 + 热门政策排行 -->
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
@@ -143,11 +85,29 @@
                     </div>
                     <div class="funnel-bar h-9 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-lg flex items-center justify-end pr-3" style="width:24%"></div>
                 </div>
+                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
+                <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-bold text-slate-600"><i class="fa fa-truck text-teal-500 mr-1"></i>服务交付</span>
+                        <span class="text-slate-500"><span id="funnelDelivered" class="font-black text-slate-800">412</span> · 0.8%</span>
+                    </div>
+                    <div class="funnel-bar h-9 bg-gradient-to-r from-teal-500 to-teal-400 rounded-lg flex items-center justify-end pr-3" style="width:18%"></div>
+                </div>
+                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
+                <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-bold text-slate-600"><i class="fa fa-star text-amber-500 mr-1"></i>评价反馈</span>
+                        <span class="text-slate-500"><span id="funnelReviewed" class="font-black text-slate-800">285</span> · 0.5%</span>
+                    </div>
+                    <div class="funnel-bar h-9 bg-gradient-to-r from-amber-500 to-amber-400 rounded-lg flex items-center justify-end pr-3" style="width:12%"></div>
+                </div>
             </div>
-            <div class="mt-5 pt-4 border-t border-slate-100 grid grid-cols-3 gap-3 text-center">
+            <div class="mt-5 pt-4 border-t border-slate-100 grid grid-cols-5 gap-3 text-center">
                 <div><div class="text-xs text-slate-400">查询→匹配</div><div class="text-sm font-black text-purple-600">16.3%</div></div>
                 <div><div class="text-xs text-slate-400">匹配→申报</div><div class="text-sm font-black text-blue-600">25.0%</div></div>
                 <div><div class="text-xs text-slate-400">申报→成交</div><div class="text-sm font-black text-emerald-600">31.8%</div></div>
+                <div><div class="text-xs text-slate-400">成交→交付</div><div class="text-sm font-black text-teal-600">60.1%</div></div>
+                <div><div class="text-xs text-slate-400">交付→评价</div><div class="text-sm font-black text-amber-600">69.2%</div></div>
             </div>
         </div>
 
@@ -327,7 +287,23 @@
         </div>
     </div>
 
+    <script src="data-bridge.js"></script>
     <script>
+        // 漏斗末端两节（服务交付 / 评价反馈）从订单数据聚合，与真实交易闭环联动
+        (function(){
+            if (!window.DataBridge || !DataBridge.loadServiceOrders) return;
+            var orders = DataBridge.loadServiceOrders();
+            // 已交付 = 已付款进入服务交付环节（serving/done/reviewed 都算）
+            var delivered = orders.filter(function(o){ return ['serving','done','reviewed'].indexOf(o.status) !== -1; }).length;
+            // 已评价 = 完成评价反馈（reviewed）
+            var reviewed = orders.filter(function(o){ return o.status === 'reviewed'; }).length;
+            // 在演示基数上叠加真实订单增量，体现闭环联动
+            var baseDelivered = 400, baseReviewed = 280;
+            var dEl = document.getElementById('funnelDelivered');
+            var rEl = document.getElementById('funnelReviewed');
+            if (dEl) dEl.textContent = (baseDelivered + delivered).toLocaleString();
+            if (rEl) rEl.textContent = (baseReviewed + reviewed).toLocaleString();
+        })();
         // 生成热力图
         (function(){
             var days = ['周一','周二','周三','周四','周五','周六','周日'];

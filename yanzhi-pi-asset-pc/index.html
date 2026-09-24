@@ -29,45 +29,31 @@
         </div>
 
         <nav class="flex-1 px-4 space-y-1 overflow-y-auto mt-4">
-            <div class="text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-3">资产管家</div>
-            
+            <!-- 全景总览（首页） -->
             <div class="sidebar-item active flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('home.html', this)">
                 <i class="fa fa-th-large w-6 text-lg mr-2"></i>
                 <span>资产全景图</span>
             </div>
-            
+
+            <!-- ① 申请与入库 -->
+            <div class="mt-8 text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-3">① 申请与入库</div>
+
             <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('archive.html', this)">
                 <i class="fa fa-shield w-6 text-lg mr-2 text-orange-400"></i>
                 <span class="text-orange-400">证书与进度管理</span>
             </div>
-            
+
             <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('capitalization.html', this)">
                 <i class="fa fa-magic w-6 text-lg mr-2 text-blue-400"></i>
-                <span class="text-blue-400">研发账变资产</span>
-            </div>
-            
-            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('amortization.html', this)">
-                <i class="fa fa-calculator w-6 text-lg mr-2 text-indigo-400"></i>
-                <span class="text-indigo-400">每月摊销与省税</span>
+                <span class="text-blue-400">取得入库</span>
             </div>
 
-            <div class="mt-8 text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-3">赚钱与省心</div>
-            
-            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('valuation.html', this)">
-                <i class="fa fa-line-chart w-6 text-lg mr-2 text-emerald-400"></i>
-                <span class="text-emerald-400">估值与投资回报</span>
-            </div>
-            
-            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('reports.html', this)">
-                <i class="fa fa-file-text-o w-6 text-lg mr-2 text-rose-400"></i>
-                <span class="text-rose-400">申报与审计助手</span>
-            </div>
+            <!-- ② 档案与盘点 -->
+            <div class="mt-8 text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-3">② 档案与盘点</div>
 
-            <div class="mt-8 text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-3">台账管理</div>
-
-            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('ownership-change.html', this)">
-                <i class="fa fa-exchange w-6 text-lg mr-2 text-orange-400"></i>
-                <span class="text-orange-400">权属变更管理</span>
+            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('asset-manage.html', this)">
+                <i class="fa fa-database w-6 text-lg mr-2 text-cyan-400"></i>
+                <span class="text-cyan-400">资产档案维护</span>
             </div>
 
             <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('asset-inventory.html', this)">
@@ -75,14 +61,43 @@
                 <span class="text-green-400">资产盘点管理</span>
             </div>
 
-            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('value-ledger.html', this)">
-                <i class="fa fa-book w-6 text-lg mr-2 text-amber-400"></i>
-                <span class="text-amber-400">价值台账</span>
+            <!-- ③ 日常维护 -->
+            <div class="mt-8 text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-3">③ 日常维护</div>
+
+            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('fee-renewal.html', this)">
+                <i class="fa fa-bell w-6 text-lg mr-2 text-amber-400"></i>
+                <span class="text-amber-400">年费与续展预警</span>
             </div>
 
-            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('expense-ledger.html', this)">
-                <i class="fa fa-money w-6 text-lg mr-2 text-red-400"></i>
-                <span class="text-red-400">费用台账</span>
+            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('amortization.html', this)">
+                <i class="fa fa-calculator w-6 text-lg mr-2 text-indigo-400"></i>
+                <span class="text-indigo-400">摊销管理</span>
+            </div>
+
+            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('contract.html', this)">
+                <i class="fa fa-file-text w-6 text-lg mr-2 text-blue-400"></i>
+                <span class="text-blue-400">合同管理</span>
+            </div>
+
+            <!-- ④ 变更与退出 -->
+            <div class="mt-8 text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-3">④ 变更与退出</div>
+
+            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('ownership-change.html', this)">
+                <i class="fa fa-exchange w-6 text-lg mr-2 text-orange-400"></i>
+                <span class="text-orange-400">变更管理</span>
+            </div>
+
+            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('disposal.html', this)">
+                <i class="fa fa-flag w-6 text-lg mr-2 text-red-400"></i>
+                <span class="text-red-400">处置与核销</span>
+            </div>
+
+            <!-- ⑤ 报表与导出 -->
+            <div class="mt-8 text-[10px] font-bold text-slate-600 uppercase tracking-widest px-4 mb-3">⑤ 报表与导出</div>
+
+            <div class="sidebar-item flex items-center px-4 py-3 rounded-xl text-sm font-medium" onclick="loadPage('report-export.html', this)">
+                <i class="fa fa-table w-6 text-lg mr-2 text-cyan-400"></i>
+                <span class="text-cyan-400">报表与导出</span>
             </div>
         </nav>
 
@@ -124,13 +139,31 @@
     </div>
 
     <script>
+        // 侧边栏没有对应菜单项的页面（表单页等）用此映射显示标题
+        var PAGE_TITLE_FALLBACK = {
+            'capitalization-form.html': '取得入库',
+            'disposal-form.html': '处置与核销'
+        };
         function loadPage(url, el) {
             document.getElementById('mainFrame').src = url;
-            const title = el.querySelector('span').innerText;
-            document.getElementById('pageTitle').innerText = title;
-            document.getElementById('breadcrumb').innerText = title;
+            // 只传 url 时（iframe 内按钮跳转），按 onclick 中的 url 自动找到对应菜单项
+            if (!el) {
+                el = Array.from(document.querySelectorAll('.sidebar-item')).find(function (item) {
+                    return (item.getAttribute('onclick') || '').indexOf(url) >= 0;
+                }) || null;
+            }
             document.querySelectorAll('.sidebar-item').forEach(item => { item.classList.remove('active'); });
-            el.classList.add('active');
+            var title = '';
+            if (el) {
+                el.classList.add('active');
+                var sp = el.querySelector('span');
+                title = sp ? sp.innerText : '';
+            }
+            if (!title) title = PAGE_TITLE_FALLBACK[url] || '';
+            if (title) {
+                document.getElementById('pageTitle').innerText = title;
+                document.getElementById('breadcrumb').innerText = title;
+            }
         }
     </script>
 </body>

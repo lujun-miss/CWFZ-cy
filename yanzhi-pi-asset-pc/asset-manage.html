@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="asset-data.js"></script>
+    <style>
+        .toast { animation: toastIn .25s ease; }
+        @keyframes toastIn { from { opacity:0; transform: translateY(-12px);} to {opacity:1; transform:none;} }
+        .field-label { font-size:11px; font-weight:800; color:#64748b; margin-bottom:4px; display:block; }
+        .field-input { width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:12px; font-size:12px; outline:none; transition:all .15s; }
+        .field-input:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+        .tag-checkbox { display:none; }
+        .tag-checkbox + label { padding:5px 12px; border:1px solid #e2e8f0; border-radius:9999px; font-size:11px; font-weight:700; color:#64748b; cursor:pointer; transition:all .15s; }
+        .tag-checkbox:checked + label { background:#2563eb; border-color:#2563eb; color:#fff; }
+    </style>
+</head>
+<body class="bg-slate-50 p-6 min-h-screen">
+    <div class="max-w-[1400px] mx-auto">
+        <!-- 头部 -->
+        <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800">无形资产档案维护</h1>
+                <p class="text-sm text-slate-400 mt-1">在这里新增、编辑、停用无形资产；保存后首页、证书墙、成长档案全部实时联动</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="doReset()" class="px-4 py-2.5 bg-white text-slate-500 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all">
+                    <i class="fa fa-undo mr-1"></i>恢复示例数据
+                </button>
+                <button onclick="openForm()" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                    <i class="fa fa-plus mr-1"></i>新增无形资产
+                </button>
+            </div>
+        </div>
+
+        <!-- 筛选栏 -->
+        <div class="bg-white rounded-[24px] p-4 border border-slate-100 shadow-sm mb-6 flex flex-wrap items-center gap-3">
+            <div class="relative flex-1 min-w-[220px]">
+                <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
+                <input id="kw" oninput="renderList()" type="text" placeholder="搜索资产名称 / 证书号..." class="pl-9 pr-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs w-full focus:bg-white focus:border-blue-300 outline-none transition-all">
+            </div>
+            <select id="fType" onchange="renderList()" class="px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs font-bold text-slate-600 outline-none cursor-pointer">
+                <option value="">全部类型</option>
+                <option>发明专利</option>
+                <option>实用新型</option>
+                <option>软件著作权</option>
+                <option>商标</option>
+            </select>
+            <select id="fStatus" onchange="renderList()" class="px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs font-bold text-slate-600 outline-none cursor-pointer">
+                <option value="">全部状态</option>
+                <option>有效中</option>
+                <option>待入库</option>
+                <option>审查中</option>
+                <option>已失效</option>
+                <option>已处置</option>
+            </select>
+            <span id="countText" class="text-[11px] text-slate-400 font-bold ml-auto"></span>
+        </div>
+
+        <!-- 列表 -->
+        <div class="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr class="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                            <th class="px-5 py-4">无形资产</th>
+                            <th class="px-4 py-4">类型</th>
+                            <th class="px-4 py-4">状态</th>
+                            <th class="px-4 py-4">标签</th>
+                            <th class="px-4 py-4 text-right">研发投入(万)</th>
+                            <th class="px-4 py-4 text-right">专家估值(万)</th>
+                            <th class="px-4 py-4 text-right">累计省税(万)</th>
+                            <th class="px-4 py-4 text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listBody" class="divide-y divide-slate-50"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增/编辑 弹窗 -->
+    <div id="formMask" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4" onclick="if(event.target===this)closeForm()">
+        <div class="bg-white rounded-[28px] w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+                <h2 id="formTitle" class="text-lg font-black text-slate-800">新增无形资产</h2>
+                <button onclick="closeForm()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center"><i class="fa fa-times"></i></button>
+            </div>
+
+            <form id="assetForm" onsubmit="submitForm(event)" class="p-6 space-y-5">
+                <input type="hidden" id="fId">
+                <!-- 入口提示 -->
+                <div id="formHintBar" class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[10px] text-blue-700 font-bold hidden">
+                    <i class="fa fa-info-circle mr-1"></i>本入口适合<b>存量资产补录 / 期初建账 / 数据迁移</b>，直接建档无审批。新发生的取得业务（外购/自研/入股/捐赠）请走<b>「取得入库」</b>走审批流，合规更规范。
+                </div>
+                <!-- 基本信息 -->
+                <div>
+                    <p class="text-[11px] font-black text-blue-500 uppercase tracking-widest mb-3"><i class="fa fa-info-circle mr-1"></i>基本信息</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="field-label">资产编号</label>
+                            <input id="fCode" class="field-input font-mono bg-slate-50" placeholder="留空自动生成 GD+年份+4位序号">
+                            <p class="text-[10px] text-slate-400 mt-1">备注：手动输入则使用输入值，留空则自动生成（如 GD20260001）</p>
+                        </div>
+                        <div>
+                            <label class="field-label">法律状态</label>
+                            <select id="fStatus2" class="field-input cursor-pointer" onchange="onStatusChange()">
+                                <option>有效中</option>
+                                <option>待入库</option>
+                                <option>审查中</option>
+                                <option>已失效</option>
+                                <option>已处置</option>
+                            </select>
+                            <p id="disposedHint" class="text-[10px] text-red-400 mt-1 hidden"><i class="fa fa-lock mr-1"></i>已处置资产状态锁定，如需恢复请到「处置与核销」处理</p>
+                        </div>
+                        <div id="progressRow" class="sm:col-span-2">
+                            <label class="field-label">申报进度 <span class="text-slate-300 text-[10px]">(仅审查中可改)</span></label>
+                            <div class="flex items-center gap-2">
+                                <select id="fProgress" class="field-input cursor-pointer flex-1" disabled>
+                                    <option value="0">① 写交底书</option>
+                                    <option value="1">② 已经递交</option>
+                                    <option value="2">③ 正在审查</option>
+                                    <option value="3">④ 成功拿证</option>
+                                </select>
+                                <span id="progressLock" class="text-[10px] text-slate-400 whitespace-nowrap">有效中→自动锁定④</span>
+                            </div>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="field-label">资产名称 <span class="text-red-400">*</span></label>
+                            <input id="fName" class="field-input" placeholder="如：精密零件结构设计发明专利" required>
+                        </div>
+                        <div>
+                            <label class="field-label">资产类型 <span class="text-red-400">*</span></label>
+                            <select id="fFormType" class="field-input cursor-pointer" onchange="onTypeChange()">
+                                <optgroup label="知识产权类">
+                                    <option value="发明专利">发明专利</option>
+                                    <option value="实用新型">实用新型</option>
+                                    <option value="外观设计">外观设计</option>
+                                    <option value="软件著作权">软件著作权</option>
+                                    <option value="商标">商标</option>
+                                    <option value="域名">域名</option>
+                                </optgroup>
+                                <optgroup label="权利特许类">
+                                    <option value="土地使用权">土地使用权</option>
+                                    <option value="特许经营权">特许经营权</option>
+                                </optgroup>
+                                <optgroup label="技术秘密类">
+                                    <option value="非专利技术">非专利技术</option>
+                                </optgroup>
+                                <optgroup label="市场客户/品牌">
+                                    <option value="客户关系">客户关系</option>
+                                    <option value="品牌价值">品牌价值</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">证书号 / 登记号</label>
+                            <input id="fCertNo" class="field-input" placeholder="审查中可留空">
+                        </div>
+                        <div>
+                            <label class="field-label">取得方式</label>
+                            <select id="fAcquire" class="field-input cursor-pointer">
+                                <option value="">— 请选择 —</option>
+                                <option>外购</option><option>自主研发</option><option>投资入股</option><option>捐赠</option><option>内部调拨</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">权利归属</label>
+                            <select id="fOwnerShip" class="field-input cursor-pointer">
+                                <option>本公司</option><option>子公司</option><option>个人</option><option>共有</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">发明人/作者</label>
+                            <input id="fInventor" class="field-input" placeholder="如：张三、李四">
+                        </div>
+                        <div>
+                            <label class="field-label">获得日期（YYYY-MM） <span class="text-red-400">*</span></label>
+                            <input id="fGrant" type="date" class="field-input" onchange="reCalcAmort()">
+                        </div>
+                        <div>
+                            <label class="field-label">年费剩余天数（留空=正常）</label>
+                            <input id="fFeeDays" type="number" min="0" class="field-input" placeholder="如 15">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 摊销信息 -->
+                <div>
+                    <p class="text-[11px] font-black text-purple-500 uppercase tracking-widest mb-3"><i class="fa fa-calculator mr-1"></i>摊销信息</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div>
+                            <label class="field-label">资产原值（万元） <span class="text-red-400">*</span></label>
+                            <input id="fCost" type="number" min="0" step="0.01" class="field-input" value="0" oninput="reCalcAmort()">
+                        </div>
+                        <div>
+                            <label class="field-label">摊销方法 <span class="text-red-400">*</span></label>
+                            <select id="fAmortMethod" class="field-input cursor-pointer" onchange="reCalcAmort()">
+                                <option>平均年限法</option>
+                                <option>双倍余额递减法</option>
+                                <option>年数总和法</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">预计使用年限（月） <span class="text-red-400">*</span></label>
+                            <input id="fLifeMonths" type="number" min="1" class="field-input" oninput="reCalcAmort()" placeholder="根据类型自动带出">
+                            <p class="text-[10px] text-slate-400 mt-0.5" id="lifeHint">发明专利默认 120 月</p>
+                        </div>
+                        <div>
+                            <label class="field-label">预计残值率（%）</label>
+                            <input id="fSalvage" type="number" min="0" max="100" class="field-input" value="5" oninput="reCalcAmort()">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 mt-4">
+                        <div>
+                            <label class="field-label">月摊销额（万元）</label>
+                            <input id="fMonthly" readonly class="field-input bg-slate-50 font-bold text-slate-700" value="0.00">
+                            <p class="text-[10px] text-slate-400 mt-0.5">自动计算：(原值 − 原值×残值率) ÷ 年限</p>
+                        </div>
+                        <div>
+                            <label class="field-label">摊销截止日期</label>
+                            <input id="fAmortEnd" readonly class="field-input bg-slate-50 font-bold text-slate-700" placeholder="自动计算">
+                            <p class="text-[10px] text-slate-400 mt-0.5">获得日期 + 使用年限</p>
+                        </div>
+                        <div>
+                            <label class="field-label">累计摊销（万元）</label>
+                            <input id="fAmort" type="number" min="0" step="0.01" class="field-input" value="0">
+                            <p class="text-[10px] text-slate-400 mt-0.5">可手填；不填则按月摊销额 × 已过月数估算</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 价值与标签 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <p class="text-[11px] font-black text-emerald-500 uppercase tracking-widest mb-3"><i class="fa fa-diamond mr-1"></i>价值信息（万元）</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="field-label">专家估值</label><input id="fValuation" type="number" min="0" step="0.01" class="field-input" value="0"></div>
+                            <div><label class="field-label">累计省税</label><input id="fTax" type="number" min="0" step="0.01" class="field-input" value="0"></div>
+                            <div class="sm:col-span-2"><label class="field-label">变现方式</label><input id="fIncome" class="field-input" placeholder="如：产品溢价收入 / 技术授权"></div>
+                            <div class="sm:col-span-2"><label class="field-label">政策申报支撑（多项用顿号、分隔）</label><input id="fPolicy" class="field-input" placeholder="如：高新技术企业认定、专精特新"></div>
+                        </div>
+                    </div>
+                    <!-- 附件管理区 -->
+                    <div>
+                        <p class="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3"><i class="fa fa-paperclip mr-1"></i>附件管理（权属证明/证书/合同扫描件）</p>
+                        <div class="flex gap-2 mb-2">
+                            <input id="attName" class="field-input flex-1" placeholder="文件名（如：专利证书.pdf）">
+                            <select id="attType" class="field-input w-24">
+                                <option value="pdf">PDF</option><option value="img">图片</option><option value="doc">文档</option><option value="other">其他</option>
+                            </select>
+                            <button type="button" onclick="addAttachmentRow()" class="px-3 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all"><i class="fa fa-plus mr-1"></i>添加</button>
+                        </div>
+                        <div id="attList" class="space-y-1"></div>
+                        <p class="text-[10px] text-slate-400 mt-2">说明：模拟上传，仅记录文件名/类型/日期，不实际存储文件内容。</p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-black text-amber-500 uppercase tracking-widest mb-3"><i class="fa fa-tags mr-1"></i>资产标签</p>
+                        <div class="flex flex-wrap gap-2">
+                            <input type="checkbox" id="tag1" class="tag-checkbox" data-tag="省税冠军"><label for="tag1">省税冠军</label>
+                            <input type="checkbox" id="tag2" class="tag-checkbox" data-tag="高企支撑"><label for="tag2">高企支撑</label>
+                            <input type="checkbox" id="tag3" class="tag-checkbox" data-tag="专精特新"><label for="tag3">专精特新</label>
+                            <input type="checkbox" id="tag4" class="tag-checkbox" data-tag="核心资产"><label for="tag4">核心资产</label>
+                            <input type="checkbox" id="tag5" class="tag-checkbox" data-tag="沉睡资产"><label for="tag5">沉睡资产</label>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-3">“在途申请”标签由法律状态自动判定，无需手选。</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeForm()" class="px-5 py-2.5 bg-slate-100 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all">取消</button>
+                    <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"><i class="fa fa-check mr-1"></i>保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        var editingId = null;
+
+        function statusBadge(a) {
+            if (a.status === '有效中') return '<span class="px-2 py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded">有效中</span>';
+            if (a.status === '待入库') return '<span class="px-2 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold rounded">待入库</span>';
+            if (a.status === '审查中') return '<span class="px-2 py-1 bg-orange-50 text-orange-600 text-[10px] font-bold rounded">审查中</span>';
+            if (a.status === '已处置') return '<span class="px-2 py-1 bg-red-50 text-red-600 text-[10px] font-bold rounded">已处置</span>';
+            return '<span class="px-2 py-1 bg-slate-100 text-slate-400 text-[10px] font-bold rounded">已失效</span>';
+        }
+
+        // 状态徽标下方的子信息：待入库 / 处置记录 + 变更痕迹 + 待审批变更
+        function renderStatusSubInfo(a) {
+            var html = '';
+            // 待入库（已拿证，等待取得入库审批）
+            if (a.status === '待入库') {
+                html += '<p class="text-[9px] text-amber-500 mt-1 font-bold"><i class="fa fa-hourglass-half mr-0.5"></i>已拿证，待「取得入库」审批</p>';
+            }
+            // 处置信息
+            if (a.disposal) {
+                html += '<p class="text-[9px] text-red-400 mt-1 font-bold">' + a.disposal.type + ' · ' + a.disposal.date + '</p>';
+            }
+            // 待审批变更（优先显示，因为更紧急）
+            var pendingChange = (ASSET_LIFECYCLE_EVENTS || []).find(function(e) {
+                return e.stage === '变更' && e.status === '待审批' && e.assetId === a.id;
+            });
+            if (pendingChange) {
+                html += '<p class="text-[9px] text-blue-500 mt-1 font-bold"><i class="fa fa-clock-o mr-0.5"></i>变更审批中：' + pendingChange.eventType + '</p>';
+            } else {
+                // 最近一次已执行的变更
+                var lastChange = (ASSET_LIFECYCLE_EVENTS || []).filter(function(e) {
+                    return e.stage === '变更' && e.status === '已执行' && e.assetId === a.id;
+                }).sort(function(x, y) { return (y.eventDate || '').localeCompare(x.eventDate || ''); })[0];
+                if (lastChange) {
+                    var changeDesc = lastChange.fromVal && lastChange.toVal
+                        ? lastChange.eventType + '：' + lastChange.fromVal + '→' + lastChange.toVal
+                        : lastChange.eventType;
+                    html += '<p class="text-[9px] text-amber-500 mt-1 font-bold">已变更：' + changeDesc + '</p>';
+                }
+            }
+            return html;
+        }
+
+        function renderList() {
+            var kw = (document.getElementById('kw').value || '').trim().toLowerCase();
+            var tp = document.getElementById('fType').value;
+            var st = document.getElementById('fStatus').value;
+            var list = ASSETS.filter(function (a) {
+                if (tp && a.type !== tp) return false;
+                if (st && a.status !== st) return false;
+                if (kw) {
+                    var hay = (a.name + ' ' + (a.certNo || '') + ' ' + (a.assetCode || '')).toLowerCase();
+                    if (hay.indexOf(kw) < 0) return false;
+                }
+                return true;
+            });
+            document.getElementById('countText').innerText = '共 ' + list.length + ' 项';
+            var body = document.getElementById('listBody');
+            if (!list.length) {
+                body.innerHTML = '<tr><td colspan="8" class="px-5 py-16 text-center text-slate-300"><i class="fa fa-inbox text-3xl block mb-3"></i><span class="text-xs font-bold">没有符合条件的无形资产，点右上角「新增无形资产」添加</span></td></tr>';
+                return;
+            }
+            body.innerHTML = list.map(function (a) {
+                var s = ASSET_TYPE_STYLE[a.type] || ASSET_TYPE_STYLE['发明专利'];
+                var amortInfo = a.usefulLifeMonths
+                    ? ((a.monthlyAmortization || 0) + ' 万/月')
+                    : '—';
+                return '<tr class="hover:bg-slate-50 transition-all">'
+                    + '<td class="px-5 py-4"><div class="flex items-center">'
+                    +   '<div class="w-10 h-10 ' + s.bg + ' rounded-xl flex items-center justify-center mr-3 text-lg flex-shrink-0"><i class="fa ' + s.icon + '"></i></div>'
+                    +   '<div class="min-w-0"><p class="text-sm font-bold text-slate-800">' + a.name + '</p>'
+                    +   '<p class="text-[10px] text-slate-400 mt-0.5 font-mono">' + (a.assetCode || a.id) + ' · ' + (a.certNo || '暂无证书号') + '</p></div>'
+                    + '</div></td>'
+                    + '<td class="px-4 py-4 text-xs text-slate-500 font-bold">' + a.type + '</td>'
+                    + '<td class="px-4 py-4">' + statusBadge(a) + renderStatusSubInfo(a) + '</td>'
+                    + '<td class="px-4 py-4"><div class="flex flex-wrap gap-1">' + tagsHtml(a, 'sm') + '</div></td>'
+                    + '<td class="px-4 py-4 text-right text-xs font-bold text-slate-600">' + (a.cost || 0) + '</td>'
+                    + '<td class="px-4 py-4 text-right text-[11px] font-bold text-purple-600">' + amortInfo + '</td>'
+                    + '<td class="px-4 py-4 text-right text-xs font-black text-blue-600">' + (a.valuation || '—') + '</td>'
+                    + '<td class="px-4 py-4 text-right whitespace-nowrap">'
+                    +   '<button onclick="openAssetDetail(\'' + a.id + '\')" class="px-2.5 py-1.5 text-[10px] font-bold text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><i class="fa fa-file-text-o mr-0.5"></i>档案</button>'
+                    +   '<button onclick="openForm(\'' + a.id + '\')" class="px-2.5 py-1.5 text-[10px] font-bold text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><i class="fa fa-pencil mr-0.5"></i>编辑</button>'
+                    +   '<button onclick="doDelete(\'' + a.id + '\')" class="px-2.5 py-1.5 text-[10px] font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><i class="fa fa-trash-o mr-0.5"></i>删除</button>'
+                    + '</td></tr>';
+            }).join('');
+        }
+
+        // 表单：法律状态切换 → 控制申报进度可用性
+        function onStatusChange() {
+            var st = document.getElementById('fStatus2').value;
+            var sel = document.getElementById('fProgress');
+            var lock = document.getElementById('progressLock');
+            var disposedHint = document.getElementById('disposedHint');
+            if (st === '已处置') {
+                sel.value = '0'; sel.disabled = true;
+                lock.innerText = '已处置→固定①';
+                if (disposedHint) disposedHint.classList.remove('hidden');
+                return;
+            }
+            if (disposedHint) disposedHint.classList.add('hidden');
+            if (st === '有效中' || st === '待入库') {
+                sel.value = '3'; sel.disabled = true;
+                lock.innerText = st === '待入库' ? '待入库→已拿证锁定④' : '有效中→自动锁定④';
+            } else if (st === '审查中') {
+                if (sel.value === '3' || !sel.value) sel.value = '2';
+                sel.disabled = false;
+                lock.innerText = '审查中→可选①②③';
+            } else {
+                sel.value = '0'; sel.disabled = true;
+                lock.innerText = '已失效→固定①';
+            }
+        }
+        // 表单：类型切换 → 自动带默认年限
+        function onTypeChange() {
+            var type = document.getElementById('fFormType').value;
+            var months = defaultLifeMonthsByType(type);
+            document.getElementById('fLifeMonths').value = months;
+            var hints = { '发明专利':'发明专利默认 120 月','实用新型':'实用新型默认 60 月','外观设计':'外观设计默认 60 月','软件著作权':'软著默认 36 月（可加速摊销）','商标':'商标默认 120 月' };
+            document.getElementById('lifeHint').innerText = hints[type] || '可选';
+            reCalcAmort();
+        }
+        // 表单：月摊销额 / 截止日期 自动计算
+        function reCalcAmort() {
+            var cost = Number(document.getElementById('fCost').value) || 0;
+            var months = Number(document.getElementById('fLifeMonths').value) || 0;
+            var rate = Number(document.getElementById('fSalvage').value) || 0;
+            // 平均年限法：(原值 − 原值 × 残值率) ÷ 年限(月)
+            var monthly = (cost > 0 && months > 0)
+                ? Number(((cost - cost * rate / 100) / months).toFixed(2))
+                : 0;
+            document.getElementById('fMonthly').value = monthly.toFixed(2);
+            var grant = document.getElementById('fGrant').value;
+            document.getElementById('fAmortEnd').value = grant && months > 0
+                ? addMonths(grant, months) : '';
+            // 累计摊销估算（如果原值 > 0 且未手动填入）
+            var amortInput = document.getElementById('fAmort');
+            if (!amortInput.dataset.manuallySet) {
+                var passed = monthsBetween(grant, new Date().toISOString().slice(0, 7));
+                amortInput.value = Number((monthly * passed).toFixed(2));
+            }
+        }
+        // 累计摊销手动输入标记为"已手动覆盖"
+        window.addEventListener('DOMContentLoaded', function () {
+            var amort = document.getElementById('fAmort');
+            if (amort) amort.addEventListener('input', function () { amort.dataset.manuallySet = '1'; });
+        });
+
+        function openForm(id) {
+            editingId = id || null;
+            var f = document.getElementById('assetForm');
+            f.reset();
+            document.querySelectorAll('.tag-checkbox').forEach(function (c) { c.checked = false; });
+            var amortInput = document.getElementById('fAmort');
+            delete amortInput.dataset.manuallySet;
+            document.getElementById('formTitle').innerText = id ? '编辑资产' : '新增资产';
+            // 提示条：仅新增时显示
+            var hintBar = document.getElementById('formHintBar');
+            if (hintBar) hintBar.classList.toggle('hidden', !!id);
+            if (id) {
+                var a = getAssetById(id);
+                if (!a) return;
+                document.getElementById('fId').value = a.id;
+                document.getElementById('fCode').value = a.assetCode || '';
+                document.getElementById('fName').value = a.name || '';
+                document.getElementById('fFormType').value = a.type || '发明专利';
+                document.getElementById('fStatus2').value = a.status || '有效中';
+                document.getElementById('fProgress').value = (a.applyProgress != null ? a.applyProgress : (a.status === '有效中' ? 3 : 2));
+                document.getElementById('fCertNo').value = (a.certNo && a.certNo.indexOf('—') !== 0) ? a.certNo : '';
+                document.getElementById('fFeeDays').value = (a.feeRemainDays == null) ? '' : a.feeRemainDays;
+                document.getElementById('fGrant').value = a.grantDate || '';
+                document.getElementById('fCost').value = a.cost || 0;
+                document.getElementById('fAmort').value = a.amortized || 0;
+                document.getElementById('fValuation').value = a.valuation || 0;
+                document.getElementById('fTax').value = a.taxSaving || 0;
+                document.getElementById('fIncome').value = a.incomeType || '';
+                document.getElementById('fPolicy').value = (a.supportPolicy || []).join('、');
+                document.getElementById('fAmortMethod').value = a.amortizationMethod || '平均年限法';
+                document.getElementById('fLifeMonths').value = a.usefulLifeMonths || defaultLifeMonthsByType(a.type);
+                document.getElementById('fSalvage').value = a.salvageRate != null ? a.salvageRate : 5;
+                document.getElementById('fMonthly').value = (a.monthlyAmortization || 0).toFixed(2);
+                document.getElementById('fAmortEnd').value = a.amortizationEndDate || '';
+                document.querySelectorAll('.tag-checkbox').forEach(function (c) {
+                    c.checked = (a.tags || []).indexOf(c.getAttribute('data-tag')) >= 0;
+                });
+                // 新增字段回填
+                if (a.acquireMethod) document.getElementById('fAcquire').value = a.acquireMethod;
+                if (a.ownerShip) document.getElementById('fOwnerShip').value = a.ownerShip;
+                document.getElementById('fInventor').value = a.inventor || '';
+                renderAttachmentList(a.attachments || []);
+                // 已处置资产：锁定法律状态，只能从处置流程修改
+                var stSel = document.getElementById('fStatus2');
+                if (a.status === '已处置') { stSel.disabled = true; } else { stSel.disabled = false; }
+                onStatusChange();  // 根据状态锁定/解锁进度
+            } else {
+                // 新增：先预填默认值，再算一次
+                document.getElementById('fCode').value = '';
+                document.getElementById('fStatus2').disabled = false;
+                document.getElementById('fAmortMethod').value = '平均年限法';
+                document.getElementById('fSalvage').value = 5;
+                onTypeChange();
+                onStatusChange();
+                renderAttachmentList([]);
+            }
+            reCalcAmort();
+            var mask = document.getElementById('formMask');
+            mask.classList.remove('hidden'); mask.classList.add('flex');
+        }
+        function closeForm() {
+            var mask = document.getElementById('formMask');
+            mask.classList.add('hidden'); mask.classList.remove('flex');
+            editingId = null;
+        }
+
+        function collectForm() {
+            var tags = [];
+            document.querySelectorAll('.tag-checkbox:checked').forEach(function (c) { tags.push(c.getAttribute('data-tag')); });
+            var policyStr = document.getElementById('fPolicy').value.trim();
+            var supportPolicy = policyStr ? policyStr.split(/[、,，;；]/).map(function (s) { return s.trim(); }).filter(Boolean) : [];
+            var feeVal = document.getElementById('fFeeDays').value;
+            var grant = document.getElementById('fGrant').value;
+            var months = Number(document.getElementById('fLifeMonths').value) || defaultLifeMonthsByType(document.getElementById('fFormType').value);
+            var monthly = Number(document.getElementById('fMonthly').value);
+            // 摊销截止日期：兜底，以防 deriveAssetFields 重算时 grantDate 为空
+            var amortEnd = grant ? addMonths(grant, months) : '';
+            return {
+                name: document.getElementById('fName').value.trim(),
+                type: document.getElementById('fFormType').value,
+                certNo: document.getElementById('fCertNo').value.trim() || '—',
+                status: document.getElementById('fStatus2').value,
+                applyProgress: Number(document.getElementById('fProgress').value),
+                assetCode: document.getElementById('fCode').value.trim() || '',
+                grantDate: grant,
+                expireDate: amortEnd,  // 先用摊销截止日（会计口径），deriveAssetFields 会覆盖
+                cost: document.getElementById('fCost').value,
+                amortized: document.getElementById('fAmort').value,
+                valuation: document.getElementById('fValuation').value,
+                taxSaving: document.getElementById('fTax').value,
+                incomeType: document.getElementById('fIncome').value.trim() || '暂无变现',
+                supportPolicy: supportPolicy,
+                feeRemainDays: feeVal === '' ? null : feeVal,
+                amortizationMethod: document.getElementById('fAmortMethod').value,
+                salvageRate: document.getElementById('fSalvage').value,
+                usefulLifeMonths: months,
+                monthlyAmortization: monthly,
+                amortizationEndDate: amortEnd,
+                tags: tags,
+                acquireMethod: document.getElementById('fAcquire').value,
+                ownerShip: document.getElementById('fOwnerShip').value,
+                inventor: document.getElementById('fInventor').value.trim(),
+                attachments: collectAttachments()
+            };
+        }
+
+        // ===== 附件管理 =====
+        var _attachments = [];
+        function renderAttachmentList(list) {
+            _attachments = list.slice();
+            var box = document.getElementById('attList');
+            if (!_attachments.length) {
+                box.innerHTML = '<p class="text-[10px] text-slate-300 py-1">暂无附件，在上方添加</p>';
+                return;
+            }
+            box.innerHTML = _attachments.map(function (att, i) {
+                var icon = att.type === 'pdf' ? 'fa-file-pdf-o text-red-500' : (att.type === 'img' ? 'fa-file-image-o text-blue-500' : (att.type === 'doc' ? 'fa-file-word-o text-blue-600' : 'fa-file-o text-slate-500'));
+                return '<div class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg">'
+                    + '<i class="fa ' + icon + '"></i>'
+                    + '<span class="text-xs text-slate-700 flex-1">' + att.name + '</span>'
+                    + '<span class="text-[10px] text-slate-400">' + (att.uploadDate || '') + '</span>'
+                    + '<button onclick="removeAttachment(' + i + ')" class="text-slate-400 hover:text-red-500"><i class="fa fa-times"></i></button>'
+                    + '</div>';
+            }).join('');
+        }
+        function addAttachmentRow() {
+            var name = document.getElementById('attName').value.trim();
+            if (!name) { toast('请输入文件名', 'red'); return; }
+            _attachments.push({
+                name: name,
+                type: document.getElementById('attType').value,
+                uploadDate: new Date().toISOString().slice(0, 10),
+                size: '—'
+            });
+            document.getElementById('attName').value = '';
+            renderAttachmentList(_attachments);
+        }
+        function removeAttachment(idx) {
+            _attachments.splice(idx, 1);
+            renderAttachmentList(_attachments);
+        }
+        function collectAttachments() { return _attachments.slice(); }
+
+        function submitForm(e) {
+            e.preventDefault();
+            var d = collectForm();
+            if (!d.name) { toast('请填写资产名称', 'red'); return; }
+            if (!d.grantDate) { toast('请选择获得日期', 'red'); return; }
+            if (!d.assetCode) d.assetCode = genAssetCode();  // 留空自动生成
+            if (editingId) { updateAsset(editingId, d); toast('已保存修改，档案与首页已联动更新', 'green'); }
+            else { addAsset(d); toast('新增无形资产成功', 'green'); }
+            closeForm();
+            renderList();
+        }
+
+        function doDelete(id) {
+            var a = getAssetById(id);
+            if (!a) return;
+            if (window.confirm('确定删除「' + a.name + '」吗？删除后首页、证书墙与档案将同步移除。')) {
+                deleteAsset(id);
+                toast('已删除', 'green');
+                renderList();
+            }
+        }
+
+        function doReset() {
+            if (window.confirm('将清空你维护的全部数据并恢复为内置示例，确定吗？')) {
+                resetAssetsToDemo();
+                toast('已恢复示例数据', 'green');
+                renderList();
+            }
+        }
+
+        function toast(msg, color) {
+            var el = document.createElement('div');
+            el.className = 'toast fixed top-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-2xl text-white text-xs font-bold shadow-xl ' + (color === 'red' ? 'bg-red-500' : 'bg-emerald-500');
+            el.innerHTML = '<i class="fa ' + (color === 'red' ? 'fa-exclamation-circle' : 'fa-check-circle') + ' mr-2"></i>' + msg;
+            document.body.appendChild(el);
+            setTimeout(function () { el.remove(); }, 2400);
+        }
+
+        window.addEventListener('assets-changed', renderList);
+        renderList();
+    </script>
+</body>
+</html>

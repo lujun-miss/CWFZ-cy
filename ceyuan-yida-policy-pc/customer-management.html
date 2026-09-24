@@ -4,29 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>客户管理 - 策源易达政策销售平台</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac',
-                            400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d',
-                            800: '#166534', 900: '#14532d'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
         .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
         .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
         .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
         .drawer-transition { transition: transform 0.3s ease-in-out; }
+        .modal-transition { transition: opacity 0.2s ease-in-out; }
+        /* 品牌绿色板（预编译 tailwind.css 未包含 brand 色，手动补充） */
+        :root { --brand-50:#f0fdf4; --brand-100:#dcfce7; --brand-200:#bbf7d0; --brand-300:#86efac; --brand-400:#4ade80; --brand-500:#22c55e; --brand-600:#16a34a; --brand-700:#15803d; --brand-800:#166534; --brand-900:#14532d; }
+        .bg-brand-50 { background-color: var(--brand-50); }
+        .bg-brand-50\/40 { background-color: #f0fdf466; }
+        .hover\:bg-brand-50:hover { background-color: var(--brand-50); }
+        .hover\:bg-brand-50\/40:hover { background-color: #f0fdf466; }
+        .bg-brand-100 { background-color: var(--brand-100); }
+        .bg-brand-600 { background-color: var(--brand-600); }
+        .hover\:bg-brand-700:hover { background-color: var(--brand-700); }
+        .text-brand-600 { color: var(--brand-600); }
+        .text-brand-700 { color: var(--brand-700); }
+        .hover\:text-brand-600:hover { color: var(--brand-600); }
+        .hover\:text-brand-700:hover { color: var(--brand-700); }
+        .border-brand-600 { border-color: var(--brand-600); }
+        .hover\:border-brand-300:hover { border-color: var(--brand-300); }
+        .focus\:ring-brand-500:focus { --tw-ring-color: var(--brand-500); }
+        .from-brand-500 { --tw-gradient-from: var(--brand-500); --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)); }
+        .to-brand-700 { --tw-gradient-to: var(--brand-700); }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -39,7 +43,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-gray-800">客户管理</h1>
-                    <p class="text-xs text-gray-500">管理企业客户全生命周期</p>
+                    <p class="text-xs text-gray-500">录入企业 → 查看政策匹配与诊断报告 → 记录跟进</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -53,15 +57,15 @@
     </header>
 
     <main class="max-w-[1600px] mx-auto px-6 py-6">
-        <!-- 搜索与筛选 -->
+        <!-- 搜索筛选与操作 -->
         <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-6">
             <div class="flex flex-wrap items-center gap-3">
                 <div class="flex-1 min-w-[280px] relative">
                     <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" placeholder="搜索企业名称、联系人、手机号..." 
+                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="搜索企业名称、联系人、手机号..."
                         class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                 </div>
-                <select class="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-gray-700">
+                <select id="filterIndustry" onchange="renderTable()" class="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-gray-700">
                     <option value="">全部行业</option>
                     <option>电子信息</option>
                     <option>生物医药</option>
@@ -69,78 +73,22 @@
                     <option>高端装备</option>
                     <option>新能源</option>
                 </select>
-                <select class="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-gray-700">
-                    <option value="">企业规模</option>
-                    <option>50人以下</option>
-                    <option>50-200人</option>
-                    <option>200-1000人</option>
-                    <option>1000人以上</option>
-                </select>
-                <select class="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-gray-700">
-                    <option value="">客户状态</option>
+                <select id="filterStatus" onchange="renderTable()" class="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-gray-700">
+                    <option value="">全部状态</option>
                     <option>潜在客户</option>
                     <option>意向客户</option>
                     <option>成交客户</option>
                     <option>流失客户</option>
                 </select>
-                <button class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                <button onclick="resetFilters()" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
                     <i class="fa fa-refresh mr-1"></i>重置
                 </button>
-                <button class="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 flex items-center">
-                    <i class="fa fa-plus mr-1.5"></i>新增客户
+                <button onclick="openImportModal()" class="px-5 py-2.5 border border-brand-600 text-brand-600 rounded-lg text-sm hover:bg-brand-50 flex items-center">
+                    <i class="fa fa-upload mr-1.5"></i>导入企业
                 </button>
-            </div>
-        </div>
-
-        <!-- 统计卡片 -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500">总客户数</p>
-                        <p class="text-3xl font-bold text-gray-800 mt-1">1,286</p>
-                        <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +12.5%</p>
-                    </div>
-                    <div class="w-12 h-12 bg-brand-50 rounded-lg flex items-center justify-center">
-                        <i class="fa fa-building text-brand-600 text-2xl"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500">活跃客户</p>
-                        <p class="text-3xl font-bold text-gray-800 mt-1">486</p>
-                        <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +8.2%</p>
-                    </div>
-                    <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <i class="fa fa-line-chart text-blue-500 text-2xl"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500">意向客户</p>
-                        <p class="text-3xl font-bold text-gray-800 mt-1">213</p>
-                        <p class="text-xs text-orange-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +15.3%</p>
-                    </div>
-                    <div class="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
-                        <i class="fa fa-handshake-o text-orange-500 text-2xl"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500">成交客户</p>
-                        <p class="text-3xl font-bold text-gray-800 mt-1">168</p>
-                        <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +6.8%</p>
-                    </div>
-                    <div class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center">
-                        <i class="fa fa-trophy text-emerald-500 text-2xl"></i>
-                    </div>
-                </div>
+                <button onclick="openCustomerModal()" class="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 flex items-center">
+                    <i class="fa fa-plus mr-1.5"></i>录入企业
+                </button>
             </div>
         </div>
 
@@ -161,168 +109,20 @@
                             <th class="px-6 py-3 font-medium">行业</th>
                             <th class="px-6 py-3 font-medium">联系人</th>
                             <th class="px-6 py-3 font-medium">政策匹配数</th>
+                            <th class="px-6 py-3 font-medium">下次跟进计划</th>
                             <th class="px-6 py-3 font-medium">最近跟进</th>
                             <th class="px-6 py-3 font-medium">状态</th>
                             <th class="px-6 py-3 font-medium text-right">操作</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100" id="customerTable">
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer(0)">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-9 h-9 bg-brand-100 text-brand-700 rounded-lg flex items-center justify-center font-semibold text-sm">星</div>
-                                    <div>
-                                        <p class="font-medium text-gray-800">星河智造科技有限公司</p>
-                                        <p class="text-xs text-gray-400">91330104MA2XXXX5X</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="text-gray-600">电子信息</span></td>
-                            <td class="px-6 py-4">
-                                <p class="text-gray-700">王明华</p>
-                                <p class="text-xs text-gray-400">138****8688</p>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-medium">18 项</span></td>
-                            <td class="px-6 py-4 text-gray-500">2026-08-01</td>
-                            <td class="px-6 py-4"><span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs">成交客户</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2" onclick="event.stopPropagation();"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2" onclick="event.stopPropagation();"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500" onclick="event.stopPropagation();"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer(1)">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-9 h-9 bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center font-semibold text-sm">康</div>
-                                    <div>
-                                        <p class="font-medium text-gray-800">康泰生物制药有限公司</p>
-                                        <p class="text-xs text-gray-400">91330104MA2XXXY2K</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="text-gray-600">生物医药</span></td>
-                            <td class="px-6 py-4">
-                                <p class="text-gray-700">李建国</p>
-                                <p class="text-xs text-gray-400">139****2266</p>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-medium">25 项</span></td>
-                            <td class="px-6 py-4 text-gray-500">2026-08-02</td>
-                            <td class="px-6 py-4"><span class="px-2.5 py-1 bg-orange-50 text-orange-700 rounded-full text-xs">意向客户</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2" onclick="event.stopPropagation();"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2" onclick="event.stopPropagation();"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500" onclick="event.stopPropagation();"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer(2)">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-9 h-9 bg-purple-100 text-purple-700 rounded-lg flex items-center justify-center font-semibold text-sm">锐</div>
-                                    <div>
-                                        <p class="font-medium text-gray-800">锐达新材料股份公司</p>
-                                        <p class="text-xs text-gray-400">91330104MA2XXXY3L</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="text-gray-600">新材料</span></td>
-                            <td class="px-6 py-4">
-                                <p class="text-gray-700">陈晓敏</p>
-                                <p class="text-xs text-gray-400">137****6699</p>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-medium">12 项</span></td>
-                            <td class="px-6 py-4 text-gray-500">2026-07-28</td>
-                            <td class="px-6 py-4"><span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">潜在客户</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2" onclick="event.stopPropagation();"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2" onclick="event.stopPropagation();"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500" onclick="event.stopPropagation();"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer(3)">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-9 h-9 bg-orange-100 text-orange-700 rounded-lg flex items-center justify-center font-semibold text-sm">智</div>
-                                    <div>
-                                        <p class="font-medium text-gray-800">智远装备制造有限公司</p>
-                                        <p class="text-xs text-gray-400">91330104MA2XXXY4M</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="text-gray-600">高端装备</span></td>
-                            <td class="px-6 py-4">
-                                <p class="text-gray-700">赵伟峰</p>
-                                <p class="text-xs text-gray-400">135****5544</p>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-medium">21 项</span></td>
-                            <td class="px-6 py-4 text-gray-500">2026-08-03</td>
-                            <td class="px-6 py-4"><span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs">成交客户</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2" onclick="event.stopPropagation();"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2" onclick="event.stopPropagation();"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500" onclick="event.stopPropagation();"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer(4)">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-9 h-9 bg-teal-100 text-teal-700 rounded-lg flex items-center justify-center font-semibold text-sm">新</div>
-                                    <div>
-                                        <p class="font-medium text-gray-800">新能源科技发展公司</p>
-                                        <p class="text-xs text-gray-400">91330104MA2XXXY5N</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="text-gray-600">新能源</span></td>
-                            <td class="px-6 py-4">
-                                <p class="text-gray-700">孙丽娜</p>
-                                <p class="text-xs text-gray-400">136****7788</p>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-medium">16 项</span></td>
-                            <td class="px-6 py-4 text-gray-500">2026-07-30</td>
-                            <td class="px-6 py-4"><span class="px-2.5 py-1 bg-orange-50 text-orange-700 rounded-full text-xs">意向客户</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2" onclick="event.stopPropagation();"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2" onclick="event.stopPropagation();"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500" onclick="event.stopPropagation();"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer(5)">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-9 h-9 bg-pink-100 text-pink-700 rounded-lg flex items-center justify-center font-semibold text-sm">云</div>
-                                    <div>
-                                        <p class="font-medium text-gray-800">云图信息技术有限公司</p>
-                                        <p class="text-xs text-gray-400">91330104MA2XXXY6P</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="text-gray-600">电子信息</span></td>
-                            <td class="px-6 py-4">
-                                <p class="text-gray-700">周海涛</p>
-                                <p class="text-xs text-gray-400">138****1234</p>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-medium">9 项</span></td>
-                            <td class="px-6 py-4 text-gray-500">2026-07-25</td>
-                            <td class="px-6 py-4"><span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">潜在客户</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2" onclick="event.stopPropagation();"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2" onclick="event.stopPropagation();"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500" onclick="event.stopPropagation();"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                    </tbody>
+                    <tbody class="divide-y divide-gray-100" id="customerTable"></tbody>
                 </table>
             </div>
             <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
-                <span>共 1,286 条记录</span>
+                <span id="tableCount">共 0 条记录</span>
                 <div class="flex items-center space-x-1">
                     <button class="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-50"><i class="fa fa-chevron-left"></i></button>
                     <button class="px-3 py-1.5 bg-brand-600 text-white rounded">1</button>
-                    <button class="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-50">2</button>
-                    <button class="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-50">3</button>
-                    <button class="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-50">...</button>
-                    <button class="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-50">215</button>
                     <button class="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-50"><i class="fa fa-chevron-right"></i></button>
                 </div>
             </div>
@@ -331,151 +131,483 @@
 
     <!-- 客户详情抽屉 -->
     <div id="overlay" class="fixed inset-0 bg-black/30 z-40 hidden" onclick="closeDrawer()"></div>
-    <aside id="drawer" class="fixed top-0 right-0 h-full w-full max-w-[480px] bg-white shadow-2xl z-50 drawer-transition transform translate-x-full overflow-y-auto scrollbar-thin">
-        <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+    <aside id="drawer" class="fixed top-0 right-0 h-full w-full max-w-[520px] bg-white shadow-2xl z-50 drawer-transition transform translate-x-full overflow-y-auto scrollbar-thin">
+        <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
             <h3 class="font-semibold text-gray-800">客户详情</h3>
             <button onclick="closeDrawer()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500">
                 <i class="fa fa-times"></i>
             </button>
         </div>
-        <div class="p-6">
-            <!-- 企业画像 -->
-            <div class="flex items-center space-x-4 mb-6">
-                <div class="w-16 h-16 bg-brand-100 text-brand-700 rounded-xl flex items-center justify-center font-bold text-2xl">星</div>
-                <div>
-                    <h4 class="text-lg font-bold text-gray-800">星河智造科技有限公司</h4>
-                    <p class="text-sm text-gray-500">电子信息行业 · 高新技术企业</p>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded text-xs">成交客户</span>
-                        <span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs">VIP</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 企业基本信息 -->
-            <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                <h5 class="text-sm font-semibold text-gray-700 mb-3"><i class="fa fa-info-circle text-brand-600 mr-1"></i>企业画像</h5>
-                <div class="grid grid-cols-2 gap-3 text-sm">
-                    <div><span class="text-gray-500">成立时间：</span><span class="text-gray-700">2018-06-12</span></div>
-                    <div><span class="text-gray-500">注册资本：</span><span class="text-gray-700">5000万</span></div>
-                    <div><span class="text-gray-500">员工规模：</span><span class="text-gray-700">236人</span></div>
-                    <div><span class="text-gray-500">年营收：</span><span class="text-gray-700">1.2亿</span></div>
-                    <div><span class="text-gray-500">所属区域：</span><span class="text-gray-700">杭州余杭</span></div>
-                    <div><span class="text-gray-500">企业资质：</span><span class="text-gray-700">国家高新</span></div>
-                </div>
-            </div>
-
-            <!-- 政策匹配清单 -->
-            <div class="mb-6">
-                <div class="flex items-center justify-between mb-3">
-                    <h5 class="text-sm font-semibold text-gray-700"><i class="fa fa-list-alt text-brand-600 mr-1"></i>政策匹配清单</h5>
-                    <span class="text-xs text-brand-600">共 18 项可申报</span>
-                </div>
-                <div class="space-y-2">
-                    <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-800">国家高新技术企业认定</p>
-                                <p class="text-xs text-gray-400 mt-0.5">匹配度 98% · 补贴 30万</p>
-                            </div>
-                            <span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs">高匹配</span>
-                        </div>
-                    </div>
-                    <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-800">省级专精特新中小企业</p>
-                                <p class="text-xs text-gray-400 mt-0.5">匹配度 92% · 补贴 50万</p>
-                            </div>
-                            <span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs">高匹配</span>
-                        </div>
-                    </div>
-                    <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-800">研发费用加计扣除</p>
-                                <p class="text-xs text-gray-400 mt-0.5">匹配度 88% · 减税 80万</p>
-                            </div>
-                            <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">中匹配</span>
-                        </div>
-                    </div>
-                    <div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-800">市级研发中心建设补助</p>
-                                <p class="text-xs text-gray-400 mt-0.5">匹配度 85% · 补贴 20万</p>
-                            </div>
-                            <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">中匹配</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 跟进记录 -->
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <h5 class="text-sm font-semibold text-gray-700"><i class="fa fa-comments text-brand-600 mr-1"></i>跟进记录</h5>
-                    <button class="text-xs text-brand-600 hover:text-brand-700"><i class="fa fa-plus mr-0.5"></i>添加</button>
-                </div>
-                <div class="space-y-4">
-                    <div class="flex space-x-3">
-                        <div class="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <i class="fa fa-phone text-brand-600 text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between">
-                                <p class="text-sm font-medium text-gray-700">电话沟通</p>
-                                <span class="text-xs text-gray-400">2026-08-01</span>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">客户对专精特新政策申报兴趣浓厚，约定下周上门拜访，提供详细申报材料清单。</p>
-                        </div>
-                    </div>
-                    <div class="flex space-x-3">
-                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <i class="fa fa-meetup text-blue-600 text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between">
-                                <p class="text-sm font-medium text-gray-700">上门拜访</p>
-                                <span class="text-xs text-gray-400">2026-07-25</span>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">与企业财务总监沟通研发费用归集问题，介绍高企认定核心要点。</p>
-                        </div>
-                    </div>
-                    <div class="flex space-x-3">
-                        <div class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <i class="fa fa-envelope text-orange-600 text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between">
-                                <p class="text-sm font-medium text-gray-700">邮件发送</p>
-                                <span class="text-xs text-gray-400">2026-07-18</span>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">发送政策匹配报告及公司服务介绍，客户已确认查收。</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div id="drawerBody" class="p-6"></div>
         <div class="sticky bottom-0 bg-white border-t border-gray-100 p-4 flex space-x-3">
-            <button class="flex-1 py-2.5 border border-brand-600 text-brand-600 rounded-lg text-sm hover:bg-brand-50">
+            <button onclick="editCurrentCustomer()" class="flex-1 py-2.5 border border-brand-600 text-brand-600 rounded-lg text-sm hover:bg-brand-50">
                 <i class="fa fa-edit mr-1"></i>编辑
             </button>
-            <button class="flex-1 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700">
+            <button onclick="openFollowupModal()" class="flex-1 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700">
                 <i class="fa fa-plus mr-1"></i>新增跟进
             </button>
         </div>
     </aside>
 
+    <!-- 录入/编辑企业弹窗 -->
+    <div id="customerModalOverlay" class="fixed inset-0 bg-black/40 z-[60] hidden items-center justify-center modal-transition">
+        <div class="bg-white rounded-2xl w-full max-w-[560px] max-h-[90vh] overflow-y-auto scrollbar-thin shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 id="customerModalTitle" class="font-semibold text-gray-800">录入企业</h3>
+                <button onclick="closeCustomerModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label class="text-xs text-gray-500 mb-1 block">企业名称 <span class="text-red-500">*</span></label>
+                    <input id="fName" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="col-span-2">
+                    <label class="text-xs text-gray-500 mb-1 block">统一社会信用代码</label>
+                    <input id="fCode" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">所属行业</label>
+                    <select id="fIndustry" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                        <option>电子信息</option><option>生物医药</option><option>新材料</option>
+                        <option>高端装备</option><option>新能源</option><option>其他</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">客户状态</label>
+                    <select id="fStatus" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                        <option>潜在客户</option><option>意向客户</option><option>成交客户</option><option>流失客户</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">联系人 <span class="text-red-500">*</span></label>
+                    <input id="fContact" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">手机号</label>
+                    <input id="fPhone" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">员工人数</label>
+                    <input id="fEmployees" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">年营收（万元）</label>
+                    <input id="fRevenue" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">所属区域</label>
+                    <input id="fRegion" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">已获资质（逗号分隔）</label>
+                    <input id="fQuals" type="text" placeholder="国家高新,专精特新" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-3">
+                <button onclick="closeCustomerModal()" class="px-5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">取消</button>
+                <button onclick="saveCustomer()" class="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入企业弹窗 -->
+    <div id="importModalOverlay" class="fixed inset-0 bg-black/40 z-[60] hidden items-center justify-center modal-transition">
+        <div class="bg-white rounded-2xl w-full max-w-[560px] shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800">批量导入企业</h3>
+                <button onclick="closeImportModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6">
+                <p class="text-xs text-gray-500 mb-3 leading-relaxed">
+                    每行一家企业，字段用逗号分隔：<br>
+                    <code class="bg-gray-100 px-1.5 py-0.5 rounded">企业名称,行业,联系人,手机号,员工人数,年营收(万元)</code><br>
+                    后三项可省略。示例：<code class="bg-gray-100 px-1.5 py-0.5 rounded">示例科技,电子信息,张三,13800000000,100,5000</code>
+                </p>
+                <textarea id="importText" rows="8" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 font-mono" placeholder="企业名称,行业,联系人,手机号,员工人数,年营收"></textarea>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-3">
+                <button onclick="closeImportModal()" class="px-5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">取消</button>
+                <button onclick="doImport()" class="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700">开始导入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增跟进弹窗 -->
+    <div id="followupModalOverlay" class="fixed inset-0 bg-black/40 z-[60] hidden items-center justify-center modal-transition">
+        <div class="bg-white rounded-2xl w-full max-w-[480px] shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 id="followupModalTitle" class="font-semibold text-gray-800">新增跟进</h3>
+                <button onclick="closeFollowupModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">跟进方式</label>
+                        <select id="fuType" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                            <option>电话沟通</option><option>上门拜访</option><option>邮件发送</option><option>微信沟通</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">跟进日期</label>
+                        <input id="fuDate" type="date" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">沟通纪要 <span class="text-red-500">*</span></label>
+                    <textarea id="fuContent" rows="4" placeholder="记录本次沟通要点、客户反馈、达成共识..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">下次跟进计划（日期，可选）</label>
+                    <input id="fuPlan" type="date" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-3">
+                <button onclick="closeFollowupModal()" class="px-5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">取消</button>
+                <button onclick="saveFollowup()" class="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js"></script>
     <script>
-        function openDrawer(index) {
+        var CUSTOMERS = [];
+        var CURRENT_ID = null;   // 抽屉当前客户
+        var EDITING_ID = null;   // 编辑中的客户（null=新增）
+
+        var AVATAR_COLORS = ['bg-brand-100 text-brand-700', 'bg-blue-100 text-blue-700', 'bg-purple-100 text-purple-700', 'bg-orange-100 text-orange-700', 'bg-teal-100 text-teal-700', 'bg-pink-100 text-pink-700'];
+        var STATUS_COLORS = { '潜在客户': 'bg-blue-50 text-blue-700', '意向客户': 'bg-orange-50 text-orange-700', '成交客户': 'bg-emerald-50 text-emerald-700', '流失客户': 'bg-gray-100 text-gray-500' };
+        var FU_ICONS = { '电话沟通': ['fa-phone', 'bg-brand-100 text-brand-600'], '上门拜访': ['fa-map-marker', 'bg-blue-100 text-blue-600'], '邮件发送': ['fa-envelope', 'bg-orange-100 text-orange-600'], '微信沟通': ['fa-weixin', 'bg-green-100 text-green-600'] };
+
+        function load() {
+            CUSTOMERS = DataBridge.loadCustomers();
+            renderTable();
+        }
+
+        // ===== 工具 =====
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        function getCustomer(id) {
+            for (var i = 0; i < CUSTOMERS.length; i++) if (CUSTOMERS[i].id === id) return CUSTOMERS[i];
+            return null;
+        }
+        function nextId() {
+            var max = 0;
+            CUSTOMERS.forEach(function(c) { var n = parseInt(String(c.id).replace(/\D/g, '')) || 0; if (n > max) max = n; });
+            return 'C' + String(max + 1).padStart(3, '0');
+        }
+        function persist() { DataBridge.saveCustomers(CUSTOMERS); }
+
+        // ===== 列表渲染 =====
+        function filteredCustomers() {
+            var kw = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+            var ind = document.getElementById('filterIndustry').value;
+            var st = document.getElementById('filterStatus').value;
+            return CUSTOMERS.filter(function(c) {
+                if (kw && (c.name + c.contact + c.phone).toLowerCase().indexOf(kw) === -1) return false;
+                if (ind && c.industry !== ind) return false;
+                if (st && c.status !== st) return false;
+                return true;
+            });
+        }
+
+        function lastFollowup(c) {
+            if (!c.followups || !c.followups.length) return null;
+            var arr = c.followups.slice().sort(function(a, b) { return b.date.localeCompare(a.date); });
+            return arr[0];
+        }
+        function nextPlan(c) {
+            var today = new Date().toISOString().slice(0, 10);
+            var plans = (c.followups || []).map(function(f) { return f.plan; }).filter(function(p) { return p && p >= today; });
+            plans.sort();
+            return plans.length ? plans[0] : '';
+        }
+
+        function renderTable() {
+            var list = filteredCustomers();
+            var tbody = document.getElementById('customerTable');
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-10 text-center text-gray-400 text-sm"><i class="fa fa-inbox mr-1"></i>暂无客户，点击右上角「录入企业」或「导入企业」添加</td></tr>';
+            } else {
+                tbody.innerHTML = list.map(function(c, i) {
+                    var last = lastFollowup(c);
+                    var plan = nextPlan(c);
+                    return '<tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer(\'' + c.id + '\')">' +
+                        '<td class="px-6 py-4"><div class="flex items-center space-x-3">' +
+                            '<div class="w-9 h-9 ' + AVATAR_COLORS[i % 6] + ' rounded-lg flex items-center justify-center font-semibold text-sm">' + esc(c.name.charAt(0)) + '</div>' +
+                            '<div><p class="font-medium text-gray-800">' + esc(c.name) + '</p><p class="text-xs text-gray-400">' + esc(c.code || '—') + '</p></div>' +
+                        '</div></td>' +
+                        '<td class="px-6 py-4"><span class="text-gray-600">' + esc(c.industry || '—') + '</span></td>' +
+                        '<td class="px-6 py-4"><p class="text-gray-700">' + esc(c.contact || '—') + '</p><p class="text-xs text-gray-400">' + esc(c.phone || '') + '</p></td>' +
+                        '<td class="px-6 py-4"><span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-medium">' + ((c.matchedPolicies || []).length) + ' 项</span></td>' +
+                        '<td class="px-6 py-4">' + (plan ? '<span class="px-2 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium"><i class="fa fa-calendar-check-o mr-1"></i>' + plan + '</span>' : '<span class="text-gray-300">—</span>') + '</td>' +
+                        '<td class="px-6 py-4 text-gray-500">' + (last ? last.date : '—') + '</td>' +
+                        '<td class="px-6 py-4"><span class="px-2.5 py-1 rounded-full text-xs ' + (STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-500') + '">' + esc(c.status || '—') + '</span></td>' +
+                        '<td class="px-6 py-4 text-right">' +
+                            '<button class="text-brand-600 hover:text-brand-700 mr-1" title="查看详情" onclick="event.stopPropagation();openDrawer(\'' + c.id + '\')"><i class="fa fa-eye"></i></button>' +
+                            '<button class="text-blue-600 hover:text-blue-700 mr-1" title="政策匹配与诊断报告" onclick="event.stopPropagation();openDrawer(\'' + c.id + '\', \'report\')"><i class="fa fa-stethoscope"></i></button>' +
+                            '<button class="text-orange-500 hover:text-orange-600 mr-1" title="记录跟进" onclick="event.stopPropagation();openDrawer(\'' + c.id + '\', \'followup\')"><i class="fa fa-comments"></i></button>' +
+                            '<button class="text-gray-500 hover:text-brand-600 mr-1" title="编辑" onclick="event.stopPropagation();openCustomerModal(\'' + c.id + '\')"><i class="fa fa-edit"></i></button>' +
+                            '<button class="text-gray-500 hover:text-red-500" title="删除" onclick="event.stopPropagation();deleteCustomer(\'' + c.id + '\')"><i class="fa fa-trash"></i></button>' +
+                        '</td></tr>';
+                }).join('');
+            }
+            document.getElementById('tableCount').textContent = '共 ' + list.length + ' 条记录';
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterIndustry').value = '';
+            document.getElementById('filterStatus').value = '';
+            renderTable();
+        }
+
+        // ===== 录入 / 编辑企业 =====
+        function openCustomerModal(id) {
+            EDITING_ID = id || null;
+            document.getElementById('customerModalTitle').textContent = id ? '编辑企业' : '录入企业';
+            var c = id ? getCustomer(id) : null;
+            document.getElementById('fName').value = c ? c.name : '';
+            document.getElementById('fCode').value = c ? (c.code || '') : '';
+            document.getElementById('fIndustry').value = c ? (c.industry || '电子信息') : '电子信息';
+            document.getElementById('fStatus').value = c ? (c.status || '潜在客户') : '潜在客户';
+            document.getElementById('fContact').value = c ? (c.contact || '') : '';
+            document.getElementById('fPhone').value = c ? (c.phone || '') : '';
+            document.getElementById('fEmployees').value = c && c.employees ? c.employees : '';
+            document.getElementById('fRevenue').value = c && c.revenue ? c.revenue : '';
+            document.getElementById('fRegion').value = c ? (c.region || '') : '';
+            document.getElementById('fQuals').value = c && c.quals ? c.quals.join(',') : '';
+            showOverlay('customerModalOverlay');
+        }
+        function closeCustomerModal() { hideOverlay('customerModalOverlay'); }
+        function saveCustomer() {
+            var name = document.getElementById('fName').value.trim();
+            var contact = document.getElementById('fContact').value.trim();
+            if (!name) { alert('请填写企业名称'); return; }
+            if (!contact) { alert('请填写联系人'); return; }
+            var data = {
+                name: name,
+                code: document.getElementById('fCode').value.trim(),
+                industry: document.getElementById('fIndustry').value,
+                status: document.getElementById('fStatus').value,
+                contact: contact,
+                phone: document.getElementById('fPhone').value.trim(),
+                employees: parseInt(document.getElementById('fEmployees').value) || 0,
+                revenue: parseFloat(document.getElementById('fRevenue').value) || 0,
+                region: document.getElementById('fRegion').value.trim(),
+                quals: document.getElementById('fQuals').value.split(/[,，]/).map(function(s) { return s.trim(); }).filter(Boolean)
+            };
+            if (EDITING_ID) {
+                var c = getCustomer(EDITING_ID);
+                if (c) Object.assign(c, data);
+            } else {
+                data.id = nextId();
+                data.lastDiagnosis = null;
+                data.matchedPolicies = [];
+                data.followups = [];
+                CUSTOMERS.unshift(data);
+            }
+            persist();
+            closeCustomerModal();
+            renderTable();
+        }
+
+        // ===== 导入企业 =====
+        function openImportModal() { showOverlay('importModalOverlay'); }
+        function closeImportModal() { hideOverlay('importModalOverlay'); }
+        function doImport() {
+            var text = document.getElementById('importText').value.trim();
+            if (!text) { alert('请粘贴要导入的企业数据'); return; }
+            var ok = 0, fail = 0;
+            text.split('\n').forEach(function(line) {
+                line = line.trim();
+                if (!line) return;
+                var parts = line.split(/[,，]/).map(function(s) { return s.trim(); });
+                if (!parts[0]) { fail++; return; }
+                CUSTOMERS.unshift({
+                    id: nextId(), name: parts[0],
+                    industry: parts[1] || '其他', contact: parts[2] || '', phone: parts[3] || '',
+                    employees: parseInt(parts[4]) || 0, revenue: parseFloat(parts[5]) || 0,
+                    code: '', status: '潜在客户', region: '', quals: [],
+                    lastDiagnosis: null, matchedPolicies: [], followups: []
+                });
+                ok++;
+            });
+            persist();
+            closeImportModal();
+            document.getElementById('importText').value = '';
+            renderTable();
+            alert('导入完成：成功 ' + ok + ' 家' + (fail ? '，失败 ' + fail + ' 行（缺少企业名称）' : ''));
+        }
+
+        // ===== 删除 =====
+        function deleteCustomer(id) {
+            var c = getCustomer(id);
+            if (!c) return;
+            if (!confirm('确定删除客户「' + c.name + '」？其跟进记录将一并删除。')) return;
+            CUSTOMERS = CUSTOMERS.filter(function(x) { return x.id !== id; });
+            persist();
+            if (CURRENT_ID === id) closeDrawer();
+            renderTable();
+        }
+
+        // ===== 详情抽屉 =====
+        // focus: 'report'=定位到诊断报告区, 'followup'=直接弹出新增跟进
+        function openDrawer(id, focus) {
+            var c = getCustomer(id);
+            if (!c) return;
+            CURRENT_ID = id;
+            renderDrawer(c);
             document.getElementById('overlay').classList.remove('hidden');
             document.getElementById('drawer').classList.remove('translate-x-full');
+            if (focus === 'followup') {
+                setTimeout(openFollowupModal, 150);
+            } else if (focus === 'report') {
+                setTimeout(function() {
+                    var block = document.getElementById('drawerReportBlock');
+                    if (block) block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
         }
         function closeDrawer() {
+            CURRENT_ID = null;
             document.getElementById('overlay').classList.add('hidden');
             document.getElementById('drawer').classList.add('translate-x-full');
         }
+
+        function renderDrawer(c) {
+            var last = lastFollowup(c);
+            var plan = nextPlan(c);
+            var html = '';
+
+            // 企业画像
+            html += '<div class="flex items-center space-x-4 mb-6">' +
+                '<div class="w-16 h-16 bg-brand-100 text-brand-700 rounded-xl flex items-center justify-center font-bold text-2xl">' + esc(c.name.charAt(0)) + '</div>' +
+                '<div><h4 class="text-lg font-bold text-gray-800">' + esc(c.name) + '</h4>' +
+                '<p class="text-sm text-gray-500">' + esc(c.industry || '—') + '行业 · ' + esc(c.region || '未填写区域') + '</p>' +
+                '<div class="flex items-center gap-2 mt-1">' +
+                '<span class="px-2 py-0.5 rounded text-xs ' + (STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-500') + '">' + esc(c.status || '—') + '</span>' +
+                (c.quals || []).map(function(q) { return '<span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs">' + esc(q) + '</span>'; }).join('') +
+                '</div></div></div>';
+
+            html += '<div class="bg-gray-50 rounded-lg p-4 mb-6"><h5 class="text-sm font-semibold text-gray-700 mb-3"><i class="fa fa-info-circle text-brand-600 mr-1"></i>企业画像</h5>' +
+                '<div class="grid grid-cols-2 gap-3 text-sm">' +
+                '<div><span class="text-gray-500">联系人：</span><span class="text-gray-700">' + esc(c.contact || '—') + '</span></div>' +
+                '<div><span class="text-gray-500">手机号：</span><span class="text-gray-700">' + esc(c.phone || '—') + '</span></div>' +
+                '<div><span class="text-gray-500">员工规模：</span><span class="text-gray-700">' + (c.employees ? c.employees + '人' : '—') + '</span></div>' +
+                '<div><span class="text-gray-500">年营收：</span><span class="text-gray-700">' + (c.revenue ? (c.revenue / 10000).toFixed(1) + '亿' : '—') + '</span></div>' +
+                '<div><span class="text-gray-500">信用代码：</span><span class="text-gray-700">' + esc(c.code || '—') + '</span></div>' +
+                '<div><span class="text-gray-500">企业资质：</span><span class="text-gray-700">' + ((c.quals || []).length ? esc(c.quals.join('、')) : '—') + '</span></div>' +
+                '</div></div>';
+
+            // 政策匹配与诊断报告
+            var polCount = (c.matchedPolicies || []).length;
+            html += '<div id="drawerReportBlock" class="mb-6"><div class="flex items-center justify-between mb-3">' +
+                '<h5 class="text-sm font-semibold text-gray-700"><i class="fa fa-list-alt text-brand-600 mr-1"></i>政策匹配与诊断报告</h5>' +
+                '<span class="text-xs text-brand-600">共 ' + polCount + ' 项可申报</span></div>';
+
+            // 诊断报告卡片
+            if (c.lastDiagnosis) {
+                var d = c.lastDiagnosis;
+                html += '<div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-4 mb-3">' +
+                    '<div class="flex items-center justify-between mb-2">' +
+                    '<span class="text-xs font-bold text-blue-700"><i class="fa fa-stethoscope mr-1"></i>科创能力诊断报告</span>' +
+                    '<span class="text-[10px] text-gray-400">' + esc(d.date) + '</span></div>' +
+                    '<div class="flex items-center gap-4">' +
+                    '<div class="text-center"><p class="text-2xl font-black text-blue-700">' + d.avg + '</p><p class="text-[10px] text-gray-400">综合得分</p></div>' +
+                    '<div class="text-center"><p class="text-2xl font-black text-blue-600">' + esc(d.grade) + '</p><p class="text-[10px] text-gray-400">评级</p></div>' +
+                    '<div class="flex-1"><p class="text-[10px] text-gray-500 mb-1">待补短板：' + (d.weak && d.weak.length ? esc(d.weak.join('、')) : '—') + '</p>' +
+                    '<button onclick="viewDiagnosisReport()" class="text-[11px] font-bold text-blue-600 hover:text-blue-700">查看完整诊断报告 <i class="fa fa-arrow-right"></i></button></div>' +
+                    '</div></div>';
+            } else {
+                html += '<div class="border border-dashed border-gray-200 rounded-lg p-3 mb-3 text-center">' +
+                    '<p class="text-xs text-gray-400 mb-2">该企业尚未生成诊断报告</p>' +
+                    '<button onclick="viewDiagnosisReport()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"><i class="fa fa-stethoscope mr-1"></i>去诊断</button></div>';
+            }
+
+            // 政策匹配清单
+            html += ((c.matchedPolicies || []).map(function(p) {
+                var lvColor = p.level === '高匹配' ? 'bg-brand-50 text-brand-700' : 'bg-blue-50 text-blue-700';
+                return '<div class="border border-gray-100 rounded-lg p-3 hover:border-brand-300 mb-2">' +
+                    '<div class="flex items-start justify-between"><div>' +
+                    '<p class="text-sm font-medium text-gray-800">' + esc(p.title) + '</p>' +
+                    '<p class="text-xs text-gray-400 mt-0.5">匹配度 ' + p.match + '% · ' + esc(p.benefit) + '</p></div>' +
+                    '<span class="px-2 py-0.5 rounded text-xs ' + lvColor + '">' + esc(p.level) + '</span></div></div>';
+            }).join('') || '<p class="text-xs text-gray-400 py-2">暂无匹配数据，完成诊断后自动生成</p>');
+            html += '</div>';
+
+            // 跟进记录
+            html += '<div><div class="flex items-center justify-between mb-3">' +
+                '<h5 class="text-sm font-semibold text-gray-700"><i class="fa fa-comments text-brand-600 mr-1"></i>跟进记录与计划</h5>' +
+                '<button onclick="openFollowupModal()" class="text-xs text-brand-600 hover:text-brand-700"><i class="fa fa-plus mr-0.5"></i>添加</button></div>' +
+                '<div class="space-y-4">' +
+                ((c.followups || []).slice().sort(function(a, b) { return b.date.localeCompare(a.date); }).map(function(f) {
+                    var ic = FU_ICONS[f.type] || ['fa-comment', 'bg-gray-100 text-gray-600'];
+                    return '<div class="flex space-x-3"><div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ' + ic[1] + '"><i class="fa ' + ic[0] + ' text-xs"></i></div>' +
+                        '<div class="flex-1"><div class="flex items-center justify-between">' +
+                        '<p class="text-sm font-medium text-gray-700">' + esc(f.type) + '</p>' +
+                        '<span class="text-xs text-gray-400">' + esc(f.date) + '</span></div>' +
+                        '<p class="text-xs text-gray-500 mt-1">' + esc(f.content) + '</p>' +
+                        (f.plan ? '<p class="text-[10px] text-orange-600 mt-1"><i class="fa fa-calendar-check-o mr-1"></i>跟进计划：' + esc(f.plan) + '</p>' : '') +
+                        '</div></div>';
+                }).join('') || '<p class="text-xs text-gray-400 py-2">暂无跟进记录</p>') +
+                '</div></div>';
+
+            document.getElementById('drawerBody').innerHTML = html;
+        }
+
+        // 查看诊断报告：跳转诊断页（iframe 内由父页面切换）
+        function viewDiagnosisReport() {
+            if (parent && parent.window && parent.window.switchPage) parent.window.switchPage('ability-diagnosis.html', null);
+            else window.location.href = 'ability-diagnosis.html';
+        }
+
+        function editCurrentCustomer() {
+            if (CURRENT_ID) openCustomerModal(CURRENT_ID);
+        }
+
+        // ===== 新增跟进 =====
+        function openFollowupModal() {
+            if (!CURRENT_ID) return;
+            document.getElementById('followupModalTitle').textContent = '新增跟进 · ' + getCustomer(CURRENT_ID).name;
+            document.getElementById('fuType').value = '电话沟通';
+            document.getElementById('fuDate').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('fuContent').value = '';
+            document.getElementById('fuPlan').value = '';
+            showOverlay('followupModalOverlay');
+        }
+        function closeFollowupModal() { hideOverlay('followupModalOverlay'); }
+        function saveFollowup() {
+            var c = getCustomer(CURRENT_ID);
+            if (!c) return;
+            var content = document.getElementById('fuContent').value.trim();
+            if (!content) { alert('请填写沟通纪要'); return; }
+            if (!c.followups) c.followups = [];
+            c.followups.unshift({
+                type: document.getElementById('fuType').value,
+                date: document.getElementById('fuDate').value || new Date().toISOString().slice(0, 10),
+                content: content,
+                plan: document.getElementById('fuPlan').value
+            });
+            persist();
+            closeFollowupModal();
+            renderDrawer(c);
+            renderTable();
+        }
+
+        // ===== 弹窗通用 =====
+        function showOverlay(id) {
+            var el = document.getElementById(id);
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+        }
+        function hideOverlay(id) {
+            var el = document.getElementById(id);
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+        }
+
+        document.addEventListener('DOMContentLoaded', load);
     </script>
 </body>
 </html>

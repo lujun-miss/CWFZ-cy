@@ -4,12 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>科创能力诊断 - 策源易答</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
         }
+        .left-sidebar {
+            background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%);
+            border-right: 1px solid rgba(255,255,255,0.4);
+        }
+        .history-item {
+            transition: all 0.2s ease;
+        }
+        .history-item:hover {
+            background: rgba(255,255,255,0.55);
+            transform: translateX(2px);
+        }
+        .history-item.active {
+            background: rgba(255,255,255,0.85);
+            box-shadow: 0 4px 12px -4px rgba(59, 130, 246, 0.3);
+        }
+        .scroll-thin::-webkit-scrollbar { width: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 3px; }
         .card-hover:hover {
             transform: translateY(-2px);
             box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1);
@@ -27,448 +45,1201 @@
             transform: translateY(-4px);
             box-shadow: 0 12px 24px -8px rgba(0,0,0,0.12);
         }
-        .scrollbar-thin::-webkit-scrollbar {
-            width: 6px;
-        }
-        .scrollbar-thin::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
     </style>
 </head>
-<body class="bg-slate-50 p-6">
-    <div class="max-w-[1400px] mx-auto">
+<body>
+    <div class="flex h-screen">
+        <aside class="left-sidebar w-64 flex-shrink-0 flex flex-col" style="background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4);">
+            <div class="p-4 border-b border-white/30">
+                <div class="flex items-center space-x-2 mb-3">
+                    <div class="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg"><span class="text-white font-black text-sm">策</span></div>
+                    <div>
+                        <div class="text-sm font-black text-slate-800 leading-none">策源易答</div>
+                        <div class="text-[9px] text-slate-500 tracking-widest mt-0.5">POLICY AI</div>
+                    </div>
+                </div>
+                <div class="relative">
+                    <i class="fa fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" placeholder="搜索历史记录" class="w-full pl-7 pr-2 py-1.5 bg-white/70 backdrop-blur rounded-lg text-xs border border-white/50 outline-none focus:bg-white">
+                </div>
+            </div>
+            <div class="px-2 pt-3 pb-2 border-b border-white/30">
+                <div class="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2 px-1">智能功能</div>
+                <div class="grid grid-cols-3 gap-1">
+                    <button onclick="goPage('dashboard.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] text-slate-600 bg-white/60 hover:bg-white/90 transition-all" title="智能问答">
+                        <i class="fa fa-comments text-xs mb-0.5"></i><span class="font-medium">问答</span>
+                    </button>
+                    <button onclick="goPage('policy-radar.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] text-slate-600 bg-white/60 hover:bg-white/90 transition-all" title="政策雷达">
+                        <i class="fa fa-sitemap text-xs mb-0.5"></i><span class="font-medium">雷达</span>
+                    </button>
+                    <button onclick="goPage('ability-diagnosis.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] transition-all" style="background: #6366f1; color:white;" title="能力诊断">
+                        <i class="fa fa-stethoscope text-xs mb-0.5"></i><span class="font-medium">诊断</span>
+                    </button>
+                    <button onclick="goPage('declaration-butler.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] text-slate-600 bg-white/60 hover:bg-white/90 transition-all" title="申报管家">
+                        <i class="fa fa-file-text-o text-xs mb-0.5"></i><span class="font-medium">管家</span>
+                    </button>
+                    <button onclick="goPage('policy-calculator.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] text-slate-600 bg-white/60 hover:bg-white/90 transition-all" title="政策计算器">
+                        <i class="fa fa-calculator text-xs mb-0.5"></i><span class="font-medium">计算</span>
+                    </button>
+                    <button onclick="goPage('service-market.html')" class="feature-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-[9px] text-white bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all shadow-sm" title="服务商城">
+                        <i class="fa fa-shopping-bag text-xs mb-0.5"></i><span class="font-medium">商城</span>
+                    </button>
+                </div>
+            </div>
+            <div class="p-3">
+                <button onclick="newChat()" class="w-full flex items-center justify-center space-x-2 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-300/30 hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
+                    <i class="fa fa-plus"></i><span>新建对话</span>
+                </button>
+            </div>
+            <div class="px-3 flex-1 overflow-y-auto scroll-thin" id="historyList">
+                <div class="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2 px-1">历史会话</div>
+                <div class="text-[10px] text-slate-500 mt-2 mb-1 font-semibold">今天</div>
+                <div onclick="switchHistory(this, '高新技术企业认定条件咨询')" class="history-item active cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-message text-blue-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">高新技术企业认定条件咨询</div><div class="text-[9px] text-slate-400 mt-0.5">14:30 · 3条消息</div></div></div>
+                </div>
+                <div onclick="switchHistory(this, '专精特新补贴政策查询')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-message text-blue-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">专精特新补贴政策查询</div><div class="text-[9px] text-slate-400 mt-0.5">11:15 · 8条消息</div></div></div>
+                </div>
+                <div onclick="switchHistory(this, '研发费用加计扣除计算')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-message text-blue-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">研发费用加计扣除计算</div><div class="text-[9px] text-slate-400 mt-0.5">10:02 · 5条消息</div></div></div>
+                </div>
+                <div class="text-[10px] text-slate-500 mt-3 mb-1 font-semibold">昨天</div>
+                <div onclick="switchHistory(this, '软件企业税收优惠政策')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-clock-o text-slate-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">软件企业税收优惠政策</div><div class="text-[9px] text-slate-400 mt-0.5">昨天 16:45 · 12条消息</div></div></div>
+                </div>
+                <div onclick="switchHistory(this, '技术合同登记流程')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-clock-o text-slate-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">技术合同登记流程</div><div class="text-[9px] text-slate-400 mt-0.5">昨天 14:20 · 6条消息</div></div></div>
+                </div>
+                <div class="text-[10px] text-slate-500 mt-3 mb-1 font-semibold">本周</div>
+                <div onclick="switchHistory(this, '人才引进补贴政策')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-calendar text-slate-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">人才引进补贴政策</div><div class="text-[9px] text-slate-400 mt-0.5">8月12日 · 9条消息</div></div></div>
+                </div>
+                <div onclick="switchHistory(this, '近期申报项目截止日期')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-calendar text-slate-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">近期申报项目截止日期</div><div class="text-[9px] text-slate-400 mt-0.5">8月11日 · 4条消息</div></div></div>
+                </div>
+                <div onclick="switchHistory(this, '专利申请费用减免')" class="history-item cursor-pointer p-2.5 rounded-xl mb-1.5">
+                    <div class="flex items-start space-x-2"><i class="fa fa-calendar text-slate-500 text-xs mt-1 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-[11px] text-slate-700 font-medium truncate">专利申请费用减免</div><div class="text-[9px] text-slate-400 mt-0.5">8月9日 · 7条消息</div></div></div>
+                </div>
+            </div>
+        </aside>
+        <main class="flex-1 overflow-y-auto" style="background: linear-gradient(135deg, #eef2ff 0%, #e0f2fe 50%, #f5f3ff 100%);">
+            <div class="sticky top-0 z-10 flex items-center justify-between px-6 py-3 bg-white/60 backdrop-blur-md border-b border-white/50">
+                <div class="flex items-center space-x-3">
+                    <div class="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full text-xs font-bold tracking-wider">策源智答 2.0</div>
+                    <span class="text-xs text-slate-500">当前页面：科创能力诊断</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="text-[10px] text-slate-500">张先生（科技主管）</span>
+                    <button class="text-xs text-slate-500 hover:text-red-500"><i class="fa fa-sign-out mr-1"></i>退出登录</button>
+                </div>
+            </div>
+    <div class="max-w-[1400px] mx-auto p-6">
         <!-- 页面标题 -->
         <div class="mb-6 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-black text-slate-800 mb-1">科创能力诊断</h1>
-                <p class="text-sm text-slate-500">全面评估企业科技创新能力，精准定位短板与提升空间</p>
+                <p class="text-sm text-slate-500">填写企业信息，全面评估科技创新能力，精准定位短板与提升空间</p>
             </div>
             <div class="flex items-center space-x-3">
-                <button class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
-                    <i class="fa fa-history mr-2"></i>历史报告
-                </button>
-                <button class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+                <button onclick="exportReport()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
                     <i class="fa fa-file-pdf-o mr-2"></i>导出报告
                 </button>
             </div>
         </div>
 
-        <div class="grid grid-cols-12 gap-6">
-            <!-- 左侧：企业信息录入 -->
-            <div class="col-span-4 space-y-6">
-                <!-- 企业基本信息 -->
-                <div class="bg-gradient-to-br from-slate-900 to-blue-900 rounded-2xl p-6 text-white relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full -mr-16 -mt-16"></div>
-                    <div class="relative z-10">
-                        <div class="flex items-center space-x-3 mb-5">
-                            <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center">
-                                <i class="fa fa-building text-xl"></i>
-                            </div>
-                            <div>
-                                <h2 class="text-lg font-bold">智创科技有限公司</h2>
-                                <p class="text-xs text-white/60">高新技术企业 · 成立5年</p>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-3 gap-3 text-center">
-                            <div class="bg-white/10 backdrop-blur rounded-lg p-2">
-                                <p class="text-lg font-black">286</p>
-                                <p class="text-[10px] text-white/60">员工人数</p>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur rounded-lg p-2">
-                                <p class="text-lg font-black">¥5.2<span class="text-sm">亿</span></p>
-                                <p class="text-[10px] text-white/60">年营收</p>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur rounded-lg p-2">
-                                <p class="text-lg font-black">128</p>
-                                <p class="text-[10px] text-white/60">知识产权</p>
-                            </div>
-                        </div>
-                    </div>
+        <!-- 步骤指示器 -->
+        <div class="mb-5 flex items-center justify-center">
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center">
+                    <div id="step1" class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</div>
+                    <span class="ml-2 text-xs font-bold text-slate-700">填写企业信息</span>
                 </div>
-
-                <!-- 信息录入表单 -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-100">
-                    <h3 class="text-sm font-bold text-slate-800 mb-5 flex items-center">
-                        <i class="fa fa-edit text-blue-600 mr-2"></i> 企业信息录入
-                    </h3>
-
-                    <div class="space-y-4">
-                        <div>
-                            <label class="text-xs font-bold text-slate-500 mb-1.5 block">所属行业</label>
-                            <select class="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option>信息技术 - 软件开发</option>
-                                <option>生物医药</option>
-                                <option>高端装备制造</option>
-                                <option>新能源新材料</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="text-xs font-bold text-slate-500 mb-1.5 block">企业规模</label>
-                            <div class="grid grid-cols-3 gap-2">
-                                <label class="relative cursor-pointer">
-                                    <input type="radio" name="scale" class="sr-only peer" checked>
-                                    <div class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-center text-xs font-bold text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">
-                                        小型
-                                    </div>
-                                </label>
-                                <label class="relative cursor-pointer">
-                                    <input type="radio" name="scale" class="sr-only peer">
-                                    <div class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-center text-xs font-bold text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">
-                                        中型
-                                    </div>
-                                </label>
-                                <label class="relative cursor-pointer">
-                                    <input type="radio" name="scale" class="sr-only peer">
-                                    <div class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-center text-xs font-bold text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">
-                                        大型
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="text-xs font-bold text-slate-500 mb-1.5 block">资质认定</label>
-                            <div class="flex flex-wrap gap-2">
-                                <span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs rounded-full border border-blue-100 cursor-pointer">✓ 高新技术企业</span>
-                                <span class="px-3 py-1 bg-purple-50 text-purple-600 text-xs rounded-full border border-purple-100 cursor-pointer">✓ 专精特新</span>
-                                <span class="px-3 py-1 bg-slate-50 text-slate-500 text-xs rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100">+ 科技型中小企业</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="text-xs font-bold text-slate-500 mb-1.5 block">研发投入占比 <span class="text-blue-600">6.5%</span></label>
-                            <input type="range" min="0" max="20" value="6.5" step="0.5" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-                            <div class="flex justify-between text-[10px] text-slate-400 mt-1">
-                                <span>0%</span><span>5%</span><span>10%</span><span>15%</span><span>20%</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="text-xs font-bold text-slate-500 mb-1.5 block">年研发投入金额</label>
-                            <div class="relative">
-                                <input type="text" value="3,380" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">万元</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="text-xs font-bold text-slate-500 mb-1.5 block">近三年知识产权增长</label>
-                            <div class="grid grid-cols-3 gap-3">
-                                <div class="bg-slate-50 rounded-lg p-2 text-center">
-                                    <p class="text-lg font-black text-slate-800">45</p>
-                                    <p class="text-[10px] text-slate-400">发明专利</p>
-                                </div>
-                                <div class="bg-slate-50 rounded-lg p-2 text-center">
-                                    <p class="text-lg font-black text-slate-800">62</p>
-                                    <p class="text-[10px] text-slate-400">软件著作</p>
-                                </div>
-                                <div class="bg-slate-50 rounded-lg p-2 text-center">
-                                    <p class="text-lg font-black text-slate-800">21</p>
-                                    <p class="text-[10px] text-slate-400">实用新型</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="text-xs font-bold text-slate-500 mb-1.5 block">高新技术产品收入占比 <span class="text-blue-600">65%</span></label>
-                            <div class="h-3 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" style="width: 65%"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button class="w-full mt-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-100">
-                        <i class="fa fa-stethoscope mr-2"></i> 开始诊断
-                    </button>
+                <div class="w-16 h-px bg-slate-300"></div>
+                <div class="flex items-center">
+                    <div id="step2" class="w-8 h-8 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold">2</div>
+                    <span class="ml-2 text-xs font-bold text-slate-400">开始诊断</span>
                 </div>
-            </div>
-
-            <!-- 中间：诊断结果 -->
-            <div class="col-span-5 space-y-6">
-                <!-- 能力雷达图 -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-100">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-sm font-bold text-slate-800 flex items-center">
-                            <i class="fa fa-sitemap text-blue-600 mr-2"></i> 科创能力雷达图
-                        </h3>
-                        <div class="flex items-center space-x-2">
-                            <button class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                                <i class="fa fa-expand"></i>
-                            </button>
-                            <button class="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100">
-                                <i class="fa fa-refresh"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-center">
-                        <div class="relative w-72 h-72">
-                            <!-- SVG雷达图 -->
-                            <svg viewBox="0 0 300 300" class="w-full h-full">
-                                <!-- 背景六边形 -->
-                                <polygon points="150,30 254,90 254,210 150,270 46,210 46,90" fill="none" stroke="#e2e8f0" stroke-width="1"/>
-                                <polygon points="150,70 224,112 224,188 150,230 76,188 76,112" fill="none" stroke="#e2e8f0" stroke-width="1"/>
-                                <polygon points="150,110 194,134 194,166 150,190 106,166 106,134" fill="none" stroke="#e2e8f0" stroke-width="1"/>
-                                
-                                <!-- 数据轴 -->
-                                <line x1="150" y1="150" x2="150" y2="30" stroke="#e2e8f0" stroke-width="1"/>
-                                <line x1="150" y1="150" x2="254" y2="90" stroke="#e2e8f0" stroke-width="1"/>
-                                <line x1="150" y1="150" x2="254" y2="210" stroke="#e2e8f0" stroke-width="1"/>
-                                <line x1="150" y1="150" x2="150" y2="270" stroke="#e2e8f0" stroke-width="1"/>
-                                <line x1="150" y1="150" x2="46" y2="210" stroke="#e2e8f0" stroke-width="1"/>
-                                <line x1="150" y1="150" x2="46" y2="90" stroke="#e2e8f0" stroke-width="1"/>
-
-                                <!-- 数据多边形 (能力值) -->
-                                <polygon points="150,54 238,96 220,192 150,218 84,192 62,96" 
-                                    fill="rgba(37, 99, 235, 0.2)" 
-                                    stroke="#2563eb" 
-                                    stroke-width="2"
-                                    class="transition-all duration-500"/>
-
-                                <!-- 数据点 -->
-                                <circle cx="150" cy="54" r="5" fill="#2563eb"/>
-                                <circle cx="238" cy="96" r="5" fill="#10b981"/>
-                                <circle cx="220" cy="192" r="5" fill="#f59e0b"/>
-                                <circle cx="150" cy="218" r="5" fill="#8b5cf6"/>
-                                <circle cx="84" cy="192" r="5" fill="#ec4899"/>
-                                <circle cx="62" cy="96" r="5" fill="#06b6d4"/>
-
-                                <!-- 中心圆 -->
-                                <circle cx="150" cy="150" r="45" fill="white" stroke="#e2e8f0" stroke-width="1"/>
-                                <text x="150" y="145" text-anchor="middle" class="text-2xl font-black" fill="#1e293b">82</text>
-                                <text x="150" y="162" text-anchor="middle" class="text-xs" fill="#94a3b8">综合得分</text>
-                            </svg>
-
-                            <!-- 维度标签 -->
-                            <div class="absolute top-0 left-1/2 -translate-x-1/2 text-center">
-                                <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm">技术创新 <span class="text-blue-600">88</span></span>
-                            </div>
-                            <div class="absolute top-6 right-0 text-center">
-                                <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm">研发投入 <span class="text-green-600">92</span></span>
-                            </div>
-                            <div class="absolute bottom-6 right-0 text-center">
-                                <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm">知识产权 <span class="text-orange-500">75</span></span>
-                            </div>
-                            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
-                                <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm">成果转化 <span class="text-purple-600">68</span></span>
-                            </div>
-                            <div class="absolute bottom-6 left-0 text-center">
-                                <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm">人才结构 <span class="text-pink-500">82</span></span>
-                            </div>
-                            <div class="absolute top-6 left-0 text-center">
-                                <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm">市场表现 <span class="text-cyan-600">78</span></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 综合评级 -->
-                    <div class="mt-6 flex items-center justify-center space-x-8">
-                        <div class="text-center">
-                            <p class="text-xs text-slate-400 mb-1">评级</p>
-                            <span class="text-2xl font-black text-blue-600">A+</span>
-                        </div>
-                        <div class="h-10 w-px bg-slate-200"></div>
-                        <div class="text-center">
-                            <p class="text-xs text-slate-400 mb-1">行业排名</p>
-                            <span class="text-2xl font-black text-green-600">TOP 15%</span>
-                        </div>
-                        <div class="h-10 w-px bg-slate-200"></div>
-                        <div class="text-center">
-                            <p class="text-xs text-slate-400 mb-1">同比变化</p>
-                            <span class="text-2xl font-black text-green-500">↑ 8分</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 诊断维度详情 -->
-                <div class="grid grid-cols-2 gap-4">
-                    <!-- 技术创新 -->
-                    <div class="dimension-card bg-white rounded-2xl p-5 border border-slate-100">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                                    <i class="fa fa-lightbulb-o"></i>
-                                </div>
-                                <div>
-                                    <h4 class="text-sm font-bold text-slate-800">技术创新</h4>
-                                    <p class="text-[10px] text-slate-400">核心技术突破能力</p>
-                                </div>
-                            </div>
-                            <span class="text-xl font-black text-blue-600">88</span>
-                        </div>
-                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
-                            <div class="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full" style="width: 88%"></div>
-                        </div>
-                        <div class="text-xs text-slate-500">
-                            <p class="mb-1"><i class="fa fa-check text-green-500 mr-1"></i>拥有核心技术专利45项</p>
-                            <p><i class="fa fa-info-circle text-orange-500 mr-1"></i>建议加强产学研合作</p>
-                        </div>
-                    </div>
-
-                    <!-- 研发投入 -->
-                    <div class="dimension-card bg-white rounded-2xl p-5 border border-slate-100">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center">
-                                    <i class="fa fa-flask"></i>
-                                </div>
-                                <div>
-                                    <h4 class="text-sm font-bold text-slate-800">研发投入</h4>
-                                    <p class="text-[10px] text-slate-400">研发资源配置</p>
-                                </div>
-                            </div>
-                            <span class="text-xl font-black text-green-600">92</span>
-                        </div>
-                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
-                            <div class="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full" style="width: 92%"></div>
-                        </div>
-                        <div class="text-xs text-slate-500">
-                            <p class="mb-1"><i class="fa fa-check text-green-500 mr-1"></i>研发占比6.5%，超行业均值</p>
-                            <p><i class="fa fa-check text-green-500 mr-1"></i>研发团队规模合理</p>
-                        </div>
-                    </div>
-
-                    <!-- 知识产权 -->
-                    <div class="dimension-card bg-white rounded-2xl p-5 border border-slate-100">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center">
-                                    <i class="fa fa-shield"></i>
-                                </div>
-                                <div>
-                                    <h4 class="text-sm font-bold text-slate-800">知识产权</h4>
-                                    <p class="text-[10px] text-slate-400">专利布局质量</p>
-                                </div>
-                            </div>
-                            <span class="text-xl font-black text-orange-500">75</span>
-                        </div>
-                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
-                            <div class="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full" style="width: 75%"></div>
-                        </div>
-                        <div class="text-xs text-slate-500">
-                            <p class="mb-1"><i class="fa fa-check text-green-500 mr-1"></i>发明专利占比35%</p>
-                            <p><i class="fa fa-exclamation-triangle text-orange-500 mr-1"></i>PCT国际专利申请偏少</p>
-                        </div>
-                    </div>
-
-                    <!-- 成果转化 -->
-                    <div class="dimension-card bg-white rounded-2xl p-5 border border-slate-100">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
-                                    <i class="fa fa-rocket"></i>
-                                </div>
-                                <div>
-                                    <h4 class="text-sm font-bold text-slate-800">成果转化</h4>
-                                    <p class="text-[10px] text-slate-400">技术落地能力</p>
-                                </div>
-                            </div>
-                            <span class="text-xl font-black text-purple-600">68</span>
-                        </div>
-                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
-                            <div class="h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full" style="width: 68%"></div>
-                        </div>
-                        <div class="text-xs text-slate-500">
-                            <p class="mb-1"><i class="fa fa-check text-green-500 mr-1"></i>年度转化项目18项</p>
-                            <p><i class="fa fa-exclamation-triangle text-orange-500 mr-1"></i>中试基地建设需加强</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 右侧：改进建议与政策推荐 -->
-            <div class="col-span-3 space-y-6">
-                <!-- 改进建议 -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-100">
-                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center">
-                        <i class="fa fa-lightbulb-o text-orange-500 mr-2"></i> 改进建议
-                    </h3>
-                    <div class="space-y-4">
-                        <div class="bg-orange-50 rounded-xl p-4 border border-orange-100">
-                            <div class="flex items-center space-x-2 mb-2">
-                                <span class="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
-                                <h4 class="text-xs font-bold text-slate-800">加强中试基地建设</h4>
-                            </div>
-                            <p class="text-[10px] text-slate-600 leading-relaxed pl-8">建议投资建设中试基地，提升技术成果转化效率。可申请相关专项补贴。</p>
-                        </div>
-
-                        <div class="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                            <div class="flex items-center space-x-2 mb-2">
-                                <span class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                                <h4 class="text-xs font-bold text-slate-800">布局PCT国际专利</h4>
-                            </div>
-                            <p class="text-[10px] text-slate-600 leading-relaxed pl-8">加大PCT国际专利申请力度，提升知识产权国际影响力。</p>
-                        </div>
-
-                        <div class="bg-green-50 rounded-xl p-4 border border-green-100">
-                            <div class="flex items-center space-x-2 mb-2">
-                                <span class="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
-                                <h4 class="text-xs font-bold text-slate-800">深化产学研合作</h4>
-                            </div>
-                            <p class="text-[10px] text-slate-600 leading-relaxed pl-8">与高校、科研院所建立深度合作，引入外部创新资源。</p>
-                        </div>
-
-                        <div class="bg-purple-50 rounded-xl p-4 border border-purple-100">
-                            <div class="flex items-center space-x-2 mb-2">
-                                <span class="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">4</span>
-                                <h4 class="text-xs font-bold text-slate-800">完善人才激励体系</h4>
-                            </div>
-                            <p class="text-[10px] text-slate-600 leading-relaxed pl-8">建立更具吸引力的人才引进和激励机制，优化研发人员结构。</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 匹配政策推荐 -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-100">
-                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center">
-                        <i class="fa fa-magic text-blue-600 mr-2"></i> 匹配政策推荐
-                    </h3>
-                    <div class="space-y-3">
-                        <div class="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 cursor-pointer hover:shadow-md transition-all">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] font-bold text-blue-600 bg-white px-2 py-0.5 rounded">国家级</span>
-                                <span class="text-xs font-bold text-blue-600">匹配 96%</span>
-                            </div>
-                            <h4 class="text-xs font-bold text-slate-800 mb-1">国家高新技术企业认定</h4>
-                            <p class="text-[10px] text-slate-500">最高扶持 ¥100万</p>
-                        </div>
-
-                        <div class="p-3 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border border-green-100 cursor-pointer hover:shadow-md transition-all">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] font-bold text-green-600 bg-white px-2 py-0.5 rounded">省级</span>
-                                <span class="text-xs font-bold text-green-600">匹配 89%</span>
-                            </div>
-                            <h4 class="text-xs font-bold text-slate-800 mb-1">省专精特新企业认定</h4>
-                            <p class="text-[10px] text-slate-500">奖励 ¥50-100万</p>
-                        </div>
-
-                        <div class="p-3 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl border border-orange-100 cursor-pointer hover:shadow-md transition-all">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] font-bold text-orange-500 bg-white px-2 py-0.5 rounded">市级</span>
-                                <span class="text-xs font-bold text-orange-500">匹配 82%</span>
-                            </div>
-                            <h4 class="text-xs font-bold text-slate-800 mb-1">市研发费用加计扣除</h4>
-                            <p class="text-[10px] text-slate-500">按100%加计扣除</p>
-                        </div>
-
-                        <div class="p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100 cursor-pointer hover:shadow-md transition-all">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] font-bold text-purple-600 bg-white px-2 py-0.5 rounded">国家级</span>
-                                <span class="text-xs font-bold text-purple-600">匹配 78%</span>
-                            </div>
-                            <h4 class="text-xs font-bold text-slate-800 mb-1">国家重点研发计划</h4>
-                            <p class="text-[10px] text-slate-500">最高资助 ¥1000万</p>
-                        </div>
-                    </div>
-
-                    <button class="w-full mt-4 py-2.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all">
-                        查看全部匹配政策 <i class="fa fa-arrow-right ml-1"></i>
-                    </button>
+                <div class="w-16 h-px bg-slate-300"></div>
+                <div class="flex items-center">
+                    <div id="step3" class="w-8 h-8 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold">3</div>
+                    <span class="ml-2 text-xs font-bold text-slate-400">查看结果</span>
                 </div>
             </div>
         </div>
+
+        <!-- ===== 上段：表单区（横向3列分组，一屏可见） ===== -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-100 mb-6">
+            <!-- 企业信息头部 + 数据完整度 -->
+            <div class="flex items-center justify-between mb-5 pb-5 border-b border-slate-100">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+                        <i class="fa fa-building text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800" id="entName">—</h2>
+                        <p class="text-xs text-slate-500" id="entTag">请输入企业信息进行诊断</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="text-center">
+                        <p class="text-xl font-black text-slate-800" id="entEmployees">—</p>
+                        <p class="text-[10px] text-slate-400">员工人数</p>
+                    </div>
+                    <div class="w-px h-8 bg-slate-200"></div>
+                    <div class="text-center">
+                        <p class="text-xl font-black text-slate-800" id="entRevenue">—</p>
+                        <p class="text-[10px] text-slate-400">年营收</p>
+                    </div>
+                    <div class="w-px h-8 bg-slate-200"></div>
+                    <div class="text-center">
+                        <p class="text-xl font-black text-slate-800" id="entIP">—</p>
+                        <p class="text-[10px] text-slate-400">知识产权</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据完整度 -->
+            <div class="mb-5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-600"><i class="fa fa-check-circle text-blue-500 mr-1"></i>数据完整度</span>
+                    <span id="completenessPct" class="text-xs font-black text-blue-600">0%</span>
+                </div>
+                <div class="h-2 bg-white rounded-full overflow-hidden mb-2">
+                    <div id="completenessBar" class="h-full rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(90deg,#3b82f6,#22c55e);"></div>
+                </div>
+                <div id="completenessMsg" class="text-[10px] text-slate-500 leading-relaxed"></div>
+            </div>
+
+            <!-- 3列分组表单卡片 -->
+            <div class="grid grid-cols-3 gap-5">
+                <!-- 卡片1：基本信息 -->
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <div class="flex items-center mb-3">
+                        <i class="fa fa-id-card-o text-blue-600 mr-2"></i>
+                        <h4 class="text-sm font-bold text-slate-700">基本信息</h4>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-500 mb-1 block"><span class="text-red-500">*</span> 企业名称</label>
+                            <input type="text" id="formName" oninput="syncCard()" placeholder="请输入企业全称" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-500 mb-1 block"><span class="text-red-500">*</span> 所属行业</label>
+                            <select id="formIndustry" onchange="syncCard()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">请选择行业</option>
+                                <option value="信息技术">信息技术 - 软件开发</option>
+                                <option value="生物医药">生物医药</option>
+                                <option value="高端装备">高端装备制造</option>
+                                <option value="新能源">新能源新材料</option>
+                                <option value="新材料">新材料</option>
+                                <option value="现代农业">现代农业</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-500 mb-1 block">企业规模</label>
+                            <div class="grid grid-cols-4 gap-1.5">
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="scale" class="sr-only peer" value="微型" onchange="syncCard()">
+                                    <div class="px-1 py-1.5 bg-white border border-slate-200 rounded-lg text-center text-[11px] font-bold text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">微型</div>
+                                </label>
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="scale" class="sr-only peer" value="小型" onchange="syncCard()">
+                                    <div class="px-1 py-1.5 bg-white border border-slate-200 rounded-lg text-center text-[11px] font-bold text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">小型</div>
+                                </label>
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="scale" class="sr-only peer" value="中型" onchange="syncCard()">
+                                    <div class="px-1 py-1.5 bg-white border border-slate-200 rounded-lg text-center text-[11px] font-bold text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">中型</div>
+                                </label>
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="scale" class="sr-only peer" value="大型" onchange="syncCard()">
+                                    <div class="px-1 py-1.5 bg-white border border-slate-200 rounded-lg text-center text-[11px] font-bold text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">大型</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-500 mb-1 block">资质认定（可多选）</label>
+                            <div class="flex flex-wrap gap-1.5" id="qualTags">
+                                <span class="px-2 py-1 bg-white text-slate-500 text-[11px] rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100 qual-tag" onclick="toggleQual(this)">+ 高新技术企业</span>
+                                <span class="px-2 py-1 bg-white text-slate-500 text-[11px] rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100 qual-tag" onclick="toggleQual(this)">+ 专精特新</span>
+                                <span class="px-2 py-1 bg-white text-slate-500 text-[11px] rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100 qual-tag" onclick="toggleQual(this)">+ 科技型中小企业</span>
+                                <span class="px-2 py-1 bg-white text-slate-500 text-[11px] rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100 qual-tag" onclick="toggleQual(this)">+ 瞪羚企业</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卡片2：经营数据 -->
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <div class="flex items-center mb-3">
+                        <i class="fa fa-line-chart text-green-600 mr-2"></i>
+                        <h4 class="text-sm font-bold text-slate-700">经营数据</h4>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-500 mb-1 block">员工人数</label>
+                                <input type="number" id="formEmployees" oninput="syncCard()" placeholder="如 286" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-500 mb-1 block">年营收(万)</label>
+                                <input type="number" id="formRevenue" oninput="syncCard()" placeholder="如 52000" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-500 mb-1 block">年研发投入金额</label>
+                            <div class="relative">
+                                <input type="number" id="formRdAmount" oninput="syncCard()" placeholder="如 3500" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">万元</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-500 mb-1 block">研发投入占比 <span id="rdPct" class="text-blue-600">0%</span></label>
+                            <input type="range" id="formRdPct" min="0" max="20" value="0" step="0.5" oninput="document.getElementById('rdPct').innerText=this.value+'%'; syncCard()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            <div class="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                                <span>0%</span><span>5%</span><span>10%</span><span>15%</span><span>20%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-500 mb-1 block">高新产品收入占比 <span id="htPct" class="text-blue-600">0%</span></label>
+                            <input type="range" id="formHtPct" min="0" max="100" value="0" step="5" oninput="document.getElementById('htPct').innerText=this.value+'%'; syncCard()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卡片3：知识产权 -->
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <div class="flex items-center mb-3">
+                        <i class="fa fa-shield text-orange-500 mr-2"></i>
+                        <h4 class="text-sm font-bold text-slate-700">知识产权</h4>
+                    </div>
+                    <div class="space-y-2.5">
+                        <div class="bg-white rounded-lg p-2.5 border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-500"><i class="fa fa-flask text-blue-500 mr-1"></i>发明专利</span>
+                                <input type="number" id="formPatent" oninput="syncCard()" placeholder="0" class="w-16 text-right text-lg font-black text-slate-800 bg-transparent focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg p-2.5 border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-500"><i class="fa fa-code text-green-500 mr-1"></i>软件著作</span>
+                                <input type="number" id="formSoftware" oninput="syncCard()" placeholder="0" class="w-16 text-right text-lg font-black text-slate-800 bg-transparent focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg p-2.5 border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-500"><i class="fa fa-wrench text-orange-500 mr-1"></i>实用新型</span>
+                                <input type="number" id="formUtility" oninput="syncCard()" placeholder="0" class="w-16 text-right text-lg font-black text-slate-800 bg-transparent focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 开始诊断按钮 -->
+            <div class="mt-6 flex justify-center">
+                <button onclick="startDiagnosis()" class="px-12 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300">
+                    <i class="fa fa-stethoscope mr-2"></i> 开始诊断
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== 下段：诊断结果区 ===== -->
+        <!-- 未诊断引导卡片 -->
+        <div id="resultGuide" class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-12 border border-dashed border-slate-300 text-center">
+            <div class="w-20 h-20 mx-auto bg-white rounded-full shadow-lg flex items-center justify-center mb-5">
+                <i class="fa fa-stethoscope text-3xl text-blue-500"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-700 mb-2">等待诊断</h3>
+            <p class="text-sm text-slate-500 mb-5">请在上方填写企业信息，点击「开始诊断」按钮<br>系统将为您生成科创能力评估报告</p>
+            <div class="flex items-center justify-center flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-400">
+                <span><i class="fa fa-sitemap text-blue-400 mr-1"></i>能力雷达图</span>
+                <span><i class="fa fa-bar-chart text-green-400 mr-1"></i>同业对比</span>
+                <span><i class="fa fa-exclamation-triangle text-orange-400 mr-1"></i>短板分析</span>
+                <span><i class="fa fa-lightbulb-o text-yellow-400 mr-1"></i>提升建议</span>
+                <span><i class="fa fa-road text-purple-400 mr-1"></i>发展路径</span>
+                <span><i class="fa fa-magic text-pink-400 mr-1"></i>政策推荐</span>
+            </div>
+        </div>
+
+        <!-- 诊断结果（默认隐藏，诊断后显示） -->
+        <div id="resultArea" style="display:none;">
+            <!-- 行1：雷达图(5) + 6维度卡片(7) -->
+            <div class="grid grid-cols-12 gap-6 mb-6">
+                <!-- 雷达图 -->
+                <div class="col-span-5">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-100">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center">
+                                <i class="fa fa-sitemap text-blue-600 mr-2"></i> 科创能力雷达图
+                            </h3>
+                            <div class="flex items-center space-x-2">
+                                <button class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                                    <i class="fa fa-expand"></i>
+                                </button>
+                                <button class="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100">
+                                    <i class="fa fa-refresh"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-center">
+                            <div class="relative w-72 h-72">
+                                <svg viewBox="0 0 300 300" class="w-full h-full">
+                                    <polygon points="150,30 254,90 254,210 150,270 46,210 46,90" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                                    <polygon points="150,70 224,112 224,188 150,230 76,188 76,112" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                                    <polygon points="150,110 194,134 194,166 150,190 106,166 106,134" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                                    <line x1="150" y1="150" x2="150" y2="30" stroke="#e2e8f0" stroke-width="1"/>
+                                    <line x1="150" y1="150" x2="254" y2="90" stroke="#e2e8f0" stroke-width="1"/>
+                                    <line x1="150" y1="150" x2="254" y2="210" stroke="#e2e8f0" stroke-width="1"/>
+                                    <line x1="150" y1="150" x2="150" y2="270" stroke="#e2e8f0" stroke-width="1"/>
+                                    <line x1="150" y1="150" x2="46" y2="210" stroke="#e2e8f0" stroke-width="1"/>
+                                    <line x1="150" y1="150" x2="46" y2="90" stroke="#e2e8f0" stroke-width="1"/>
+                                    <polygon id="radarPolygon" points="150,150 150,150 150,150 150,150 150,150 150,150" fill="rgba(37, 99, 235, 0.2)" stroke="#2563eb" stroke-width="2" class="transition-all duration-500"/>
+                                    <g id="radarPoints"></g>
+                                    <circle cx="150" cy="150" r="45" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+                                    <text id="radarScore" x="150" y="145" text-anchor="middle" class="text-2xl font-black" fill="#cbd5e1">—</text>
+                                    <text x="150" y="162" text-anchor="middle" class="text-xs" fill="#94a3b8">综合得分</text>
+                                </svg>
+                                <div class="absolute top-0 left-1/2 -translate-x-1/2 text-center">
+                                    <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm"><span id="radarLabel0">技术创新</span> <span class="text-blue-600" id="radarScore0">—</span></span>
+                                </div>
+                                <div class="absolute top-6 right-0 text-center">
+                                    <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm"><span id="radarLabel1">研发投入</span> <span class="text-green-600" id="radarScore1">—</span></span>
+                                </div>
+                                <div class="absolute bottom-6 right-0 text-center">
+                                    <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm"><span id="radarLabel2">知识产权</span> <span class="text-orange-500" id="radarScore2">—</span></span>
+                                </div>
+                                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
+                                    <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm"><span id="radarLabel3">成果转化</span> <span class="text-purple-600" id="radarScore3">—</span></span>
+                                </div>
+                                <div class="absolute bottom-6 left-0 text-center">
+                                    <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm"><span id="radarLabel4">人才结构</span> <span class="text-pink-500" id="radarScore4">—</span></span>
+                                </div>
+                                <div class="absolute top-6 left-0 text-center">
+                                    <span class="text-xs font-bold text-slate-700 bg-white px-2 py-1 rounded shadow-sm"><span id="radarLabel5">市场表现</span> <span class="text-cyan-600" id="radarScore5">—</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 flex items-center justify-center space-x-8">
+                            <div class="text-center">
+                                <p class="text-xs text-slate-400 mb-1">评级</p>
+                                <span id="radarRating" class="text-2xl font-black text-slate-400">—</span>
+                            </div>
+                            <div class="h-10 w-px bg-slate-200"></div>
+                            <div class="text-center">
+                                <p class="text-xs text-slate-400 mb-1">行业排名</p>
+                                <span id="radarRanking" class="text-2xl font-black text-slate-400">—</span>
+                            </div>
+                            <div class="h-10 w-px bg-slate-200"></div>
+                            <div class="text-center">
+                                <p class="text-xs text-slate-400 mb-1">同比变化</p>
+                                <span id="radarYoy" class="text-2xl font-black text-slate-400">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6维度卡片 -->
+                <div class="col-span-7">
+                    <div id="dimensionCards" class="grid grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+
+            <!-- 行2：同业对比(6) + 短板分析(6) -->
+            <div class="grid grid-cols-2 gap-6 mb-6">
+                <!-- 同业对比分析 -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center">
+                        <i class="fa fa-bar-chart text-green-600 mr-2"></i> 同业对比分析
+                    </h3>
+                    <div id="peerComparison" class="space-y-3"></div>
+                    <div class="flex items-center justify-center space-x-4 mt-4 text-[10px] text-slate-500">
+                        <span class="flex items-center"><span class="inline-block w-3 h-3 rounded mr-1" style="background:#2563eb"></span>本企业</span>
+                        <span class="flex items-center"><span class="inline-block w-3 h-3 rounded mr-1" style="background:#94a3b8"></span>行业均值</span>
+                        <span class="flex items-center"><span class="inline-block w-3 h-3 rounded mr-1" style="background:#eab308"></span>行业标杆</span>
+                    </div>
+                </div>
+
+                <!-- 短板分析 -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center">
+                        <i class="fa fa-exclamation-triangle text-red-500 mr-2"></i> 短板分析
+                    </h3>
+                    <div id="shortboardList" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- 行3：改进建议(8) + 发展路径(4) -->
+            <div class="grid grid-cols-12 gap-6 mb-6">
+                <!-- 改进建议 -->
+                <div class="col-span-8 bg-white rounded-2xl p-6 border border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-800 mb-2 flex items-center">
+                        <i class="fa fa-lightbulb-o text-orange-500 mr-2"></i> 改进建议
+                    </h3>
+                    <details class="mb-3">
+                        <summary class="text-[10px] text-slate-400 cursor-pointer hover:text-slate-600 select-none"><i class="fa fa-info-circle mr-0.5"></i>计算公式与数据来源</summary>
+                        <div class="text-[10px] text-slate-500 mt-1.5 leading-relaxed bg-slate-50 rounded-lg p-2 space-y-1">
+                            <p><b>数据来源：</b>维度得分由「计分公式」规则算出；行业均值来自后台「维度与行业基准」avg 字段；建议文案来自后台「短板与建议」各维度 suggestions 数组。</p>
+                            <p><b>选取逻辑：</b>六维度按得分升序排列，取最低 4 个维度展示。</p>
+                            <p><b>差距值：</b>差距 = 维度得分 − 行业均值（负数标红、正数标绿）。</p>
+                            <p><b>建议文案：</b>该维度 suggestions 数组全量用逗号拼接展示。</p>
+                        </div>
+                    </details>
+                    <div id="suggestionList" class="grid grid-cols-2 gap-3"></div>
+                </div>
+
+                <!-- 发展路径图 -->
+                <div class="col-span-4 bg-white rounded-2xl p-6 border border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-800 mb-2 flex items-center">
+                        <i class="fa fa-road text-purple-600 mr-2"></i> 发展路径图
+                    </h3>
+                    <details class="mb-3">
+                        <summary class="text-[10px] text-slate-400 cursor-pointer hover:text-slate-600 select-none"><i class="fa fa-info-circle mr-0.5"></i>计算公式与数据来源</summary>
+                        <div class="text-[10px] text-slate-500 mt-1.5 leading-relaxed bg-slate-50 rounded-lg p-2 space-y-1">
+                            <p><b>数据来源：</b>阶段配置来自后台「短板与建议」devPathStages（title/range/inc）；行动文案来自最弱2维度各自 suggestions 数组。</p>
+                            <p><b>重点维度：</b>六维度按得分升序排列，取最低 2 个维度。</p>
+                            <p><b>目标分公式：</b>目标分 = min(100, 最弱维度得分 + 该阶段增量inc)。</p>
+                            <p><b>行动文案：</b>每个阶段取2条行动——最弱维度 suggestions[阶段索引 % 数组长度] 和 次弱维度 suggestions[阶段索引 % 数组长度]。</p>
+                        </div>
+                    </details>
+                    <div id="devPath" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- 行4：匹配政策推荐（全宽，横向卡片） -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-100">
+                <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center">
+                    <i class="fa fa-magic text-blue-600 mr-2"></i> 匹配政策推荐
+                    <span class="text-[10px] text-slate-400 ml-2 font-normal">（数据来自政策库，按企业画像实时匹配，与政策雷达同源）</span>
+                </h3>
+                <div id="policyRecommendList"></div>
+            </div>
+        </div>
+        </div>
     </div>
+
+        </main>
+    </div>
+
+<script src="data-bridge.js"></script>
+<script>
+    function goPage(url) {
+        try {
+            if (parent && parent.window && typeof parent.window.switchPage === 'function') {
+                parent.window.switchPage(url, null);
+            } else {
+                window.location.href = url;
+            }
+        } catch (e) {
+            window.location.href = url;
+        }
+    }
+    function newChat() {
+        alert('已创建新对话');
+    }
+    function switchHistory(el, title) {
+        goPage('dashboard.html');
+    }
+
+    // 维度元数据（图标/配色为前端UI固定值；名称/描述/基准从后台配置读取）
+    var DIM_UI = {
+        tech:{icon:'fa-lightbulb-o', bg:'#eff6ff', text:'#2563eb', grad:'linear-gradient(90deg,#3b82f6,#2563eb)'},
+        rd:{icon:'fa-flask', bg:'#ecfdf5', text:'#059669', grad:'linear-gradient(90deg,#10b981,#059669)'},
+        ip:{icon:'fa-shield', bg:'#fff7ed', text:'#f97316', grad:'linear-gradient(90deg,#fb923c,#f97316)'},
+        transform:{icon:'fa-rocket', bg:'#faf5ff', text:'#9333ea', grad:'linear-gradient(90deg,#a855f7,#9333ea)'},
+        talent:{icon:'fa-users', bg:'#fdf2f8', text:'#ec4899', grad:'linear-gradient(90deg,#ec4899,#db2777)'},
+        market:{icon:'fa-line-chart', bg:'#ecfeff', text:'#0891b2', grad:'linear-gradient(90deg,#06b6d4,#0891b2)'}
+    };
+    // 从 DataBridge 读取后台诊断配置（维度基准/评级阈值/推荐政策）
+    var DIAG_CFG = (function() {
+        try { return DataBridge.loadDiagnosisConfig(); }
+        catch(e) { return JSON.parse(JSON.stringify(DataBridge.DEFAULT_DIAGNOSIS_CONFIG)); }
+    })();
+    var DIM_META = DIAG_CFG.dims.map(function(d) {
+        var ui = DIM_UI[d.key] || {icon:'fa-bar-chart', bg:'#f1f5f9', text:'#475569', grad:'linear-gradient(90deg,#64748b,#475569)'};
+        return {key:d.key, name:d.name, desc:d.desc, icon:ui.icon, bg:ui.bg, text:ui.text, grad:ui.grad};
+    });
+    // 行业均值与行业标杆（后台可配置）
+    var IND_AVG = {}, IND_BEST = {};
+    DIAG_CFG.dims.forEach(function(d) { IND_AVG[d.key] = d.avg; IND_BEST[d.key] = d.best; });
+    // 评级与排名阈值（后台可配置）
+    var RATINGS = DIAG_CFG.ratings;
+    // 短板分档 / 发展路径阶段 / 维度建议文案（后台可配置）
+    var SB_TIERS = DIAG_CFG.shortboardTiers;
+    var DEV_STAGES = DIAG_CFG.devPathStages;
+    // 计分公式（后台可配置）：维度key → 规则数组
+    var SCORING = DIAG_CFG.scoring;
+    var SUGG_LIB = {};
+    DIAG_CFG.dims.forEach(function(d) {
+        SUGG_LIB[d.key] = (d.suggestions || []).slice();
+        if (!SUGG_LIB[d.key].length) SUGG_LIB[d.key] = ['持续关注该维度能力建设'];
+    });
+
+    // 实时同步表单数据到上方企业信息卡片
+    function syncCard() {
+        // 企业名称
+        var name = document.getElementById('formName').value.trim();
+        document.getElementById('entName').innerText = name || '—';
+
+        // 标签：行业 + 规模 + 资质
+        var industry = document.getElementById('formIndustry').value;
+        var scaleEl = document.querySelector('input[name="scale"]:checked');
+        var scale = scaleEl ? scaleEl.value : '';
+        var quals = [];
+        document.querySelectorAll('.qual-tag.qual-on').forEach(function(el) {
+            quals.push(el.innerText.replace('✓ ', '').replace('+ ', ''));
+        });
+        var tagParts = [];
+        if (industry) tagParts.push(industry);
+        if (scale) tagParts.push(scale + '企业');
+        if (quals.length) tagParts.push(quals.join(' · '));
+        document.getElementById('entTag').innerText = tagParts.length ? tagParts.join(' · ') : '请填写左侧表单进行诊断';
+
+        // 员工人数
+        var emp = document.getElementById('formEmployees').value;
+        document.getElementById('entEmployees').innerText = emp ? emp : '—';
+
+        // 年营收（万元 → 亿）
+        var rev = document.getElementById('formRevenue').value;
+        if (rev) {
+            var yi = (parseFloat(rev) / 10000).toFixed(1);
+            document.getElementById('entRevenue').innerHTML = '¥' + yi + '<span class="text-sm">亿</span>';
+        } else {
+            document.getElementById('entRevenue').innerText = '—';
+        }
+
+        // 知识产权（发明专利 + 软件著作 + 实用新型）
+        var pat = parseInt(document.getElementById('formPatent').value) || 0;
+        var sw = parseInt(document.getElementById('formSoftware').value) || 0;
+        var ut = parseInt(document.getElementById('formUtility').value) || 0;
+        var totalIP = pat + sw + ut;
+        document.getElementById('entIP').innerText = totalIP > 0 ? totalIP : '—';
+
+        // 实时检测数据完整度（不计算评分，评分只在点击"开始诊断"时触发）
+        checkCompleteness();
+    }
+
+    // 资质标签切换
+    function toggleQual(el) {
+        if (el.classList.contains('qual-on')) {
+            el.classList.remove('qual-on');
+            el.className = el.className.replace(/bg-\w+-50 text-\w+-600 border-\w+-100/g, 'bg-slate-50 text-slate-500 border-slate-200');
+            el.innerText = el.innerText.replace('✓ ', '+ ');
+        } else {
+            el.classList.add('qual-on');
+            el.className = el.className.replace(/bg-slate-50 text-slate-500 border-slate-200/g, 'bg-blue-50 text-blue-600 border-blue-100');
+            el.innerText = el.innerText.replace('+ ', '✓ ');
+        }
+        syncCard();
+    }
+
+    // ===== 优化1：数据完整度检测 =====
+    function checkCompleteness() {
+        var fields = [
+            {id:'formName', name:'企业名称'},
+            {id:'formIndustry', name:'所属行业'},
+            {id:'formEmployees', name:'员工人数'},
+            {id:'formRevenue', name:'年营收'},
+            {id:'formRdPct', name:'研发投入占比'},
+            {id:'formRdAmount', name:'研发金额'},
+            {id:'formPatent', name:'发明专利'},
+            {id:'formSoftware', name:'软件著作'},
+            {id:'formUtility', name:'实用新型'},
+            {id:'formHtPct', name:'高新技术产品收入'}
+        ];
+        var missing = [];
+        fields.forEach(function(f) {
+            var v = document.getElementById(f.id).value;
+            if (v === '' || v === null) missing.push(f);
+        });
+        // 资质认定为重要选填项
+        var hasQual = document.querySelectorAll('.qual-tag.qual-on').length > 0;
+        if (!hasQual) missing.push({id:'qualTags', name:'资质认定'});
+
+        var total = fields.length + 1;
+        var filled = total - missing.length;
+        var pct = Math.round((filled / total) * 100);
+
+        document.getElementById('completenessPct').textContent = pct + '%';
+        document.getElementById('completenessBar').style.width = pct + '%';
+
+        var msgEl = document.getElementById('completenessMsg');
+        if (pct === 100) {
+            document.getElementById('completenessBar').style.background = 'linear-gradient(90deg,#16a34a,#22c55e)';
+            msgEl.innerHTML = '<span class="text-green-600 font-bold"><i class="fa fa-check-circle"></i> 数据完整</span>';
+        } else {
+            document.getElementById('completenessBar').style.background = 'linear-gradient(90deg,#3b82f6,#22c55e)';
+            msgEl.innerHTML = missing.map(function(f) {
+                return '<span class="text-red-500 mr-2 cursor-pointer hover:underline inline-block" onclick="focusField(\'' + f.id + '\')"><i class="fa fa-exclamation-triangle"></i> ' + f.name + '</span>';
+            }).join('');
+        }
+    }
+
+    // 点击缺失字段跳转到对应输入框
+    function focusField(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.focus();
+        el.scrollIntoView({block:'center', behavior:'smooth'});
+    }
+
+    // ===== 优化2：动态评分计算（6维度0-100） =====
+    function calculateScores() {
+        var inputs = {
+            name: document.getElementById('formName').value.trim(),
+            industry: document.getElementById('formIndustry').value,
+            scale: (document.querySelector('input[name="scale"]:checked') || {}).value || '',
+            employees: parseInt(document.getElementById('formEmployees').value) || 0,
+            revenue: parseFloat(document.getElementById('formRevenue').value) || 0,
+            rdPct: parseFloat(document.getElementById('formRdPct').value) || 0,
+            rdAmount: parseFloat(document.getElementById('formRdAmount').value) || 0,
+            patent: parseInt(document.getElementById('formPatent').value) || 0,
+            software: parseInt(document.getElementById('formSoftware').value) || 0,
+            utility: parseInt(document.getElementById('formUtility').value) || 0,
+            htPct: parseFloat(document.getElementById('formHtPct').value) || 0,
+            quals: document.querySelectorAll('.qual-tag.qual-on').length
+        };
+
+        // ===== 计分：按后台「诊断维度配置-计分公式」的规则逐项求值 =====
+        // unit  规则：得分 = min(cap, 值(可再除以div) × per)
+        // tier  规则：值 < tiers[i].max 命中该档得分
+        // scale 规则：按企业规模取 bonus 修正分（受 cap 限制）
+        function evalScoreItem(item) {
+            if (item.mode === 'unit') {
+                var v = Number(inputs[item.field]) || 0;
+                if (item.div) v = v / item.div;
+                return Math.min(item.cap || 100, v * (item.per || 0));
+            }
+            if (item.mode === 'tier') {
+                var v2 = Number(inputs[item.field]) || 0;
+                var tiers = item.tiers || [];
+                for (var i = 0; i < tiers.length; i++) {
+                    if (v2 < tiers[i].max) return tiers[i].score;
+                }
+                return tiers.length ? tiers[tiers.length - 1].score : 0;
+            }
+            if (item.mode === 'scale') {
+                var b = (item.bonus || {})[inputs.scale] || 0;
+                return Math.min(item.cap || 100, b);
+            }
+            return 0;
+        }
+
+        var scores = {};
+        DIM_META.forEach(function(d) {
+            var total = 0;
+            (SCORING[d.key] || []).forEach(function(it) { total += evalScoreItem(it); });
+            scores[d.key] = Math.min(100, Math.round(total));
+        });
+        // 综合得分 = 各维度平均分
+        var sum = 0;
+        DIM_META.forEach(function(d) { sum += scores[d.key]; });
+        scores.avg = Math.round(sum / DIM_META.length);
+
+        // 更新各模块
+        updateRadar(scores);
+        updateDimensions(scores, inputs);
+        updatePeerComparison(scores);
+        updateShortboard(scores);
+        updateDevPath(scores);
+        updateSuggestions(scores);
+
+        return scores;
+    }
+
+    // 更新雷达图SVG（多边形顶点/数据点/维度分数/综合得分/评级/排名）
+    function updateRadar(scores) {
+        var dims = DIM_META.slice(0, 6).map(function(d) { return scores[d.key] || 0; });
+        var cx = 150, cy = 150, maxR = 120;
+        var colors = ['#2563eb','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
+        var pts = [], circles = [];
+        for (var i = 0; i < dims.length; i++) {
+            var angle = i * 60; // 0,60,120,180,240,300 度
+            var r = (dims[i] / 100) * maxR;
+            var rad = angle * Math.PI / 180;
+            var x = cx + r * Math.sin(rad);
+            var y = cy - r * Math.cos(rad);
+            pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+            circles.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="5" fill="' + colors[i] + '"/>');
+        }
+        document.getElementById('radarPolygon').setAttribute('points', pts.join(' '));
+        document.getElementById('radarPoints').innerHTML = circles.join('');
+        // 维度标签分数
+        for (var j = 0; j < dims.length; j++) {
+            var el = document.getElementById('radarScore' + j);
+            if (el) el.textContent = Math.round(dims[j]);
+        }
+        // 中心综合得分
+        document.getElementById('radarScore').textContent = scores.avg;
+        // 评级：按后台配置的阈值档位（RATINGS 按降序匹配，avg>=min 命中）
+        var ratingColorMap = {'A+':'#2563eb','A':'#2563eb','B':'#16a34a','C':'#ea580c','D':'#dc2626'};
+        var rating = 'D', ratingColor = '#dc2626';
+        for (var ri = 0; ri < RATINGS.length; ri++) {
+            if (scores.avg >= RATINGS[ri].min) {
+                rating = RATINGS[ri].grade;
+                ratingColor = ratingColorMap[rating] || '#475569';
+                break;
+            }
+        }
+        var ratingEl = document.getElementById('radarRating');
+        ratingEl.textContent = rating;
+        ratingEl.style.color = ratingColor;
+        // 行业排名百分位：与评级档位联动（后台可配置）
+        var ranking = 'TOP 85%';
+        for (var rj = 0; rj < RATINGS.length; rj++) {
+            if (scores.avg >= RATINGS[rj].min) { ranking = RATINGS[rj].rank; break; }
+        }
+        document.getElementById('radarRanking').textContent = ranking;
+    }
+
+    // 维度卡片描述生成（基于指标与是否高于行业均值）
+    function dimInfo(key, score, inputs) {
+        var avg = IND_AVG[key];
+        var fact = '', tip = '';
+        if (key === 'tech') {
+            fact = '发明专利' + inputs.patent + '项，研发占比' + inputs.rdPct + '%';
+            tip = score >= avg ? '技术创新能力高于行业均值' : '建议加强产学研合作';
+        } else if (key === 'rd') {
+            fact = '研发投入' + inputs.rdAmount + '万元，占比' + inputs.rdPct + '%';
+            tip = score >= avg ? '研发投入强度领先' : '建议提升研发费用占比';
+        } else if (key === 'ip') {
+            fact = '知识产权合计' + (inputs.patent + inputs.software + inputs.utility) + '项';
+            tip = score >= avg ? '专利布局较为完善' : '建议增加发明专利占比';
+        } else if (key === 'transform') {
+            fact = '高新技术产品收入占比' + inputs.htPct + '%';
+            tip = score >= avg ? '成果转化能力较强' : '建议加强中试基地建设';
+        } else if (key === 'talent') {
+            fact = '员工规模' + (inputs.employees || '未填') + '人';
+            tip = score >= avg ? '人才结构合理' : '建议引进高层次研发人才';
+        } else if (key === 'market') {
+            fact = '年营收' + (inputs.revenue ? (inputs.revenue / 10000).toFixed(1) + '亿' : '未填');
+            tip = score >= avg ? '市场表现优于行业' : '建议拓展高附加值产品线';
+        }
+        var tipIcon = score >= avg ? '<i class="fa fa-check text-green-500 mr-1"></i>' : '<i class="fa fa-exclamation-triangle text-orange-500 mr-1"></i>';
+        return {
+            line1: '<i class="fa fa-check text-green-500 mr-1"></i>' + fact,
+            line2: tipIcon + tip
+        };
+    }
+
+    // 更新6张维度详情卡片（补全人才结构/市场表现，分数与进度条动态）
+    function updateDimensions(scores, inputs) {
+        var html = '';
+        DIM_META.forEach(function(d) {
+            var score = Math.round(scores[d.key]);
+            var info = dimInfo(d.key, score, inputs);
+            html += '<div class="dimension-card bg-white rounded-2xl p-5 border border-slate-100">' +
+                '<div class="flex items-center justify-between mb-3">' +
+                    '<div class="flex items-center space-x-3">' +
+                        '<div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:' + d.bg + ';color:' + d.text + '">' +
+                            '<i class="fa ' + d.icon + '"></i>' +
+                        '</div>' +
+                        '<div>' +
+                            '<h4 class="text-sm font-bold text-slate-800">' + d.name + '</h4>' +
+                            '<p class="text-[10px] text-slate-400">' + d.desc + '</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<span class="text-xl font-black" style="color:' + d.text + '">' + score + '</span>' +
+                '</div>' +
+                '<div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">' +
+                    '<div class="h-full rounded-full transition-all duration-500" style="width:' + score + '%;background:' + d.grad + '"></div>' +
+                '</div>' +
+                '<div class="text-xs text-slate-500">' +
+                    '<p class="mb-1">' + info.line1 + '</p>' +
+                    '<p>' + info.line2 + '</p>' +
+                '</div>' +
+            '</div>';
+        });
+        document.getElementById('dimensionCards').innerHTML = html;
+    }
+
+    // ===== 优化3：同业对比分析（横向柱状图：本企业/行业均值/行业标杆） =====
+    function updatePeerComparison(scores) {
+        var mine = [scores.tech, scores.rd, scores.ip, scores.transform, scores.talent, scores.market];
+        var avg = [IND_AVG.tech, IND_AVG.rd, IND_AVG.ip, IND_AVG.transform, IND_AVG.talent, IND_AVG.market];
+        var best = [IND_BEST.tech, IND_BEST.rd, IND_BEST.ip, IND_BEST.transform, IND_BEST.talent, IND_BEST.market];
+        var rows = [
+            {label:'本企业', color:'#2563eb'},
+            {label:'行业均值', color:'#94a3b8'},
+            {label:'行业标杆', color:'#eab308'}
+        ];
+        var html = '';
+        for (var i = 0; i < 6; i++) {
+            var vals = [mine[i], avg[i], best[i]];
+            html += '<div>' +
+                '<div class="text-xs font-bold text-slate-700 mb-1">' + DIM_META[i].name + '</div>' +
+                '<div class="space-y-1">';
+            for (var k = 0; k < 3; k++) {
+                html += '<div class="flex items-center space-x-2">' +
+                    '<span class="text-[10px] text-slate-500 w-12 text-right">' + rows[k].label + '</span>' +
+                    '<div class="flex-1 h-4 bg-slate-50 rounded overflow-hidden">' +
+                        '<div class="h-full rounded transition-all duration-500" style="width:' + Math.min(vals[k], 100) + '%;background:' + rows[k].color + '"></div>' +
+                    '</div>' +
+                    '<span class="text-[10px] font-bold text-slate-700 w-6 text-center">' + Math.round(vals[k]) + '</span>' +
+                '</div>';
+            }
+            html += '</div></div>';
+        }
+        document.getElementById('peerComparison').innerHTML = html;
+    }
+
+    // ===== 优化4：短板分析（与行业均值差距，按差距升序，状态标签） =====
+    function updateShortboard(scores) {
+        var arr = DIM_META.map(function(d) {
+            var gap = scores[d.key] - IND_AVG[d.key];
+            return {name: d.name, score: scores[d.key], avg: IND_AVG[d.key], gap: gap};
+        });
+        // 按差距从小到大排序，最短板排第一
+        arr.sort(function(a, b) { return a.gap - b.gap; });
+        var html = '';
+        // 分档：按后台配置的阈值档位（SB_TIERS 升序，gap <= max 命中）
+        var tierColorMap = {'严重短板':'#dc2626', '偏弱':'#ea580c', '持平':'#64748b', '优势':'#16a34a', '领先':'#15803d'};
+        var tierBgMap = {'严重短板':'#fef2f2', '偏弱':'#fff7ed', '持平':'#f8fafc', '优势':'#f0fdf4', '领先':'#dcfce7'};
+        arr.forEach(function(item) {
+            var status = SB_TIERS[SB_TIERS.length - 1].label, color, bg;
+            for (var ti = 0; ti < SB_TIERS.length; ti++) {
+                if (item.gap <= SB_TIERS[ti].max) { status = SB_TIERS[ti].label; break; }
+            }
+            color = tierColorMap[status] || '#475569';
+            bg = tierBgMap[status] || '#f8fafc';
+            var gapStr = (item.gap >= 0 ? '+' : '') + Math.round(item.gap);
+            var gapColor = item.gap < 0 ? '#dc2626' : '#16a34a';
+            html += '<div class="flex items-center justify-between p-2 rounded-lg" style="background:' + bg + '">' +
+                '<div class="flex items-center space-x-2">' +
+                    '<span class="text-xs font-bold text-slate-700">' + item.name + '</span>' +
+                    '<span class="text-[10px] px-1.5 py-0.5 rounded" style="color:' + color + ';background:white">' + status + '</span>' +
+                '</div>' +
+                '<div class="flex items-center space-x-3 text-[10px]">' +
+                    '<span class="text-slate-500">本企业 <b class="text-slate-700">' + Math.round(item.score) + '</b></span>' +
+                    '<span class="text-slate-400">均值 <b class="text-slate-500">' + item.avg + '</b></span>' +
+                    '<span class="font-bold" style="color:' + gapColor + '">' + gapStr + '</span>' +
+                '</div>' +
+            '</div>';
+        });
+        document.getElementById('shortboardList').innerHTML = html;
+    }
+
+    // ===== 优化5：发展路径图（短期/中期/长期，基于最弱2个维度） =====
+    function updateDevPath(scores) {
+        // 阶段与目标增量来自后台配置（DEV_STAGES），行动文案来自维度建议文案库（SUGG_LIB）
+        var stages = DEV_STAGES.map(function(s, i) {
+            var styleMap = [
+                {color:'#2563eb', bg:'#eff6ff'}, {color:'#9333ea', bg:'#faf5ff'},
+                {color:'#16a34a', bg:'#f0fdf4'}, {color:'#ea580c', bg:'#fff7ed'}, {color:'#0891b2', bg:'#ecfeff'}
+            ];
+            var st = styleMap[i % styleMap.length];
+            return {title:s.title, range:s.range, inc:s.inc, color:st.color, bg:st.bg};
+        });
+        // 取得分最低的2个维度作为重点提升维度
+        var arr = DIM_META.map(function(d) { return {key: d.key, name: d.name, score: scores[d.key]}; });
+        arr.sort(function(a, b) { return a.score - b.score; });
+        var weakest2 = arr.slice(0, 2);
+        var dimNames = weakest2.map(function(d) { return d.name; }).join('、');
+
+        var html = '';
+        stages.forEach(function(s, idx) {
+            // 目标分数 = 当前最弱维度分数 + 阶段增量
+            var targetScore = Math.min(100, weakest2[0].score + s.inc);
+            // 每阶段2条关键行动（分别来自2个最弱维度的建议文案库，按阶段循环取）
+            var acts = weakest2.map(function(d) {
+                var al = SUGG_LIB[d.key];
+                return al[idx % al.length];
+            });
+            var connector = idx < stages.length - 1 ? '<div class="absolute" style="left:6px;top:14px;bottom:-14px;width:2px;background:' + s.color + '40"></div>' : '';
+            html += '<div class="relative pl-6">' +
+                '<div class="absolute left-0 top-1 w-3 h-3 rounded-full" style="background:' + s.color + '"></div>' +
+                connector +
+                '<div class="rounded-xl p-3" style="background:' + s.bg + '">' +
+                    '<div class="flex items-center justify-between mb-1">' +
+                        '<span class="text-xs font-bold" style="color:' + s.color + '">' + s.title + ' · ' + s.range + '</span>' +
+                        '<span class="text-[10px] text-slate-500">目标分 <b style="color:' + s.color + '">' + Math.round(targetScore) + '</b></span>' +
+                    '</div>' +
+                    '<p class="text-[10px] text-slate-500 mb-1">重点维度：' + dimNames + '</p>' +
+                    '<div class="space-y-1">' +
+                        acts.map(function(a) { return '<p class="text-[10px] text-slate-600"><i class="fa fa-check-circle mr-1" style="color:' + s.color + '"></i>' + a + '</p>'; }).join('') +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        });
+        document.getElementById('devPath').innerHTML = html;
+    }
+
+    // ===== 优化6：动态提升建议（按得分最低4个维度生成，文案来自后台建议文案库） =====
+    function updateSuggestions(scores) {
+        var arr = DIM_META.map(function(d) { return {key: d.key, name: d.name, score: scores[d.key]}; });
+        // 按得分最低排序，取前4个维度
+        arr.sort(function(a, b) { return a.score - b.score; });
+        var top4 = arr.slice(0, 4);
+        var palette = [
+            {bg:'#fff7ed', border:'#fed7aa', num:'#ea580c'},
+            {bg:'#eff6ff', border:'#bfdbfe', num:'#2563eb'},
+            {bg:'#f0fdf4', border:'#bbf7d0', num:'#16a34a'},
+            {bg:'#faf5ff', border:'#e9d5ff', num:'#9333ea'}
+        ];
+        var html = '';
+        top4.forEach(function(item, i) {
+            var p = palette[i];
+            var gap = item.score - IND_AVG[item.key];
+            var gapStr = (gap >= 0 ? '+' : '') + Math.round(gap);
+            var gapColor = gap < 0 ? '#dc2626' : '#16a34a';
+            html += '<div class="rounded-xl p-4 border" style="background:' + p.bg + ';border-color:' + p.border + '">' +
+                '<div class="flex items-center space-x-2 mb-2">' +
+                    '<span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background:' + p.num + '">' + (i + 1) + '</span>' +
+                    '<h4 class="text-xs font-bold text-slate-800 flex-1">' + item.name + ' · 当前 ' + Math.round(item.score) + '分</h4>' +
+                    '<span class="text-[10px] font-bold" style="color:' + gapColor + '">' + gapStr + '</span>' +
+                '</div>' +
+                '<p class="text-[10px] text-slate-600 leading-relaxed pl-8">' + SUGG_LIB[item.key].join('，') + '</p>' +
+                '<p class="text-[10px] pl-8 mt-1"><a href="javascript:void(0)" onclick="goPage(\'policy-radar.html\')" class="font-bold" style="color:' + p.num + '">查看相关政策 <i class="fa fa-arrow-right"></i></a></p>' +
+            '</div>';
+        });
+        document.getElementById('suggestionList').innerHTML = html;
+    }
+
+    // 诊断状态标记
+    window.IS_DIAGNOSED = false;
+
+    // ===== 显示结果面板（诊断完成后调用）=====
+    function revealResults() {
+        window.IS_DIAGNOSED = true;
+        // 隐藏未诊断引导卡片
+        var guide = document.getElementById('resultGuide');
+        if (guide) {
+            guide.style.transition = 'opacity .3s ease, transform .3s ease';
+            guide.style.opacity = '0';
+            guide.style.transform = 'translateY(-8px)';
+            setTimeout(function() { guide.style.display = 'none'; }, 300);
+        }
+        // 显示结果区，带淡入动画
+        var area = document.getElementById('resultArea');
+        if (area) {
+            area.style.display = '';
+            area.style.opacity = '0';
+            area.style.transform = 'translateY(12px)';
+            area.style.transition = 'opacity .5s ease, transform .5s ease';
+            requestAnimationFrame(function() {
+                area.style.opacity = '1';
+                area.style.transform = 'translateY(0)';
+            });
+        }
+        // 更新步骤指示器：步骤1完成 → 步骤2完成 → 步骤3进行中
+        updateStepIndicator(3);
+        // 平滑滚动到结果区
+        setTimeout(function() {
+            if (area) area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 350);
+    }
+
+    // ===== 步骤指示器状态切换 =====
+    function updateStepIndicator(step) {
+        // step: 1=填写信息, 2=开始诊断, 3=查看结果
+        var styles = {
+            active: 'w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold',
+            done: 'w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold',
+            pending: 'w-8 h-8 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold'
+        };
+        var labelStyles = { active: 'ml-2 text-xs font-bold text-slate-700', done: 'ml-2 text-xs font-bold text-green-600', pending: 'ml-2 text-xs font-bold text-slate-400' };
+        var icons = { done: '<i class="fa fa-check"></i>' };
+        for (var i = 1; i <= 3; i++) {
+            var el = document.getElementById('step' + i);
+            var lbl = el ? el.nextElementSibling : null;
+            if (!el) continue;
+            if (i < step) {
+                el.className = styles.done;
+                el.innerHTML = icons.done;
+                if (lbl) lbl.className = labelStyles.done;
+            } else if (i === step) {
+                el.className = styles.active;
+                el.innerHTML = i;
+                if (lbl) lbl.className = labelStyles.active;
+            } else {
+                el.className = styles.pending;
+                el.innerHTML = i;
+                if (lbl) lbl.className = labelStyles.pending;
+            }
+        }
+    }
+
+    // ===== Toast 轻提示 =====
+    function showToast(msg, type) {
+        type = type || 'success';
+        var colors = {
+            success: 'bg-green-500',
+            info: 'bg-blue-500',
+            warn: 'bg-orange-500',
+            error: 'bg-red-500'
+        };
+        var icons = {success:'check-circle', info:'info-circle', warn:'exclamation-triangle', error:'times-circle'};
+        var div = document.createElement('div');
+        div.className = colors[type] + ' text-white px-5 py-3 rounded-xl shadow-xl fixed top-6 right-6 z-[9999] text-sm font-bold flex items-center space-x-2';
+        div.style.opacity = '0';
+        div.style.transform = 'translateX(20px)';
+        div.style.transition = 'all .3s ease';
+        div.innerHTML = '<i class="fa fa-' + icons[type] + '"></i><span>' + msg + '</span>';
+        document.body.appendChild(div);
+        requestAnimationFrame(function() {
+            div.style.opacity = '1';
+            div.style.transform = 'translateX(0)';
+        });
+        setTimeout(function() {
+            div.style.opacity = '0';
+            div.style.transform = 'translateX(20px)';
+            setTimeout(function() { div.remove(); }, 400);
+        }, 2600);
+    }
+
+    // ===== 动态生成匹配政策推荐（复用政策雷达匹配引擎，数据来自政策库）=====
+    function renderPolicyRecommend(scores, inputs) {
+        var container = document.getElementById('policyRecommendList');
+        if (!container) return;
+        // 静态 Tailwind gradient 类，避免 JIT 无法识别动态类名
+        var stylePool = [
+            {cls:'from-blue-50 to-indigo-50 border-blue-100', levelColor:'text-blue-600'},
+            {cls:'from-green-50 to-teal-50 border-teal-100', levelColor:'text-teal-600'},
+            {cls:'from-orange-50 to-yellow-50 border-orange-100', levelColor:'text-orange-600'},
+            {cls:'from-purple-50 to-pink-50 border-purple-100', levelColor:'text-purple-600'},
+            {cls:'from-indigo-50 to-violet-50 border-indigo-100', levelColor:'text-indigo-600'}
+        ];
+
+        // 将诊断表单数据映射为匹配引擎所需的 enterprise 画像格式
+        var ent = {};
+        if (inputs.rdPct) ent.rdRatio = inputs.rdPct;
+        if (inputs.htPct) ent.hiTechRatio = inputs.htPct;
+        if (inputs.revenue) ent.revenue = inputs.revenue;
+        if (inputs.rdAmount) ent.rdInvest = inputs.rdAmount;
+        if (inputs.patent || inputs.software || inputs.utility) ent.ipOwned = '是';
+        // 资质映射
+        var qualEls = document.querySelectorAll('.qual-tag.qual-on');
+        qualEls.forEach(function(el) {
+            var q = el.innerText.replace('✓ ', '').trim();
+            if (q === '高新技术企业') ent.hiTechCert = '是';
+            else if (q === '科技型中小企业') ent.smeCert = '是';
+            else if (q === '专精特新') ent.gazelleCert = '是';
+        });
+        if (inputs.industry) ent.industry = inputs.industry;
+        if (inputs.scale) ent.scale = inputs.scale;
+
+        // 调用政策雷达匹配引擎
+        var policies = [];
+        try {
+            var results = DataBridge.matchPoliciesForEnterprise(ent);
+            policies = results.map(function(r) {
+                return {
+                    level: r.policy.level || '国家级',
+                    match: r.score,
+                    title: r.policy.name,
+                    amount: r.policy.amount || '详见政策'
+                };
+            });
+        } catch(e) {
+            console.warn('[诊断] 匹配引擎调用失败：', e);
+        }
+
+        // 兜底：匹配引擎无结果时显示提示
+        if (!policies.length) {
+            container.innerHTML = '<div class="text-center py-6 text-xs text-slate-400">' +
+                '<i class="fa fa-info-circle text-slate-300 text-2xl mb-2 block"></i>' +
+                '暂无匹配政策，请先在政策库中维护政策条件，或在左侧表单填写更完整的企业信息</div>' +
+                '<div class="flex justify-center mt-3"><button onclick="goServiceMarket()" class="px-6 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all flex items-center"><i class="fa fa-shopping-cart mr-1"></i>找服务补短板</button></div>';
+            return;
+        }
+
+        var cards = policies.slice(0, 4).map(function(p, i) {
+            var st = stylePool[i % stylePool.length];
+            return '<div class="p-3 bg-gradient-to-r ' + st.cls + ' rounded-xl border cursor-pointer hover:shadow-md transition-all">' +
+                '<div class="flex items-center justify-between mb-2">' +
+                '<span class="text-[10px] font-bold ' + st.levelColor + ' bg-white px-2 py-0.5 rounded">' + p.level + '</span>' +
+                '<span class="text-xs font-bold ' + st.levelColor + '">匹配 ' + p.match + '%</span>' +
+                '</div>' +
+                '<h4 class="text-xs font-bold text-slate-800 mb-1">' + p.title + '</h4>' +
+                '<p class="text-[10px] text-slate-500">' + p.amount + '</p>' +
+                '</div>';
+        }).join('');
+        var html = '<div class="grid grid-cols-4 gap-3">' + cards + '</div>' +
+            '<div class="flex justify-end gap-2 mt-4">' +
+            '<button class="px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all">查看全部匹配政策 <i class="fa fa-arrow-right ml-1"></i></button>' +
+            '<button onclick="goServiceMarket()" class="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all flex items-center"><i class="fa fa-shopping-cart mr-1"></i>找服务补短板</button>' +
+            '</div>';
+        container.innerHTML = html;
+    }
+    // 找服务补短板：跳转至服务商城，并通过 localStorage 传递诊断企业名称供商城预选筛选
+    function goServiceMarket() {
+        try {
+            var nameEl = document.getElementById('formName');
+            var indEl = document.getElementById('formIndustry');
+            if (nameEl && nameEl.value) localStorage.setItem('mall_prefilter_keyword', nameEl.value);
+            if (indEl && indEl.value) localStorage.setItem('mall_prefilter_industry', indEl.value);
+        } catch (e) {}
+        goPage('service-market.html');
+    }
+
+    // 开始诊断
+    function startDiagnosis() {
+        var name = document.getElementById('formName').value.trim();
+        var industry = document.getElementById('formIndustry').value;
+        if (!name) { showToast('请填写企业名称', 'warn'); document.getElementById('formName').focus(); return; }
+        if (!industry) { showToast('请选择所属行业', 'warn'); document.getElementById('formIndustry').focus(); return; }
+
+        // 步骤2：开始诊断（进行中）
+        updateStepIndicator(2);
+
+        // 收集表单数据
+        var scaleEl = document.querySelector('input[name="scale"]:checked');
+        var quals = [];
+        document.querySelectorAll('.qual-tag.qual-on').forEach(function(el) {
+            quals.push(el.innerText.replace('✓ ', ''));
+        });
+        var inputs = {
+            name: name,
+            industry: industry,
+            scale: scaleEl ? scaleEl.value : '',
+            quals: quals.length,
+            employees: parseInt(document.getElementById('formEmployees').value) || 0,
+            revenue: parseFloat(document.getElementById('formRevenue').value) || 0,
+            rdPct: parseFloat(document.getElementById('formRdPct').value) || 0,
+            rdAmount: parseFloat(document.getElementById('formRdAmount').value) || 0,
+            patent: parseInt(document.getElementById('formPatent').value) || 0,
+            software: parseInt(document.getElementById('formSoftware').value) || 0,
+            utility: parseInt(document.getElementById('formUtility').value) || 0,
+            htPct: parseFloat(document.getElementById('formHtPct').value) || 0
+        };
+        console.log('[诊断] 提交数据：', inputs);
+
+        // 1. 同步卡片 + 完整度
+        syncCard();
+
+        // 2. 计算6维度评分（同时渲染所有分析模块）
+        var scores = calculateScores();
+
+        // 3. 动态匹配政策推荐
+        renderPolicyRecommend(scores, inputs);
+
+        // 4. 平滑展开所有结果面板
+        revealResults();
+
+        // 5. 成功提示（评级按后台配置的阈值档位）
+        var rating = 'D';
+        for (var r0 = 0; r0 < RATINGS.length; r0++) {
+            if (scores.avg >= RATINGS[r0].min) { rating = RATINGS[r0].grade; break; }
+        }
+        showToast('诊断完成！综合得分 ' + scores.avg + ' 分（评级 ' + rating + '）', 'success');
+        // 触发销售线索回流：诊断行为自动写入线索池（销售在「线索管理」可见）
+        try { if (window.DataBridge && DataBridge.addClue) DataBridge.addClue({ source:'诊断触发', company: name, intent: industry ? (industry + '科创能力诊断') : '科创能力诊断' }); } catch(e) {}
+    }
+
+    // 导出报告
+    function exportReport() {
+        var name = document.getElementById('formName').value.trim();
+        if (!name) { alert('请先填写企业信息并开始诊断'); return; }
+        alert('报告导出\n\n企业：' + name + '\n\nPDF报告正在生成中，生成完成后将自动下载');
+    }
+
+    // 页面初始加载：同步雷达图轴标签（名称来自后台配置）+ 用默认值计算一次
+    DIM_META.slice(0, 6).forEach(function(d, i) {
+        var el = document.getElementById('radarLabel' + i);
+        if (el) el.textContent = d.name;
+    });
+    syncCard();
+</script>
 </body>
 </html>

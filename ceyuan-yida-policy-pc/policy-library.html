@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>政策库管理 - 策源易答运营平台</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(139,92,246,0.18); }
-        .btn-primary { @apply bg-purple-600 hover:bg-purple-700 text-white; }
+        .btn-primary { background-color:var(--color-purple-600);color:var(--color-white); }
+        .btn-primary:hover { background-color:var(--color-purple-700); }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
@@ -27,69 +28,18 @@
             <p class="text-sm text-slate-400 mt-1">运营管理平台 / 政策库管理</p>
         </div>
         <div class="flex items-center space-x-3">
-            <button onclick="openAiParseModal()" class="px-4 py-2.5 bg-white border border-purple-200 text-purple-600 rounded-xl text-sm font-bold hover:bg-purple-50 transition-all flex items-center shadow-sm">
-                <i class="fa fa-magic mr-2"></i>AI智能解析上传
-            </button>
             <button onclick="openEditModal()" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all flex items-center shadow-lg shadow-purple-600/20">
                 <i class="fa fa-plus mr-2"></i>新增政策
             </button>
         </div>
     </div>
 
-    <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div class="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm card-hover transition-all">
-            <div class="flex items-center justify-between mb-3">
-                <div class="w-11 h-11 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
-                    <i class="fa fa-file-text-o text-lg"></i>
-                </div>
-                <span class="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">总数</span>
-            </div>
-            <p class="text-slate-500 text-sm font-medium">政策总数</p>
-            <div class="flex items-baseline space-x-2 mt-1">
-                <h3 class="text-3xl font-black text-slate-800">1,286</h3>
-                <span class="text-xs text-green-500 font-bold"><i class="fa fa-arrow-up"></i> 8.2%</span>
-            </div>
-        </div>
-        <div class="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm card-hover transition-all">
-            <div class="flex items-center justify-between mb-3">
-                <div class="w-11 h-11 bg-green-50 text-green-600 rounded-xl flex items-center justify-center">
-                    <i class="fa fa-calendar-plus-o text-lg"></i>
-                </div>
-                <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">本月</span>
-            </div>
-            <p class="text-slate-500 text-sm font-medium">本月新增</p>
-            <div class="flex items-baseline space-x-2 mt-1">
-                <h3 class="text-3xl font-black text-slate-800">42</h3>
-                <span class="text-xs text-green-500 font-bold"><i class="fa fa-arrow-up"></i> 15.5%</span>
-            </div>
-        </div>
-        <div class="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm card-hover transition-all">
-            <div class="flex items-center justify-between mb-3">
-                <div class="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
-                    <i class="fa fa-clock-o text-lg"></i>
-                </div>
-                <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">30天内</span>
-            </div>
-            <p class="text-slate-500 text-sm font-medium">即将到期</p>
-            <div class="flex items-baseline space-x-2 mt-1">
-                <h3 class="text-3xl font-black text-slate-800">17</h3>
-                <span class="text-xs text-amber-600 font-bold"><i class="fa fa-exclamation-triangle"></i> 待处理</span>
-            </div>
-        </div>
-        <div class="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm card-hover transition-all">
-            <div class="flex items-center justify-between mb-3">
-                <div class="w-11 h-11 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
-                    <i class="fa fa-ban text-lg"></i>
-                </div>
-                <span class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-lg">已停用</span>
-            </div>
-            <p class="text-slate-500 text-sm font-medium">已失效</p>
-            <div class="flex items-baseline space-x-2 mt-1">
-                <h3 class="text-3xl font-black text-slate-800">63</h3>
-                <span class="text-xs text-slate-400 font-bold"><i class="fa fa-arrow-down"></i> 2.1%</span>
-            </div>
-        </div>
+    <!-- 状态流转说明 -->
+    <div class="mb-4 px-4 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl">
+        <p class="text-xs text-slate-600 leading-relaxed">
+            <span class="font-semibold text-slate-700">状态流转：</span>草稿 → 待审核 → 已发布（政策生效中，可更新内容或到期后自动失效）→ 已下架（手动下架或到期失效，不再对外展示，可重新发布）；
+            <span class="font-semibold text-slate-700 ml-1">操作说明：</span>草稿可编辑/提交审核；待审核可审核通过或驳回；已发布可更新/下架；已下架可重新发布。
+        </p>
     </div>
 
     <!-- 搜索筛选 + 列表 -->
@@ -117,10 +67,12 @@
             </select>
             <select class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
                 <option>全部状态</option>
+                <option>草稿</option>
+                <option>待审核</option>
                 <option>已发布</option>
                 <option>即将到期</option>
+                <option>已下架</option>
                 <option>已失效</option>
-                <option>草稿</option>
             </select>
             <button class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all">
                 <i class="fa fa-search mr-1"></i>查询
@@ -145,7 +97,7 @@
                         <th class="px-5 py-3 text-left font-bold">操作</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody id="policyTableBody" class="divide-y divide-slate-100">
                     <tr class="hover:bg-purple-50/30 transition-colors">
                         <td class="px-5 py-4"><input type="checkbox" class="rounded text-purple-600"></td>
                         <td class="px-5 py-4">
@@ -159,8 +111,9 @@
                         <td class="px-5 py-4"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">已发布</span></td>
                         <td class="px-5 py-4">
                             <div class="flex items-center space-x-2 text-xs">
-                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
                                 <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-eye mr-0.5"></i>查看</button>
+                                <button onclick="openEditModal()" class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-refresh mr-0.5"></i>更新</button>
+                                <button class="text-rose-500 hover:text-rose-700 font-bold"><i class="fa fa-arrow-down mr-0.5"></i>下架</button>
                             </div>
                         </td>
                     </tr>
@@ -177,8 +130,9 @@
                         <td class="px-5 py-4"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">已发布</span></td>
                         <td class="px-5 py-4">
                             <div class="flex items-center space-x-2 text-xs">
-                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
                                 <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-eye mr-0.5"></i>查看</button>
+                                <button onclick="openEditModal()" class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-refresh mr-0.5"></i>更新</button>
+                                <button class="text-rose-500 hover:text-rose-700 font-bold"><i class="fa fa-arrow-down mr-0.5"></i>下架</button>
                             </div>
                         </td>
                     </tr>
@@ -195,8 +149,9 @@
                         <td class="px-5 py-4"><span class="px-2 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-md">即将到期</span></td>
                         <td class="px-5 py-4">
                             <div class="flex items-center space-x-2 text-xs">
-                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
                                 <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-eye mr-0.5"></i>查看</button>
+                                <button onclick="openEditModal()" class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-refresh mr-0.5"></i>更新</button>
+                                <button class="text-rose-500 hover:text-rose-700 font-bold"><i class="fa fa-arrow-down mr-0.5"></i>下架</button>
                             </div>
                         </td>
                     </tr>
@@ -213,8 +168,9 @@
                         <td class="px-5 py-4"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">已发布</span></td>
                         <td class="px-5 py-4">
                             <div class="flex items-center space-x-2 text-xs">
-                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
                                 <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-eye mr-0.5"></i>查看</button>
+                                <button onclick="openEditModal()" class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-refresh mr-0.5"></i>更新</button>
+                                <button class="text-rose-500 hover:text-rose-700 font-bold"><i class="fa fa-arrow-down mr-0.5"></i>下架</button>
                             </div>
                         </td>
                     </tr>
@@ -231,8 +187,9 @@
                         <td class="px-5 py-4"><span class="px-2 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-md">即将到期</span></td>
                         <td class="px-5 py-4">
                             <div class="flex items-center space-x-2 text-xs">
-                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
                                 <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-eye mr-0.5"></i>查看</button>
+                                <button onclick="openEditModal()" class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-refresh mr-0.5"></i>更新</button>
+                                <button class="text-rose-500 hover:text-rose-700 font-bold"><i class="fa fa-arrow-down mr-0.5"></i>下架</button>
                             </div>
                         </td>
                     </tr>
@@ -249,8 +206,8 @@
                         <td class="px-5 py-4"><span class="px-2 py-1 bg-slate-100 text-slate-500 text-xs font-bold rounded-md">已失效</span></td>
                         <td class="px-5 py-4">
                             <div class="flex items-center space-x-2 text-xs">
-                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
                                 <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-eye mr-0.5"></i>查看</button>
+                                <button class="text-emerald-600 hover:text-emerald-800 font-bold"><i class="fa fa-upload mr-0.5"></i>重新发布</button>
                             </div>
                         </td>
                     </tr>
@@ -267,8 +224,67 @@
                         <td class="px-5 py-4"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">已发布</span></td>
                         <td class="px-5 py-4">
                             <div class="flex items-center space-x-2 text-xs">
-                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
                                 <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-eye mr-0.5"></i>查看</button>
+                                <button onclick="openEditModal()" class="text-blue-600 hover:text-blue-800 font-bold"><i class="fa fa-refresh mr-0.5"></i>更新</button>
+                                <button class="text-rose-500 hover:text-rose-700 font-bold"><i class="fa fa-arrow-down mr-0.5"></i>下架</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- 草稿状态 -->
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4"><input type="checkbox" class="rounded text-purple-600"></td>
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">上海市知识产权专项补贴</div>
+                            <div class="text-xs text-slate-400 mt-0.5">沪知局〔2025〕（拟）</div>
+                        </td>
+                        <td class="px-5 py-4 text-slate-600">上海市知识产权局</td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-md">市级</span></td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">全行业</span></td>
+                        <td class="px-5 py-4 text-slate-500 text-xs">2025-10-01 至 2028-09-30</td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-slate-50 text-slate-400 text-xs font-bold rounded-md border border-slate-200">草稿</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
+                                <button class="text-amber-600 hover:text-amber-800 font-bold"><i class="fa fa-paper-plane mr-0.5"></i>提交审核</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- 待审核状态 -->
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4"><input type="checkbox" class="rounded text-purple-600"></td>
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">北京市专精特新中小企业认定</div>
+                            <div class="text-xs text-slate-400 mt-0.5">京经信发〔2025〕67号</div>
+                        </td>
+                        <td class="px-5 py-4 text-slate-600">北京市经信局</td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-md">市级</span></td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">制造业 / 软件</span></td>
+                        <td class="px-5 py-4 text-slate-500 text-xs">2025-09-01 至 2028-08-31</td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-md"><i class="fa fa-clock-o mr-0.5"></i>待审核</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-eye mr-0.5"></i>查看</button>
+                                <button class="text-emerald-600 hover:text-emerald-800 font-bold"><i class="fa fa-check mr-0.5"></i>通过</button>
+                                <button class="text-rose-500 hover:text-rose-700 font-bold"><i class="fa fa-times mr-0.5"></i>驳回</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- 已下架状态 -->
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4"><input type="checkbox" class="rounded text-purple-600"></td>
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">广东省制造业单项冠军培育</div>
+                            <div class="text-xs text-slate-400 mt-0.5">粤工信〔2023〕45号</div>
+                        </td>
+                        <td class="px-5 py-4 text-slate-600">广东省工信厅</td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-md">省级</span></td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">高端装备 / 新材料</span></td>
+                        <td class="px-5 py-4 text-slate-500 text-xs">2023-03-01 至 2025-02-28</td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-slate-100 text-slate-400 text-xs font-bold rounded-md"><i class="fa fa-ban mr-0.5"></i>已下架</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-eye mr-0.5"></i>查看</button>
+                                <button class="text-emerald-600 hover:text-emerald-800 font-bold"><i class="fa fa-upload mr-0.5"></i>重新发布</button>
                             </div>
                         </td>
                     </tr>
@@ -278,7 +294,7 @@
 
         <!-- 分页 -->
         <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between text-sm">
-            <span class="text-slate-500">共 <span class="font-bold text-slate-700">1,286</span> 条记录</span>
+            <span class="text-slate-500">共 <span class="font-bold text-slate-700">10</span> 条记录</span>
             <div class="flex items-center space-x-1">
                 <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50"><i class="fa fa-angle-left"></i></button>
                 <button class="w-8 h-8 rounded-lg bg-purple-600 text-white font-bold">1</button>
@@ -311,7 +327,7 @@
                 <div class="grid grid-cols-2 gap-5">
                     <div class="col-span-2">
                         <label class="block text-xs font-bold text-slate-600 mb-2">政策名称 <span class="text-rose-500">*</span></label>
-                        <input type="text" value="高新技术企业认定管理办法" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white">
+                        <input type="text" value="高新技术企业认定管理办法" oninput="refreshAllCitations()" class="policy-name w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-2">发文文号</label>
@@ -319,7 +335,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-2">发文部门 <span class="text-rose-500">*</span></label>
-                        <input type="text" value="科技部" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white">
+                        <input type="text" value="科技部" oninput="refreshAllCitations()" class="policy-dept w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-2">政策层级</label>
@@ -334,16 +350,65 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-2">生效日期</label>
-                        <input type="date" value="2016-01-01" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <label class="block text-xs font-bold text-slate-600 mb-2">政策生效日期 <span class="text-slate-400 font-normal">(文件施行日)</span></label>
+                        <input type="date" oninput="refreshAllCitations()" class="policy-date w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-2">失效日期</label>
-                        <input type="date" value="2025-12-31" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <label class="block text-xs font-bold text-slate-600 mb-2">政策失效日期 <span class="text-slate-400 font-normal">(留空=长期有效)</span></label>
+                        <input type="date" class="policy-expire w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
                     </div>
                     <div class="col-span-2">
-                        <label class="block text-xs font-bold text-slate-600 mb-2">适用条件</label>
-                        <textarea rows="3" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white">注册满一年以上，拥有核心自主知识产权，研发费用占比不低于5%，高新技术产品收入占比不低于60%。</textarea>
+                        <label class="block text-xs font-bold text-slate-600 mb-2">政策原文 <span class="text-slate-400 font-normal">(问答时用于原文引用溯源)</span></label>
+                        <div class="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-purple-300 hover:bg-purple-50/30 transition-all cursor-pointer">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-purple-50 text-purple-500 rounded-lg flex items-center justify-center">
+                                        <i class="fa fa-file-pdf-o text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-700">高新技术企业认定管理办法.pdf</p>
+                                        <p class="text-xs text-slate-400">2.3MB · 2024-03-15 上传</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <button class="px-3 py-1.5 text-xs font-bold text-purple-600 hover:bg-purple-50 rounded-lg"><i class="fa fa-eye mr-1"></i>预览</button>
+                                    <button class="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg"><i class="fa fa-refresh mr-1"></i>替换</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-2">适用条件 <span class="text-slate-400 font-normal">(结构化条件，所有条件共享下方引用来源)</span></label>
+                        <!-- 共享引用块 -->
+                        <div class="citation-shared bg-purple-50/50 border border-purple-100 rounded-xl p-3 mb-2 space-y-2">
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="text-purple-500 font-bold flex items-center gap-1"><i class="fa fa-quote-left"></i>引用来源（共享）</span>
+                                <span class="text-slate-300">|</span>
+                                <span class="cite-title text-slate-700 font-bold"></span>
+                                <span class="text-slate-300">·</span>
+                                <span class="cite-meta text-slate-500"></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-500 shrink-0">章节</span>
+                                <input type="text" class="cite-article flex-1 min-w-[80px] px-2 py-1.5 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-purple-400" placeholder="如：第五条" oninput="updateCitationPreview()">
+                                <span class="text-xs text-slate-500 shrink-0">款项</span>
+                                <input type="text" class="cite-paragraph flex-1 min-w-[80px] px-2 py-1.5 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-purple-400" placeholder="如：第(三)款" oninput="updateCitationPreview()">
+                                <button onclick="setCitationLink()" class="cite-link-btn px-2 py-1.5 text-xs text-purple-500 hover:bg-purple-100 rounded transition-all flex items-center gap-1"><i class="fa fa-link"></i>链接</button>
+                            </div>
+                            <div class="cite-preview bg-white rounded-lg p-2 border border-purple-100"></div>
+                        </div>
+                        <div id="conditionList" class="space-y-2 mb-2"></div>
+                        <button onclick="addCondition()" class="w-full py-2.5 border border-dashed border-slate-300 text-slate-500 rounded-xl text-sm font-bold hover:border-purple-400 hover:text-purple-600 hover:bg-purple-50/30 transition-all flex items-center justify-center">
+                            <i class="fa fa-plus mr-1.5"></i>添加适用条件
+                        </button>
+                    </div>
+                    <!-- 申报批次：政策对应项目的申报窗口（区别于政策有效期），雷达申报日历读取此处 -->
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">申报批次 <span class="text-slate-400 font-normal">(该政策对应项目的申报窗口，如高企一年3批、专精特新一年1批；雷达「申报日历」按批次截止日展示)</span></label>
+                        <div id="batchList" class="space-y-2 mb-2"></div>
+                        <button onclick="addBatch()" class="w-full py-2.5 border border-dashed border-slate-300 text-emerald-600 rounded-xl text-sm font-bold hover:bg-emerald-50/40 transition-all flex items-center justify-center">
+                            <i class="fa fa-plus mr-1.5"></i>添加申报批次
+                        </button>
                     </div>
                     <div class="col-span-2">
                         <label class="block text-xs font-bold text-slate-600 mb-2">扶持措施</label>
@@ -363,48 +428,407 @@
             </div>
             <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-end space-x-3">
                 <button onclick="closeEditModal()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">取消</button>
-                <button onclick="closeEditModal()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-purple-600/20">保存政策</button>
+                <button onclick="savePolicyEdit()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-purple-600/20">保存政策</button>
             </div>
         </div>
     </div>
 
-    <!-- AI智能解析弹窗 -->
-    <div id="aiParseModal" class="fixed inset-0 modal-mask z-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-[20px] shadow-2xl w-full max-w-xl overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 class="text-lg font-black text-slate-800 flex items-center"><i class="fa fa-magic text-purple-600 mr-2"></i>AI智能解析政策文档</h3>
-                <button onclick="closeAiParseModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400"><i class="fa fa-times"></i></button>
-            </div>
-            <div class="p-6">
-                <div class="border-2 border-dashed border-purple-200 rounded-2xl p-10 text-center hover:bg-purple-50/50 transition-all cursor-pointer">
-                    <div class="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <i class="fa fa-cloud-upload text-2xl"></i>
-                    </div>
-                    <p class="text-sm font-bold text-slate-700">点击或拖拽上传政策文件</p>
-                    <p class="text-xs text-slate-400 mt-1">支持 PDF / Word / 图片格式，单个文件最大 20MB</p>
-                </div>
-                <div class="mt-5 bg-purple-50/60 border border-purple-100 rounded-xl p-4">
-                    <p class="text-xs font-bold text-purple-700 mb-2"><i class="fa fa-info-circle mr-1"></i>AI解析能力说明</p>
-                    <ul class="text-xs text-slate-600 space-y-1.5">
-                        <li><i class="fa fa-check-circle text-purple-500 mr-1"></i>自动识别政策名称、文号、发文部门等基本信息</li>
-                        <li><i class="fa fa-check-circle text-purple-500 mr-1"></i>智能提取适用条件、扶持措施、申报材料等关键内容</li>
-                        <li><i class="fa fa-check-circle text-purple-500 mr-1"></i>自动生成匹配标签，便于企业精准匹配</li>
-                        <li><i class="fa fa-check-circle text-purple-500 mr-1"></i>解析完成后可在编辑表单中人工校对修订</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-end space-x-3">
-                <button onclick="closeAiParseModal()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">取消</button>
-                <button onclick="closeAiParseModal()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-purple-600/20"><i class="fa fa-magic mr-1"></i>开始解析</button>
-            </div>
-        </div>
-    </div>
-
+    <script src="data-bridge.js?v=20260916"></script>
     <script>
-        function openEditModal(){ var m=document.getElementById('editModal'); m.classList.remove('hidden'); m.classList.add('flex'); }
+        function openEditModal(policyId){
+            var m=document.getElementById('editModal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+            // 清空条件列表 + 批次列表
+            document.getElementById('conditionList').innerHTML = '';
+            clearBatches();
+            if (policyId) {
+                // 编辑现有政策：回填条件
+                var p = POLICY_LIBRARY.find(function(x){return x.id === policyId;});
+                if (p) {
+                    m.querySelector('.policy-name').value = p.name || '';
+                    m.querySelector('.policy-dept').value = p.dept || '';
+                    m.querySelector('.policy-date').value = p.effective || '';
+                    m.querySelector('.policy-expire').value = p.expire || '';
+                    // 回填条件
+                    var conds = p.conditions || [];
+                    if (conds.length === 0) conds = defaultConditions;
+                    conds.forEach(function(c){ addCondition({type:c.type, operator:c.op, value:c.val}); });
+                    // 回填申报批次
+                    (p.batches || []).forEach(function(b){ addBatch(b); });
+                } else {
+                    defaultConditions.forEach(function(c){ addCondition(c); });
+                }
+                m.dataset.editingId = policyId;
+            } else {
+                // 新建政策
+                m.querySelector('.policy-date').value = '';
+                m.querySelector('.policy-expire').value = '';
+                defaultConditions.forEach(function(c){ addCondition(c); });
+                addBatch();
+                m.dataset.editingId = '';
+            }
+            updateCitationPreview();
+        }
         function closeEditModal(){ var m=document.getElementById('editModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
-        function openAiParseModal(){ var m=document.getElementById('aiParseModal'); m.classList.remove('hidden'); m.classList.add('flex'); }
-        function closeAiParseModal(){ var m=document.getElementById('aiParseModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+        // ===== 申报批次（申报窗口）动态行 =====
+        function addBatch(data) {
+            data = data || {};
+            var list = document.getElementById('batchList');
+            var row = document.createElement('div');
+            row.className = 'batch-row flex items-center gap-2 bg-emerald-50/40 border border-emerald-100 rounded-xl p-2.5';
+            row.innerHTML =
+                '<input type="text" class="batch-name flex-1 min-w-[130px] px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="批次名称，如：2026年第三批" value="' + (data.name || '') + '">' +
+                '<span class="text-xs text-slate-400 flex-shrink-0">申报</span>' +
+                '<input type="date" class="batch-start px-2 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" value="' + (data.start || '') + '">' +
+                '<span class="text-xs text-slate-400 flex-shrink-0">至</span>' +
+                '<input type="date" class="batch-end px-2 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" value="' + (data.end || '') + '">' +
+                '<button type="button" onclick="this.closest(\'.batch-row\').remove()" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0"><i class="fa fa-trash-o"></i></button>';
+            list.appendChild(row);
+        }
+        function clearBatches() { document.getElementById('batchList').innerHTML = ''; }
+        // 收集批次：截止日必填，开始日可空；开始日晚于截止日时给出提示
+        function collectBatches() {
+            var rows = document.querySelectorAll('#batchList .batch-row');
+            var batches = [];
+            for (var i = 0; i < rows.length; i++) {
+                var name = rows[i].querySelector('.batch-name').value.trim() || ('第' + (i + 1) + '批');
+                var start = rows[i].querySelector('.batch-start').value;
+                var end = rows[i].querySelector('.batch-end').value;
+                if (!end) continue;
+                if (start && start > end) {
+                    alert('申报批次「' + name + '」的开始日期晚于截止日期，请检查');
+                    return null;
+                }
+                batches.push({ name: name, start: start, end: end });
+            }
+            return batches;
+        }
+
+        // 收集条件列表 → 条件数组
+        function collectConditions() {
+            var rows = document.querySelectorAll('#conditionList .condition-row');
+            var conditions = [];
+            rows.forEach(function(row) {
+                var type = row.querySelector('.cond-type').value;
+                var op = row.querySelector('.cond-op').value;
+                var val = row.querySelector('.cond-val').value;
+                if (type) conditions.push({ type: type, op: op, val: val });
+            });
+            return conditions;
+        }
+
+        // 保存政策（收集条件 + 持久化）
+        function savePolicyEdit() {
+            var m = document.getElementById('editModal');
+            var name = m.querySelector('.policy-name').value || '未命名政策';
+            var dept = m.querySelector('.policy-dept').value || '';
+            var dateStr = m.querySelector('.policy-date').value || '';
+            var expireStr = m.querySelector('.policy-expire').value || '';
+            var conditions = collectConditions();
+            var batches = collectBatches();
+            if (batches === null) return; // 批次日期校验未通过
+            var editingId = m.dataset.editingId;
+
+            if (editingId) {
+                // 更新现有政策
+                var p = POLICY_LIBRARY.find(function(x){return x.id === editingId;});
+                if (p) {
+                    p.name = name;
+                    p.dept = dept;
+                    p.effective = dateStr;
+                    p.expire = expireStr;
+                    p.conditions = conditions;
+                    p.batches = batches;
+                }
+            } else {
+                // 新建政策
+                var newId = 'POLICY_' + Date.now();
+                POLICY_LIBRARY.push({
+                    id: newId, name: name, dept: dept, level: '国家级', industry: '',
+                    effective: dateStr, expire: expireStr, conditions: conditions, batches: batches
+                });
+            }
+
+            // 持久化
+            if (typeof DataBridge !== 'undefined') {
+                DataBridge.savePolicyLibrary(POLICY_LIBRARY);
+            }
+            closeEditModal();
+            // 刷新列表显示
+            renderPolicyList();
+            alert('政策已保存（含 ' + conditions.length + ' 条申报条件、' + batches.length + ' 个申报批次）\n雷达匹配与申报日历将实时读取最新数据');
+        }
+
+        // 基于申报批次判断当前申报状态（政策有效期仅作政策效力参考，不代表申报窗口）
+        function policyStatus(policy) {
+            var batches = (policy.batches || []).filter(function(b){ return b && b.end; });
+            if (batches.length === 0) return { cls: 'bg-slate-50 text-slate-400', text: '未设申报批次', batchName: '' };
+            var today = new Date(); today.setHours(0, 0, 0, 0);
+            function dayd(s){ var a=String(s).split('-'); return new Date(+a[0], +a[1]-1, +a[2]); }
+            function daysTo(end){ return Math.round((dayd(end).getTime() - today.getTime()) / 86400000); }
+            // 先找"申报中"的批次（开始日≤今天≤截止日）
+            var open = batches.find(function(b){
+                var s = b.start ? dayd(b.start) : null;
+                var e = dayd(b.end);
+                return (!s || today.getTime() >= s.getTime()) && today.getTime() <= e.getTime();
+            });
+            if (open) return { cls: 'bg-green-50 text-green-600', text: '申报中', batchName: open.name + '（剩余' + daysTo(open.end) + '天）' };
+            // 再找最近的"未开始"批次
+            var upcoming = batches.filter(function(b){ return !b.start || today.getTime() < dayd(b.start).getTime(); })
+                .sort(function(a,b){ return dayd(a.start||a.end).getTime()-dayd(b.start||b.end).getTime(); })[0];
+            if (upcoming) return { cls: 'bg-blue-50 text-blue-600', text: '即将申报', batchName: upcoming.name };
+            // 其余为已截止
+            var closed = batches.sort(function(a,b){ return dayd(b.end).getTime()-dayd(a.end).getTime(); })[0];
+            return { cls: 'bg-slate-100 text-slate-400', text: '本批已截止', batchName: closed.name };
+        }
+
+        // 渲染政策列表（带条件数量 + 申报批次数量）
+        function renderPolicyList() {
+            var tbody = document.querySelector('#policyTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            POLICY_LIBRARY.forEach(function(p) {
+                var condCount = (p.conditions || []).length;
+                var batchCount = (p.batches || []).length;
+                var st = policyStatus(p);
+                var period = (p.effective || '—') + ' 至 ' + (p.expire || '长期有效');
+                var tr = document.createElement('tr');
+                tr.className = 'hover:bg-purple-50/30 transition-colors';
+                tr.innerHTML =
+                    '<td class="px-5 py-4"><input type="checkbox" class="rounded text-purple-600"></td>' +
+                    '<td class="px-5 py-4"><div class="font-bold text-slate-800">' + p.name + '</div><div class="text-xs text-slate-400">' + p.id + '</div></td>' +
+                    '<td class="px-5 py-4 text-slate-600">' + (p.dept || '') + '</td>' +
+                    '<td class="px-5 py-4"><span class="px-2 py-1 ' + (p.level === '国家级' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600') + ' text-xs font-bold rounded-md">' + (p.level || '') + '</span></td>' +
+                    '<td class="px-5 py-4 text-xs text-slate-500">' + (p.industry || '') + '</td>' +
+                    '<td class="px-5 py-4 text-slate-500 text-xs whitespace-nowrap" title="政策有效期（非申报窗口）">' + period + '</td>' +
+                    '<td class="px-5 py-4"><span class="px-2 py-1 ' + st.cls + ' text-xs font-bold rounded-md" title="' + (st.batchName || '') + '">' + st.text + '</span>' +
+                        (st.batchName ? '<div class="text-[10px] text-slate-400 mt-1">' + st.batchName + '</div>' : '') + '</td>' +
+                    '<td class="px-5 py-4">' +
+                        (condCount > 0
+                            ? '<span class="px-2 py-1 bg-purple-50 text-purple-600 text-xs font-bold rounded-md mr-2">' + condCount + ' 条条件</span>'
+                            : '<span class="text-xs text-slate-400 mr-2">未配置条件</span>') +
+                        '<span class="px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-md mr-2">' + batchCount + ' 批次</span>' +
+                        '<button onclick="openEditModal(\'' + p.id + '\')" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>' +
+                    '</td>';
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 政策库数据（与表格默认内容一致，作为初始数据源）
+        let POLICY_LIBRARY = [
+            { id:'GAOXIN',     name:'高新技术企业认定管理办法', dept:'科技部',         level:'国家级', industry:'信息技术', effective:'2016-01-01', expire:'2025-12-31' },
+            { id:'R&D_JJ',     name:'研发费用加计扣除政策',     dept:'财政部 / 税务总局', level:'国家级', industry:'全行业',   effective:'2023-01-01', expire:'2027-12-31' },
+            { id:'LIXIANG_ZJ', name:'研发项目立项补贴',         dept:'地方科技局',     level:'省级',   industry:'信息技术', effective:'2020-01-01', expire:'2025-12-31' },
+            { id:'CGZH',       name:'科技成果转化补贴',         dept:'地方科技局',     level:'省级',   industry:'信息技术', effective:'2021-01-01', expire:'2025-12-31' },
+            { id:'ZHUANJIN',   name:'专精特新企业奖励',         dept:'工信部',         level:'国家级', industry:'高端装备', effective:'2022-01-01', expire:'2026-12-31' },
+            { id:'DENGLING',   name:'瞪羚企业认定奖励',         dept:'地方科技局',     level:'省级',   industry:'信息技术', effective:'2021-06-01', expire:'2025-12-31' }
+        ];
+
+        // 保存政策库到 localStorage（供收益模型等其他模块读取）
+        function savePolicyLibrary() {
+            if (typeof DataBridge === 'undefined') {
+                alert('DataBridge 未加载，无法保存');
+                return;
+            }
+            const ok = DataBridge.savePolicyLibrary(POLICY_LIBRARY);
+            if (ok) {
+                alert('政策库已保存（' + POLICY_LIBRARY.length + ' 条），其他模块可读取使用');
+            } else {
+                alert('保存失败');
+            }
+        }
+
+        // 页面加载时初始化：统一以 DataBridge 政策库为权威数据源（含申报条件/批次；旧数据自动迁移）
+        (function init() {
+            if (typeof DataBridge !== 'undefined') {
+                // loadPolicyLibrary 内部会处理：空→默认种子；旧数据无 batches→按 id 合并默认批次
+                POLICY_LIBRARY = DataBridge.loadPolicyLibrary();
+                // 若 localStorage 为空或为旧结构，落盘一次确保后续页面读到一致数据
+                var stored = null;
+                try { stored = JSON.parse(localStorage.getItem('ceyuan_policy_library') || 'null'); } catch (e) {}
+                var isOld = stored && Array.isArray(stored) && stored.length && stored.every(function(p){ return !Array.isArray(p.batches); });
+                if (!stored || isOld) {
+                    DataBridge.savePolicyLibrary(POLICY_LIBRARY);
+                }
+            }
+        })();
+
+        // 预定义条件类型库
+        const CONDITION_TYPES = {
+            duration:     { label: '企业成立年限', unit: '年',   type: 'number',  operators: ['≥', '≤', '='] },
+            rdRatio:      { label: '研发费用占比', unit: '%',    type: 'number',  operators: ['≥', '≤', '='] },
+            hiTechRatio:  { label: '高新产品收入占比', unit: '%', type: 'number',  operators: ['≥', '≤', '='] },
+            ipOwned:      { label: '核心自主知识产权', unit: '',  type: 'select',  operators: ['是', '否'] },
+            scale:        { label: '企业规模',     unit: '',     type: 'select',  operators: ['小微企业', '中型企业', '大型企业'] },
+            industry:     { label: '行业类型',     unit: '',     type: 'select',  operators: ['信息技术', '高端装备', '生物医药', '新材料', '新能源', '制造业', '软件', '全行业'] },
+            region:       { label: '注册地区',     unit: '',     type: 'text',    operators: ['=', '包含'] },
+            employees:    { label: '员工人数',     unit: '人',   type: 'number',  operators: ['≥', '≤', '='] },
+            rdInvest:     { label: '年度研发投入', unit: '万元', type: 'number',  operators: ['≥', '≤', '='] },
+            revenue:      { label: '年度营业收入', unit: '万元', type: 'number',  operators: ['≥', '≤', '='] },
+            netAssets:    { label: '净资产',       unit: '万元', type: 'number',  operators: ['≥', '≤', '='] },
+            capital:      { label: '注册资本',     unit: '万元', type: 'number',  operators: ['≥', '≤', '='] },
+            hiTechCert:   { label: '高新技术企业资质', unit: '', type: 'select', operators: ['是', '否'] },
+            smeCert:      { label: '科技型中小企业', unit: '',   type: 'select',  operators: ['是', '否'] },
+            gazelleCert:  { label: '专精特新资质', unit: '',     type: 'select',  operators: ['是', '否', '瞪羚', '独角兽'] },
+            profit:       { label: '年度净利润',   unit: '万元', type: 'number',  operators: ['≥', '≤', '='] },
+            taxRegion:    { label: '税收洼地',     unit: '',     type: 'select',  operators: ['是', '否'] },
+            exportRatio:  { label: '出口收入占比', unit: '%',    type: 'number',  operators: ['≥', '≤', '='] }
+        };
+
+        // 获取政策基本信息（用于自动填充引用）
+        function getPolicyInfo() {
+            const getName = () => document.querySelector('.policy-name')?.value || '高新技术企业认定管理办法';
+            const getDept = () => document.querySelector('.policy-dept')?.value || '科技部';
+            const getDate = () => document.querySelector('.policy-date')?.value || '2016-01-01';
+            const year = getDate().split('-')[0] || '2016';
+            return { name: getName(), dept: getDept(), year };
+        }
+
+        function refreshAllCitations() {
+            updateCitationPreview();
+        }
+
+        // 共享引用块预览
+        function updateCitationPreview() {
+            const info = getPolicyInfo();
+            const container = document.querySelector('.citation-shared');
+            if (!container) return;
+            const article = container.querySelector('.cite-article')?.value || '';
+            const paragraph = container.querySelector('.cite-paragraph')?.value || '';
+            const linkInput = container.querySelector('.cite-link');
+            const link = linkInput?.value || '';
+
+            // 更新标题行（自动关联）
+            const titleEl = container.querySelector('.cite-title');
+            const metaEl = container.querySelector('.cite-meta');
+            if (titleEl) titleEl.textContent = info.name;
+            if (metaEl) metaEl.textContent = `${info.dept} · ${info.year}年 · ${article}${paragraph ? ' · ' + paragraph : ''}`;
+
+            // 更新预览（前端效果）
+            const preview = container.querySelector('.cite-preview');
+            if (preview) {
+                const refText = [info.dept, info.year + '年', article, paragraph].filter(Boolean).join(' · ');
+                preview.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-5 h-5 bg-purple-500 text-white rounded-full text-xs flex items-center justify-center font-bold">↗</span>
+                            <span class="text-sm font-bold text-slate-800">${info.name}</span>
+                        </div>
+                        ${link ? '<i class="fa fa-external-link text-xs text-purple-400"></i>' : ''}
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5 ml-7">${refText}</p>
+                `;
+            }
+        }
+
+        // 设置共享引用链接
+        function setCitationLink() {
+            const container = document.querySelector('.citation-shared');
+            let linkInput = container.querySelector('.cite-link');
+            if (!linkInput) {
+                linkInput = document.createElement('input');
+                linkInput.type = 'hidden';
+                linkInput.className = 'cite-link';
+                container.appendChild(linkInput);
+            }
+            const url = prompt('输入原文链接地址：', linkInput.value || '');
+            if (url !== null) {
+                linkInput.value = url;
+                updateCitationPreview();
+            }
+        }
+
+        // 初始化默认条件（高新技术企业示例，不再含 per-row 引用）
+        const defaultConditions = [
+            { type: 'duration', operator: '≥', value: '1' },
+            { type: 'ipOwned', operator: '是', value: '' },
+            { type: 'rdRatio', operator: '≥', value: '5' },
+            { type: 'hiTechRatio', operator: '≥', value: '60' }
+        ];
+
+        function addCondition(data) {
+            data = data || {};
+            const list = document.getElementById('conditionList');
+            const row = document.createElement('div');
+            row.className = 'condition-row flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5';
+
+            // 条件类型
+            const typeSelect = document.createElement('select');
+            typeSelect.className = 'cond-type flex-1 min-w-[120px] px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500';
+            Object.keys(CONDITION_TYPES).forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = CONDITION_TYPES[key].label;
+                if (data.type === key) opt.selected = true;
+                typeSelect.appendChild(opt);
+            });
+            typeSelect.onchange = () => updateOperators(row, typeSelect.value);
+
+            // 运算符
+            const opSelect = document.createElement('select');
+            opSelect.className = 'cond-op w-20 px-2 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-center';
+
+            // 值输入
+            const valueInput = document.createElement('input');
+            valueInput.type = 'text';
+            valueInput.className = 'cond-val flex-1 min-w-[100px] px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500';
+
+            // 单位提示
+            const unitSpan = document.createElement('span');
+            unitSpan.className = 'cond-unit text-xs text-slate-400 w-10 text-left';
+
+            // 删除按钮
+            const delBtn = document.createElement('button');
+            delBtn.className = 'w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all';
+            delBtn.innerHTML = '<i class="fa fa-trash-o"></i>';
+            delBtn.onclick = () => row.remove();
+
+            row.appendChild(typeSelect);
+            row.appendChild(opSelect);
+            row.appendChild(valueInput);
+            row.appendChild(unitSpan);
+            row.appendChild(delBtn);
+            list.appendChild(row);
+
+            typeSelect.value = data.type || 'duration';
+            updateOperators(row, typeSelect.value, data.operator, data.value);
+        }
+
+        function updateOperators(row, typeKey, presetOp, presetVal) {
+            const config = CONDITION_TYPES[typeKey];
+            const opSelect = row.querySelector('.cond-op');
+            const valueInput = row.querySelector('.cond-val');
+            const unitSpan = row.querySelector('.cond-unit');
+
+            opSelect.innerHTML = '';
+            config.operators.forEach(op => {
+                const opt = document.createElement('option');
+                opt.value = op;
+                opt.textContent = op;
+                if (presetOp === op) opt.selected = true;
+                opSelect.appendChild(opt);
+            });
+
+            valueInput.placeholder = config.type === 'number' ? '输入数值' : '';
+            valueInput.type = config.type === 'number' ? 'number' : 'text';
+            valueInput.value = presetVal !== undefined ? presetVal : '';
+
+            unitSpan.textContent = config.unit || '';
+        }
+
+        // 初始化
+        defaultConditions.forEach(c => addCondition(c));
+        // 共享引用默认值（高新技术企业认定办法第五条）
+        const sharedCite = document.querySelector('.citation-shared');
+        if (sharedCite) {
+            sharedCite.querySelector('.cite-article').value = '第五条';
+            sharedCite.querySelector('.cite-paragraph').value = '第(一)款';
+        }
+        updateCitationPreview();
+        // 渲染政策列表（带条件数量）
+        renderPolicyList();
     </script>
 </body>
 </html>

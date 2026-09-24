@@ -5,110 +5,505 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="asset-data.js"></script>
 </head>
 <body class="bg-slate-50 p-6 min-h-screen">
     <div class="max-w-[1400px] mx-auto">
         <!-- 头部 -->
-        <div class="flex justify-between items-center mb-8">
+        <div class="flex justify-between items-center mb-8 flex-wrap gap-4">
             <div>
                 <h1 class="text-2xl font-black text-slate-800">证书与进度管理</h1>
-                <p class="text-sm text-slate-400 mt-1">像管存折一样管理您的专利、商标和版权证书</p>
+                <p class="text-sm text-slate-400 mt-1">跟踪新申请的审查进度，拿证后经「取得入库」审批进入资产档案；同时提醒盘活沉睡证书</p>
             </div>
-            <div class="bg-orange-50 px-4 py-2 rounded-xl border border-orange-100 flex items-center">
-                <i class="fa fa-clock-o text-orange-500 mr-2"></i>
-                <span class="text-xs font-bold text-orange-600">有 3 个证书该交年费了，别忘了哦！</span>
-            </div>
+            <button onclick="goFeePage()" class="bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-xl border border-amber-200 flex items-center transition-all">
+                <i class="fa fa-bell text-amber-500 mr-2"></i>
+                <span class="text-xs font-bold text-amber-600">年费 / 续展预警</span>
+                <i class="fa fa-chevron-right text-amber-400 ml-2 text-[10px]"></i>
+            </button>
         </div>
 
-        <!-- 第一部分：正在申请中的 -->
-        <div class="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm mb-8">
-            <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center">
-                <i class="fa fa-send-o mr-2 text-blue-600"></i> 正在申请中的宝贝 (进度跟踪)
-            </h3>
-            <div class="flex items-center justify-between px-10 relative">
-                <div class="absolute top-1/2 left-20 right-20 h-0.5 bg-slate-100 -translate-y-1/2 -z-0"></div>
-                <div class="absolute top-1/2 left-20 w-1/2 h-0.5 bg-blue-600 -translate-y-1/2 -z-0"></div>
-                
-                <div class="relative z-10 text-center">
-                    <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg shadow-blue-100">
-                        <i class="fa fa-pencil"></i>
-                    </div>
-                    <p class="text-[10px] font-bold text-slate-800">写交底书</p>
+        <!-- 选项卡：申请中 / 沉睡宝贝 -->
+        <div class="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+            <div class="flex items-center border-b border-slate-100">
+                <button onclick="switchTab('pending')" id="tabPending" class="tab-btn flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 border-b-2 border-blue-600 text-blue-600 transition-all">
+                    <i class="fa fa-send-o"></i>正在申请中的宝贝 <span id="pendingCount" class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-full">0</span>
+                </button>
+                <button onclick="switchTab('sleep')" id="tabSleep" class="tab-btn flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all">
+                    <i class="fa fa-moon-o"></i>沉睡的宝贝 <span id="sleepCount" class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] rounded-full">0</span>
+                </button>
+            </div>
+
+            <!-- 面板：申请中 -->
+            <div id="panelPending" class="p-8">
+                <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                    <p class="text-xs text-slate-400">跟踪新申请的审查进度，拿证后需经「取得入库」审批才进入资产档案</p>
+                    <button onclick="openNewApply()" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-all">
+                        <i class="fa fa-plus mr-1"></i>登记新申请
+                    </button>
                 </div>
-                <div class="relative z-10 text-center">
-                    <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg shadow-blue-100">
-                        <i class="fa fa-send"></i>
+                <div class="flex flex-wrap items-center gap-2 mb-4">
+                    <div class="relative flex-1 min-w-[200px]">
+                        <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                        <input id="fKw" oninput="renderPending()" type="text" placeholder="搜索资产名称 / 申请号..." class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-transparent rounded-xl text-xs focus:bg-white focus:border-blue-300 outline-none transition-all">
                     </div>
-                    <p class="text-[10px] font-bold text-slate-800">已经递交</p>
+                    <select id="fType" onchange="renderPending()" class="px-3 py-2 bg-slate-50 border border-transparent rounded-xl text-xs font-bold text-slate-600 outline-none cursor-pointer">
+                        <option value="">全部类型</option>
+                        <option>发明专利</option><option>实用新型</option><option>软件著作权</option><option>商标</option>
+                    </select>
+                    <select id="fStep" onchange="renderPending()" class="px-3 py-2 bg-slate-50 border border-transparent rounded-xl text-xs font-bold text-slate-600 outline-none cursor-pointer">
+                        <option value="">全部阶段</option>
+                        <option value="0">写交底书</option>
+                        <option value="1">已经递交</option>
+                        <option value="2">正在审查</option>
+                        <option value="warehousing">待入库</option>
+                    </select>
                 </div>
-                <div class="relative z-10 text-center">
-                    <div class="w-10 h-10 bg-white border-4 border-blue-600 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg animate-pulse">
-                        <i class="fa fa-search"></i>
-                    </div>
-                    <p class="text-[10px] font-bold text-blue-600 font-black">正在审查</p>
-                </div>
-                <div class="relative z-10 text-center opacity-40">
-                    <div class="w-10 h-10 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <i class="fa fa-check"></i>
-                    </div>
-                    <p class="text-[10px] font-bold text-slate-400">成功拿证</p>
-                </div>
+                <div id="pendingList" class="space-y-2"></div>
+            </div>
+
+            <!-- 面板：沉睡宝贝 -->
+            <div id="panelSleep" class="p-8 hidden">
+                <p class="text-xs text-slate-400 mb-4">这些资产近一年没有摊销收益、没关联项目、也没用于政策申报。点开看看，要么用起来变现，要么别再白交年费。</p>
+                <div id="sleepList" class="space-y-2"></div>
             </div>
         </div>
+    </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <!-- 缴费提醒 -->
-            <div class="bg-slate-900 rounded-[32px] p-8 text-white">
-                <h3 class="text-xs font-bold uppercase tracking-widest text-orange-400 mb-6">年费提醒 (别让证书失效)</h3>
-                <div class="space-y-4">
-                    <div class="p-4 bg-white/5 border border-white/10 rounded-2xl flex justify-between items-center">
-                        <div>
-                            <p class="text-xs font-bold">智能控制算法专利</p>
-                            <p class="text-[9px] text-red-400 font-bold mt-1">还有 15 天到期</p>
-                        </div>
-                        <button class="px-3 py-1 bg-blue-600 text-[10px] rounded-lg">去缴费</button>
+    <!-- 登记新申请弹窗 -->
+    <div id="newApplyMask" class="hidden fixed inset-0 bg-black/50 z-50 items-center justify-center">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="px-6 py-4 bg-blue-600 text-white flex justify-between items-center">
+                <div>
+                    <p class="text-sm font-black"><i class="fa fa-send-o mr-1"></i>登记新申请</p>
+                    <p class="text-[10px] opacity-80 mt-0.5">登记后进入申请进度跟踪，可逐步推进到拿证</p>
+                </div>
+                <button onclick="closeNewApply()" class="w-8 h-8 hover:bg-white/20 rounded-lg transition-all"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">资产名称 <span class="text-red-400">*</span></label>
+                    <input id="naName" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500" placeholder="如：一种新型节能电机控制方法">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">资产类型 <span class="text-red-400">*</span></label>
+                    <select id="naType" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500">
+                        <option>发明专利</option><option>实用新型</option><option>软件著作权</option><option>商标</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">申请号 / 受理号</label>
+                    <input id="naCertNo" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500" placeholder="如：202610xxxxxx.x（拿到受理通知书后补填）">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 mb-1 block">已投入研发费用(万)</label>
+                        <input id="naCost" type="number" min="0" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500">
                     </div>
-                    <div class="p-4 bg-white/5 border border-white/10 rounded-2xl flex justify-between items-center">
-                        <div>
-                            <p class="text-xs font-bold">边缘计算协议</p>
-                            <p class="text-[9px] text-orange-400 font-bold mt-1">还有 42 天到期</p>
-                        </div>
-                        <button class="px-3 py-1 bg-white/10 text-[10px] rounded-lg">设提醒</button>
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 mb-1 block">申请日期 <span class="text-red-400">*</span></label>
+                        <input id="naDate" type="date" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500">
                     </div>
                 </div>
-            </div>
-
-            <!-- 已经拿到的证书 -->
-            <div class="md:col-span-2 bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm">
-                <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-6">我已经拿到的证书 (最近更新)</h3>
-                <div class="space-y-3">
-                    <div class="flex items-center p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100">
-                        <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mr-4 text-xl">
-                            <i class="fa fa-file-text-o"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-bold text-slate-800">一种工业传感器控制算法</p>
-                            <p class="text-[10px] text-slate-400">证书号：ZL20241000...</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="px-2 py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded">有效中</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100">
-                        <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mr-4 text-xl">
-                            <i class="fa fa-code"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-bold text-slate-800">边缘计算网关软件 V2.0</p>
-                            <p class="text-[10px] text-slate-400">登记号：2025SR012...</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="px-2 py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded">有效中</span>
-                        </div>
-                    </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">当前进度</label>
+                    <select id="naStep" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500">
+                        <option value="0">写交底书（尚未递交）</option>
+                        <option value="1">已经递交（等待审查）</option>
+                        <option value="2">正在审查（已收到审查意见）</option>
+                    </select>
+                    <p class="text-[10px] text-slate-400 mt-1">选择当前所在节点，之后可在列表中继续推进</p>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button onclick="closeNewApply()" class="px-4 py-2 text-slate-500 text-xs font-bold hover:bg-slate-50 rounded-xl transition-all">取消</button>
+                    <button onclick="confirmNewApply()" class="px-5 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-all">确认登记</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- 推进申报进度弹窗 -->
+    <div id="advanceMask" class="hidden fixed inset-0 bg-black/50 z-50 items-center justify-center">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="px-6 py-4 bg-blue-600 text-white flex justify-between items-center">
+                <div>
+                    <p class="text-sm font-black"><i class="fa fa-forward mr-1"></i>推进申报进度</p>
+                    <p class="text-[10px] opacity-80 mt-0.5" id="advAssetName">—</p>
+                </div>
+                <button onclick="closeAdvance()" class="w-8 h-8 hover:bg-white/20 rounded-lg transition-all"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="advAssetId">
+                <input type="hidden" id="advTargetStep">
+                <div>
+                    <p class="text-[11px] font-bold text-slate-400 mb-1">即将推进到</p>
+                    <p class="text-base font-black text-blue-600" id="advStepLabel">—</p>
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">完成日期 <span class="text-red-400">*</span></label>
+                    <input id="advDate" type="date" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">操作人</label>
+                    <input id="advOperator" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500" placeholder="如：张工 / 李经理">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">备注</label>
+                    <input id="advNote" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500" placeholder="如：已交专利局 / 实审通知书收到">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">附件（文件名，模拟上传）</label>
+                    <input id="advAttachment" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-500" placeholder="如：受理通知书.pdf">
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button onclick="closeAdvance()" class="px-4 py-2 text-slate-500 text-xs font-bold hover:bg-slate-50 rounded-xl transition-all">取消</button>
+                    <button onclick="confirmAdvance()" class="px-5 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-all">确认推进</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 盘活沉睡资产弹窗 -->
+    <div id="wakeUpMask" class="hidden fixed inset-0 bg-black/50 z-50 items-center justify-center">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            <div class="px-6 py-4 bg-slate-800 text-white flex justify-between items-center">
+                <div>
+                    <p class="text-sm font-black"><i class="fa fa-sun-o mr-1"></i>唤醒沉睡的宝贝</p>
+                    <p class="text-[10px] opacity-80 mt-0.5" id="wuName">—</p>
+                </div>
+                <button onclick="closeWakeUp()" class="w-8 h-8 hover:bg-white/20 rounded-lg transition-all"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-3">
+                <p class="text-[11px] text-slate-400 leading-relaxed bg-slate-50 rounded-xl p-3"><i class="fa fa-moon-o mr-1"></i>沉睡原因：<span id="wuReason">—</span></p>
+
+                <!-- 途径 1：自己用起来（直接闭环） -->
+                <div class="border border-emerald-200 bg-emerald-50/50 rounded-2xl p-4">
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center mr-3 flex-shrink-0"><i class="fa fa-play"></i></div>
+                        <div class="flex-1">
+                            <p class="text-xs font-black text-emerald-700">已经用起来了（产品 / 项目 / 宣传）</p>
+                            <p class="text-[10px] text-slate-400 mt-0.5">确认后取消沉睡标记，资产回到活跃列表并继续计算摊销收益</p>
+                            <input id="wuNote" class="w-full mt-2 px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-emerald-500" placeholder="用在哪里？如：已用于新一代 XX 产品 / 官网和包装标注">
+                            <button onclick="confirmWakeUp()" class="mt-2 w-full py-2 bg-emerald-500 text-white text-xs font-bold rounded-xl hover:bg-emerald-600 transition-all"><i class="fa fa-check mr-1"></i>确认已用起来</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 途径 2/3/4：跳转对应业务模块完成盘活 -->
+                <div class="border border-slate-200 rounded-2xl p-4 flex items-center">
+                    <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mr-3 flex-shrink-0"><i class="fa fa-file-text-o"></i></div>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold text-slate-700">用于政策申报</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">高企 / 专精特新申报需要知识产权支撑</p>
+                    </div>
+                    <button onclick="closeWakeUp();goPage('contract.html')" class="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-lg hover:bg-blue-700 flex-shrink-0">去合同管理</button>
+                </div>
+
+                <div class="border border-slate-200 rounded-2xl p-4 flex items-center">
+                    <div class="w-8 h-8 bg-violet-100 text-violet-600 rounded-lg flex items-center justify-center mr-3 flex-shrink-0"><i class="fa fa-handshake-o"></i></div>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold text-slate-700">对外许可或转让</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">签许可合同赚授权费，或直接转让变现</p>
+                    </div>
+                    <button onclick="closeWakeUp();goPage('contract.html')" class="px-3 py-1.5 bg-violet-600 text-white text-[10px] font-bold rounded-lg hover:bg-violet-700 flex-shrink-0">去合同管理</button>
+                </div>
+
+                <div class="border border-slate-200 rounded-2xl p-4 flex items-center">
+                    <div class="w-8 h-8 bg-red-100 text-red-500 rounded-lg flex items-center justify-center mr-3 flex-shrink-0"><i class="fa fa-trash-o"></i></div>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold text-slate-700">确认没有价值，停止维护</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">不再缴纳年费，办理放弃 / 核销手续</p>
+                    </div>
+                    <button onclick="closeWakeUp();goPage('disposal.html')" class="px-3 py-1.5 bg-red-500 text-white text-[10px] font-bold rounded-lg hover:bg-red-600 flex-shrink-0">去处置核销</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var STEP_LABELS = ['写交底书', '已经递交', '正在审查', '成功拿证'];
+        var STEP_ICONS = ['fa-pencil', 'fa-send', 'fa-search', 'fa-check'];
+
+        // 迷你四节点：紧凑展示当前进度
+        function miniSteps(prog) {
+            var dots = '';
+            for (var i = 0; i < 4; i++) {
+                var cls = i < prog ? 'bg-blue-600' : (i === prog ? 'bg-white border-2 border-blue-600 animate-pulse' : 'bg-slate-200');
+                dots += '<span class="w-2.5 h-2.5 rounded-full ' + cls + '"></span>';
+                if (i < 3) dots += '<span class="w-4 h-0.5 ' + (i < prog ? 'bg-blue-600' : 'bg-slate-200') + '"></span>';
+            }
+            return dots;
+        }
+
+        // 渲染：申请中（审查中 + 待入库 统一列表；紧凑 + 搜索/类型/阶段筛选）
+        function renderPending() {
+            var box = document.getElementById('pendingList');
+            var kw = (document.getElementById('fKw').value || '').trim().toLowerCase();
+            var ft = document.getElementById('fType').value;
+            var fs = document.getElementById('fStep').value;
+            var pending = getAssetsByStatus('pending');
+            var warehousing = getAssetsByStatus('warehousing');
+            var all = pending.concat(warehousing);
+            var list = all.filter(function (a) {
+                if (ft && a.type !== ft) return false;
+                if (fs === 'warehousing') { if (a.status !== '待入库') return false; }
+                else if (fs !== '') { if (a.status === '待入库' || String(a.progress) !== fs) return false; }
+                if (kw && (a.name + ' ' + (a.certNo || '')).toLowerCase().indexOf(kw) < 0) return false;
+                return true;
+            });
+            document.getElementById('pendingCount').innerText = all.length;
+            var html = list.map(function (a) {
+                var isWh = a.status === '待入库';
+                var prog = a.progress;
+                var stepDate = '';
+                var doneSteps = (a.applySteps || []).filter(function (s) { return s.date; });
+                if (doneSteps.length) {
+                    var last = doneSteps[doneSteps.length - 1];
+                    stepDate = last.label + ' · ' + last.date;
+                }
+                var nextStep = prog < 3 ? prog + 1 : null;
+                var stageLabel, stageCls, stageIcon;
+                if (isWh) {
+                    stageLabel = '待入库';
+                    stageCls = 'bg-amber-100 text-amber-600';
+                    stageIcon = 'fa-hourglass-half';
+                } else {
+                    stageLabel = STEP_LABELS[prog];
+                    stageCls = 'bg-blue-100 text-blue-600';
+                    stageIcon = STEP_ICONS[prog];
+                }
+                var rowCls = isWh
+                    ? 'flex items-center p-3 pl-4 rounded-2xl border border-amber-200 bg-amber-50/40 hover:border-amber-400 cursor-pointer transition-all gap-3'
+                    : 'flex items-center p-3 pl-4 rounded-2xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 cursor-pointer transition-all gap-3';
+                var iconCls = isWh
+                    ? 'w-9 h-9 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center flex-shrink-0'
+                    : 'w-9 h-9 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center flex-shrink-0';
+                var iconName = isWh ? 'fa-certificate' : 'fa-file-text-o';
+                var certText = (a.certNo && a.certNo.indexOf('—') !== 0) ? a.certNo : (isWh ? '证书号待补' : '—');
+                var midBlock;
+                if (isWh) {
+                    midBlock = '<div class="flex-1 min-w-0 hidden md:block">'
+                        + '<p class="text-[10px] text-amber-600 font-bold truncate"><i class="fa fa-check-circle mr-1"></i>已拿证 · 授权日 ' + (a.grantDate || '—') + '</p>'
+                        + '<p class="text-[10px] text-slate-400 truncate mt-0.5">已自动生成取得入库待审批申请</p>'
+                        + '</div>';
+                } else {
+                    midBlock = '<div class="flex-1 min-w-0 hidden md:block">'
+                        + '<div class="flex items-center gap-0 mb-1">' + miniSteps(prog) + '</div>'
+                        + '<p class="text-[10px] text-blue-500 font-bold truncate"><i class="fa fa-clock-o mr-1"></i>' + (stepDate || '刚登记') + '</p>'
+                        + '</div>';
+                }
+                var actionBtn = isWh
+                    ? '<button onclick="event.stopPropagation();goPage(\'capitalization.html\')" class="px-3 py-2 bg-amber-500 text-white text-[11px] font-bold rounded-xl hover:bg-amber-600 transition-all flex-shrink-0"><i class="fa fa-magic mr-1"></i>去办理入库</button>'
+                    : '<button onclick="event.stopPropagation();openAdvance(\'' + a.id + '\',' + nextStep + ')" class="px-3 py-2 bg-blue-600 text-white text-[11px] font-bold rounded-xl hover:bg-blue-700 transition-all flex-shrink-0"><i class="fa fa-forward mr-1"></i>推进到「' + STEP_LABELS[nextStep] + '」</button>';
+                return '<div onclick="openAssetDetail(\'' + a.id + '\')" class="' + rowCls + '">'
+                    +   '<div class="' + iconCls + '"><i class="fa ' + iconName + '"></i></div>'
+                    +   '<div class="w-40 min-w-0 flex-shrink-0">'
+                    +     '<p class="text-xs font-bold text-slate-800 truncate">' + a.name + '</p>'
+                    +     '<p class="text-[10px] text-slate-400 truncate mt-0.5">' + a.type + ' · ' + certText + '</p>'
+                    +   '</div>'
+                    +   '<span class="px-2 py-1 rounded-lg text-[10px] font-bold flex-shrink-0 ' + stageCls + '"><i class="fa ' + stageIcon + ' mr-1"></i>' + stageLabel + '</span>'
+                    +   midBlock
+                    +   '<div class="text-right w-20 flex-shrink-0 hidden sm:block"><p class="text-[10px] text-slate-400">已投入</p><p class="text-xs font-bold text-slate-700">' + a.cost + ' 万</p></div>'
+                    +   actionBtn
+                    + '</div>';
+            }).join('');
+            if (!all.length) {
+                box.innerHTML = '<div class="text-center py-8"><p class="text-xs text-slate-400 mb-1"><i class="fa fa-check-circle text-green-400 mr-1"></i>当前没有申请中的宝贝</p><button onclick="openNewApply()" class="mt-3 px-4 py-2 bg-blue-600 text-white text-[11px] font-bold rounded-xl hover:bg-blue-700"><i class="fa fa-plus mr-1"></i>登记新申请</button></div>';
+            } else if (!list.length) {
+                box.innerHTML = '<p class="text-xs text-slate-400 text-center py-6"><i class="fa fa-search mr-1"></i>没有符合筛选条件的宝贝</p>';
+            } else {
+                box.innerHTML = html;
+            }
+        }
+
+        // 渲染：沉睡资产（紧凑列表）
+        function renderSleep() {
+            var box = document.getElementById('sleepList');
+            var list = getAssetsByStatus('sleep');
+            var cnt = document.getElementById('sleepCount');
+            if (cnt) cnt.innerText = list.length;
+            box.innerHTML = list.map(function(a) {
+                var st = ASSET_TYPE_STYLE[a.type];
+                return '<div onclick="openAssetDetail(\'' + a.id + '\')" class="flex items-center p-3 pl-4 rounded-2xl border border-slate-100 hover:border-purple-200 hover:bg-purple-50/30 cursor-pointer transition-all gap-3">'
+                    +   '<div class="w-9 h-9 ' + st.bg + ' rounded-xl flex items-center justify-center flex-shrink-0 opacity-80"><i class="fa ' + st.icon + '"></i></div>'
+                    +   '<div class="w-40 min-w-0 flex-shrink-0">'
+                    +     '<p class="text-xs font-bold text-slate-800 truncate">' + a.name + '</p>'
+                    +     '<p class="text-[10px] text-slate-400 truncate mt-0.5">' + a.type + ' · ' + (a.certNo || '—') + '</p>'
+                    +   '</div>'
+                    +   '<div class="flex-1 min-w-0 hidden md:block">'
+                    +     '<p class="text-[10px] text-slate-400 line-clamp-1"><i class="fa fa-moon-o mr-1 text-slate-300"></i>' + (a.sleepReason || '长期未使用') + '</p>'
+                    +   '</div>'
+                    +   '<div class="text-right w-20 flex-shrink-0 hidden sm:block"><p class="text-[10px] text-slate-400">净值</p><p class="text-xs font-bold text-slate-700">' + (a.netValue || 0) + ' 万</p></div>'
+                    +   '<button onclick="event.stopPropagation();openWakeUp(\'' + a.id + '\')" class="px-3 py-2 bg-purple-600 text-white text-[11px] font-bold rounded-xl hover:bg-purple-700 transition-all flex-shrink-0"><i class="fa fa-bolt mr-1"></i>去盘活</button>'
+                    + '</div>';
+            }).join('') || '<div class="text-center py-8"><p class="text-xs text-slate-400"><i class="fa fa-sun-o text-amber-400 mr-1"></i>太棒了，没有沉睡的证书，每一张都在创造价值！</p></div>';
+        }
+
+        // 选项卡切换
+        function switchTab(tab) {
+            var tp = document.getElementById('tabPending');
+            var ts = document.getElementById('tabSleep');
+            var pp = document.getElementById('panelPending');
+            var ps = document.getElementById('panelSleep');
+            if (tab === 'pending') {
+                tp.className = tp.className.replace('border-transparent text-slate-400 hover:text-slate-600', 'border-blue-600 text-blue-600');
+                ts.className = ts.className.replace('border-blue-600 text-blue-600', 'border-transparent text-slate-400 hover:text-slate-600');
+                pp.classList.remove('hidden');
+                ps.classList.add('hidden');
+            } else {
+                ts.className = ts.className.replace('border-transparent text-slate-400 hover:text-slate-600', 'border-purple-600 text-purple-600');
+                tp.className = tp.className.replace('border-blue-600 text-blue-600', 'border-transparent text-slate-400 hover:text-slate-600');
+                ps.classList.remove('hidden');
+                pp.classList.add('hidden');
+                renderSleep();
+            }
+        }
+
+        // 跳转年费与续展预警页（iframe 内优先调父框架导航）
+        function goFeePage() {
+            try {
+                if (parent && parent.loadPage) { parent.loadPage('fee-renewal.html', null); return; }
+            } catch (e) {}
+            window.location.href = 'fee-renewal.html';
+        }
+
+        // iframe 内通用跳转
+        function goPage(page) {
+            try {
+                if (parent && parent.loadPage) { parent.loadPage(page, null); return; }
+            } catch (e) {}
+            window.location.href = page;
+        }
+
+        // 盘活沉睡资产
+        var wakeUpId = null;
+        function openWakeUp(id) {
+            var a = getAssetById(id);
+            if (!a) return;
+            wakeUpId = id;
+            document.getElementById('wuName').innerText = a.name + ' · ' + a.type;
+            document.getElementById('wuReason').innerText = a.sleepReason || '近一年无摊销收益、无项目关联、未用于政策申报。';
+            document.getElementById('wuNote').value = '';
+            var mask = document.getElementById('wakeUpMask');
+            mask.classList.remove('hidden'); mask.classList.add('flex');
+        }
+        function closeWakeUp() {
+            var mask = document.getElementById('wakeUpMask');
+            mask.classList.add('hidden'); mask.classList.remove('flex');
+        }
+        function confirmWakeUp() {
+            var a = getAssetById(wakeUpId);
+            if (!a) return;
+            var note = document.getElementById('wuNote').value.trim();
+            // 写回单一事实来源：移除沉睡标签 + 记录盘活信息；
+            // updateAsset 会重算 active/sleepReason 并持久化，列表按同一口径自动重建
+            a.tags = (a.tags || []).filter(function (t) { return t !== '沉睡资产'; });
+            a.wakeUp = { date: new Date().toISOString().slice(0, 10), note: note || '已投入使用' };
+            updateAsset(a.id, a);
+            toast('已唤醒：' + a.name + ' 回到活跃资产', 'green');
+            closeWakeUp();
+        }
+
+        // 登记新申请
+        function openNewApply() {
+            document.getElementById('naName').value = '';
+            document.getElementById('naType').value = '发明专利';
+            document.getElementById('naCertNo').value = '';
+            document.getElementById('naCost').value = '0';
+            document.getElementById('naDate').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('naStep').value = '0';
+            var mask = document.getElementById('newApplyMask');
+            mask.classList.remove('hidden'); mask.classList.add('flex');
+        }
+        function closeNewApply() {
+            var mask = document.getElementById('newApplyMask');
+            mask.classList.add('hidden'); mask.classList.remove('flex');
+        }
+        function confirmNewApply() {
+            var name = document.getElementById('naName').value.trim();
+            if (!name) { toast('请填写资产名称', 'red'); return; }
+            var type = document.getElementById('naType').value;
+            var certNo = document.getElementById('naCertNo').value.trim() || '—（审查中）';
+            var cost = Number(document.getElementById('naCost').value) || 0;
+            var date = document.getElementById('naDate').value;
+            if (!date) { toast('请选择申请日期', 'red'); return; }
+            var step = Number(document.getElementById('naStep').value);
+            var a = addAsset({
+                name: name, type: type, certNo: certNo, status: '审查中',
+                active: false, tags: ['在途申请'],
+                cost: cost, amortized: 0, netValue: cost,
+                valuation: 0, premium: 0, taxSaving: 0, roi: 0,
+                incomeType: '尚未变现', supportPolicy: [],
+                grantDate: '', expireDate: '', lifeYears: 0, lifeUsedPct: 0,
+                applyProgress: step, progress: step
+            });
+            // 给当前节点填上申请日期，列表即可显示"当前：xxx（日期）"
+            if (a && a.applySteps && a.applySteps[step]) {
+                a.applySteps[step].date = date;
+                persistAssets();
+            }
+            toast('新申请已登记，进入进度跟踪', 'green');
+            closeNewApply();
+        }
+
+        // 推进申报进度弹窗
+        function openAdvance(id, targetStep) {
+            var a = getAssetById(id);
+            if (!a) return;
+            document.getElementById('advAssetId').value = id;
+            document.getElementById('advTargetStep').value = targetStep;
+            document.getElementById('advAssetName').innerText = a.name;
+            document.getElementById('advStepLabel').innerText = STEP_LABELS[targetStep] + (targetStep === 3 ? '（完成后不直接进档案，需到「取得入库」办理入账）' : '');
+            document.getElementById('advDate').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('advOperator').value = '';
+            document.getElementById('advNote').value = '';
+            document.getElementById('advAttachment').value = '';
+            var mask = document.getElementById('advanceMask');
+            mask.classList.remove('hidden'); mask.classList.add('flex');
+        }
+        function closeAdvance() {
+            var mask = document.getElementById('advanceMask');
+            mask.classList.add('hidden'); mask.classList.remove('flex');
+        }
+        function confirmAdvance() {
+            var id = document.getElementById('advAssetId').value;
+            var target = Number(document.getElementById('advTargetStep').value);
+            var date = document.getElementById('advDate').value;
+            if (!date) { toast('请选择完成日期', 'red'); return; }
+            var info = {
+                date: date,
+                operator: document.getElementById('advOperator').value.trim(),
+                note: document.getElementById('advNote').value.trim(),
+                attachment: document.getElementById('advAttachment').value.trim()
+            };
+            var a = advanceStep(id, target, info);
+            if (a) {
+                if (target === 3) toast('已拿证！已生成「取得入库」待审批申请，办理入账后进入资产档案', 'green');
+                else toast('已推进到「' + STEP_LABELS[target] + '」', 'green');
+                closeAdvance();
+            }
+        }
+
+        function toast(msg, color) {
+            var el = document.createElement('div');
+            el.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-2xl text-white text-xs font-bold shadow-xl ' + (color === 'red' ? 'bg-red-500' : 'bg-emerald-500');
+            el.innerHTML = '<i class="fa ' + (color === 'red' ? 'fa-exclamation-circle' : 'fa-check-circle') + ' mr-2"></i>' + msg;
+            document.body.appendChild(el);
+            setTimeout(function () { el.remove(); }, 2400);
+        }
+
+        // 数据变化后刷新（推进拿证 / 盘活 / 入库审批后联动）
+        window.addEventListener('assets-changed', function () {
+            renderPending();
+            renderSleep();
+        });
+        // 入库审批在别的页面完成，事件变化时也要联动
+        window.addEventListener('lifecycle-changed', function () {
+            renderPending();
+            renderSleep();
+        });
+
+        renderPending();
+        renderSleep();
+    </script>
 </body>
 </html>

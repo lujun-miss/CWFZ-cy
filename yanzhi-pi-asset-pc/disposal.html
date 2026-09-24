@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>处置与核销 - 研知π无形资产</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="asset-data.js"></script>
+    <style>
+        body { font-family:'PingFang SC','Microsoft YaHei',sans-serif; background:#f7f8fa; }
+        .field-label { font-size:11px; font-weight:800; color:#64748b; margin-bottom:4px; display:block; }
+        .field-input { width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:12px; font-size:12px; outline:none; }
+        .field-input:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+    </style>
+</head>
+<body class="text-slate-800 p-6 min-h-screen">
+    <div class="max-w-[1400px] mx-auto">
+        <!-- 头部 -->
+        <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800"><i class="fa fa-flag text-red-500 mr-2"></i>处置与核销台账</h1>
+                <p class="text-sm text-slate-400 mt-1">资产退役全流程台账：出售/报废/失效/注销，确保财务与法务手续完备；点击「发起处置」进入处置登记页</p>
+            </div>
+            <button onclick="goForm()" class="px-5 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-red-200 hover:bg-red-700 transition-all">
+                <i class="fa fa-plus mr-1"></i>发起处置
+            </button>
+        </div>
+
+        <!-- 统计卡 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">可处置资产</p>
+                <p class="text-2xl font-black text-emerald-600" id="cntActive">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">处置记录</p>
+                <p class="text-2xl font-black" id="cntAll">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-red-200">
+                <p class="text-[10px] font-bold text-red-500 uppercase mb-1">本月处置</p>
+                <p class="text-2xl font-black text-red-600" id="cntMonth">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-emerald-200">
+                <p class="text-[10px] font-bold text-emerald-500 uppercase mb-1">处置收入合计(万)</p>
+                <p class="text-2xl font-black text-emerald-600" id="cntProceeds">0</p>
+            </div>
+        </div>
+
+        <!-- 筛选栏 -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm mb-6 flex flex-wrap items-center gap-3">
+            <div class="relative flex-1 min-w-[220px]">
+                <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
+                <input id="kw" oninput="render()" type="text" placeholder="搜索资产名称 / 操作人 / 审批人..." class="pl-9 pr-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs w-full focus:bg-white focus:border-red-300 outline-none transition-all">
+            </div>
+            <select id="fType" onchange="render()" class="px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs font-bold text-slate-600 outline-none cursor-pointer">
+                <option value="">全部处置类型</option>
+                <option>出售</option>
+                <option>报废</option>
+                <option>失效</option>
+                <option>注销</option>
+            </select>
+            <select id="fMonth" onchange="render()" class="px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs font-bold text-slate-600 outline-none cursor-pointer">
+                <option value="">全部时间</option>
+                <option value="cur">本月</option>
+            </select>
+            <button onclick="resetFilter()" class="px-3 py-2.5 bg-white text-slate-500 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50">重置</button>
+            <span id="countText" class="text-[11px] text-slate-400 font-bold ml-auto"></span>
+        </div>
+
+        <!-- 处置台账列表 -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100">
+                <h2 class="text-sm font-black text-slate-800"><i class="fa fa-archive text-slate-500 mr-1.5"></i>处置台账</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr class="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                            <th class="px-5 py-4">资产名称</th>
+                            <th class="px-4 py-4">编号</th>
+                            <th class="px-4 py-4">处置类型</th>
+                            <th class="px-4 py-4">日期</th>
+                            <th class="px-4 py-4">原因</th>
+                            <th class="px-4 py-4 text-right">处置收入(万)</th>
+                            <th class="px-4 py-4">操作人</th>
+                            <th class="px-4 py-4">审批人</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listBody" class="divide-y divide-slate-50"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var TYPE_META = {
+            '出售': { icon: 'fa-money',        color: 'text-emerald-600 bg-emerald-50' },
+            '报废': { icon: 'fa-trash',        color: 'text-slate-600 bg-slate-100' },
+            '失效': { icon: 'fa-ban',          color: 'text-red-600 bg-red-50' },
+            '注销': { icon: 'fa-times-circle', color: 'text-orange-600 bg-orange-50' }
+        };
+
+        function goForm() {
+            try {
+                if (parent && parent.loadPage) {
+                    parent.loadPage('disposal-form.html', null);
+                    return;
+                }
+            } catch (e) {}
+            window.location.href = 'disposal-form.html';
+        }
+
+        function resetFilter() {
+            document.getElementById('kw').value = '';
+            document.getElementById('fType').value = '';
+            document.getElementById('fMonth').value = '';
+            render();
+        }
+
+        function render() {
+            var kw = document.getElementById('kw').value.trim().toLowerCase();
+            var fT = document.getElementById('fType').value;
+            var fM = document.getElementById('fMonth').value;
+            var now = new Date();
+            var curYM = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+            var actives = ASSETS.filter(function (a) { return a.status !== '已处置'; });
+            var proceedsTotal = ASSET_DISPOSALS.reduce(function (s, d) { return s + (Number(d.proceeds) || 0); }, 0);
+            var monthCount = ASSET_DISPOSALS.filter(function (d) { return (d.date || '').indexOf(curYM) === 0; }).length;
+
+            document.getElementById('cntActive').innerText = actives.length;
+            document.getElementById('cntAll').innerText = ASSET_DISPOSALS.length;
+            document.getElementById('cntMonth').innerText = monthCount;
+            document.getElementById('cntProceeds').innerText = proceedsTotal.toFixed(2);
+
+            var list = ASSET_DISPOSALS.filter(function (d) {
+                var matchKw = !kw || (d.assetName || '').toLowerCase().indexOf(kw) >= 0
+                    || (d.operator || '').toLowerCase().indexOf(kw) >= 0
+                    || (d.approvedBy || '').toLowerCase().indexOf(kw) >= 0;
+                var matchT = !fT || d.type === fT;
+                var matchM = !fM || (d.date || '').indexOf(curYM) === 0;
+                return matchKw && matchT && matchM;
+            });
+            document.getElementById('countText').innerText = '共 ' + list.length + ' 条';
+
+            var tbody = document.getElementById('listBody');
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-5 py-12 text-center text-slate-300"><i class="fa fa-inbox text-3xl block mb-2"></i><span class="text-xs font-bold">暂无处置记录，点击右上「发起处置」开始登记</span></td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(function (d) {
+                var meta = TYPE_META[d.type] || { icon: 'fa-flag', color: 'text-slate-600 bg-slate-50' };
+                return '<tr class="hover:bg-slate-50 transition-all">'
+                    + '<td class="px-5 py-4">'
+                    +   '<div class="flex items-center gap-2">'
+                    +     '<div class="w-7 h-7 rounded-lg flex items-center justify-center ' + meta.color + ' flex-shrink-0"><i class="fa ' + meta.icon + ' text-[10px]"></i></div>'
+                    +     '<p class="text-xs font-bold text-slate-800">' + d.assetName + '</p>'
+                    +   '</div>'
+                    + '</td>'
+                    + '<td class="px-4 py-4 text-xs text-slate-400 font-mono">' + (d.assetCode || d.assetId) + '</td>'
+                    + '<td class="px-4 py-4"><span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold border ' + meta.color + '">' + d.type + '</span></td>'
+                    + '<td class="px-4 py-4 text-xs text-slate-600">' + d.date + '</td>'
+                    + '<td class="px-4 py-4 text-xs text-slate-500 max-w-xs truncate" title="' + d.reason + '">' + d.reason + '</td>'
+                    + '<td class="px-4 py-4 text-right text-xs font-bold ' + (d.proceeds > 0 ? 'text-emerald-600' : 'text-slate-400') + '">' + (d.proceeds > 0 ? d.proceeds : '—') + '</td>'
+                    + '<td class="px-4 py-4 text-xs text-slate-500">' + (d.operator || '—') + '</td>'
+                    + '<td class="px-4 py-4 text-xs text-slate-500">' + (d.approvedBy || '—') + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        window.addEventListener('assets-changed', render);
+        window.addEventListener('disposals-changed', render);
+        render();
+    </script>
+</body>
+</html>

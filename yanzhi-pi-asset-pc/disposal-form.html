@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>发起处置 - 研知π无形资产</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="asset-data.js"></script>
+    <style>
+        body { font-family:'PingFang SC','Microsoft YaHei',sans-serif; background:#f7f8fa; }
+        .field-label { font-size:11px; font-weight:800; color:#64748b; margin-bottom:4px; display:block; }
+        .field-input { width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:12px; font-size:12px; outline:none; background:#fff; }
+        .field-input:focus { border-color:#ef4444; box-shadow:0 0 0 3px rgba(239,68,68,.12); }
+        .type-card { cursor:pointer; transition:all .2s; }
+        .type-card.active { border-color:#ef4444; background:#fef2f2; box-shadow:0 0 0 3px rgba(239,68,68,.10); }
+        /* 资产下拉 combobox */
+        .combo { position:relative; }
+        .combo-input { padding-right:32px; }
+        .combo-dropdown {
+            position:absolute; top:calc(100% + 4px); left:0; right:0; z-30;
+            background:#fff; border:1px solid #e2e8f0; border-radius:12px;
+            box-shadow:0 12px 32px rgba(15,23,42,.12); max-height:240px; overflow-y:auto;
+            display:none;
+        }
+        .combo-dropdown.open { display:block; }
+        .combo-item { padding:8px 12px; cursor:pointer; display:flex; align-items:center; gap:10px; border-bottom:1px solid #f1f5f9; }
+        .combo-item:last-child { border-bottom:none; }
+        .combo-item:hover { background:#fef2f2; }
+        .combo-empty { padding:16px; text-align:center; color:#94a3b8; font-size:11px; }
+    </style>
+</head>
+<body class="text-slate-800 p-6 min-h-screen">
+    <div class="max-w-[1100px] mx-auto">
+        <!-- 头部 + 返回 -->
+        <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+            <div class="flex items-center gap-3">
+                <button onclick="goBack()" class="w-10 h-10 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500">
+                    <i class="fa fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800"><i class="fa fa-flag text-red-500 mr-2"></i>发起资产处置</h1>
+                    <p class="text-sm text-slate-400 mt-1">选择处置类型 → 填写处置信息 → 确认提交后资产状态转为"已处置"并记入台账</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 流程步骤条 -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-6">
+            <div class="flex items-center">
+                <div class="flex-1 flex items-center">
+                    <div id="step1" class="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-black">1</div>
+                    <span id="step1Label" class="ml-2 text-xs font-bold text-red-600">选择处置类型</span>
+                </div>
+                <div class="flex-1 h-0.5 bg-slate-200"></div>
+                <div class="flex-1 flex items-center">
+                    <div id="step2" class="w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-black">2</div>
+                    <span id="step2Label" class="ml-2 text-xs font-bold text-slate-400">填写处置信息</span>
+                </div>
+                <div class="flex-1 h-0.5 bg-slate-200"></div>
+                <div class="flex-1 flex items-center">
+                    <div id="step3" class="w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-black">3</div>
+                    <span id="step3Label" class="ml-2 text-xs font-bold text-slate-400">确认提交</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 步骤1：处置类型 -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
+            <h2 class="text-sm font-black text-slate-800 mb-4"><i class="fa fa-th text-red-500 mr-1.5"></i>选择处置类型</h2>
+            <div id="typeBox" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+            <p id="typeHint" class="text-[10px] text-slate-400 mt-3">请先选择处置类型，再填写下方处置信息</p>
+        </div>
+
+        <!-- 步骤2：处置信息表单 -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm">
+            <div class="px-6 py-4 border-b border-slate-100">
+                <h2 class="text-sm font-black text-slate-800"><i class="fa fa-edit text-red-500 mr-1.5"></i>处置信息登记</h2>
+            </div>
+            <div class="p-6 space-y-4">
+                <!-- 选择资产：combobox 模糊搜索 -->
+                <div>
+                    <label class="field-label">选择处置资产 <span class="text-red-400">*</span></label>
+                    <div class="combo">
+                        <input id="assetKw" type="text" autocomplete="off"
+                               class="field-input combo-input"
+                               placeholder="输入资产名称 / 编号搜索..."
+                               oninput="filterCombo()"
+                               onfocus="openCombo()"
+                               onblur="setTimeout(function(){closeCombo();},150)">
+                        <i class="fa fa-search absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
+                        <div id="comboDropdown" class="combo-dropdown"></div>
+                    </div>
+                    <!-- 已选资产回显 -->
+                    <div id="pickedBar" class="mt-2 p-3 bg-slate-50 rounded-xl text-xs text-slate-500 hidden flex items-center justify-between">
+                        <div><span class="font-bold text-slate-700">已选：</span><span id="pickedName" class="font-bold text-slate-800">—</span></div>
+                        <button onclick="clearPick()" class="text-slate-400 hover:text-red-500 text-[10px] font-bold"><i class="fa fa-times mr-1"></i>清除</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="field-label">处置日期 <span class="text-red-400">*</span></label>
+                        <input id="fDate" type="date" class="field-input">
+                    </div>
+                    <div>
+                        <label class="field-label">处置收入(万)</label>
+                        <input id="fProceeds" type="number" min="0" step="0.01" class="field-input" value="0" placeholder="出售才有收入">
+                    </div>
+                    <div>
+                        <label class="field-label">操作人</label>
+                        <input id="fOperator" class="field-input" placeholder="如：张工">
+                    </div>
+                </div>
+                <div>
+                    <label class="field-label">处置原因 <span class="text-red-400">*</span></label>
+                    <textarea id="fReason" class="field-input" rows="2" placeholder="如：技术过时被新一代替代 / 权利期满不再续展 / 出售变现"></textarea>
+                </div>
+                <div>
+                    <label class="field-label">审批人</label>
+                    <input id="fApprovedBy" class="field-input" placeholder="如：李总">
+                </div>
+                <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-[10px] text-red-700 font-bold">
+                    <i class="fa fa-exclamation-triangle mr-1"></i>确认提交后资产状态将变为"已处置"，不可恢复。请确保财务与法务手续已办妥。
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button onclick="goBack()" class="px-4 py-2 text-slate-500 text-xs font-bold hover:bg-slate-50 rounded-xl">取消返回</button>
+                    <button onclick="resetForm()" class="px-4 py-2 text-slate-500 text-xs font-bold hover:bg-slate-50 rounded-xl border border-slate-200">重置</button>
+                    <button onclick="submitDispose()" class="px-6 py-2 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 shadow-md shadow-red-100"><i class="fa fa-check mr-1"></i>确认处置</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var _pickedId = '';
+        var _type = '';
+        var DISPOSAL_TYPES = [
+            { name: '出售', icon: 'fa-money',     color: 'text-emerald-600 bg-emerald-50', desc: '对外转让变现' },
+            { name: '报废', icon: 'fa-trash',     color: 'text-slate-600 bg-slate-100',     desc: '技术失效无价值' },
+            { name: '失效', icon: 'fa-ban',       color: 'text-red-600 bg-red-50',          desc: '权利期满终止' },
+            { name: '注销', icon: 'fa-times-circle', color: 'text-orange-600 bg-orange-50', desc: '主动注销登记' }
+        ];
+
+        function goBack() {
+            try {
+                if (parent && parent.loadPage) {
+                    parent.loadPage('disposal.html', null);
+                    return;
+                }
+            } catch (e) {}
+            window.location.href = 'disposal.html';
+        }
+
+        // 处置类型卡片
+        function renderTypes() {
+            var box = document.getElementById('typeBox');
+            box.innerHTML = DISPOSAL_TYPES.map(function(t) {
+                var active = _type === t.name;
+                return '<div class="type-card p-4 rounded-2xl border ' + (active ? 'active' : 'border-slate-200 bg-slate-50') + '" onclick="pickType(\'' + t.name + '\')">'
+                    + '<div class="w-9 h-9 rounded-xl flex items-center justify-center ' + t.color + ' mb-2"><i class="fa ' + t.icon + '"></i></div>'
+                    + '<p class="text-xs font-black text-slate-800">' + t.name + '</p>'
+                    + '<p class="text-[10px] text-slate-400 mt-1">' + t.desc + '</p>'
+                    + '</div>';
+            }).join('');
+        }
+        function pickType(name) {
+            _type = name;
+            document.getElementById('typeHint').innerHTML = '<i class="fa fa-check-circle text-emerald-500 mr-1"></i>已选择：「<span class="font-bold text-red-600">' + name + '</span>」 · ' + (DISPOSAL_TYPES.find(function(t){return t.name===name;})||{}).desc;
+            // 步骤2激活
+            var s2 = document.getElementById('step2');
+            s2.className = 'w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-black';
+            document.getElementById('step2Label').className = 'ml-2 text-xs font-bold text-red-600';
+            renderTypes();
+        }
+
+        // 资产 combobox 模糊搜索
+        function getPickable() {
+            return ASSETS.filter(function(a) { return a.status !== '已处置'; });
+        }
+        function filterCombo() {
+            // 输入时清除已选（重新选）
+            if (_pickedId) { _pickedId = ''; document.getElementById('pickedBar').classList.add('hidden'); }
+            var kw = document.getElementById('assetKw').value.trim().toLowerCase();
+            var list = getPickable();
+            if (kw) {
+                list = list.filter(function(a) {
+                    return (a.name || '').toLowerCase().indexOf(kw) >= 0
+                        || (a.assetCode || a.id || '').toLowerCase().indexOf(kw) >= 0;
+                });
+            }
+            var dd = document.getElementById('comboDropdown');
+            if (!list.length) {
+                dd.innerHTML = '<div class="combo-empty">没有匹配的资产</div>';
+                dd.classList.add('open');
+                return;
+            }
+            dd.innerHTML = list.map(function(a) {
+                var st = ASSET_TYPE_STYLE[a.type] || ASSET_TYPE_STYLE['发明专利'];
+                return '<div class="combo-item" onmousedown="pickAsset(\'' + a.id + '\')">'
+                    + '<div class="w-8 h-8 ' + st.bg + ' rounded-lg flex items-center justify-center flex-shrink-0"><i class="fa ' + st.icon + ' text-[10px]"></i></div>'
+                    + '<div class="flex-1 min-w-0">'
+                    +   '<p class="text-xs font-bold text-slate-800 truncate">' + a.name + '</p>'
+                    +   '<p class="text-[10px] text-slate-400">' + (a.assetCode || a.id) + ' · ' + a.type + ' · ' + a.status + '</p>'
+                    + '</div>'
+                    + '<span class="text-[10px] text-slate-400 font-bold flex-shrink-0">' + a.netValue + ' 万</span>'
+                    + '</div>';
+            }).join('');
+            dd.classList.add('open');
+        }
+        function openCombo() {
+            filterCombo();
+        }
+        function closeCombo() {
+            document.getElementById('comboDropdown').classList.remove('open');
+        }
+        function pickAsset(id) {
+            _pickedId = id;
+            var a = getAssetById(id);
+            if (!a) return;
+            document.getElementById('assetKw').value = a.name + ' · ' + (a.assetCode || id);
+            document.getElementById('pickedBar').classList.remove('hidden');
+            document.getElementById('pickedName').innerText = a.name + ' · ' + (a.assetCode || id) + ' · 净值 ' + a.netValue + ' 万';
+            closeCombo();
+        }
+        function clearPick() {
+            _pickedId = '';
+            document.getElementById('assetKw').value = '';
+            document.getElementById('pickedBar').classList.add('hidden');
+        }
+
+        function resetForm() {
+            _pickedId = ''; _type = '';
+            clearPick();
+            document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+            document.getElementById('fProceeds').value = '0';
+            document.getElementById('fOperator').value = '';
+            document.getElementById('fReason').value = '';
+            document.getElementById('fApprovedBy').value = '';
+            document.getElementById('typeHint').innerText = '请先选择处置类型，再填写下方处置信息';
+            var s2 = document.getElementById('step2');
+            s2.className = 'w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-black';
+            document.getElementById('step2Label').className = 'ml-2 text-xs font-bold text-slate-400';
+            var s3 = document.getElementById('step3');
+            s3.className = 'w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-black';
+            document.getElementById('step3Label').className = 'ml-2 text-xs font-bold text-slate-400';
+            renderTypes();
+        }
+
+        function submitDispose() {
+            if (!_type) { toast('请先选择处置类型', 'red'); return; }
+            if (!_pickedId) { toast('请选择要处置的资产', 'red'); return; }
+            var date = document.getElementById('fDate').value;
+            if (!date) { toast('请选择处置日期', 'red'); return; }
+            var reason = document.getElementById('fReason').value.trim();
+            if (!reason) { toast('请填写处置原因', 'red'); return; }
+            var info = {
+                type: _type,
+                date: date,
+                reason: reason,
+                proceeds: document.getElementById('fProceeds').value,
+                operator: document.getElementById('fOperator').value.trim(),
+                approvedBy: document.getElementById('fApprovedBy').value.trim()
+            };
+            var rec = disposeAsset(_pickedId, info);
+            if (rec) {
+                // 步骤3激活
+                var s3 = document.getElementById('step3');
+                s3.className = 'w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-black';
+                document.getElementById('step3Label').className = 'ml-2 text-xs font-bold text-red-600';
+                toast('已处置：' + rec.assetName + '（' + rec.type + '）', 'green');
+                setTimeout(function () { goBack(); }, 900);
+            }
+        }
+
+        function toast(msg, color) {
+            var el = document.createElement('div');
+            el.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-2xl text-white text-xs font-bold shadow-xl ' + (color === 'red' ? 'bg-red-500' : 'bg-emerald-500');
+            el.innerHTML = '<i class="fa ' + (color === 'red' ? 'fa-exclamation-circle' : 'fa-check-circle') + ' mr-2"></i>' + msg;
+            document.body.appendChild(el);
+            setTimeout(function () { el.remove(); }, 2400);
+        }
+
+        // 初始化
+        document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+        renderTypes();
+        window.addEventListener('assets-changed', function () { if (document.getElementById('comboDropdown').classList.contains('open')) filterCombo(); });
+    </script>
+</body>
+</html>

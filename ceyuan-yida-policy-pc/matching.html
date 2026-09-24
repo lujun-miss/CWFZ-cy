@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
         .radar-line {
             stroke-dasharray: 1000;
@@ -14,8 +14,8 @@
         @keyframes dash {
             to { stroke-dashoffset: 0; }
         }
-        .step-active { @apply bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-100; }
-        .step-pending { @apply bg-white text-slate-400 border-slate-200; }
+        .step-active { background-color:var(--color-blue-600);color:var(--color-white);border-color:var(--color-blue-600);--tw-shadow:0 10px 15px -3px var(--tw-shadow-color,#0000001a),0 4px 6px -4px var(--tw-shadow-color,#0000001a);box-shadow:var(--tw-inset-shadow),var(--tw-inset-ring-shadow),var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow);--tw-shadow-color:oklch(93.2% .032 255.585); }
+        .step-pending { background-color:var(--color-white);color:var(--color-slate-400);border-color:var(--color-slate-200); }
     </style>
 </head>
 <body class="bg-slate-50 p-8">

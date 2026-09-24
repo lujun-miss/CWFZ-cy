@@ -3,107 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>取得入库记录 - 研知π无形资产</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="asset-data.js"></script>
+    <style>
+        body { font-family:'PingFang SC','Microsoft YaHei',sans-serif; background:#f7f8fa; }
+        .field-label { font-size:11px; font-weight:800; color:#64748b; margin-bottom:4px; display:block; }
+        .field-input { width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:12px; font-size:12px; outline:none; background:#fff; }
+        .field-input:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+    </style>
 </head>
-<body class="bg-slate-50 p-6 min-h-screen">
+<body class="text-slate-800 p-6 min-h-screen">
     <div class="max-w-[1400px] mx-auto">
         <!-- 头部 -->
-        <div class="flex justify-between items-center mb-8">
+        <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
             <div>
-                <h1 class="text-2xl font-black text-slate-800">研发账变资产</h1>
-                <p class="text-sm text-slate-400 mt-1">把研发过程中花的钱，自动变成公司名下的无形资产</p>
+                <h1 class="text-2xl font-black text-slate-800"><i class="fa fa-magic text-blue-500 mr-2"></i>取得入库记录</h1>
+                <p class="text-sm text-slate-400 mt-1">查看所有取得入库的业务流转记录；与「资产档案」区别：本页只管"怎么进来的"流程审批，档案管"有哪些资产"的主数据</p>
             </div>
-            <div class="flex items-center space-x-3 bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
-                <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
-                    <i class="fa fa-refresh animate-spin"></i>
-                </div>
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400">正在同步研发账</p>
-                    <p class="text-xs font-black text-slate-800">发现 3 笔新支出可转资产</p>
-                </div>
+            <button onclick="goForm()" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                <i class="fa fa-plus mr-1"></i>新增入库
+            </button>
+        </div>
+
+        <!-- 统计卡 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">记录总数</p>
+                <p class="text-2xl font-black" id="cntAll">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-blue-200">
+                <p class="text-[10px] font-bold text-blue-500 uppercase mb-1">待审批</p>
+                <p class="text-2xl font-black text-blue-600" id="cntPending">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-emerald-200">
+                <p class="text-[10px] font-bold text-emerald-500 uppercase mb-1">已入库</p>
+                <p class="text-2xl font-black text-emerald-600" id="cntDone">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-red-200">
+                <p class="text-[10px] font-bold text-red-500 uppercase mb-1">已驳回</p>
+                <p class="text-2xl font-black text-red-600" id="cntReject">0</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-12 gap-8">
-            <!-- 步骤一：选出要转资产的钱 -->
-            <div class="col-span-4 space-y-6">
-                <div class="bg-slate-900 rounded-[32px] p-6 text-white">
-                    <h3 class="text-xs font-bold uppercase tracking-widest text-blue-400 mb-6">第一步：选出研发支出</h3>
-                    <div class="space-y-3">
-                        <div class="p-4 bg-white/5 border border-white/10 rounded-2xl">
-                            <div class="flex justify-between items-start mb-1">
-                                <p class="text-xs font-bold">研发人工费</p>
-                                <p class="text-xs font-black text-blue-400">¥12.8万</p>
-                            </div>
-                            <p class="text-[10px] text-white/40">来自：智能算法研发项目</p>
-                        </div>
-                        <div class="p-4 bg-white/5 border border-white/10 rounded-2xl">
-                            <div class="flex justify-between items-start mb-1">
-                                <p class="text-xs font-bold">测试材料费</p>
-                                <p class="text-xs font-black text-blue-400">¥4.5万</p>
-                            </div>
-                            <p class="text-[10px] text-white/40">来自：智能算法研发项目</p>
-                        </div>
-                    </div>
-                    <div class="mt-8 pt-6 border-t border-white/10 flex justify-between">
-                        <span class="text-[10px] text-white/40">选中的总金额</span>
-                        <span class="text-lg font-black text-blue-400">¥17.3万</span>
-                    </div>
-                </div>
-
-                <div class="bg-blue-50 p-6 rounded-[32px] border border-blue-100">
-                    <h4 class="text-xs font-bold text-blue-800 mb-2">小贴士</h4>
-                    <p class="text-[10px] text-blue-600 leading-relaxed">
-                        根据国家规定，研发进入开发阶段后，花的钱就可以转成资产。系统会自动帮您识别哪些钱符合条件。
-                    </p>
-                </div>
+        <!-- 筛选栏 -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm mb-6 flex flex-wrap items-center gap-3">
+            <div class="relative flex-1 min-w-[220px]">
+                <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
+                <input id="kw" oninput="render()" type="text" placeholder="搜索资产名称 / 操作人..." class="pl-9 pr-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs w-full focus:bg-white focus:border-blue-300 outline-none transition-all">
             </div>
+            <select id="fMethod" onchange="render()" class="px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs font-bold text-slate-600 outline-none cursor-pointer">
+                <option value="">全部取得方式</option>
+            </select>
+            <select id="fStatus" onchange="render()" class="px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs font-bold text-slate-600 outline-none cursor-pointer">
+                <option value="">全部状态</option>
+                <option>待审批</option>
+                <option>已通过</option>
+                <option>已驳回</option>
+                <option>已执行</option>
+            </select>
+            <button onclick="resetFilter()" class="px-3 py-2.5 bg-white text-slate-500 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50">重置</button>
+            <span id="countText" class="text-[11px] text-slate-400 font-bold ml-auto"></span>
+        </div>
 
-            <!-- 步骤二：确认转资产 -->
-            <div class="col-span-8">
-                <div class="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm h-full flex flex-col">
-                    <div class="flex justify-between items-center mb-8">
-                        <h3 class="text-lg font-bold text-slate-800">第二步：确认转为资产入账</h3>
-                        <button class="px-8 py-3 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-100">
-                            确认转入资产
-                        </button>
-                    </div>
+        <!-- 记录列表 -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr class="text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                            <th class="px-5 py-4">资产名称</th>
+                            <th class="px-4 py-4">取得方式</th>
+                            <th class="px-4 py-4">取得日期</th>
+                            <th class="px-4 py-4 text-right">入账金额(万)</th>
+                            <th class="px-4 py-4">操作人</th>
+                            <th class="px-4 py-4">审批人</th>
+                            <th class="px-4 py-4">状态</th>
+                            <th class="px-4 py-4 text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listBody" class="divide-y divide-slate-50"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-                    <div class="flex-1 space-y-8">
-                        <!-- 资产信息 -->
-                        <div class="grid grid-cols-2 gap-8">
-                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <p class="text-[10px] text-slate-400 font-bold mb-1 uppercase">生成的资产名称</p>
-                                <p class="text-sm font-black text-slate-800">智能控制算法软件 V1.0</p>
-                            </div>
-                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <p class="text-[10px] text-slate-400 font-bold mb-1 uppercase">预计能用多久</p>
-                                <p class="text-sm font-black text-slate-800">10 年 (120个月)</p>
-                            </div>
-                        </div>
-
-                        <!-- 效果预览 -->
-                        <div class="p-8 bg-blue-600 rounded-[32px] text-white relative overflow-hidden">
-                            <div class="absolute -right-8 -bottom-8 opacity-10 text-9xl font-black italic">WIN</div>
-                            <h4 class="text-sm font-bold mb-6">转资产后的好处：</h4>
-                            <div class="grid grid-cols-2 gap-8 relative z-10">
-                                <div>
-                                    <p class="text-[10px] text-white/60 uppercase font-bold mb-1">本月利润增加</p>
-                                    <p class="text-2xl font-black">¥17.3万</p>
-                                    <p class="text-[9px] text-white/40 mt-1">支出转为资产，不再直接扣减利润</p>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] text-white/60 uppercase font-bold mb-1">未来可省税</p>
-                                    <p class="text-2xl font-black">¥30.2万</p>
-                                    <p class="text-[9px] text-white/40 mt-1">享受 175% 研发费用加计扣除</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- 审批弹窗 -->
+    <div id="approveMask" class="hidden fixed inset-0 bg-black/50 z-50 items-center justify-center">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="px-6 py-4 bg-blue-600 text-white flex justify-between items-center">
+                <div><p class="text-sm font-black"><i class="fa fa-gavel mr-1"></i>取得入库审批</p>
+                <p class="text-[10px] opacity-80 mt-0.5" id="apTitle">—</p></div>
+                <button onclick="closeApprove()" class="w-8 h-8 hover:bg-white/20 rounded-lg"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="apId">
+                <div class="p-3 bg-slate-50 rounded-xl text-xs text-slate-600" id="apDesc">—</div>
+                <div>
+                    <label class="field-label">审批人 <span class="text-red-400">*</span></label>
+                    <input id="apApprover" class="field-input" placeholder="如：李总">
+                </div>
+                <div>
+                    <label class="field-label">审批意见</label>
+                    <textarea id="apNote" class="field-input" rows="2" placeholder="如：资料齐全同意入库 / 需补充凭证"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button onclick="closeApprove()" class="px-4 py-2 text-slate-500 text-xs font-bold hover:bg-slate-50">取消</button>
+                    <button onclick="doApprove(false)" class="px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-200 hover:bg-red-100">驳回</button>
+                    <button onclick="doApprove(true)" class="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700">通过并执行</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        var METHOD_META = {
+            '外购':       { icon: 'fa-shopping-cart', color: 'text-blue-600 bg-blue-50' },
+            '自主研发':   { icon: 'fa-flask',         color: 'text-indigo-600 bg-indigo-50' },
+            '投资入股':   { icon: 'fa-handshake-o',   color: 'text-emerald-600 bg-emerald-50' },
+            '捐赠':       { icon: 'fa-gift',          color: 'text-amber-600 bg-amber-50' },
+            '内部调拨':   { icon: 'fa-exchange',      color: 'text-purple-600 bg-purple-50' }
+        };
+
+        function goForm() {
+            try {
+                if (parent && parent.loadPage) { parent.loadPage('capitalization-form.html', null); return; }
+            } catch (e) {}
+            window.location.href = 'capitalization-form.html';
+        }
+
+        function initFilter() {
+            var sel = document.getElementById('fMethod');
+            ACQUIRE_METHODS.forEach(function (m) {
+                var opt = document.createElement('option');
+                opt.value = m; opt.innerText = m;
+                sel.appendChild(opt);
+            });
+        }
+
+        function resetFilter() {
+            document.getElementById('kw').value = '';
+            document.getElementById('fMethod').value = '';
+            document.getElementById('fStatus').value = '';
+            render();
+        }
+
+        function render() {
+            var kw = document.getElementById('kw').value.trim().toLowerCase();
+            var fm = document.getElementById('fMethod').value;
+            var fs = document.getElementById('fStatus').value;
+
+            var all = (ASSET_LIFECYCLE_EVENTS || []).filter(function (e) { return e.stage === '取得入库'; })
+                .sort(function (a, b) { return (b.eventDate || '').localeCompare(a.eventDate || ''); });
+
+            // 统计
+            document.getElementById('cntAll').innerText = all.length;
+            document.getElementById('cntPending').innerText = all.filter(function (e) { return e.status === '待审批'; }).length;
+            document.getElementById('cntDone').innerText = all.filter(function (e) { return e.status === '已执行' || e.status === '已通过'; }).length;
+            document.getElementById('cntReject').innerText = all.filter(function (e) { return e.status === '已驳回'; }).length;
+
+            // 筛选
+            var list = all.filter(function (e) {
+                var a = getAssetById(e.assetId);
+                var name = a ? a.name.toLowerCase() : (e.note || '').toLowerCase();
+                var matchKw = !kw || name.indexOf(kw) >= 0 || (e.operator || '').toLowerCase().indexOf(kw) >= 0;
+                var matchM = !fm || e.eventType === fm;
+                var matchS = !fs || e.status === fs;
+                return matchKw && matchM && matchS;
+            });
+            document.getElementById('countText').innerText = '共 ' + list.length + ' 条';
+
+            var statusStyle = LIFECYCLE_STATUS_STYLE || {};
+            var tbody = document.getElementById('listBody');
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-5 py-12 text-center text-slate-300"><i class="fa fa-inbox text-3xl block mb-2"></i><span class="text-xs font-bold">暂无取得入库记录</span></td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(function (e) {
+                var a = getAssetById(e.assetId);
+                var meta = METHOD_META[e.eventType] || { icon: 'fa-plus-circle', color: 'text-slate-600 bg-slate-50' };
+                var assetName = a ? a.name : (e.pendingAsset ? e.pendingAsset.name : (e.note ? e.note.slice(0, 12) : e.assetId));
+                var assetSub = a ? (a.id + ' · ' + a.type) : (e.pendingAsset ? (e.pendingAsset.type + ' · 待建档') : '');
+                var stBadge = '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold border ' + (statusStyle[e.status] || '') + '">' + e.status + '</span>';
+                var actionBtn = e.status === '待审批'
+                    ? '<button onclick="openApprove(\'' + e.id + '\')" class="px-2 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-lg border border-emerald-200 hover:bg-emerald-100">审批</button>'
+                    : '<span class="text-[10px] text-slate-300">—</span>';
+                return '<tr class="hover:bg-slate-50 transition-all">'
+                    + '<td class="px-5 py-4">'
+                    +   '<div class="flex items-center gap-2">'
+                    +     '<div class="w-7 h-7 rounded-lg flex items-center justify-center ' + meta.color + ' flex-shrink-0"><i class="fa ' + meta.icon + ' text-[10px]"></i></div>'
+                    +     '<div><p class="text-xs font-bold text-slate-800">' + assetName + '</p>'
+                    +     (assetSub ? '<p class="text-[9px] text-slate-400">' + assetSub + '</p>' : '') + '</div>'
+                    +   '</div>'
+                    + '</td>'
+                    + '<td class="px-4 py-4 text-xs text-slate-600">' + (e.eventType || '-') + '</td>'
+                    + '<td class="px-4 py-4 text-xs text-slate-600">' + (e.eventDate || '-') + '</td>'
+                    + '<td class="px-4 py-4 text-right text-xs font-bold text-slate-800">' + (e.amount || 0) + '</td>'
+                    + '<td class="px-4 py-4 text-xs text-slate-500">' + (e.operator || '-') + '</td>'
+                    + '<td class="px-4 py-4 text-xs text-slate-500">' + (e.approver || '-') + '</td>'
+                    + '<td class="px-4 py-4">' + stBadge + '</td>'
+                    + '<td class="px-4 py-4 text-right">' + actionBtn + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+
+        function openApprove(id) {
+            var ev = ASSET_LIFECYCLE_EVENTS.find(function (x) { return x.id === id; });
+            if (!ev) return;
+            var a = getAssetById(ev.assetId);
+            document.getElementById('apId').value = id;
+            document.getElementById('apTitle').innerText = ev.eventType + ' · ' + (a ? a.name : '');
+            document.getElementById('apDesc').innerHTML = '<div><span class="font-bold text-slate-700">资产：</span>' + (a ? a.name : (ev.pendingAsset ? ev.pendingAsset.name + '（待建档）' : ev.assetId)) + '</div>'
+                + '<div class="mt-1"><span class="font-bold text-slate-700">日期：</span>' + ev.eventDate + ' <span class="font-bold text-slate-700 ml-3">金额：</span>' + ev.amount + ' 万</div>'
+                + '<div class="mt-1"><span class="font-bold text-slate-700">说明：</span>' + (ev.note || '') + '</div>';
+            document.getElementById('apApprover').value = '';
+            document.getElementById('apNote').value = '';
+            var mask = document.getElementById('approveMask');
+            mask.classList.remove('hidden'); mask.classList.add('flex');
+            setTimeout(function () { document.getElementById('apApprover').focus(); }, 50);
+        }
+        function closeApprove() {
+            var mask = document.getElementById('approveMask');
+            mask.classList.add('hidden'); mask.classList.remove('flex');
+        }
+        function doApprove(pass) {
+            var id = document.getElementById('apId').value;
+            var approver = document.getElementById('apApprover').value.trim();
+            if (!approver) { toast('请填写审批人', 'red'); return; }
+            var note = document.getElementById('apNote').value.trim();
+            var ev = approveLifecycleEvent(id, approver, pass, note);
+            if (ev) {
+                toast((pass ? '已通过并执行入库：' : '已驳回：') + ev.eventType, pass ? 'green' : 'red');
+                closeApprove();
+                render();
+            }
+        }
+
+        function toast(msg, color) {
+            var el = document.createElement('div');
+            el.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-2xl text-white text-xs font-bold shadow-xl ' + (color === 'red' ? 'bg-red-500' : 'bg-emerald-500');
+            el.innerHTML = '<i class="fa ' + (color === 'red' ? 'fa-exclamation-circle' : 'fa-check-circle') + ' mr-2"></i>' + msg;
+            document.body.appendChild(el);
+            setTimeout(function () { el.remove(); }, 2400);
+        }
+
+        window.addEventListener('lifecycle-changed', render);
+        window.addEventListener('assets-changed', render);
+
+        // 初始化
+        initFilter();
+        render();
+    </script>
 </body>
 </html>

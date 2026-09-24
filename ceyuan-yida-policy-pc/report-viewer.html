@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业分析报告 - 策源易达</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+        /* 打印样式：只保留报告正文 */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff; }
+            .report-page { box-shadow: none !important; border: none !important; margin: 0 !important; max-width: 100% !important; }
+        }
+        .advice-item { display: flex; align-items: flex-start; }
+        .advice-item::before { content: '✓'; color: #16a34a; font-weight: 700; margin-right: 8px; flex-shrink: 0; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- 工具栏（打印时隐藏） -->
+    <div class="no-print bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div class="max-w-[900px] mx-auto px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2 text-sm text-gray-500">
+                <i class="fa fa-file-text-o text-green-600"></i>
+                <span>策源易达 · 企业分析报告</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="goBack()" class="px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50"><i class="fa fa-arrow-left mr-1"></i>返回</button>
+                <button onclick="window.print()" class="px-4 py-1.5 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 font-bold"><i class="fa fa-print mr-1"></i>打印 / 保存为 PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 报告正文 -->
+    <div class="max-w-[900px] mx-auto px-6 py-8">
+        <div id="reportPage" class="report-page bg-white rounded-xl shadow-sm border border-gray-200 p-10">
+            <!-- 加载中 -->
+            <p id="loading" class="text-center text-sm text-gray-400 py-20"><i class="fa fa-spinner fa-spin mr-2"></i>报告加载中...</p>
+        </div>
+    </div>
+
+    <script src="data-bridge.js"></script>
+    <script>
+        function getParam(k) {
+            var m = new RegExp('[?&]' + k + '=([^&]*)').exec(location.search);
+            return m ? decodeURIComponent(m[1]) : '';
+        }
+        function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        function goBack() {
+            if (parent && parent.window && parent.window.switchPage) parent.window.switchPage('sales-report.html', null);
+            else if (history.length > 1) history.back();
+            else window.location.href = 'index.html';
+        }
+
+        function render(r) {
+            var kpis = [
+                { v: (r.policies || []).length, l: '可申报政策' },
+                { v: wanTotal(r) ? wanTotal(r) + '万' : '—', l: '预计权益' },
+                { v: matchAvg(r) ? matchAvg(r) + '%' : '—', l: '综合匹配度' },
+                { v: r.diagnosis ? r.diagnosis.grade : '—', l: '科创评级' }
+            ];
+            var html = '' +
+                // 报告头
+                '<div class="border-b-2 border-green-600 pb-5 mb-6">' +
+                    '<div class="flex items-center justify-between mb-2">' +
+                        '<span class="text-xs text-gray-400 tracking-widest">CEYUAN YIDA · AI ENTERPRISE REPORT</span>' +
+                        '<span class="text-xs text-gray-400">' + esc(r.createdAt) + '</span>' +
+                    '</div>' +
+                    '<h1 class="text-2xl font-black text-gray-800">' + esc(r.title) + '</h1>' +
+                    '<p class="text-sm text-gray-500 mt-2"><i class="fa fa-building-o mr-1"></i>' + esc(r.customerName) +
+                    (r.company && r.company.industry ? ' · ' + esc(r.company.industry) : '') +
+                    (r.company && r.company.region ? ' · ' + esc(r.company.region) : '') + '</p>' +
+                '</div>' +
+                // KPI
+                '<div class="grid grid-cols-4 gap-3 mb-6">' +
+                    kpis.map(function(k) {
+                        return '<div class="bg-gray-50 rounded-lg p-3 text-center"><p class="text-2xl font-bold text-green-600">' + esc(k.v) + '</p><p class="text-xs text-gray-500 mt-0.5">' + k.l + '</p></div>';
+                    }).join('') +
+                '</div>' +
+                // 摘要
+                '<div class="bg-green-50 rounded-lg p-5 mb-6">' +
+                    '<h3 class="font-semibold text-gray-800 text-sm mb-2"><i class="fa fa-lightbulb-o text-green-600 mr-1"></i>报告摘要</h3>' +
+                    '<p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">' + esc(r.summary) + '</p>' +
+                '</div>' +
+                // 一、企业画像
+                '<h3 class="text-sm font-semibold text-gray-800 mb-3 flex items-center"><span class="w-1 h-4 bg-green-600 rounded mr-2"></span>一、企业画像</h3>' +
+                '<p class="text-sm text-gray-600 leading-relaxed mb-6 whitespace-pre-wrap">' + esc(r.profile) + '</p>' +
+                // 二、政策机会
+                '<h3 class="text-sm font-semibold text-gray-800 mb-3 flex items-center"><span class="w-1 h-4 bg-green-600 rounded mr-2"></span>二、政策机会</h3>' +
+                '<div class="space-y-2 mb-6">' +
+                    (r.policies || []).map(function(p) {
+                        return '<div class="flex items-start justify-between border border-gray-100 rounded-lg p-3">' +
+                            '<div><p class="text-sm font-medium text-gray-800">' + esc(p.title) + '</p>' +
+                            '<p class="text-xs text-gray-400 mt-1">' + esc(p.benefit || '') +
+                            (p.match ? ' · 匹配度 ' + p.match + '%' : '') + '</p></div>' +
+                            '<span class="px-2 py-0.5 bg-green-50 text-green-700 rounded text-xs flex-shrink-0">' + esc(p.level || '推荐') + '</span></div>';
+                    }).join('') +
+                '</div>' +
+                // 三、申报建议
+                '<h3 class="text-sm font-semibold text-gray-800 mb-3 flex items-center"><span class="w-1 h-4 bg-green-600 rounded mr-2"></span>三、申报建议</h3>' +
+                '<div class="space-y-2 mb-6">' +
+                    (r.advice || '').split('\n').filter(Boolean).map(function(line) {
+                        return '<div class="advice-item text-sm text-gray-600 leading-relaxed">' + esc(line.replace(/^\d+\.\s*/, '')) + '</div>';
+                    }).join('') +
+                '</div>' +
+                // 页脚
+                '<div class="border-t border-gray-100 pt-4 flex items-center justify-between text-xs text-gray-400">' +
+                    '<span>本报告由 AI 智能引擎基于企业数据自动生成，供申报参考</span>' +
+                    '<span>策源易达 · 政策销售平台</span>' +
+                '</div>';
+            document.getElementById('reportPage').innerHTML = html;
+        }
+
+        function wanTotal(r) {
+            var t = 0;
+            (r.policies || []).forEach(function(p) {
+                var m = String(p.benefit || '').match(/([\d.]+)\s*万/);
+                if (m) t += parseFloat(m[1]);
+            });
+            return t;
+        }
+        function matchAvg(r) {
+            var ps = r.policies || [];
+            if (!ps.length) return 0;
+            var s = 0;
+            ps.forEach(function(p) { s += (p.match || 0); });
+            return Math.round(s / ps.length);
+        }
+
+        (function init() {
+            var id = getParam('id');
+            var shareId = getParam('shareId');
+            var reports = DataBridge.loadSalesReports();
+            var r = null;
+            for (var i = 0; i < reports.length; i++) if (reports[i].id === id) { r = reports[i]; break; }
+            if (!r) {
+                document.getElementById('reportPage').innerHTML =
+                    '<div class="text-center py-20"><i class="fa fa-exclamation-circle text-4xl text-gray-300 mb-4"></i>' +
+                    '<p class="text-sm text-gray-500 mb-4">未找到报告，可能链接已失效</p>' +
+                    '<button onclick="goBack()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm">返回智能报告</button></div>';
+                return;
+            }
+            // 浏览追踪：追加到对应 shareId，没有则自动建一条匿名分享记录
+            var now = new Date();
+            function p(n) { return String(n).padStart(2, '0'); }
+            var ts = now.getFullYear() + '-' + p(now.getMonth()+1) + '-' + p(now.getDate()) + ' ' + p(now.getHours()) + ':' + p(now.getMinutes());
+            var dur = 30 + Math.floor(Math.random() * 180); // 模拟停留时长 30~210 秒
+            if (!Array.isArray(r.shares)) r.shares = [];
+            var target = null;
+            if (shareId) {
+                for (var j = 0; j < r.shares.length; j++) if (r.shares[j].shareId === shareId) { target = r.shares[j]; break; }
+            }
+            if (!target) {
+                target = { shareId: 'AUTO_' + now.getTime(), toName: '（匿名访问）', toPhone: '', createdAt: ts, expireAt: '', views: [] };
+                r.shares.push(target);
+            }
+            target.views.push({ at: ts, durSec: dur });
+            DataBridge.saveSalesReports(reports);
+            render(r);
+            if (getParam('print') === '1') setTimeout(function() { window.print(); }, 400);
+        })();
+    </script>
+</body>
+</html>

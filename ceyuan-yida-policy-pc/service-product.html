@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服务商品管理 - 策源易答运营平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(249,115,22,0.18); }
+        .modal-mask { background: rgba(15,23,42,0.5); backdrop-filter: blur(2px); }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+    </style>
+</head>
+<body class="bg-slate-50 p-8">
+
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-slate-800 flex items-center">
+                <i class="fa fa-shopping-bag text-orange-500 mr-3"></i>服务商品管理
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">运营管理平台 / 服务交易运营 / 服务商品管理</p>
+        </div>
+        <button onclick="openEdit()" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold transition-all flex items-center shadow-lg shadow-orange-500/20">
+            <i class="fa fa-plus mr-2"></i>新增服务
+        </button>
+    </div>
+
+    <!-- 状态流转说明 -->
+    <div class="mb-4 px-4 py-2.5 bg-orange-50/60 border border-orange-100 rounded-xl">
+        <p class="text-xs text-slate-600 leading-relaxed">
+            <span class="font-semibold text-slate-700">状态流转：</span>草稿（编辑完善中，前台不可见）→ <span class="font-semibold text-emerald-600">已上架</span>（服务商城对企业展示、可下单）→ 已下架（停止售卖，前台不可见，可重新上架）；
+            <span class="font-semibold text-slate-700 ml-1">联动说明：</span>本页维护的服务同步至企业侧「服务商城」，勾选「首页推荐」将显示在商城顶部推荐位。
+        </p>
+    </div>
+
+    <!-- 搜索筛选 + 列表 -->
+    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex flex-wrap items-center gap-3">
+            <div class="relative flex-1 min-w-[240px] max-w-md">
+                <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input id="q" oninput="render()" type="text" placeholder="搜索服务名称 / 服务商" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all">
+            </div>
+            <select id="fCat" onchange="render()" class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <option value="">全部分类</option>
+            </select>
+            <select id="fStatus" onchange="render()" class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <option value="">全部状态</option>
+                <option value="on">已上架</option>
+                <option value="draft">草稿</option>
+                <option value="off">已下架</option>
+            </select>
+        </div>
+
+        <!-- 表格 -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 text-xs">
+                        <th class="px-5 py-3 text-left font-bold">服务名称</th>
+                        <th class="px-5 py-3 text-left font-bold">服务商</th>
+                        <th class="px-5 py-3 text-left font-bold">价格</th>
+                        <th class="px-5 py-3 text-left font-bold">销量 / 评分</th>
+                        <th class="px-5 py-3 text-left font-bold">状态</th>
+                        <th class="px-5 py-3 text-left font-bold">推荐位</th>
+                        <th class="px-5 py-3 text-left font-bold">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+        </div>
+
+        <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between text-sm">
+            <span class="text-slate-500">共 <span id="total" class="font-bold text-slate-700">0</span> 条记录</span>
+            <span class="text-xs text-slate-400"><i class="fa fa-check-circle text-emerald-500 mr-1"></i>数据已与企业侧服务商城实时同步</span>
+        </div>
+    </div>
+
+    <!-- 服务编辑弹窗 -->
+    <div id="editModal" class="fixed inset-0 modal-mask z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-[20px] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 id="mTitle" class="text-lg font-black text-slate-800 flex items-center"><i class="fa fa-edit text-orange-500 mr-2"></i>新增服务</h3>
+                <button onclick="closeEdit()" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">服务名称 <span class="text-rose-500">*</span></label>
+                        <input id="fName" type="text" placeholder="如：高新技术企业认定全程辅导" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">服务分类</label>
+                        <select id="fCategory" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option>政策咨询</option><option>申报代理</option><option>知识产权</option>
+                            <option>财务审计</option><option>技术转移</option><option>检验检测</option><option>政策培训</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">服务提供商</label>
+                        <input id="fProvider" type="text" placeholder="如：北京中科创服咨询有限公司" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">售价（元）<span class="text-rose-500">*</span></label>
+                        <input id="fPrice" type="number" min="0" placeholder="18800" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">划线价/原价（元，0 表示无）</label>
+                        <input id="fOldPrice" type="number" min="0" placeholder="25000" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">上架状态</label>
+                        <select id="fStatus" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="draft">草稿（前台不可见）</option>
+                            <option value="on">已上架（商城可售）</option>
+                            <option value="off">已下架（停止售卖）</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end pb-1">
+                        <label class="flex items-center cursor-pointer">
+                            <input id="fFeatured" type="checkbox" class="w-4 h-4 rounded accent-orange-500 mr-2">
+                            <span class="text-sm text-slate-700 font-bold">设为首页推荐位</span>
+                        </label>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">服务简介 <span class="text-slate-400 font-normal">（商城卡片上的一句话描述）</span></label>
+                        <textarea id="fDesc" rows="2" placeholder="如：资深专家团队全程辅导，覆盖诊断、规划、材料撰写到答辩全流程" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white resize-none"></textarea>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">服务标签 <span class="text-slate-400 font-normal">（商城卡片角标，如：限时特惠、金牌服务；输入后回车添加）</span></label>
+                        <div id="tagBox" class="flex flex-wrap items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl min-h-[44px]"></div>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">服务内容清单 <span class="text-slate-400 font-normal">（企业在服务详情中看到的"包含内容"，每项一行）</span></label>
+                        <div id="incList" class="space-y-2 mb-2"></div>
+                        <button onclick="addInc()" class="w-full py-2 border border-dashed border-slate-300 text-slate-500 rounded-xl text-sm font-bold hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50/40 transition-all flex items-center justify-center">
+                            <i class="fa fa-plus mr-1.5"></i>添加服务内容
+                        </button>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">服务流程 <span class="text-slate-400 font-normal">（详情页"服务流程"步骤，按顺序展示；不配置则前台不显示该区块）</span></label>
+                        <div id="stepList" class="space-y-2 mb-2"></div>
+                        <button onclick="addStep()" class="w-full py-2 border border-dashed border-slate-300 text-slate-500 rounded-xl text-sm font-bold hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50/40 transition-all flex items-center justify-center">
+                            <i class="fa fa-plus mr-1.5"></i>添加流程步骤
+                        </button>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">成功案例 <span class="text-slate-400 font-normal">（详情页"案例展示"；客户名称建议使用化名，不配置则前台不显示该区块）</span></label>
+                        <div id="caseList" class="space-y-3 mb-2"></div>
+                        <button onclick="addCase()" class="w-full py-2 border border-dashed border-slate-300 text-slate-500 rounded-xl text-sm font-bold hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50/40 transition-all flex items-center justify-center">
+                            <i class="fa fa-plus mr-1.5"></i>添加成功案例
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <button onclick="closeEdit()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">取消</button>
+                <button onclick="saveSvc()" class="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-orange-500/20">保存服务</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js"></script>
+    <script>
+        let PRODUCTS = [];
+        let editingId = null;
+
+        function fmtMoney(n) {
+            n = Number(n) || 0;
+            return n.toLocaleString('zh-CN');
+        }
+        function statusBadge(s) {
+            if (s === 'on') return '<span class="px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-md"><i class="fa fa-check-circle mr-0.5"></i>已上架</span>';
+            if (s === 'draft') return '<span class="px-2 py-1 bg-slate-100 text-slate-500 text-xs font-bold rounded-md border border-slate-200"><i class="fa fa-pencil mr-0.5"></i>草稿</span>';
+            return '<span class="px-2 py-1 bg-slate-100 text-slate-400 text-xs font-bold rounded-md border border-slate-200"><i class="fa fa-ban mr-0.5"></i>已下架</span>';
+        }
+
+        function load() {
+            PRODUCTS = (typeof DataBridge !== 'undefined') ? DataBridge.loadServiceProducts() : [];
+            // 分类筛选下拉
+            const cats = [...new Set(PRODUCTS.map(p => p.category).filter(Boolean))];
+            const sel = document.getElementById('fCat');
+            sel.innerHTML = '<option value="">全部分类</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        function render() {
+            const q = document.getElementById('q').value.trim().toLowerCase();
+            const fc = document.getElementById('fCat').value;
+            const fs = document.getElementById('fStatus').value;
+            const list = PRODUCTS.filter(p => {
+                if (q && !(p.name.toLowerCase().includes(q) || p.provider.toLowerCase().includes(q))) return false;
+                if (fc && p.category !== fc) return false;
+                if (fs && p.status !== fs) return false;
+                return true;
+            });
+            document.getElementById('total').textContent = list.length;
+            const tb = document.getElementById('tbody');
+            if (list.length === 0) {
+                tb.innerHTML = `<tr><td colspan="7" class="px-5 py-12 text-center text-slate-400"><i class="fa fa-inbox text-2xl block mb-2"></i>暂无符合条件的服务</td></tr>`;
+                return;
+            }
+            tb.innerHTML = list.map(p => {
+                const acts = [];
+                acts.push(`<button onclick="openEdit('${p.id}')" class="text-orange-600 hover:text-orange-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>`);
+                if (p.status === 'on') acts.push(`<button onclick="setStatus('${p.id}','off')" class="text-rose-500 hover:text-rose-700 font-bold"><i class="fa fa-arrow-down mr-0.5"></i>下架</button>`);
+                else acts.push(`<button onclick="setStatus('${p.id}','on')" class="text-emerald-600 hover:text-emerald-800 font-bold"><i class="fa fa-upload mr-0.5"></i>${p.status === 'draft' ? '上架' : '重新上架'}</button>`);
+                return `
+                <tr class="hover:bg-orange-50/30 transition-colors">
+                    <td class="px-5 py-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-9 h-9 gradient-orange rounded-xl flex items-center justify-center flex-shrink-0 text-orange-500 bg-orange-50">
+                                <i class="fa ${p.icon || 'fa-file-text-o'}"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-800">${p.name}</div>
+                                <div class="text-xs text-slate-400 mt-0.5">${p.category}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-5 py-4 text-slate-600">${p.provider}</td>
+                    <td class="px-5 py-4">
+                        <span class="text-orange-600 font-black">¥${fmtMoney(p.price)}</span>
+                        ${p.oldPrice ? `<span class="text-xs text-slate-400 line-through ml-1">¥${fmtMoney(p.oldPrice)}</span>` : ''}
+                    </td>
+                    <td class="px-5 py-4 text-slate-600">
+                        <div class="text-xs"><i class="fa fa-fire text-orange-400 mr-1"></i>${fmtMoney(p.sales)} 单</div>
+                        <div class="text-xs text-slate-400 mt-0.5"><i class="fa fa-star text-orange-300 mr-1"></i>${p.rating || '—'} 分</div>
+                    </td>
+                    <td class="px-5 py-4">${statusBadge(p.status)}</td>
+                    <td class="px-5 py-4">${p.featured ? '<i class="fa fa-star text-amber-400"></i> <span class="text-xs text-amber-600 font-bold">推荐</span>' : '<span class="text-xs text-slate-300">—</span>'}</td>
+                    <td class="px-5 py-4"><div class="flex items-center space-x-3 text-xs">${acts.join('')}</div></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function setStatus(id, s) {
+            const p = PRODUCTS.find(x => x.id === id);
+            if (!p) return;
+            p.status = s;
+            persist();
+            render();
+        }
+        function persist() {
+            if (typeof DataBridge === 'undefined') { alert('数据层未加载'); return; }
+            DataBridge.saveServiceProducts(PRODUCTS);
+        }
+
+        // ===== 编辑弹窗 =====
+        let editTags = [];
+        function openEdit(id) {
+            editingId = id || null;
+            const p = id ? PRODUCTS.find(x => x.id === id) : null;
+            document.getElementById('mTitle').innerHTML = `<i class="fa fa-edit text-orange-500 mr-2"></i>${p ? '编辑服务' : '新增服务'}`;
+            document.getElementById('fName').value = p ? p.name : '';
+            document.getElementById('fCategory').value = p ? p.category : '政策咨询';
+            document.getElementById('fProvider').value = p ? p.provider : '';
+            document.getElementById('fPrice').value = p ? (p.price || '') : '';
+            document.getElementById('fOldPrice').value = p ? (p.oldPrice || '') : '';
+            document.getElementById('fStatus').value = p ? p.status : 'draft';
+            document.getElementById('fFeatured').checked = p ? !!p.featured : false;
+            document.getElementById('fDesc').value = p ? (p.desc || '') : '';
+            editTags = p && Array.isArray(p.tags) ? [...p.tags] : [];
+            renderTags();
+            const incBox = document.getElementById('incList');
+            incBox.innerHTML = '';
+            (p && p.includes.length ? p.includes : ['']).forEach(t => addInc(t));
+            const stepBox = document.getElementById('stepList');
+            stepBox.innerHTML = '';
+            (p && Array.isArray(p.process) && p.process.length ? p.process : []).forEach(s => addStep(s.t, s.d));
+            const caseBox = document.getElementById('caseList');
+            caseBox.innerHTML = '';
+            (p && Array.isArray(p.cases) && p.cases.length ? p.cases : []).forEach(c => addCase(c.company, c.year, c.result));
+            const m = document.getElementById('editModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeEdit() { const m = document.getElementById('editModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+        function esc(s){ return (s||'').replace(/"/g,'&quot;'); }
+
+        // 标签
+        function renderTags() {
+            const box = document.getElementById('tagBox');
+            box.innerHTML = editTags.map((t,i) =>
+                `<span class="tag-chip inline-flex items-center gap-1 px-2.5 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">
+                    ${t.replace(/</g,'&lt;')}
+                    <button type="button" onclick="removeTag(${i})" class="text-orange-500 hover:text-rose-500"><i class="fa fa-times text-[10px]"></i></button>
+                </span>`).join('')
+                + `<input id="tagInput" type="text" placeholder="输入标签后回车" class="flex-1 min-w-[120px] bg-transparent outline-none text-sm py-1">`;
+            const inp = document.getElementById('tagInput');
+            inp.onkeydown = function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const v = inp.value.trim();
+                    if (v && !editTags.includes(v) && editTags.length < 4) editTags.push(v);
+                    inp.value = '';
+                    renderTags();
+                    document.getElementById('tagInput').focus();
+                }
+            };
+        }
+        function removeTag(i){ editTags.splice(i,1); renderTags(); }
+
+        function addInc(val) {
+            const box = document.getElementById('incList');
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2';
+            row.innerHTML = `
+                <i class="fa fa-check-circle text-orange-400"></i>
+                <input type="text" value="${esc(val)}" placeholder="如：申报材料撰写与审核" class="inc-item flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white">
+                <button class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"><i class="fa fa-trash-o"></i></button>`;
+            row.querySelector('button').onclick = () => row.remove();
+            box.appendChild(row);
+        }
+
+        // 服务流程步骤
+        function addStep(t, d) {
+            const box = document.getElementById('stepList');
+            const row = document.createElement('div');
+            row.className = 'step-row flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-2';
+            row.innerHTML = `
+                <span class="step-idx w-6 h-6 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">${box.children.length+1}</span>
+                <input type="text" value="${esc(t)}" placeholder="步骤名称，如：需求沟通" class="step-t w-40 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                <input type="text" value="${esc(d)}" placeholder="步骤说明，如：了解企业情况" class="step-d flex-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                <button class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg flex-shrink-0"><i class="fa fa-trash-o"></i></button>`;
+            row.querySelector('button').onclick = () => { row.remove(); reindexSteps(); };
+            box.appendChild(row);
+        }
+        function reindexSteps() {
+            document.querySelectorAll('#stepList .step-idx').forEach((el,i)=> el.textContent = i+1);
+        }
+
+        // 成功案例
+        function addCase(company, year, result) {
+            const box = document.getElementById('caseList');
+            const row = document.createElement('div');
+            row.className = 'case-row bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2';
+            row.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fa fa-trophy text-amber-500"></i>
+                    <input type="text" value="${esc(company)}" placeholder="客户化名，如：某智能制造有限公司" class="case-c flex-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                    <input type="text" value="${esc(year)}" placeholder="认定信息，如：2023年成功认定 · 国家级" class="case-y w-64 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                    <button class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg flex-shrink-0"><i class="fa fa-trash-o"></i></button>
+                </div>
+                <textarea rows="2" placeholder="案例成果描述，如：获得税收减免320万元，政府补贴80万元" class="case-r w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none">${esc(result)}</textarea>`;
+            row.querySelector('button').onclick = () => row.remove();
+            box.appendChild(row);
+        }
+
+        function saveSvc() {
+            const name = document.getElementById('fName').value.trim();
+            const price = parseFloat(document.getElementById('fPrice').value);
+            if (!name) { alert('请填写服务名称'); return; }
+            if (isNaN(price) || price < 0) { alert('请填写正确的售价'); return; }
+            const includes = [...document.querySelectorAll('.inc-item')].map(i => i.value.trim()).filter(Boolean);
+            const process = [...document.querySelectorAll('.step-row')].map(r => ({
+                t: r.querySelector('.step-t').value.trim(),
+                d: r.querySelector('.step-d').value.trim()
+            })).filter(s => s.t);
+            const cases = [...document.querySelectorAll('.case-row')].map(r => ({
+                company: r.querySelector('.case-c').value.trim(),
+                year: r.querySelector('.case-y').value.trim(),
+                result: r.querySelector('.case-r').value.trim()
+            })).filter(c => c.company);
+            const data = {
+                name,
+                category: document.getElementById('fCategory').value,
+                provider: document.getElementById('fProvider').value.trim() || '平台自营',
+                price,
+                oldPrice: parseFloat(document.getElementById('fOldPrice').value) || 0,
+                status: document.getElementById('fStatus').value,
+                featured: document.getElementById('fFeatured').checked,
+                desc: document.getElementById('fDesc').value.trim(),
+                tags: [...editTags],
+                includes,
+                process,
+                cases
+            };
+            if (editingId) {
+                const p = PRODUCTS.find(x => x.id === editingId);
+                Object.assign(p, data);
+            } else {
+                data.id = 'SVC' + String(Date.now()).slice(-6);
+                data.rating = 0; data.sales = 0; data.icon = 'fa-file-text-o';
+                PRODUCTS.push(data);
+            }
+            persist();
+            closeEdit();
+            render();
+        }
+
+        // 初始化
+        load();
+        render();
+    </script>
+</body>
+</html>
