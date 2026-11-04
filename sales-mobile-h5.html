@@ -1752,9 +1752,12 @@
                             const idx = list.findIndex(function (u) { return u.id === c.id; });
                             if (idx >= 0) { list[idx] = c; DB.saveCustomers(list); }
                         }
-                        // 报告存档（PC 端也能看到）
+                        // 报告存档（PC 端也能看到）——去重：同一客户当天的新报告覆盖旧报告
                         if (DB.saveSalesReports) {
-                            const list = DB.loadSalesReports();
+                            const todayStr = (report.value.createdAt || '').slice(0, 10);
+                            const list = (DB.loadSalesReports() || []).filter(function (r) {
+                                return !(r.customerName === report.value.customerName && String(r.createdAt || '').slice(0, 10) === todayStr);
+                            });
                             list.unshift(report.value);
                             DB.saveSalesReports(list);
                             archiveReports.value = list;
