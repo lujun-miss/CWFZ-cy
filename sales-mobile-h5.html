@@ -280,8 +280,11 @@
                                         <div>已有资质：<b>{{ (condAuto.quals || []).length ? condAuto.quals.join('、') : '—' }}</b></div>
                                         <div>年营收：<b>{{ condAuto.revenue ? (condAuto.revenue / 100).toFixed(0) + ' 百万元' : '—' }}</b></div>
                                         <div>员工人数：<b>{{ condAuto.employees ? condAuto.employees + ' 人' : '—' }}</b></div>
+                                        <div>成立年限：<b>{{ condAuto.foundedYears != null ? condAuto.foundedYears + ' 年' : '—' }}</b></div>
+                                        <div>社保人数：<b>{{ condAuto.socialStaff != null ? condAuto.socialStaff + ' 人' : '—' }}</b></div>
                                         <div>客户来源：<b>{{ condAuto.source || '—' }}</b></div>
                                     </div>
+                                    <div v-if="condAuto.coreProduct" style="font-size:10.5px;color:#166534;background:#dcfce7;border-radius:6px;padding:6px 10px;margin-top:6px">核心产品/赛道：<b>{{ condAuto.coreProduct }}</b></div>
                                 </div>
 
                                 <!-- Step 2：测评回填（调科创测评引擎，原型 mock） -->
@@ -321,10 +324,20 @@
                                                    placeholder="请选择" @click="showRndPicker = true"></van-field>
                                         <van-field v-model="condAssess.industryUniStr" label="是否有产学研合作" readonly is-link
                                                    placeholder="请选择" @click="showUniPicker = true"></van-field>
+                                        <van-field v-model="condAssess.growthStageStr" label="成长阶段" readonly is-link
+                                                   placeholder="请选择（种子/天使/A轮/规模）" @click="showGrowthPicker = true"></van-field>
                                         <van-field v-model="condAssess.fundPref" label="扶持方式偏好" readonly is-link
                                                    placeholder="请选择" @click="showFundPicker = true"></van-field>
                                         <van-field v-model="condAssess.windowPrefStr" label="预期申报窗口期" readonly is-link
                                                    placeholder="请选择" @click="showWindowPicker = true"></van-field>
+                                        <van-field v-model="condAssess.coreProductOverride" label="核心产品/赛道"
+                                                   placeholder="如：AI医疗影像 / 半导体封测" />
+                                        <van-field v-model.number="condAssess.yearsOverride" type="number" label="成立年限（年）"
+                                                   :placeholder="condAuto.foundedYears != null ? ('自动读取 ' + condAuto.foundedYears + ' 年，可覆盖') : '如：3'" />
+                                        <van-field v-model.number="condAssess.socialStaffOverride" type="number" label="社保缴纳人数"
+                                                   :placeholder="condAuto.socialStaff != null ? ('自动读取 ' + condAuto.socialStaff + ' 人，可覆盖') : '如：120'" />
+                                        <van-field v-model="condAssess.subsidyHist" label="已获补贴/资质（避免重复）"
+                                                   placeholder="如：已拿过高企、专精特新，2025年获研发补贴 50万" />
                                     </van-cell-group>
                                 </div>
 
@@ -403,9 +416,14 @@
                                         <div>所在地区：{{ report.company.region }}</div>
                                         <div>员工人数：{{ report.company.employees }} 人</div>
                                         <div>年营收：{{ (report.company.revenue / 100).toFixed(0) }} 百万元</div>
+                                        <div>成立年限：{{ report.company.years != null ? report.company.years + ' 年' : '—' }}</div>
+                                        <div>社保人数：{{ report.company.socialStaff != null ? report.company.socialStaff + ' 人' : '—' }}</div>
                                     </div>
+                                    <div v-if="report.company.coreProduct" style="font-size:11px;color:#166534;background:#dcfce7;border-radius:6px;padding:6px 10px;margin-top:8px">核心产品/赛道：<b>{{ report.company.coreProduct }}</b></div>
+                                    <div v-if="report.company.subsidyHist" style="font-size:10.5px;color:#92400e;background:#fef3c7;border-radius:6px;padding:6px 10px;margin-top:6px">已获补贴/资质：{{ report.company.subsidyHist }}</div>
                                     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
                                         <span v-for="q in report.company.quals" :key="q" class="tag t-green"><i class="fa fa-check"></i>{{ q }}</span>
+                                        <span v-if="report.company.growthStage" class="tag t-blue">成长阶段 · {{ report.company.growthStage }}</span>
                                         <span class="tag t-orange">科创得分 {{ report.diagnosis.avg }} · {{ report.diagnosis.grade }} 级</span>
                                     </div>
                                     <div style="font-size:11px;color:#64748b;line-height:1.7;margin-top:10px">{{ report.profile }}</div>
@@ -973,6 +991,8 @@
                                   description="扶持方式偏好" @select="onFundSelect"></van-action-sheet>
                 <van-action-sheet v-model:show="showWindowPicker" :actions="WINDOW_ACTIONS" cancel-text="取消"
                                   description="预期申报窗口期" @select="onWindowSelect"></van-action-sheet>
+                <van-action-sheet v-model:show="showGrowthPicker" :actions="GROWTH_ACTIONS" cancel-text="取消"
+                                  description="企业成长阶段" @select="onGrowthSelect"></van-action-sheet>
 
                 <!-- ============ 消息中心（客户在线咨询 · 会话列表 / 会话聊天 两视图） ============ -->
                 <van-popup v-model:show="showMsgCenter" position="bottom" round :style="{ height: '88%' }" teleport="#phoneScreen">
@@ -1512,15 +1532,19 @@
                 const condOpen = ref(false);
                 const condStep = ref(0);
                 const condMeasuring = ref(false);
-                const condAuto = ref({ industry: '', region: '', quals: [], revenue: 0, employees: 0, source: '' });
+                const condAuto = ref({ industry: '', region: '', quals: [], revenue: 0, employees: 0, foundedYears: null, coreProduct: '', socialStaff: null, source: '' });
                 const condAssess = reactive({
                     score: null, grade: '', weak: [],
                     rdRatio: null, ipCount: null, sciStaffRatio: null, hiTechRatio: null,
                     loss3y: null, rndProject: null, industryUni: null,
                     fundPref: '', windowPref: '',
+                    // 新增条件
+                    yearsOverride: null, coreProductOverride: '', socialStaffOverride: null,
+                    subsidyHist: '', growthStage: '',
                     __measured: false,
                     // 选择器用的字符串值
-                    loss3yStr: '', rndProjectStr: '', industryUniStr: '', windowPrefStr: ''
+                    loss3yStr: '', rndProjectStr: '', industryUniStr: '', windowPrefStr: '',
+                    yearsStr: '', growthStageStr: ''
                 });
                 // 五个选择器的状态与选项
                 const showLossPicker = ref(false);
@@ -1528,9 +1552,11 @@
                 const showUniPicker = ref(false);
                 const showFundPicker = ref(false);
                 const showWindowPicker = ref(false);
+                const showGrowthPicker = ref(false);
                 const BOOL_ACTIONS = [{ name: '是', value: true }, { name: '否', value: false }];
                 const FUND_ACTIONS = [{ name: '现金补贴' }, { name: '税收减免' }, { name: '资质认定' }, { name: '贷款贴息' }, { name: '补贴+减免' }, { name: '补贴+资质认定' }];
                 const WINDOW_ACTIONS = [{ name: 'Q1（1-3月）' }, { name: 'Q2（4-6月）' }, { name: 'Q3（7-9月）' }, { name: 'Q4（10-12月）' }, { name: '全年' }];
+                const GROWTH_ACTIONS = [{ name: '种子期（<1年）' }, { name: '天使/Pre-A（1-2年）' }, { name: 'A轮/B轮（2-4年）' }, { name: '成长期（4-8年）' }, { name: '成熟期（>8年）' }];
 
                 /** 根据企业名定位客户，加载条件 */
                 function locateCustomerByKeyword() {
@@ -1550,6 +1576,20 @@
                     if (entHit) (ent.fields || []).forEach(function (g) { (g.items || []).forEach(function (it) { entItems.push(it); }); });
                     const fv = function (label) { const it = entItems.filter(function (x) { return (x.label || '').indexOf(label) >= 0; })[0]; return it ? String(it.value || '').trim() : ''; };
                     const fvNum = function (label) { const n = parseFloat(fv(label).replace(/[^\d.]/g, '')); return isNaN(n) ? null : n; };
+                    // 成立年限：从"成立日期"或类似字段推算，找不到则回退空
+                    const fvFounded = fv('成立') || fv('注册时间') || fv('成立日期');
+                    let foundedYears = null;
+                    if (fvFounded) {
+                        const d = new Date(fvFounded.replace(/年|月|日/g, '-'));
+                        if (!isNaN(d.getTime())) {
+                            const now = new Date();
+                            foundedYears = Math.max(0, Math.round((now - d) / (365.25 * 86400000)));
+                        }
+                    }
+                    // 社保人数：优先取专门字段，没有则用职工总数兜底
+                    const socialStaff = fvNum('社保') || fvNum('参保') || fvNum('职工总数');
+                    // 核心产品/赛道
+                    const coreProduct = fv('核心产品') || fv('主营产品') || fv('主营业务') || fv('核心技术所属产业') || '';
                     // Step1：自动补齐（企业档案 > 客户档案）
                     const entQuals = fv('已获资质') ? fv('已获资质').split(/[、,，\/\s]+/).filter(Boolean) : null;
                     const entRevenue = fvNum('近一年营业收入');
@@ -1559,6 +1599,9 @@
                         quals: entQuals || (c && c.quals) || [],
                         revenue: entRevenue != null ? Math.round(entRevenue / 100 * 10) / 10 : ((c && c.revenue) || 0),
                         employees: fvNum('职工总数') || (c && c.employees) || 0,
+                        foundedYears: foundedYears,
+                        coreProduct: coreProduct,
+                        socialStaff: socialStaff,
                         source: entHit ? '企业档案' : ((c && c._source) || '')
                     };
                     // Step2：测评回填（企业档案字段优先覆盖客户 assessmentConditions）
@@ -1579,6 +1622,12 @@
                         industryUni: ac.industryUni != null ? ac.industryUni : null,
                         fundPref: ac.fundPref || '',
                         windowPref: ac.windowPref || '',
+                        // 新增可编辑条件：成立年限（销售覆盖）、核心产品（销售覆盖）、社保人数（销售覆盖）、已获补贴历史、成长阶段
+                        yearsOverride: ac.yearsOverride != null ? ac.yearsOverride : condAuto.value.foundedYears,
+                        coreProductOverride: ac.coreProductOverride || condAuto.value.coreProduct || '',
+                        socialStaffOverride: ac.socialStaffOverride != null ? ac.socialStaffOverride : condAuto.value.socialStaff,
+                        subsidyHist: ac.subsidyHist || '',
+                        growthStage: ac.growthStage || '',
                         __measured: !!ac.__measured
                     });
                     condAssess.loss3yStr = condAssess.loss3y === null ? '' : (condAssess.loss3y ? '是' : '否');
@@ -1645,6 +1694,7 @@
                 function onUniSelect(a) { showUniPicker.value = false; condAssess.industryUni = a.value; condAssess.industryUniStr = a.name; }
                 function onFundSelect(a) { showFundPicker.value = false; condAssess.fundPref = a.name; }
                 function onWindowSelect(a) { showWindowPicker.value = false; condAssess.windowPref = a.name.replace(/.*（/, '').replace('月）', ''); condAssess.windowPrefStr = a.name; }
+                function onGrowthSelect(a) { showGrowthPicker.value = false; condAssess.growthStage = a.name; condAssess.growthStageStr = a.name; }
 
                 // --- 真正的匹配引擎 ---
                 /** 根据企业档案 + 条件采集，计算每条政策的匹配度（硬条件过滤 × 软条件加权 × 窗口期判定） */
@@ -1665,6 +1715,12 @@
                         industryUni: parseBool(condAssess.industryUniStr),
                         fundPref: condAssess.fundPref,
                         windowPref: condAssess.windowPref,
+                        // 新增：成立年限（销售覆盖优先 > 自动读取）、核心产品、社保人数、已获补贴、成长阶段
+                        years: condAssess.yearsOverride != null ? condAssess.yearsOverride : condAuto.value.foundedYears,
+                        coreProduct: condAssess.coreProductOverride || condAuto.value.coreProduct,
+                        socialStaff: condAssess.socialStaffOverride != null ? condAssess.socialStaffOverride : condAuto.value.socialStaff,
+                        subsidyHist: condAssess.subsidyHist,
+                        growthStage: condAssess.growthStage,
                         __measured: condAssess.__measured
                     };
 
@@ -1673,10 +1729,10 @@
                         // ========== 政策匹配引擎（条件感知的 Mock） ==========
                         // 基础政策库（演示用 4 条，每条带硬条件门槛 + 软条件加分项）
                         const POLICY_RULES = [
-                            // 高企：rdRatio≥5, ipCount≥3, sciStaffRatio≥10, hiTechRatio≥60, loss3y=false
-                            { title: '国家高新技术企业认定', benefit: '补贴 30万 + 15% 所得税优惠', hard: [{k:'rdRatio',op:'>=',v:5},{k:'ipCount',op:'>=',v:3},{k:'sciStaffRatio',op:'>=',v:10},{k:'hiTechRatio',op:'>=',v:60},{k:'loss3y',op:'===',v:false}], soft: [{k:'quals',v:'国家高新',bonus:20}], baseMatch: 70 },
-                            // 专精特新小巨人：rdRatio≥3, ipCount≥2, loss3y=false, 建议先入库
-                            { title: '省级专精特新中小企业', benefit: '补贴 50万', hard: [{k:'rdRatio',op:'>=',v:3},{k:'ipCount',op:'>=',v:2},{k:'loss3y',op:'===',v:false}], soft: [{k:'industryUni',v:true,bonus:10}], baseMatch: 72 },
+                            // 高企：成立年限≥1, rdRatio≥5, ipCount≥3, sciStaffRatio≥10, hiTechRatio≥60, loss3y=false
+                            { title: '国家高新技术企业认定', benefit: '补贴 30万 + 15% 所得税优惠', hard: [{k:'years',op:'>=',v:1},{k:'rdRatio',op:'>=',v:5},{k:'ipCount',op:'>=',v:3},{k:'sciStaffRatio',op:'>=',v:10},{k:'hiTechRatio',op:'>=',v:60},{k:'loss3y',op:'===',v:false}], soft: [{k:'quals',v:'国家高新',bonus:20}], baseMatch: 70 },
+                            // 专精特新：成立年限≥2, rdRatio≥3, ipCount≥2, loss3y=false, 建议先入库
+                            { title: '省级专精特新中小企业', benefit: '补贴 50万', hard: [{k:'years',op:'>=',v:2},{k:'rdRatio',op:'>=',v:3},{k:'ipCount',op:'>=',v:2},{k:'loss3y',op:'===',v:false}], soft: [{k:'industryUni',v:true,bonus:10}], baseMatch: 72 },
                             // 研发加计扣除：rdRatio≥1（低门槛但收入占比要对）
                             { title: '研发费用加计扣除', benefit: '100% 加计扣除', hard: [{k:'rdRatio',op:'>=',v:1}], soft: [{k:'rndProject',v:true,bonus:15}], baseMatch: 85 },
                             // 省新能源专项：行业+资质匹配
@@ -1734,6 +1790,9 @@
                         const condDisplay = {};
                         condAuto.value.quals.forEach(function (q) { condDisplay['自动补齐 · 资质'] = q; });
                         condDisplay['自动补齐 · 行业'] = condAuto.value.industry || '—';
+                        condDisplay['自动补齐 · 成立年限'] = ac.years != null ? ac.years + ' 年' : '未填';
+                        if (ac.coreProduct) condDisplay['自动补齐 · 核心产品'] = ac.coreProduct;
+                        if (ac.socialStaff != null) condDisplay['自动补齐 · 社保人数'] = ac.socialStaff + ' 人';
                         condDisplay['测评回填 · 科创得分'] = (condAssess.score || '—') + ' · ' + (condAssess.grade || '—');
                         condDisplay['测评回填 · 研发占比'] = (ac.rdRatio != null ? ac.rdRatio + '%' : '未填');
                         condDisplay['测评回填 · 知识产权'] = (ac.ipCount != null ? ac.ipCount + ' 项' : '未填');
@@ -1741,19 +1800,28 @@
                         if (ac.rndProject != null) condDisplay['销售补充 · 在研项目'] = ac.rndProject ? '有' : '无';
                         if (condAssess.fundPref) condDisplay['销售补充 · 扶持偏好'] = condAssess.fundPref;
                         if (condAssess.windowPref) condDisplay['销售补充 · 申报窗口'] = condAssess.windowPref;
+                        if (ac.growthStage) condDisplay['销售补充 · 成长阶段'] = ac.growthStage;
+                        if (ac.subsidyHist) condDisplay['销售补充 · 已获补贴/资质'] = ac.subsidyHist;
 
                         // 组装报告
-                        const summary = (c && c._displayName) + '（' + (condAuto.value.industry || '—') + '）经多维度政策匹配引擎分析：' +
+                        const summary = (c && c._displayName) + '（' + (condAuto.value.industry || '—') + '，' + (ac.years != null ? ac.years + '年' : '成立年限未知') + '）经多维度政策匹配引擎分析：' +
                             policies.filter(function (p) { return p.level !== '不可匹配'; }).length + ' 项可申报政策，' +
                             '科创得分 ' + (condAssess.score || '—') + ' · ' + (condAssess.grade || '—') + ' 级，' +
                             (condAssess.weak && condAssess.weak.length ? '短板：' + condAssess.weak.join('、') + '。' : '');
 
                         const advice = policies.filter(function (p) { return p.level !== '不可匹配'; }).slice(0, 3).map(function (p, i) {
                             var tip = '';
-                            if (p.title.indexOf('高企') >= 0) tip = '注意知识产权布局与研发费用辅助账口径一致性';
-                            else if (p.title.indexOf('专精特新') >= 0) tip = '建议先入库创新型中小企业再申报，同期整理产学研合作证明';
-                            else if (p.title.indexOf('加计扣除') >= 0) tip = '可与专项申报同步推进，注意留存项目立项书';
-                            else if (p.title.indexOf('新能源') >= 0) tip = '建议关注 Q' + (condAssess.windowPref ? condAssess.windowPref.charAt(1) : '3') + ' 申报窗口';
+                            if (p.title.indexOf('高企') >= 0) {
+                                if (ac.years != null && ac.years < 1) tip = '⚠ 成立不满 1 年，暂不满足高企硬性条件，建议先申报科技型中小企业入库';
+                                else if (ac.rdRatio != null && ac.rdRatio < 5) tip = '⚠ 研发费用占比不足 5%，需先加大研发投入或调整归集口径';
+                                else tip = '注意知识产权布局与研发费用辅助账口径一致性，提前 3 个月准备材料';
+                            }
+                            else if (p.title.indexOf('专精特新') >= 0) {
+                                if (ac.years != null && ac.years < 2) tip = '⚠ 成立不满 2 年，建议先入库创新型中小企业，满 2 年再申报专精特新';
+                                else tip = '建议先入库创新型中小企业再申报，同期整理产学研合作证明与主导产品市场占有率数据';
+                            }
+                            else if (p.title.indexOf('加计扣除') >= 0) tip = '可与专项申报同步推进，注意留存项目立项书、工时记录、费用分配表';
+                            else if (p.title.indexOf('新能源') >= 0) tip = '建议关注 Q' + (condAssess.windowPref ? condAssess.windowPref.charAt(1) : '3') + ' 申报窗口，提前准备项目可研报告';
                             return (i + 1) + '. 优先申报「' + p.title + '」（匹配度 ' + p.match + '%）：' + p.benefit + '。' + tip;
                         }).join('\n');
 
@@ -1771,13 +1839,22 @@
                                 employees: condAuto.value.employees || 0,
                                 revenue: condAuto.value.revenue || 0,
                                 region: condAuto.value.region || '未填',
-                                quals: condAuto.value.quals || []
+                                quals: condAuto.value.quals || [],
+                                years: ac.years,
+                                coreProduct: ac.coreProduct,
+                                socialStaff: ac.socialStaff,
+                                growthStage: ac.growthStage || '',
+                                subsidyHist: ac.subsidyHist || ''
                             },
                             diagnosis: { avg: condAssess.score || 0, grade: condAssess.grade || '—', weak: condAssess.weak || [] },
                             summary: summary,
-                            profile: (c && c._displayName) + '：科创测评得分 ' + (condAssess.score || '—') + '，' +
+                            profile: (c && c._displayName) + '：' +
+                                (ac.years != null ? '成立 ' + ac.years + ' 年' : '成立年限未知') + '，' +
+                                condAuto.value.industry + (ac.coreProduct ? '，主营 ' + ac.coreProduct : '') + '，' +
+                                '科创测评得分 ' + (condAssess.score || '—') + '（' + (condAssess.grade || '—') + ' 级），' +
                                 '研发费用占比 ' + (ac.rdRatio != null ? ac.rdRatio + '%' : '未填') + '，' +
                                 '核心知识产权 ' + (ac.ipCount != null ? ac.ipCount + ' 项' : '未填') + '。' +
+                                (ac.subsidyHist ? '历史：' + ac.subsidyHist + '。' : '') +
                                 '本次匹配共采集 ' + Object.keys(condDisplay).length + ' 项条件。',
                             policies: policies,
                             advice: advice || '暂无可用建议。',
@@ -1789,7 +1866,10 @@
                             c.assessmentConditions = {
                                 rdRatio: ac.rdRatio, ipCount: ac.ipCount, sciStaffRatio: ac.sciStaffRatio, hiTechRatio: ac.hiTechRatio,
                                 loss3y: ac.loss3y, rndProject: ac.rndProject, industryUni: ac.industryUni,
-                                fundPref: ac.fundPref, windowPref: ac.windowPref, __measured: true
+                                fundPref: ac.fundPref, windowPref: ac.windowPref,
+                                yearsOverride: ac.years, coreProductOverride: ac.coreProduct, socialStaffOverride: ac.socialStaff,
+                                subsidyHist: ac.subsidyHist, growthStage: ac.growthStage,
+                                __measured: true
                             };
                             const list = DB.loadCustomers();
                             const idx = list.findIndex(function (u) { return u.id === c.id; });
@@ -2243,9 +2323,9 @@
                     // 政策匹配条件采集
                     condOpen, condStep, condMeasuring, condAuto, condAssess,
                     openConditions, goNextStep, rerunAssessment, doMatch, calcScore, calcWeak,
-                    showLossPicker, showRndPicker, showUniPicker, showFundPicker, showWindowPicker,
-                    BOOL_ACTIONS, FUND_ACTIONS, WINDOW_ACTIONS,
-                    onLossSelect, onRndSelect, onUniSelect, onFundSelect, onWindowSelect,
+                    showLossPicker, showRndPicker, showUniPicker, showFundPicker, showWindowPicker, showGrowthPicker,
+                    BOOL_ACTIONS, FUND_ACTIONS, WINDOW_ACTIONS, GROWTH_ACTIONS,
+                    onLossSelect, onRndSelect, onUniSelect, onFundSelect, onWindowSelect, onGrowthSelect,
                     showChannelSheet, channelActions, onChannelSelect,
                     showPicker, pickerKeyword, pickerList, pickCustomer, archiveReports, loadArchive, backToArchive, showPdf, arcKeyword, arcExpanded, archiveGroups, toggleArcGroup,
                     shareTab, refreshing, shareList, policyShareList, onRefresh, showTracking, tracking, qrCells, openTracking, openPreview, copyLink,
