@@ -287,23 +287,24 @@
                                     <div v-if="condAuto.coreProduct" style="font-size:10.5px;color:#166534;background:#dcfce7;border-radius:6px;padding:6px 10px;margin-top:6px">核心产品/赛道：<b>{{ condAuto.coreProduct }}</b></div>
                                 </div>
 
-                                <!-- Step 2：测评回填（调科创测评引擎，原型 mock） -->
+                                <!-- Step 2：测评回填（企业档案真实得分优先 + AI 推算兜底） -->
                                 <div v-show="condStep === 1">
                                     <div class="muted" style="font-size:10.5px;margin-bottom:8px">
                                         <i class="fa fa-flask" style="color:#8b5cf6"></i>
-                                        <template v-if="condAssess.__entHit">已读取企业档案数据，以下为科创测评/雷达沉淀的最新回填</template>
-                                        <template v-else-if="condAssess.score != null && !condAssess.__measured">以下条件由销售上次补充推算，建议点右侧按钮调科创测评引擎重新计算</template>
-                                        <template v-else-if="condAssess.score != null">科创测评已跑，以下为最新回填数据</template>
-                                        <template v-else><b style="color:#dc2626">该客户未采集测评数据</b>：四个核心指标均为空，建议先让客户跑一次科创测评，或在 Step3 手动补充后再调引擎</template>
+                                        <template v-if="condAssess.gaoxinScore || condAssess.zhuanjingScore || condAssess.jurenScore">企业档案已读取{{ condAssess.gaoxinScore ? '高企' : '' }}{{ condAssess.zhuanjingScore ? '专精特新' : '' }}{{ condAssess.jurenScore ? '小巨人' : '' }}测评的真实得分</template>
+                                        <template v-else-if="condAssess.score != null">AI 基于当前条件推算的科创测评得分（非真实引擎结果，仅供参考）</template>
+                                        <template v-else><b style="color:#dc2626">该客户未采集任何测评数据</b>——建议让客户先跑一次科创测评（高企/专精特新），或在 Step3 手动补充后用 AI 推算</template>
                                     </div>
                                     <div v-if="condMeasuring" style="background:#faf5ff;border-radius:10px;padding:14px;margin-bottom:8px;text-align:center">
                                         <i class="fa fa-spinner fa-spin" style="color:#8b5cf6;font-size:18px"></i>
-                                        <p class="muted" style="margin-top:6px;font-size:11px">正在调用科创测评引擎… 5 秒后回填</p>
+                                        <p class="muted" style="margin-top:6px;font-size:11px">AI 正在基于当前条件推算科创得分…</p>
                                     </div>
-                                    <!-- 有测评数据：正常展示 -->
-                                    <div v-else-if="condAssess.score != null" style="background:#faf5ff;border-radius:10px;padding:12px">
+                                    <!-- 有真实测评得分（企业档案存的）：分类型展示 -->
+                                    <div v-else-if="condAssess.gaoxinScore || condAssess.zhuanjingScore || condAssess.jurenScore" style="background:#faf5ff;border-radius:10px;padding:12px">
                                         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-                                            <span class="tag t-purple">科创得分 {{ condAssess.score }} · {{ condAssess.grade || '—' }} 级</span>
+                                            <span class="tag t-green" v-if="condAssess.gaoxinScore"><i class="fa fa-check"></i>高企测评 {{ condAssess.gaoxinScore }} 分</span>
+                                            <span class="tag t-green" v-if="condAssess.zhuanjingScore"><i class="fa fa-check"></i>专精特新测评 {{ condAssess.zhuanjingScore }} 分</span>
+                                            <span class="tag t-green" v-if="condAssess.jurenScore"><i class="fa fa-check"></i>小巨人测评 {{ condAssess.jurenScore }} 分</span>
                                             <span class="tag t-orange" v-for="w in (condAssess.weak || [])" :key="w">短板：{{ w }}</span>
                                         </div>
                                         <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11.5px;color:#475569">
@@ -313,14 +314,27 @@
                                             <div>高品收入占比：<b>{{ condAssess.hiTechRatio != null ? condAssess.hiTechRatio + '%' : '—' }}</b></div>
                                         </div>
                                     </div>
-                                    <!-- 无测评数据：空态引导 -->
+                                    <!-- 有条件但无真实得分：AI 推算（标注"推算"） -->
+                                    <div v-else-if="condAssess.score != null" style="background:#faf5ff;border-radius:10px;padding:12px">
+                                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+                                            <span class="tag t-purple">科创得分 {{ condAssess.score }} · {{ condAssess.grade || '—' }} 级 <span style="opacity:.6;font-size:9px">（AI 推算）</span></span>
+                                            <span class="tag t-orange" v-for="w in (condAssess.weak || [])" :key="w">短板：{{ w }}</span>
+                                        </div>
+                                        <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11.5px;color:#475569">
+                                            <div>研发费用占比：<b>{{ condAssess.rdRatio != null ? condAssess.rdRatio + '%' : '—' }}</b></div>
+                                            <div>核心知识产权：<b>{{ condAssess.ipCount != null ? condAssess.ipCount + ' 项' : '—' }}</b></div>
+                                            <div>科技人员占比：<b>{{ condAssess.sciStaffRatio != null ? condAssess.sciStaffRatio + '%' : '—' }}</b></div>
+                                            <div>高品收入占比：<b>{{ condAssess.hiTechRatio != null ? condAssess.hiTechRatio + '%' : '—' }}</b></div>
+                                        </div>
+                                    </div>
+                                    <!-- 无任何数据：空态引导 -->
                                     <div v-else style="background:#fef9c3;border-radius:10px;padding:16px;text-align:center">
                                         <i class="fa fa-flask" style="color:#ca8a04;font-size:28px"></i>
-                                        <p style="font-size:11.5px;color:#854d0e;margin:8px 0 4px 0">暂无可展示的科创测评数据</p>
-                                        <p style="font-size:10.5px;color:#a16207;margin:0">三个解决路径：① 让客户去"科创测评"模块先跑一次<br>② 在 Step3 销售补充里手动填入关键指标后点下方按钮调引擎<br>③ 跳过此步直接生成报告（条件不足时政策匹配准确度会受影响）</p>
+                                        <p style="font-size:11.5px;color:#854d0e;margin:8px 0 4px 0">暂无可展示的测评数据</p>
+                                        <p style="font-size:10.5px;color:#a16207;margin:0">① 让客户去科创测评模块先跑一次高企/专精特新测评（结果会自动存到企业档案）<br>② 在 Step3 手动填入关键指标后点下方按钮用 AI 推算<br>③ 跳过此步直接生成报告（匹配准确度会受影响）</p>
                                     </div>
                                     <van-button size="mini" round plain type="primary" icon="replay" style="margin-top:10px" @click="rerunAssessment()">
-                                        {{ condMeasuring ? '测评中…' : (condAssess.score != null ? '重新测评（调科创测评引擎）' : '手动填完条件后调引擎') }}
+                                        {{ condMeasuring ? 'AI 推算中…' : (condAssess.score != null || condAssess.gaoxinScore ? 'AI 重新推算（基于当前条件）' : '手动填完条件后用 AI 推算') }}
                                     </van-button>
                                 </div>
 
@@ -1545,6 +1559,8 @@
                 const condAuto = ref({ industry: '', region: '', quals: [], revenue: 0, employees: 0, foundedYears: null, coreProduct: '', socialStaff: null, source: '' });
                 const condAssess = reactive({
                     score: null, grade: '', weak: [],
+                    // 企业档案真实测评得分（可能分别有高企/专精特新/小巨人的独立得分）
+                    gaoxinScore: null, zhuanjingScore: null, jurenScore: null,
                     rdRatio: null, ipCount: null, sciStaffRatio: null, hiTechRatio: null,
                     loss3y: null, rndProject: null, industryUni: null,
                     fundPref: '', windowPref: '',
@@ -1621,8 +1637,24 @@
                     if (entIp != null) ac.ipCount = entIp;
                     if (entUni === '是') ac.industryUni = true; else if (entUni === '否') ac.industryUni = false;
                     if (entHit) ac.__measured = true;
+                    // 企业档案里的各测评类型独立得分（从 buildProfileFields 存入的 label 查找）
+                    const findEntScore = function (kw) {
+                        // 先找精确匹配，再找包含 kw 的 label（如"高企测评"或"综合得分"带高企）
+                        let hit = entItems.filter(function (x) { return (x.label || '').indexOf(kw) >= 0 && (x.label || '').indexOf('得分') >= 0; })[0];
+                        if (!hit) hit = entItems.filter(function (x) { return (x.label || '').indexOf(kw) >= 0 && /\d+/.test(String(x.value || '')); })[0];
+                        if (!hit) return null;
+                        const n = parseFloat(String(hit.value).replace(/[^\d.]/g, ''));
+                        return isNaN(n) ? null : n;
+                    };
+                    const entGaoxinScore = findEntScore('高企');
+                    const entZhuanjingScore = findEntScore('专精特新');
+                    const entJurenScore = findEntScore('小巨人');
                     Object.assign(condAssess, {
                         __entHit: entHit,
+                        // 企业档案里的各测评类型独立得分（真实数据，优先级最高）
+                        gaoxinScore: entGaoxinScore,
+                        zhuanjingScore: entZhuanjingScore,
+                        jurenScore: entJurenScore,
                         rdRatio: ac.rdRatio != null ? ac.rdRatio : null,
                         ipCount: ac.ipCount != null ? ac.ipCount : null,
                         sciStaffRatio: ac.sciStaffRatio != null ? ac.sciStaffRatio : null,
@@ -1682,7 +1714,7 @@
                     return w;
                 }
 
-                /** 重新跑科创测评：基于当前面板值重算；全空则保持 null 空态 */
+                /** 基于当前面板值 AI 推算科创得分；全空则保持 null 空态 */
                 function rerunAssessment() {
                     condMeasuring.value = true;
                     setTimeout(function () {
@@ -1692,7 +1724,7 @@
                             condAssess.score = null;
                             condAssess.grade = '';
                             condAssess.weak = [];
-                            tip('未采集到核心指标，无法测评，请先补数据');
+                            tip('未采集到核心指标，无法 AI 推算，请先补数据');
                         } else {
                             base += (Math.random() > 0.5 ? 3 : -3);
                             condAssess.score = Math.max(30, Math.min(95, Math.round(base)));
