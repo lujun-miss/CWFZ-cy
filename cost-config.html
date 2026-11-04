@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>申报成本参数配置 - 策源易答运营平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(139,92,246,0.18); }
+        .modal-mask { background: rgba(15,23,42,0.5); backdrop-filter: blur(2px); }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-slate-50 p-8">
+
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-slate-800 flex items-center">
+                <i class="fa fa-calculator text-purple-600 mr-3"></i>申报成本参数配置
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">运营管理平台 / 申报成本参数配置</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="deployToCalculator()" class="px-4 py-2.5 bg-white border-2 border-dashed border-purple-400 text-purple-700 rounded-xl text-sm font-bold hover:bg-purple-50 transition-all flex items-center shadow-sm">
+                <i class="fa fa-cloud-upload mr-2"></i>下发到计算器
+            </button>
+            <button onclick="openEditModal()" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all flex items-center shadow-lg shadow-purple-600/20">
+                <i class="fa fa-plus mr-2"></i>新增成本项
+            </button>
+        </div>
+    </div>
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+        <i class="fa fa-info-circle text-amber-600 text-lg mt-0.5"></i>
+        <div>
+            <p class="text-sm font-bold text-amber-700">此页为<b>全局兜底成本配置</b></p>
+            <p class="text-xs text-amber-600 mt-1">本页配置适用于<b>未单独维护成本的政策</b>。若需针对具体政策维护差异化申报成本（如高企认定 vs 研发加计扣除成本不同），请到 <b>「政策收益模型」</b> 编辑该政策，在"申报成本（本政策专属）"区块单独填写。计算器优先级：<b>政策专属成本 &gt; 全局兜底成本</b>。</p>
+        </div>
+    </div>
+
+    <!-- 说明条 -->
+    <div class="mb-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100 flex items-start space-x-3">
+        <i class="fa fa-info-circle text-purple-500 mt-0.5"></i>
+        <div class="text-xs text-slate-600 leading-relaxed">
+            <b class="text-purple-700">本模块为政策计算器提供申报成本测算的默认参数。</b>
+            前端 <code class="px-1 bg-white rounded text-purple-600">cHrDays</code> /
+            <code class="px-1 bg-white rounded text-purple-600">cHrRate</code> /
+            <code class="px-1 bg-white rounded text-purple-600">cServiceFee</code> /
+            <code class="px-1 bg-white rounded text-purple-600">cOtherFee</code> 默认值由此下发。
+        </div>
+    </div>
+
+    <!-- 数据同步状态 -->
+    <div id="syncStatus" class="mb-6 p-3 rounded-xl border flex items-center space-x-2 text-sm bg-amber-50 border-amber-200">
+        <i id="syncStatusIcon" class="fa fa-exclamation-triangle text-amber-500"></i>
+        <span id="syncStatusText" class="font-bold text-amber-700">⚠ 尚未下发，前端使用默认配置</span>
+    </div>
+
+    
+
+    <!-- 成本项管理表格 -->
+    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden mb-6">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-base font-black text-slate-800 flex items-center">
+                <i class="fa fa-tasks text-purple-600 mr-2"></i>成本项管理
+            </h3>
+            <div class="flex items-center space-x-2">
+                <select class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option>全部类型</option>
+                    <option>人力</option>
+                    <option>服务费</option>
+                    <option>杂项</option>
+                </select>
+                <button class="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all"><i class="fa fa-refresh mr-1"></i>刷新</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 text-xs uppercase">
+                        <th class="px-5 py-3 text-left font-bold">成本项名称</th>
+                        <th class="px-5 py-3 text-left font-bold">类型</th>
+                        <th class="px-5 py-3 text-right font-bold">默认值</th>
+                        <th class="px-5 py-3 text-center font-bold">单位</th>
+                        <th class="px-5 py-3 text-left font-bold">适用行业</th>
+                        <th class="px-5 py-3 text-center font-bold">状态</th>
+                        <th class="px-5 py-3 text-left font-bold">操作</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">申报人力</div>
+                            <div class="text-xs text-slate-400 mt-0.5"><code class="px-1 bg-slate-100 rounded text-slate-500">cHrDays</code></div>
+                        </td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-md">人力</span></td>
+                        <td class="px-5 py-4 text-right font-black text-slate-800">28</td>
+                        <td class="px-5 py-4 text-center text-xs text-slate-500">人·日</td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">全行业</span></td>
+                        <td class="px-5 py-4 text-center"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">启用</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-copy mr-0.5"></i>复制预设</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">人力单价</div>
+                            <div class="text-xs text-slate-400 mt-0.5"><code class="px-1 bg-slate-100 rounded text-slate-500">cHrRate</code></div>
+                        </td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-md">人力</span></td>
+                        <td class="px-5 py-4 text-right font-black text-slate-800">800</td>
+                        <td class="px-5 py-4 text-center text-xs text-slate-500">元/日</td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">全行业</span></td>
+                        <td class="px-5 py-4 text-center"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">启用</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-copy mr-0.5"></i>复制预设</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">第三方服务费</div>
+                            <div class="text-xs text-slate-400 mt-0.5"><code class="px-1 bg-slate-100 rounded text-slate-500">cServiceFee</code></div>
+                        </td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-md">服务费</span></td>
+                        <td class="px-5 py-4 text-right font-black text-slate-800">50,000</td>
+                        <td class="px-5 py-4 text-center text-xs text-slate-500">元</td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">全行业</span></td>
+                        <td class="px-5 py-4 text-center"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">启用</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-copy mr-0.5"></i>复制预设</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">其他/杂项</div>
+                            <div class="text-xs text-slate-400 mt-0.5"><code class="px-1 bg-slate-100 rounded text-slate-500">cOtherFee</code></div>
+                        </td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-md">杂项</span></td>
+                        <td class="px-5 py-4 text-right font-black text-slate-800">8,000</td>
+                        <td class="px-5 py-4 text-center text-xs text-slate-500">元</td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">全行业</span></td>
+                        <td class="px-5 py-4 text-center"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">启用</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-copy mr-0.5"></i>复制预设</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between text-sm">
+            <span class="text-slate-500">共 <span class="font-bold text-slate-700">4</span> 条记录</span>
+            <span class="text-xs text-slate-400"><i class="fa fa-info-circle mr-1 text-purple-400"></i>成本项变动将影响政策计算器所有申报成本测算结果</span>
+        </div>
+    </div>
+
+    <!-- 差异化预设区 -->
+    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-base font-black text-slate-800 flex items-center">
+                <i class="fa fa-th-large text-purple-600 mr-2"></i>行业 × 规模 差异化预设
+            </h3>
+            <button class="px-3 py-2 bg-purple-50 text-purple-600 border border-purple-200 rounded-xl text-xs font-bold hover:bg-purple-100 transition-all"><i class="fa fa-plus mr-1"></i>新增预设</button>
+        </div>
+        <div class="p-5">
+            <p class="text-xs text-slate-500 mb-4"><i class="fa fa-info-circle mr-1 text-purple-400"></i>按行业类型 × 企业规模组合维护差异化默认参数，计算器优先匹配预设值，未命中时回落到全局默认。</p>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <!-- 信息技术 -->
+                <div class="border border-slate-100 rounded-2xl overflow-hidden card-hover transition-all">
+                    <div class="px-4 py-3 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-100 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-9 h-9 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mr-2"><i class="fa fa-laptop"></i></div>
+                            <div>
+                                <div class="text-sm font-black text-slate-800">信息技术</div>
+                                <div class="text-[10px] text-slate-400">3 种规模预设</div>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-purple-600 bg-white px-2 py-1 rounded-lg">行业</span>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                            <div>
+                                <div class="text-xs font-bold text-slate-700">大型企业</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">人日 / 单价 / 服务费</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-black text-purple-600">32 · ¥900</div>
+                                <div class="text-[10px] text-slate-500">服务费 ¥60,000</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-purple-50/40 rounded-xl border border-purple-100">
+                            <div>
+                                <div class="text-xs font-bold text-slate-700">中型企业 <span class="ml-1 px-1.5 py-0.5 bg-purple-600 text-white rounded text-[9px]">默认</span></div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">人日 / 单价 / 服务费</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-black text-purple-600">28 · ¥800</div>
+                                <div class="text-[10px] text-slate-500">服务费 ¥50,000</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                            <div>
+                                <div class="text-xs font-bold text-slate-700">小型企业</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">人日 / 单价 / 服务费</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-black text-purple-600">22 · ¥750</div>
+                                <div class="text-[10px] text-slate-500">服务费 ¥40,000</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 生物医药 -->
+                <div class="border border-slate-100 rounded-2xl overflow-hidden card-hover transition-all">
+                    <div class="px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-9 h-9 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center mr-2"><i class="fa fa-medkit"></i></div>
+                            <div>
+                                <div class="text-sm font-black text-slate-800">生物医药</div>
+                                <div class="text-[10px] text-slate-400">3 种规模预设</div>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-emerald-600 bg-white px-2 py-1 rounded-lg">行业</span>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                            <div>
+                                <div class="text-xs font-bold text-slate-700">大型企业</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">人日 / 单价 / 服务费</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-black text-emerald-600">38 · ¥950</div>
+                                <div class="text-[10px] text-slate-500">服务费 ¥70,000</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                            <div>
+                                <div class="text-xs font-bold text-slate-700">中型企业</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">人日 / 单价 / 服务费</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-black text-emerald-600">34 · ¥850</div>
+                                <div class="text-[10px] text-slate-500">服务费 ¥60,000</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                            <div>
+                                <div class="text-xs font-bold text-slate-700">小型企业</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">人日 / 单价 / 服务费</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-black text-emerald-600">28 · ¥800</div>
+                                <div class="text-[10px] text-slate-500">服务费 ¥50,000</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 高端装备 -->
+                <div class="border border-slate-100 rounded-2xl overflow-hidden card-hover transition-all">
+                    <div class="px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-9 h-9 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center mr-2"><i class="fa fa-cogs"></i></div>
+                            <div>
+                                <div class="text-sm font-black text-slate-800">高端装备</div>
+                                <div class="text-[10px] text-slate-400">3 种规模预设</div>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-amber-600 bg-white px-2 py-1 rounded-lg">行业</span>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                            <div>
+                                <div class="text-xs font-bold text-slate-700">大型企业</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">人日 / 单价 / 服务费</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-black text-amber-600">35 · ¥880</div>
+                                <div class="text-[10px] text-slate-500">服务费 ¥65,000</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                            <div>
+                                <div class="text-xs font-bold text-slate-700">中型企业</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">人日 / 单价 / 服务费</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-black text-amber-600">30 · ¥820</div>
+                                <div class="text-[10px] text-slate-500">服务费 ¥55,000</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                            <div>
+                                <div class="text-xs font-bold text-slate-700">小型企业</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">人日 / 单价 / 服务费</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-black text-amber-600">25 · ¥780</div>
+                                <div class="text-[10px] text-slate-500">服务费 ¥45,000</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑成本项弹窗 -->
+    <div id="editModal" class="fixed inset-0 modal-mask z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-lg font-black text-slate-800 flex items-center"><i class="fa fa-edit text-purple-600 mr-2"></i>编辑成本项</h3>
+                <button onclick="closeEditModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="grid grid-cols-2 gap-5">
+                    <div class="col-span-2">
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">成本项名称 <span class="text-red-500">*</span></label>
+                        <input type="text" value="申报人力" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all">
+                        <p class="text-[10px] text-slate-400 mt-1">对应前端字段 <code class="px-1 bg-slate-100 rounded">cHrDays</code></p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">类型 <span class="text-red-500">*</span></label>
+                        <select class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option>人力</option>
+                            <option>服务费</option>
+                            <option>杂项</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">默认值 <span class="text-red-500">*</span></label>
+                        <input type="number" value="28" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">单位 <span class="text-red-500">*</span></label>
+                        <input type="text" value="人·日" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">状态</label>
+                        <select class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option>启用</option>
+                            <option>停用</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">适用行业</label>
+                        <div class="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                            <label class="px-3 py-1.5 bg-purple-50 text-purple-600 text-xs rounded-lg border border-purple-200 cursor-pointer flex items-center"><input type="checkbox" class="hidden" checked> <i class="fa fa-check-square-o mr-1"></i>全行业</label>
+                            <label class="px-3 py-1.5 bg-slate-100 text-slate-500 text-xs rounded-lg border border-slate-200 cursor-pointer flex items-center"><input type="checkbox" class="hidden"> <i class="fa fa-square-o mr-1"></i>信息技术</label>
+                            <label class="px-3 py-1.5 bg-slate-100 text-slate-500 text-xs rounded-lg border border-slate-200 cursor-pointer flex items-center"><input type="checkbox" class="hidden"> <i class="fa fa-square-o mr-1"></i>生物医药</label>
+                            <label class="px-3 py-1.5 bg-slate-100 text-slate-500 text-xs rounded-lg border border-slate-200 cursor-pointer flex items-center"><input type="checkbox" class="hidden"> <i class="fa fa-square-o mr-1"></i>高端装备</label>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1">勾选"全行业"时，对所有行业生效</p>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">备注说明</label>
+                        <textarea rows="2" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all">申报全过程所需人力投入（按人·日折算），含材料整理、系统填报、答辩准备。</textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <button onclick="closeEditModal()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-100 transition-all">取消</button>
+                <button onclick="closeEditModal()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-purple-600/20"><i class="fa fa-check mr-1"></i>保存配置</button>
+            </div>
+        </div>
+    </div>
+
+<script src="data-bridge.js"></script>
+<script>
+    function openEditModal() {
+        const m = document.getElementById('editModal');
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+    }
+    function closeEditModal() {
+        const m = document.getElementById('editModal');
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+        // 编辑保存后刷新同步状态条
+        updateSyncStatus();
+    }
+
+    // ========== 数据桥接：同步状态与下发 ==========
+
+    /** 从表格 DOM 中收集4个成本参数 */
+    function collectCostConfig() {
+        const cfg = {
+            hrDays:    DataBridge.DEFAULT_COST_CONFIG.hrDays,
+            hrRate:    DataBridge.DEFAULT_COST_CONFIG.hrRate,
+            serviceFee:DataBridge.DEFAULT_COST_CONFIG.serviceFee,
+            otherFee:  DataBridge.DEFAULT_COST_CONFIG.otherFee
+        };
+        const rows = document.querySelectorAll('table tbody tr');
+        rows.forEach(row => {
+            const cells = row.children;
+            const codeText = cells[0].querySelector('code').textContent.trim();
+            const valueText = (cells[2].textContent || '').replace(/[,，\s]/g, '');
+            const value = Number(valueText);
+            if (!value && value !== 0) return;
+            switch (codeText) {
+                case 'cHrDays':     cfg.hrDays = value; break;
+                case 'cHrRate':     cfg.hrRate = value; break;
+                case 'cServiceFee': cfg.serviceFee = value; break;
+                case 'cOtherFee':   cfg.otherFee = value; break;
+            }
+        });
+        return cfg;
+    }
+
+    /** 下发成本参数到 localStorage */
+    function deployToCalculator() {
+        const cfg = collectCostConfig();
+        const ok = DataBridge.saveCostConfig(cfg);
+        if (ok) {
+            showToast('✓ 成本参数已下发到政策计算器');
+            updateSyncStatus();
+        } else {
+            showToast('下发失败，请检查浏览器 localStorage 权限', true);
+        }
+    }
+
+    /** 更新同步状态条 */
+    function updateSyncStatus() {
+        const status = DataBridge.getSyncStatus();
+        const bar = document.getElementById('syncStatus');
+        const icon = document.getElementById('syncStatusIcon');
+        const text = document.getElementById('syncStatusText');
+        if (status.costConfig) {
+            bar.className = 'mb-6 p-3 rounded-xl border flex items-center space-x-2 text-sm bg-green-50 border-green-200';
+            icon.className = 'fa fa-check-circle text-green-600';
+            text.className = 'font-bold text-green-700';
+            text.textContent = '✓ 已下发配置到计算器';
+        } else {
+            bar.className = 'mb-6 p-3 rounded-xl border flex items-center space-x-2 text-sm bg-amber-50 border-amber-200';
+            icon.className = 'fa fa-exclamation-triangle text-amber-500';
+            text.className = 'font-bold text-amber-700';
+            text.textContent = '⚠ 尚未下发，前端使用默认配置';
+        }
+    }
+
+    /** 显示 toast 提示（3秒后自动消失） */
+    function showToast(msg, isError) {
+        let toast = document.getElementById('toastDiv');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'toastDiv';
+            toast.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:bold;box-shadow:0 8px 24px -6px rgba(0,0,0,0.18);';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = msg;
+        if (isError) {
+            toast.style.background = '#fef2f2';
+            toast.style.color = '#b91c1c';
+            toast.style.border = '1px solid #fecaca';
+        } else {
+            toast.style.background = '#ecfdf5';
+            toast.style.color = '#047857';
+            toast.style.border = '1px solid #a7f3d0';
+        }
+        toast.style.display = 'block';
+        clearTimeout(window.__toastTimer);
+        window.__toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    // 页面加载时初始化同步状态
+    (function initSyncStatus() {
+        if (typeof DataBridge !== 'undefined') updateSyncStatus();
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>兑换码管理 - 策源易达政策销售平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+        .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        .modal-transition { transition: opacity 0.2s ease-in-out; }
+        /* 品牌绿（预编译 tailwind.css 的 brand 色由本页手动补齐） */
+        :root { --brand-50:#f0fdf4; --brand-100:#dcfce7; --brand-200:#bbf7d0; --brand-300:#86efac; --brand-400:#4ade80; --brand-500:#22c55e; --brand-600:#16a34a; --brand-700:#15803d; --brand-800:#166534; --brand-900:#14532d; }
+        .bg-brand-50 { background-color: var(--brand-50); }
+        .bg-brand-50\/40 { background-color: #f0fdf466; }
+        .hover\:bg-brand-50\/40:hover { background-color: #f0fdf466; }
+        .bg-brand-100 { background-color: var(--brand-100); }
+        .bg-brand-600 { background-color: var(--brand-600); }
+        .hover\:bg-brand-700:hover { background-color: var(--brand-700); }
+        .text-brand-600 { color: var(--brand-600); }
+        .text-brand-700 { color: var(--brand-700); }
+        .border-brand-200 { border-color: var(--brand-200); }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 顶部 -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div class="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center">
+                    <i class="fa fa-ticket text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">兑换码管理</h1>
+                    <p class="text-xs text-gray-500">销售创建兑换码模板（生成固定码）· 每分发一位客户按序号派生一张 · 记录分发与兑换明细</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button class="text-gray-600 hover:text-brand-600"><i class="fa fa-bell"></i></button>
+                <div class="flex items-center space-x-2">
+                    <img src="https://api.dicebear.com/7.x/initials/svg?seed=张销售" class="w-9 h-9 rounded-full bg-brand-100">
+                    <span class="text-sm text-gray-700">张销售</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto px-6 py-6">
+        <!-- 搜索筛选与操作 -->
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex-1 relative">
+                    <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="searchInput" oninput="render()" placeholder="搜索模板名称、兑换码、备注、分发对象..."
+                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <select id="filterStatus" onchange="render()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:ring-2 focus:ring-brand-500">
+                    <option value="">全部状态</option>
+                    <option value="active">启用中</option>
+                    <option value="stopped">已停用</option>
+                </select>
+                <button onclick="resetFilters()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                    <i class="fa fa-refresh mr-1"></i>重置
+                </button>
+                <button onclick="openTplModal()" class="ml-auto px-5 py-2 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700">
+                    <i class="fa fa-plus mr-1"></i>新建兑换码模板
+                </button>
+            </div>
+        </div>
+
+        <!-- 模板列表 -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-3 border-b border-gray-100 flex items-center justify-between">
+                <h2 class="text-sm font-bold text-gray-800"><i class="fa fa-list-alt text-brand-600 mr-1.5"></i>兑换码模板</h2>
+                <span class="text-[11px] text-gray-400">模板创建即生成固定兑换码；每次分发按序号派生一张（CY888-01），每张限兑 1 次</span>
+            </div>
+            <div class="overflow-x-auto scrollbar-thin">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-500 text-left">
+                            <th class="px-6 py-3 font-medium">模板名称</th>
+                            <th class="px-6 py-3 font-medium">兑换码</th>
+                            <th class="px-6 py-3 font-medium text-center">面额（策能值）</th>
+                            <th class="px-6 py-3 font-medium">备注</th>
+                            <th class="px-6 py-3 font-medium">分发情况</th>
+                            <th class="px-6 py-3 font-medium">状态</th>
+                            <th class="px-6 py-3 font-medium">创建时间</th>
+                            <th class="px-6 py-3 font-medium text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100" id="tplTable"></tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
+                <span id="tableCount">共 0 条记录</span>
+                <span class="text-xs text-gray-400">与会员中心「兑换策能值」实时同步</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- 新建模板弹窗 -->
+    <div id="tplModal" class="fixed inset-0 bg-black/40 z-[60] hidden items-center justify-center modal-transition">
+        <div class="bg-white rounded-2xl w-full max-w-[480px] shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800">新建兑换码模板</h3>
+                <button onclick="closeTplModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">模板名称</label>
+                    <input type="text" id="tplName" placeholder="如：10 月园区活动券"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">面额（策能值）</label>
+                    <input type="number" id="tplValue" value="88" min="1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">备注（渠道 / 活动 / 用途）</label>
+                    <input type="text" id="tplNote" placeholder="如：10 月园区活动现场发放"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <p class="text-[11px] text-gray-400 leading-relaxed">创建后立即生成一个固定兑换码（如 CY7K2M9）。之后每分发给一位客户，按序号派生一张独立码（CY7K2M9-01、CY7K2M9-02…），每张限兑 1 次。</p>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-end space-x-3">
+                <button onclick="closeTplModal()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">取消</button>
+                <button onclick="submitTpl()" class="px-5 py-2 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700">确认创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分发弹窗（新增一条分发记录，按序号派生一张码） -->
+    <div id="assignModal" class="fixed inset-0 bg-black/40 z-[60] hidden items-center justify-center modal-transition">
+        <div class="bg-white rounded-2xl w-full max-w-[480px] shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800">分发兑换码 · <span id="assignTplName" class="text-brand-600"></span></h3>
+                <button onclick="closeAssignModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="rounded-xl bg-gray-50 border border-gray-100 p-3">
+                    <p class="text-[11px] text-gray-500 leading-relaxed">面额 <b id="assignValue" class="text-amber-600"></b> 策能值。确认后生成兑换码 <b id="assignPreview" class="text-gray-800 tracking-wide"></b>，并记录「发给了谁、什么时候发」；这张码限兑 1 次。</p>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">分发对象（客户）</label>
+                    <select id="assignSelect" onchange="onAssignTargetChange()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:ring-2 focus:ring-brand-500"></select>
+                    <input type="text" id="assignCustom" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 mt-2 hidden" placeholder="手填客户名称 / 联系人">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">分发时间</label>
+                    <input type="text" id="assignAt" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-end space-x-3">
+                <button onclick="closeAssignModal()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">取消</button>
+                <button onclick="submitAssign()" class="px-5 py-2 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700">生成并分发</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分发记录弹窗 -->
+    <div id="recordsModal" class="fixed inset-0 bg-black/40 z-[60] hidden items-center justify-center modal-transition">
+        <div class="bg-white rounded-2xl w-full shadow-2xl flex flex-col" style="max-width: 860px; max-height: 84vh;">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                    <h3 class="font-semibold text-gray-800">分发记录 · <span id="recTplName" class="text-brand-600"></span></h3>
+                    <p class="text-[11px] text-gray-400 mt-1" id="recTplMeta"></p>
+                </div>
+                <button onclick="closeRecords()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="px-6 py-4 flex-1 overflow-y-auto scrollbar-thin">
+                <div class="overflow-x-auto scrollbar-thin">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-left">
+                                <th class="px-4 py-2.5 font-medium whitespace-nowrap">兑换码</th>
+                                <th class="px-4 py-2.5 font-medium whitespace-nowrap">分发对象（客户）</th>
+                                <th class="px-4 py-2.5 font-medium whitespace-nowrap">分发时间</th>
+                                <th class="px-4 py-2.5 font-medium whitespace-nowrap">使用者</th>
+                                <th class="px-4 py-2.5 font-medium whitespace-nowrap">使用时间</th>
+                                <th class="px-4 py-2.5 font-medium whitespace-nowrap">状态</th>
+                                <th class="px-4 py-2.5 font-medium text-right whitespace-nowrap">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100" id="recTable"></tbody>
+                    </table>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-3 leading-relaxed">「分发对象」是这张码发给了谁（销售在分发时指定）；「使用者」是最终在会员中心兑换这张码的账号手机号，由系统在兑换成功时自动记录，销售无需填写——两者通常一致，若不一致说明这张码被转给了其他人使用。</p>
+                <p class="text-[11px] text-gray-400 mt-2 leading-relaxed">「停用模板」不会作废已经发出去的码：上表中状态为「待兑换」的码仍可正常兑换。如需收回某一张，点该行的「作废」——作废只影响这张未兑换的码，已兑换的策能值不追溯。</p>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+                <span class="text-[11px] text-gray-400" id="recSummary"></span>
+                <div class="flex items-center space-x-3">
+                    <button onclick="closeRecords()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">关闭</button>
+                    <button id="recAssignBtn" onclick="openAssignModal()" class="px-5 py-2 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700"><i class="fa fa-paper-plane mr-1"></i>新增分发</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js?v=20261016a"></script>
+    <script>
+        // ===== 兑换码模板 + 分发记录（与会员中心「兑换策能值」共用同一 localStorage 数据源） =====
+        // 模板：{ id, code(固定码), name, value, note, status:'active'|'stopped', createdAt, records:[...] }
+        // 分发记录：{ code(固定码-序号), assignTo, assignAt, usedBy, usedAt, voided }，每张限兑 1 次
+        var REDEEM_KEY = (window.DataBridge && DataBridge.KEYS && DataBridge.KEYS.REDEEM_CODES) || 'ceyuan_redeem_codes';
+        var REDEEM_SEED = [
+            { id:'T1', code:'CY888',   name:'演示码（内置）', value:88, note:'会员指南演示用，未指定客户', status:'active', createdAt:'2026-10-01',
+              records:[ { code:'CY888',      assignTo:'',                                     assignAt:'',           usedBy:'',            usedAt:'',           voided:false } ] },
+            { id:'T2', code:'CY2026',  name:'9 月园区活动券', value:200, note:'9 月园区活动现场发放', status:'active', createdAt:'2026-09-20',
+              records:[ { code:'CY2026-01',  assignTo:'绿能新能源科技有限公司 · 陈志远',       assignAt:'2026-09-21', usedBy:'139****8899', usedAt:'2026-09-28', voided:false },
+                        { code:'CY2026-02',  assignTo:'康泰生物制药有限公司 · 李建国',         assignAt:'2026-09-21', usedBy:'',            usedAt:'',           voided:false } ] },
+            { id:'T3', code:'CYTRIAL', name:'渠道合作券', value:500, note:'渠道代理自行发放', status:'active', createdAt:'2026-10-08',
+              records:[ { code:'CYTRIAL-01', assignTo:'星河智造科技有限公司 · 王明华',         assignAt:'2026-10-09', usedBy:'',            usedAt:'',           voided:false },
+                        { code:'CYTRIAL-02', assignTo:'锐达新材料股份公司 · 陈晓敏',           assignAt:'2026-10-10', usedBy:'',            usedAt:'',           voided:true  } ] },
+            { id:'T4', code:'CYOLD',   name:'8 月活动券', value:88, note:'活动已下线，模板停用', status:'stopped', createdAt:'2026-08-01',
+              records:[ { code:'CYOLD-01',   assignTo:'康泰生物制药有限公司 · 李建国',         assignAt:'2026-08-02', usedBy:'139****2266', usedAt:'2026-08-05', voided:false } ] }
+        ];
+        function normRec(r) {
+            return {
+                code: r.code || '',
+                assignTo: r.assignTo || '',
+                assignAt: r.assignAt || '',
+                usedBy: r.usedBy || '',
+                usedAt: r.usedAt || '',
+                voided: !!r.voided
+            };
+        }
+        function loadPool() {
+            var d = null;
+            try { d = JSON.parse(localStorage.getItem(REDEEM_KEY) || 'null'); } catch (e) {}
+            if (Array.isArray(d)) {
+                // 兼容旧结构（一码一条记录）：升级为「模板 + 分发记录」，避免旧数据渲染成空表
+                if (d.length && d.some(function (x) { return x && !Array.isArray(x.records); })) {
+                    d = d.map(function (x, i) {
+                        return {
+                            id: 'T' + (i + 1),
+                            code: x.code || '',
+                            name: x.note || x.code || ('模板 ' + (i + 1)),
+                            value: x.value || 0,
+                            note: x.note || '',
+                            status: x.status === 'void' ? 'stopped' : 'active',
+                            createdAt: x.createdAt || '',
+                            records: [ normRec({
+                                code: x.code,
+                                assignTo: x.assignTo,
+                                assignAt: x.assignAt,
+                                usedBy: x.usedBy || (x.status === 'used' ? '（历史兑换记录）' : ''),
+                                usedAt: x.usedAt,
+                                voided: x.status === 'void'
+                            }) ]
+                        };
+                    });
+                    savePool(d);
+                } else {
+                    d = d.map(function (t) {
+                        return {
+                            id: t.id || ('T' + Math.random().toString(36).slice(2, 8)),
+                            code: t.code || '',
+                            name: t.name || '未命名模板',
+                            value: t.value || 0,
+                            note: t.note || '',
+                            status: t.status === 'stopped' ? 'stopped' : 'active',
+                            createdAt: t.createdAt || '',
+                            records: (t.records || []).map(normRec)
+                        };
+                    });
+                }
+                return d;
+            }
+            savePool(REDEEM_SEED);
+            return JSON.parse(JSON.stringify(REDEEM_SEED));
+        }
+        function savePool(list) { try { localStorage.setItem(REDEEM_KEY, JSON.stringify(list)); } catch (e) {} }
+
+        function recStatus(rec) {
+            if (rec.voided) return { text:'已作废', cls:'bg-rose-50 text-rose-500' };
+            if (rec.usedBy) return { text:'已兑换', cls:'bg-brand-50 text-brand-600' };
+            return { text:'待兑换', cls:'bg-amber-50 text-amber-700' };
+        }
+        function tplStatus(tpl) {
+            return tpl.status === 'stopped'
+                ? { text:'已停用', cls:'bg-gray-100 text-gray-500' }
+                : { text:'启用中', cls:'bg-brand-50 text-brand-600' };
+        }
+        function findTpl(pool, id) {
+            var t = null;
+            pool.forEach(function (x) { if (x.id === id) t = x; });
+            return t;
+        }
+        function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+        // 该模板下一张派生码的序号（取已有记录中的最大序号 + 1）
+        function nextSeq(tpl) {
+            var max = 0;
+            (tpl.records || []).forEach(function (r) {
+                var m = /-(\d+)$/.exec(r.code || '');
+                if (m) max = Math.max(max, parseInt(m[1], 10));
+            });
+            return max + 1;
+        }
+
+        function render() {
+            var pool = loadPool();
+            var kw = (document.getElementById('searchInput').value || '').trim().toUpperCase();
+            var st = document.getElementById('filterStatus').value;
+
+            var list = pool.filter(function (t) {
+                if (st && t.status !== st) return false;
+                if (!kw) return true;
+                if ((t.name || '').indexOf(kw) >= 0 || (t.note || '').indexOf(kw) >= 0 || (t.code || '').indexOf(kw) >= 0) return true;
+                return (t.records || []).some(function (r) {
+                    return (r.code || '').indexOf(kw) >= 0 || (r.assignTo || '').indexOf(kw) >= 0 || (r.usedBy || '').indexOf(kw) >= 0;
+                });
+            });
+
+            document.getElementById('tplTable').innerHTML = list.length ? list.map(function (t) {
+                var meta = tplStatus(t);
+                var recs = t.records || [];
+                var issued = recs.filter(function (r) { return r.assignTo; }).length;
+                var used = recs.filter(function (r) { return r.usedBy; }).length;
+                var pending = recs.filter(function (r) { return !r.voided && !r.usedBy; }).length;
+
+                var actions = '';
+                if (t.status === 'active') {
+                    actions += '<button onclick="distributeTpl(\'' + t.id + '\')" class="mr-2 px-2 py-1 bg-brand-600 text-white rounded text-xs font-bold hover:bg-brand-700"><i class="fa fa-paper-plane mr-1"></i>分发给客户</button>';
+                }
+                actions += '<button onclick="openRecords(\'' + t.id + '\')" class="px-2 py-1 border border-gray-200 rounded text-xs text-brand-600 hover:bg-gray-50"><i class="fa fa-list-alt mr-1"></i>分发记录（' + recs.length + '）</button>';
+                actions += '<button onclick="toggleTpl(\'' + t.id + '\')" class="ml-2 px-2 py-1 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50"><i class="fa fa-' + (t.status === 'stopped' ? 'play-circle-o' : 'pause-circle-o') + ' mr-1"></i>' + (t.status === 'stopped' ? '启用' : '停用') + '</button>';
+
+                return '<tr class="hover:bg-brand-50/40 transition-all">' +
+                    '<td class="px-6 py-3 font-bold text-gray-800">' + t.name + '</td>' +
+                    '<td class="px-6 py-3 font-bold text-gray-800 tracking-wide">' + (t.code || '—') + '</td>' +
+                    '<td class="px-6 py-3 text-center font-bold text-amber-600">' + t.value + '</td>' +
+                    '<td class="px-6 py-3 text-gray-600">' + (t.note || '—') + '</td>' +
+                    '<td class="px-6 py-3 text-xs text-gray-600">已分发 <b class="text-gray-800">' + issued + '</b> · 已兑换 <b class="text-gray-800">' + used + '</b> · 待兑换 <b class="text-amber-600">' + pending + '</b></td>' +
+                    '<td class="px-6 py-3"><span class="px-2 py-1 rounded-full text-[11px] font-bold ' + meta.cls + '">' + meta.text + '</span></td>' +
+                    '<td class="px-6 py-3 text-gray-500">' + (t.createdAt || '—') + '</td>' +
+                    '<td class="px-6 py-3 text-right whitespace-nowrap">' + actions + '</td>' +
+                '</tr>';
+            }).join('') : '<tr><td colspan="8" class="px-6 py-6 text-center text-gray-400 text-sm">没有符合条件的兑换码模板</td></tr>';
+
+            var allRecs = pool.reduce(function (a, t) { return a.concat(t.records || []); }, []);
+            var allUsed = allRecs.filter(function (r) { return r.usedBy; });
+            document.getElementById('tableCount').textContent = '共 ' + list.length + ' 个模板' + (list.length !== pool.length ? '（已筛选，全部 ' + pool.length + ' 个）' : '') + ' · 全部分发记录 ' + allRecs.length + ' 张（已兑换 ' + allUsed.length + ' 张）';
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterStatus').value = '';
+            render();
+        }
+
+        // ===== 新建模板（创建即生成固定兑换码） =====
+        var CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        function randomCode() {
+            var s = '';
+            for (var i = 0; i < 6; i++) s += CODE_CHARS.charAt(Math.floor(Math.random() * CODE_CHARS.length));
+            return 'CY' + s;
+        }
+        function genBaseCode(pool) {
+            var guard = 0;
+            while (guard < 200) {
+                guard++;
+                var c = randomCode();
+                var dup = pool.some(function (t) {
+                    return t.code === c || (t.records || []).some(function (r) { return r.code === c; });
+                });
+                if (!dup) return c;
+            }
+            return 'CY' + Date.now().toString(36).toUpperCase().slice(-6);
+        }
+        function openTplModal() {
+            document.getElementById('tplName').value = '';
+            document.getElementById('tplValue').value = 88;
+            document.getElementById('tplNote').value = '';
+            var m = document.getElementById('tplModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeTplModal() {
+            var m = document.getElementById('tplModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+        }
+        function submitTpl() {
+            var name = (document.getElementById('tplName').value || '').trim();
+            var value = parseInt(document.getElementById('tplValue').value, 10);
+            var note = (document.getElementById('tplNote').value || '').trim();
+            if (!name) { toast('请填写模板名称', false); return; }
+            if (!value || value <= 0) { toast('请填写正确的面额', false); return; }
+
+            var pool = loadPool();
+            var code = genBaseCode(pool);
+            pool.unshift({
+                id: 'T' + Date.now().toString(36).toUpperCase(),
+                code: code,
+                name: name, value: value, note: note,
+                status: 'active',
+                createdAt: new Date().toISOString().slice(0, 10),
+                records: []
+            });
+            savePool(pool);
+            closeTplModal();
+            render();
+            toast('已创建模板「' + name + '」，固定兑换码 ' + code + '（面额 ' + value + ' 策能值）');
+        }
+
+        // ===== 分发（每次分发 = 一条记录 + 按序号派生一张码） =====
+        var CUR_TPL_ID = '';
+        function customerOptions() {
+            try {
+                if (window.DataBridge && DataBridge.loadCustomers) {
+                    return (DataBridge.loadCustomers() || [])
+                        .filter(function (c) { return c && c.type === 'enterprise'; })
+                        .map(function (c) { return c.name + (c.contact ? ' · ' + c.contact : ''); });
+                }
+            } catch (e) {}
+            return [];
+        }
+        // 行上直接发起分发
+        function distributeTpl(id) {
+            CUR_TPL_ID = id;
+            openAssignModal();
+        }
+        function openAssignModal() {
+            var tpl = findTpl(loadPool(), CUR_TPL_ID);
+            if (!tpl) { toast('请先选择一个模板', false); return; }
+            document.getElementById('assignTplName').textContent = tpl.name;
+            document.getElementById('assignValue').textContent = tpl.value;
+            document.getElementById('assignPreview').textContent = tpl.code + '-' + pad2(nextSeq(tpl));
+
+            var sel = document.getElementById('assignSelect');
+            var inp = document.getElementById('assignCustom');
+            var opts = customerOptions();
+            if (opts.length) {
+                sel.innerHTML = '<option value="">请选择客户</option>' + opts.map(function (o) {
+                    return '<option value="' + o + '">' + o + '</option>';
+                }).join('') + '<option value="__custom">其他（手动填写）</option>';
+                sel.value = '';
+                sel.classList.remove('hidden');
+                inp.classList.add('hidden');
+            } else {
+                sel.classList.add('hidden');
+                inp.classList.remove('hidden');
+            }
+            inp.value = '';
+            document.getElementById('assignAt').value = new Date().toISOString().slice(0, 10);
+            var m = document.getElementById('assignModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeAssignModal() {
+            var m = document.getElementById('assignModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+        }
+        function onAssignTargetChange() {
+            var sel = document.getElementById('assignSelect');
+            var inp = document.getElementById('assignCustom');
+            if (sel.value === '__custom') { inp.classList.remove('hidden'); inp.value = ''; inp.focus(); }
+            else { inp.classList.add('hidden'); inp.value = ''; }
+        }
+        function submitAssign() {
+            var sel = document.getElementById('assignSelect');
+            var inp = document.getElementById('assignCustom');
+            var target = '';
+            if (sel.classList.contains('hidden')) target = (inp.value || '').trim();
+            else if (sel.value === '__custom') target = (inp.value || '').trim();
+            else target = sel.value;
+            if (!target) { toast('请选择或填写分发对象', false); return; }
+
+            var pool = loadPool();
+            var tpl = findTpl(pool, CUR_TPL_ID);
+            if (!tpl) { toast('模板不存在', false); return; }
+            if (tpl.status === 'stopped') { toast('该模板已停用，不能再新增分发', false); return; }
+
+            // 固定码 + 序号后缀：CY2026-01、CY2026-02…
+            var code = tpl.code + '-' + pad2(nextSeq(tpl));
+            var at = (document.getElementById('assignAt').value || '').trim() || new Date().toISOString().slice(0, 10);
+            tpl.records.unshift({ code: code, assignTo: target, assignAt: at, usedBy: '', usedAt: '', voided: false });
+            savePool(pool);
+            closeAssignModal();
+            render();
+            openRecords(tpl.id);
+            toast('已生成兑换码 ' + code + '，分发给 ' + target);
+        }
+
+        // ===== 分发记录弹窗 =====
+        function openRecords(id) {
+            var pool = loadPool();
+            var tpl = findTpl(pool, id);
+            if (!tpl) return;
+            CUR_TPL_ID = id;
+
+            var recs = tpl.records || [];
+            document.getElementById('recTplName').textContent = tpl.name;
+            document.getElementById('recTplMeta').textContent = '固定码 ' + tpl.code + ' · 面额 ' + tpl.value + ' 策能值 · ' + (tpl.note || '无备注') + ' · ' + tplStatus(tpl).text;
+
+            document.getElementById('recTable').innerHTML = recs.length ? recs.map(function (r) {
+                var st = recStatus(r);
+                var a = '<button onclick="copyCode(\'' + r.code + '\')" class="px-2 py-1 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50"><i class="fa fa-copy mr-1"></i>复制</button>';
+                if (!r.voided && !r.usedBy) {
+                    a += '<button onclick="voidRec(\'' + r.code + '\')" class="ml-2 px-2 py-1 border border-gray-200 rounded text-xs text-rose-500 hover:bg-gray-50"><i class="fa fa-ban mr-1"></i>作废</button>';
+                }
+                return '<tr class="hover:bg-brand-50/40 transition-all">' +
+                    '<td class="px-4 py-2.5 font-bold text-gray-800 whitespace-nowrap tracking-wide">' + r.code + '</td>' +
+                    '<td class="px-4 py-2.5 text-gray-600">' + (r.assignTo || '—') + '</td>' +
+                    '<td class="px-4 py-2.5 text-gray-500 whitespace-nowrap">' + (r.assignAt || '—') + '</td>' +
+                    '<td class="px-4 py-2.5 text-gray-600">' + (r.usedBy || '—') + '</td>' +
+                    '<td class="px-4 py-2.5 text-gray-500 whitespace-nowrap">' + (r.usedAt || '—') + '</td>' +
+                    '<td class="px-4 py-2.5 whitespace-nowrap"><span class="px-2 py-1 rounded-full text-[11px] font-bold ' + st.cls + '">' + st.text + '</span></td>' +
+                    '<td class="px-4 py-2.5 text-right whitespace-nowrap">' + a + '</td>' +
+                '</tr>';
+            }).join('') : '<tr><td colspan="7" class="px-4 py-6 text-center text-gray-400 text-sm">该模板下还没有分发记录，点「分发给客户」生成第一张（' + tpl.code + '-01）</td></tr>';
+
+            var used = recs.filter(function (r) { return r.usedBy; }).length;
+            var voided = recs.filter(function (r) { return r.voided && !r.usedBy; }).length;
+            document.getElementById('recSummary').textContent = '共 ' + recs.length + ' 张 · 已兑换 ' + used + ' 张 · 已作废 ' + voided + ' 张 · 待兑换 ' + (recs.length - used - voided) + ' 张';
+            document.getElementById('recAssignBtn').style.display = tpl.status === 'stopped' ? 'none' : '';
+
+            var m = document.getElementById('recordsModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function closeRecords() {
+            var m = document.getElementById('recordsModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+        }
+
+        // ===== 模板 / 单码操作 =====
+        function toggleTpl(id) {
+            var pool = loadPool();
+            var tpl = findTpl(pool, id);
+            if (!tpl) return;
+            if (tpl.status === 'stopped') {
+                if (!confirm('确认重新启用模板「' + tpl.name + '」？启用后可继续向客户分发新的兑换码。')) return;
+                tpl.status = 'active';
+                savePool(pool); render();
+                if (CUR_TPL_ID === id) openRecords(id);
+                toast('模板已启用，可继续新增分发');
+            } else {
+                if (!confirm('确认停用模板「' + tpl.name + '」？\n停用后该模板不再新增分发；已经发出去的兑换码不受影响，客户仍可正常兑换。\n如需收回某张未兑换的码，请在「分发记录」里单独作废。')) return;
+                tpl.status = 'stopped';
+                savePool(pool); render();
+                if (CUR_TPL_ID === id) openRecords(id);
+                toast('模板已停用，已发出的兑换码不受影响');
+            }
+        }
+        function voidRec(code) {
+            if (!confirm('确认作废兑换码「' + code + '」？\n作废后这张码立即失效，客户再兑换会提示「已作废」；已兑换的策能值不受影响。')) return;
+            var pool = loadPool();
+            pool.forEach(function (t) {
+                (t.records || []).forEach(function (r) { if (r.code === code) r.voided = true; });
+            });
+            savePool(pool);
+            render();
+            openRecords(CUR_TPL_ID);
+            toast('兑换码已作废');
+        }
+        function copyCode(code) {
+            var ta = document.createElement('textarea');
+            ta.value = code;
+            ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            var ok = false;
+            try { ok = document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta);
+            toast(ok ? '已复制：' + code : '复制失败，请手动选择复制', ok);
+        }
+
+        function toast(msg, ok) {
+            var t = document.createElement('div');
+            t.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg ' + (ok === false ? 'bg-red-500' : 'bg-slate-800');
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(function(){ t.remove(); }, 2200);
+        }
+
+        render();
+    </script>
+</body>
+</html>

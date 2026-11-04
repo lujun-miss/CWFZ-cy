@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据驾驶舱 - 策源易答运营平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(139,92,246,0.18); }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        .funnel-bar { transition: all 0.3s; }
+        .funnel-bar:hover { filter: brightness(1.08); }
+        .heat-cell { transition: transform 0.15s; }
+        .heat-cell:hover { transform: scale(1.15); z-index: 10; }
+        .period-btn.active { background: #7c3aed; color: #fff; box-shadow: 0 4px 12px -2px rgba(124,58,237,0.4); }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-slate-50 p-8">
+
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-slate-800 flex items-center">
+                <i class="fa fa-tachometer text-purple-600 mr-3"></i>数据驾驶舱
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">运营管理平台 / 全局数据监控</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <div class="flex items-center bg-white border border-slate-200 rounded-xl p-1">
+                <button onclick="switchPeriod(this)" class="period-btn active px-3 py-1.5 text-xs font-bold rounded-lg transition-all">日</button>
+                <button onclick="switchPeriod(this)" class="period-btn px-3 py-1.5 text-xs font-bold text-slate-500 rounded-lg transition-all">周</button>
+                <button onclick="switchPeriod(this)" class="period-btn px-3 py-1.5 text-xs font-bold text-slate-500 rounded-lg transition-all">月</button>
+            </div>
+            <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option>最近7天</option><option>最近30天</option><option>本季度</option><option>本年度</option>
+            </select>
+            <button class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all flex items-center shadow-lg shadow-purple-600/20">
+                <i class="fa fa-download mr-2"></i>导出报表
+            </button>
+        </div>
+    </div>
+
+    
+
+    <!-- 流程漏斗 + 热门政策排行 -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+        <!-- 流程漏斗 -->
+        <div class="lg:col-span-2 bg-white rounded-[20px] border border-slate-100 shadow-sm p-6">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="font-black text-slate-800 flex items-center"><i class="fa fa-filter text-purple-600 mr-2"></i>业务流程漏斗</h3>
+                <span class="text-xs text-slate-400">政策查询 → 成交</span>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-bold text-slate-600"><i class="fa fa-search text-purple-500 mr-1"></i>政策查询</span>
+                        <span class="text-slate-500"><span class="font-black text-slate-800">52,840</span> · 100%</span>
+                    </div>
+                    <div class="funnel-bar h-9 bg-gradient-to-r from-purple-500 to-purple-400 rounded-lg flex items-center justify-end pr-3" style="width:100%"></div>
+                </div>
+                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
+                <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-bold text-slate-600"><i class="fa fa-bullseye text-indigo-500 mr-1"></i>智能匹配</span>
+                        <span class="text-slate-500"><span class="font-black text-slate-800">8,624</span> · 16.3%</span>
+                    </div>
+                    <div class="funnel-bar h-9 bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-lg flex items-center justify-end pr-3" style="width:65%"></div>
+                </div>
+                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
+                <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-bold text-slate-600"><i class="fa fa-file-text-o text-blue-500 mr-1"></i>政策申报</span>
+                        <span class="text-slate-500"><span class="font-black text-slate-800">2,158</span> · 4.1%</span>
+                    </div>
+                    <div class="funnel-bar h-9 bg-gradient-to-r from-blue-500 to-blue-400 rounded-lg flex items-center justify-end pr-3" style="width:42%"></div>
+                </div>
+                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
+                <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-bold text-slate-600"><i class="fa fa-check-circle-o text-emerald-500 mr-1"></i>服务成交</span>
+                        <span class="text-slate-500"><span class="font-black text-slate-800">686</span> · 1.3%</span>
+                    </div>
+                    <div class="funnel-bar h-9 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-lg flex items-center justify-end pr-3" style="width:24%"></div>
+                </div>
+                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
+                <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-bold text-slate-600"><i class="fa fa-truck text-teal-500 mr-1"></i>服务交付</span>
+                        <span class="text-slate-500"><span id="funnelDelivered" class="font-black text-slate-800">412</span> · 0.8%</span>
+                    </div>
+                    <div class="funnel-bar h-9 bg-gradient-to-r from-teal-500 to-teal-400 rounded-lg flex items-center justify-end pr-3" style="width:18%"></div>
+                </div>
+                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
+                <div>
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="font-bold text-slate-600"><i class="fa fa-star text-amber-500 mr-1"></i>评价反馈</span>
+                        <span class="text-slate-500"><span id="funnelReviewed" class="font-black text-slate-800">285</span> · 0.5%</span>
+                    </div>
+                    <div class="funnel-bar h-9 bg-gradient-to-r from-amber-500 to-amber-400 rounded-lg flex items-center justify-end pr-3" style="width:12%"></div>
+                </div>
+            </div>
+            <div class="mt-5 pt-4 border-t border-slate-100 grid grid-cols-5 gap-3 text-center">
+                <div><div class="text-xs text-slate-400">查询→匹配</div><div class="text-sm font-black text-purple-600">16.3%</div></div>
+                <div><div class="text-xs text-slate-400">匹配→申报</div><div class="text-sm font-black text-blue-600">25.0%</div></div>
+                <div><div class="text-xs text-slate-400">申报→成交</div><div class="text-sm font-black text-emerald-600">31.8%</div></div>
+                <div><div class="text-xs text-slate-400">成交→交付</div><div class="text-sm font-black text-teal-600">60.1%</div></div>
+                <div><div class="text-xs text-slate-400">交付→评价</div><div class="text-sm font-black text-amber-600">69.2%</div></div>
+            </div>
+        </div>
+
+        <!-- 热门政策排行 -->
+        <div class="lg:col-span-3 bg-white rounded-[20px] border border-slate-100 shadow-sm p-6">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="font-black text-slate-800 flex items-center"><i class="fa fa-fire text-purple-600 mr-2"></i>热门政策排行 TOP5</h3>
+                <span class="text-xs text-slate-400">按查询量排序</span>
+            </div>
+            <div class="space-y-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-gradient-to-br from-rose-500 to-rose-600 text-white rounded-lg flex items-center justify-center font-black text-sm shadow-lg shadow-rose-500/30">1</div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-bold text-slate-800">高新技术企业认定管理办法</span>
+                            <span class="text-xs text-slate-500"><span class="font-black text-purple-600">8,624</span> 次查询</span>
+                        </div>
+                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style="width:100%"></div></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg flex items-center justify-center font-black text-sm shadow-lg shadow-orange-500/30">2</div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-bold text-slate-800">研发费用加计扣除政策</span>
+                            <span class="text-xs text-slate-500"><span class="font-black text-purple-600">6,210</span> 次查询</span>
+                        </div>
+                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style="width:72%"></div></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-lg flex items-center justify-center font-black text-sm shadow-lg shadow-amber-500/30">3</div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-bold text-slate-800">专精特新中小企业认定</span>
+                            <span class="text-xs text-slate-500"><span class="font-black text-purple-600">4,852</span> 次查询</span>
+                        </div>
+                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style="width:56%"></div></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-slate-400 text-white rounded-lg flex items-center justify-center font-black text-sm">4</div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-bold text-slate-800">科技型中小企业认定</span>
+                            <span class="text-xs text-slate-500"><span class="font-black text-purple-600">3,406</span> 次查询</span>
+                        </div>
+                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style="width:39%"></div></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 bg-slate-400 text-white rounded-lg flex items-center justify-center font-black text-sm">5</div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-bold text-slate-800">中小企业数字化转型试点</span>
+                            <span class="text-xs text-slate-500"><span class="font-black text-purple-600">2,178</span> 次查询</span>
+                        </div>
+                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style="width:25%"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 趋势分析 -->
+    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6 mb-6">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="font-black text-slate-800 flex items-center"><i class="fa fa-line-chart text-purple-600 mr-2"></i>趋势分析</h3>
+            <div class="flex items-center gap-4 text-xs">
+                <span class="flex items-center text-slate-600"><span class="w-3 h-3 bg-purple-500 rounded-full mr-1.5"></span>政策查询</span>
+                <span class="flex items-center text-slate-600"><span class="w-3 h-3 bg-emerald-500 rounded-full mr-1.5"></span>匹配成功</span>
+                <span class="flex items-center text-slate-600"><span class="w-3 h-3 bg-amber-500 rounded-full mr-1.5"></span>申报数</span>
+            </div>
+        </div>
+        <!-- SVG 折线图 -->
+        <div class="relative">
+            <svg viewBox="0 0 700 260" class="w-full h-64" preserveAspectRatio="none">
+                <!-- 网格线 -->
+                <g stroke="#f1f5f9" stroke-width="1">
+                    <line x1="40" y1="40" x2="690" y2="40"/>
+                    <line x1="40" y1="90" x2="690" y2="90"/>
+                    <line x1="40" y1="140" x2="690" y2="140"/>
+                    <line x1="40" y1="190" x2="690" y2="190"/>
+                    <line x1="40" y1="240" x2="690" y2="240"/>
+                </g>
+                <!-- Y轴标签 -->
+                <g fill="#94a3b8" font-size="10" text-anchor="end">
+                    <text x="32" y="44">60k</text>
+                    <text x="32" y="94">45k</text>
+                    <text x="32" y="144">30k</text>
+                    <text x="32" y="194">15k</text>
+                    <text x="32" y="244">0</text>
+                </g>
+                <!-- 政策查询 面积+线 (紫色) -->
+                <path d="M60 180 L150 150 L240 165 L330 110 L420 130 L510 80 L600 95 L680 60 L680 240 L60 240 Z" fill="#7c3aed" fill-opacity="0.08"/>
+                <path d="M60 180 L150 150 L240 165 L330 110 L420 130 L510 80 L600 95 L680 60" stroke="#7c3aed" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+                <!-- 匹配成功 线 (绿色) -->
+                <path d="M60 215 L150 205 L240 210 L330 185 L420 195 L510 170 L600 178 L680 155" stroke="#16a34a" stroke-width="2.5" fill="none" stroke-linejoin="round" stroke-dasharray="0"/>
+                <!-- 申报数 线 (琥珀色) -->
+                <path d="M60 232 L150 228 L240 230 L330 220 L420 225 L510 212 L600 218 L680 205" stroke="#d97706" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+                <!-- 数据点 -->
+                <g fill="#7c3aed">
+                    <circle cx="60" cy="180" r="3"/><circle cx="150" cy="150" r="3"/><circle cx="240" cy="165" r="3"/><circle cx="330" cy="110" r="3"/><circle cx="420" cy="130" r="3"/><circle cx="510" cy="80" r="3"/><circle cx="600" cy="95" r="3"/><circle cx="680" cy="60" r="4" stroke="#fff" stroke-width="2"/>
+                </g>
+                <!-- X轴标签 -->
+                <g fill="#94a3b8" font-size="10" text-anchor="middle">
+                    <text x="60" y="256">7/27</text>
+                    <text x="150" y="256">7/28</text>
+                    <text x="240" y="256">7/29</text>
+                    <text x="330" y="256">7/30</text>
+                    <text x="420" y="256">7/31</text>
+                    <text x="510" y="256">8/01</text>
+                    <text x="600" y="256">8/02</text>
+                    <text x="680" y="256">8/03</text>
+                </g>
+            </svg>
+            <!-- 峰值标注 -->
+            <div class="absolute" style="right: 4%; top: 8%;">
+                <div class="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-lg shadow-lg">峰值 58,420</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 企业活跃度热力图 -->
+    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="font-black text-slate-800 flex items-center"><i class="fa fa-th text-purple-600 mr-2"></i>企业活跃度热力图</h3>
+            <div class="flex items-center gap-2 text-xs text-slate-400">
+                <span>低</span>
+                <div class="flex gap-0.5">
+                    <span class="w-4 h-4 bg-purple-50 rounded"></span>
+                    <span class="w-4 h-4 bg-purple-200 rounded"></span>
+                    <span class="w-4 h-4 bg-purple-400 rounded"></span>
+                    <span class="w-4 h-4 bg-purple-600 rounded"></span>
+                    <span class="w-4 h-4 bg-purple-800 rounded"></span>
+                </div>
+                <span>高</span>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <div class="min-w-[680px]">
+                <!-- 时间轴 -->
+                <div class="flex pl-12 mb-2">
+                    <div class="grid grid-cols-24 gap-1 flex-1" style="grid-template-columns: repeat(24, minmax(0, 1fr));">
+                        <div class="text-[9px] text-slate-400 text-center col-span-3">00</div>
+                        <div class="text-[9px] text-slate-400 text-center col-span-3">03</div>
+                        <div class="text-[9px] text-slate-400 text-center col-span-3">06</div>
+                        <div class="text-[9px] text-slate-400 text-center col-span-3">09</div>
+                        <div class="text-[9px] text-slate-400 text-center col-span-3">12</div>
+                        <div class="text-[9px] text-slate-400 text-center col-span-3">15</div>
+                        <div class="text-[9px] text-slate-400 text-center col-span-3">18</div>
+                        <div class="text-[9px] text-slate-400 text-center col-span-3">21</div>
+                    </div>
+                </div>
+                <!-- 热力网格 -->
+                <div id="heatmap" class="space-y-1"></div>
+            </div>
+        </div>
+        <!-- 区域汇总 -->
+        <div class="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-8 bg-purple-600 rounded-full"></div>
+                <div><div class="text-xs text-slate-400">最活跃区域</div><div class="text-sm font-black text-slate-800">华东地区</div></div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-8 bg-purple-400 rounded-full"></div>
+                <div><div class="text-xs text-slate-400">活跃高峰时段</div><div class="text-sm font-black text-slate-800">10:00 - 11:00</div></div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-8 bg-purple-300 rounded-full"></div>
+                <div><div class="text-xs text-slate-400">峰值企业数</div><div class="text-sm font-black text-slate-800">486 家/小时</div></div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-8 bg-purple-200 rounded-full"></div>
+                <div><div class="text-xs text-slate-400">日均活跃</div><div class="text-sm font-black text-slate-800">3,452 家</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js"></script>
+    <script>
+        // 漏斗末端两节（服务交付 / 评价反馈）从订单数据聚合，与真实交易闭环联动
+        (function(){
+            if (!window.DataBridge || !DataBridge.loadServiceOrders) return;
+            var orders = DataBridge.loadServiceOrders();
+            // 已交付 = 已付款进入服务交付环节（serving/done/reviewed 都算）
+            var delivered = orders.filter(function(o){ return ['serving','done','reviewed'].indexOf(o.status) !== -1; }).length;
+            // 已评价 = 完成评价反馈（reviewed）
+            var reviewed = orders.filter(function(o){ return o.status === 'reviewed'; }).length;
+            // 在演示基数上叠加真实订单增量，体现闭环联动
+            var baseDelivered = 400, baseReviewed = 280;
+            var dEl = document.getElementById('funnelDelivered');
+            var rEl = document.getElementById('funnelReviewed');
+            if (dEl) dEl.textContent = (baseDelivered + delivered).toLocaleString();
+            if (rEl) rEl.textContent = (baseReviewed + reviewed).toLocaleString();
+        })();
+        // 生成热力图
+        (function(){
+            var days = ['周一','周二','周三','周四','周五','周六','周日'];
+            var colors = ['bg-purple-50','bg-purple-100','bg-purple-200','bg-purple-300','bg-purple-400','bg-purple-500','bg-purple-600','bg-purple-700','bg-purple-800'];
+            var container = document.getElementById('heatmap');
+            var html = '';
+            days.forEach(function(day, di){
+                html += '<div class="flex items-center">';
+                html += '<div class="w-10 text-xs text-slate-500 font-bold pr-2 text-right">'+day+'</div>';
+                html += '<div class="grid gap-1 flex-1" style="grid-template-columns: repeat(24, minmax(0, 1fr));">';
+                for(var h=0; h<24; h++){
+                    // 工作日白天活跃度高，夜间低；周末整体低
+                    var base = (di < 5) ? 1 : 0;
+                    var hourFactor = 0;
+                    if(h>=9 && h<=11) hourFactor = 3;
+                    else if(h>=14 && h<=17) hourFactor = 2;
+                    else if(h>=19 && h<=21) hourFactor = 2;
+                    else if(h>=8 && h<=22) hourFactor = 1;
+                    var level = Math.min(8, base*hourFactor + Math.floor(Math.random()*2));
+                    if(di >= 5) level = Math.min(8, hourFactor - 1 + Math.floor(Math.random()));
+                    if(level < 0) level = 0;
+                    html += '<div class="heat-cell h-6 rounded '+colors[level]+'" title="'+day+' '+h+':00 活跃度 '+level+'"></div>';
+                }
+                html += '</div></div>';
+            });
+            container.innerHTML = html;
+        })();
+
+        function switchPeriod(btn){
+            document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.remove('active'); b.classList.add('text-slate-500'); });
+            btn.classList.add('active'); btn.classList.remove('text-slate-500');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单管理 - 策源易答服务交易模块</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f7f8fa;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -10px rgba(249, 115, 22, 0.15);
+        }
+        .status-tab.active {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: #fff;
+            box-shadow: 0 8px 16px -6px rgba(249, 115, 22, 0.4);
+        }
+        .scroll-hide::-webkit-scrollbar { display: none; }
+        .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .modal-mask { background: rgba(15,23,42,0.5); backdrop-filter: blur(2px); }
+        .timeline-dot { transition: all 0.2s; }
+        .progress-bar { transition: width 0.6s ease; }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="text-slate-800">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white sticky top-0 z-40 border-b border-slate-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
+                    <i class="fa fa-clipboard text-xl"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-xl font-black tracking-tight leading-none">订单管理</span>
+                    <span class="text-[10px] text-orange-500 uppercase tracking-widest mt-1">Order Management</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="render()" class="flex items-center space-x-2 px-4 py-2 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 rounded-xl text-sm transition-all text-slate-600">
+                    <i class="fa fa-refresh"></i>
+                    <span>刷新</span>
+                </button>
+                <div class="flex items-center space-x-2 pl-4 border-l border-slate-100">
+                    <div class="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm">运</div>
+                    <div class="flex flex-col">
+                        <span class="text-sm font-semibold">运营管理员</span>
+                        <span class="text-[10px] text-slate-400">运营账户</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <!-- 订单列表 -->
+        <section>
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <!-- 标题与筛选 -->
+                <div class="p-6 border-b border-slate-100">
+                    <div class="flex items-center justify-between flex-wrap gap-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-1 h-6 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></div>
+                            <h2 class="text-lg font-bold">订单列表</h2>
+                            <span class="text-xs text-slate-400">共 <span class="text-orange-600 font-bold" id="orderCount">199</span> 笔订单</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="relative">
+                                <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                <input id="q" oninput="render()" type="text" placeholder="搜索订单号、服务、企业..." class="pl-9 pr-4 py-2 bg-slate-50 rounded-xl text-sm border border-transparent focus:border-orange-300 focus:bg-white focus:outline-none w-64 transition-all">
+                            </div>
+                            <select id="fSvc" onchange="render()" class="px-4 py-2 bg-slate-50 rounded-xl text-sm border border-transparent text-slate-600 focus:border-orange-300 focus:bg-white focus:outline-none">
+                                <option value="">全部服务</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- 状态切换 -->
+                    <div class="flex items-center space-x-2 mt-5 overflow-x-auto scroll-hide">
+                        <button onclick="setTab('all', this)" class="status-tab active px-4 py-2 rounded-xl text-sm font-medium bg-slate-50 hover:bg-orange-50 transition-all whitespace-nowrap" data-tab="all">全部</button>
+                        <button onclick="setTab('unpaid', this)" class="status-tab px-4 py-2 rounded-xl text-sm font-medium bg-slate-50 hover:bg-orange-50 transition-all whitespace-nowrap" data-tab="unpaid">待付款 <span id="cUnpaid" class="ml-1 text-[10px]"></span></button>
+                        <button onclick="setTab('serving', this)" class="status-tab px-4 py-2 rounded-xl text-sm font-medium bg-slate-50 hover:bg-orange-50 transition-all whitespace-nowrap" data-tab="serving">服务中 <span id="cServing" class="ml-1 text-[10px]"></span></button>
+                        <button onclick="setTab('done', this)" class="status-tab px-4 py-2 rounded-xl text-sm font-medium bg-slate-50 hover:bg-orange-50 transition-all whitespace-nowrap" data-tab="done">已完成 <span id="cDone" class="ml-1 text-[10px]"></span></button>
+                    </div>
+                </div>
+
+                <!-- 订单表格 -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-slate-50 text-xs text-slate-500 uppercase">
+                                <th class="px-6 py-4 text-left font-semibold">订单号</th>
+                                <th class="px-6 py-4 text-left font-semibold">服务名称</th>
+                                <th class="px-6 py-4 text-left font-semibold">企业名称</th>
+                                <th class="px-6 py-4 text-left font-semibold">金额</th>
+                                <th class="px-6 py-4 text-left font-semibold">下单时间</th>
+                                <th class="px-6 py-4 text-left font-semibold">状态</th>
+                                <th class="px-6 py-4 text-center font-semibold">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTableBody" class="divide-y divide-slate-50">
+                            <!-- 由JS渲染 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 底部 -->
+                <div class="p-6 border-t border-slate-100 flex items-center justify-between">
+                    <p class="text-xs text-slate-400">共 <span id="orderCount" class="text-orange-600 font-bold">0</span> 笔订单</p>
+                    <span class="text-xs text-slate-400"><i class="fa fa-check-circle text-emerald-500 mr-1"></i>数据与企业侧服务商城实时同步</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 订单详情弹窗 -->
+    <div id="orderDetailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto scroll-hide">
+            <div class="sticky top-0 bg-white border-b border-slate-100 px-8 py-5 flex items-center justify-between z-10">
+                <h3 class="text-lg font-bold flex items-center space-x-2">
+                    <i class="fa fa-file-text-o text-orange-500"></i>
+                    <span>订单详情</span>
+                </h3>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-all">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div id="detailBody" class="p-8 space-y-8"></div>
+        </div>
+    </div>
+
+    <!-- 上传交付物弹窗 -->
+    <div id="uploadModal" class="fixed inset-0 modal-mask z-[55] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-base font-bold"><i class="fa fa-upload text-orange-500 mr-2"></i>上传交付物</h3>
+                <button onclick="closeUpload()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <p class="text-xs font-bold text-slate-600 mb-1.5">里程碑</p>
+                    <p id="uploadMilestone" class="text-sm text-slate-700 bg-slate-50 rounded-xl px-4 py-2.5">—</p>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-600 mb-1.5">交付物名称 <span class="text-rose-500">*</span></p>
+                    <input id="uploadName" type="text" placeholder="如：高企申报方案.pptx" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white">
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-600 mb-1.5">文件类型</p>
+                    <select id="uploadType" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                        <option value="pdf">PDF 文档 (.pdf)</option>
+                        <option value="word">Word 文档 (.docx)</option>
+                        <option value="excel">Excel 表格 (.xlsx)</option>
+                        <option value="ppt">PPT 演示 (.pptx)</option>
+                        <option value="other">其他文件</option>
+                    </select>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end space-x-2 bg-slate-50/60">
+                <button onclick="closeUpload()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
+                <button onclick="confirmUpload()" class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">确认上传</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加交付记录弹窗 -->
+    <div id="noteModal" class="fixed inset-0 modal-mask z-[55] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-base font-bold"><i class="fa fa-comment-o text-orange-500 mr-2"></i>添加交付记录</h3>
+                <button onclick="closeNote()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <p class="text-xs font-bold text-slate-600 mb-1.5">记录内容 <span class="text-rose-500">*</span></p>
+                    <textarea id="noteText" rows="4" placeholder="如：已完成需求评估，方案制定中，预计1月10日完成方案初稿。" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end space-x-2 bg-slate-50/60">
+                <button onclick="closeNote()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
+                <button onclick="confirmNote()" class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">发布记录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 推进进度弹窗 -->
+    <div id="advanceModal" class="fixed inset-0 modal-mask z-[55] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-base font-bold"><i class="fa fa-tasks text-orange-500 mr-2"></i>推进服务进度</h3>
+                <button onclick="closeAdvance()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6">
+                <div id="advanceOrderInfo" class="mb-4 px-4 py-3 bg-slate-50 rounded-xl text-xs text-slate-600"></div>
+                <p class="text-xs font-bold text-slate-600 mb-2">选择当前已完成的里程碑阶段：</p>
+                <div id="advanceMilestoneList" class="space-y-2"></div>
+                <div class="mt-4 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl text-[11px] text-orange-700 leading-relaxed">
+                    <i class="fa fa-info-circle mr-1"></i>选择最后一个已完成阶段并确认，系统将更新进度百分比；全部完成时订单自动转为「已完成」。
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end space-x-2 bg-slate-50/60">
+                <button onclick="closeAdvance()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
+                <button onclick="confirmAdvance()" class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">确认推进</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js"></script>
+    <script>
+        // 订单状态映射（与企业侧 service-orders.html 一致）
+        const statusMap = {
+            unpaid:   { text: '待付款', cls: 'bg-red-50 text-red-600', icon: 'fa-clock-o' },
+            serving:  { text: '服务中', cls: 'bg-blue-50 text-blue-600', icon: 'fa-spinner' },
+            done:     { text: '已完成', cls: 'bg-emerald-50 text-emerald-600', icon: 'fa-check-circle-o' },
+            reviewed: { text: '已评价', cls: 'bg-slate-100 text-slate-500', icon: 'fa-star' }
+        };
+        // 交付里程碑跟随商品配置的服务流程（每个服务项目流程不同）
+        const FALLBACK_STEPS = [{ name:'签订合同', deliv:'服务合同（双方盖章）' },{ name:'需求评估', deliv:'需求确认书' },{ name:'方案制定', deliv:'服务方案书' },{ name:'材料准备', deliv:'申报材料/审计底稿' },{ name:'审核提交', deliv:'受理回执/审查意见' },{ name:'完成交付', deliv:'最终成果报告' }];
+        let PRODUCT_CACHE = null;
+        function getMilestones(o) {
+            if (PRODUCT_CACHE === null) {
+                try { PRODUCT_CACHE = (typeof DataBridge !== 'undefined' && DataBridge.loadServiceProducts) ? (DataBridge.loadServiceProducts() || []) : []; }
+                catch (e) { PRODUCT_CACHE = []; }
+            }
+            const p = PRODUCT_CACHE.find(x => x.id === o.svcId);
+            if (p && Array.isArray(p.process) && p.process.length) return p.process.map(s => ({ name: s.t, deliv: s.d }));
+            return FALLBACK_STEPS;
+        }
+        function curMsIdx(o) {
+            const n = getMilestones(o).length;
+            return Math.min(n - 1, Math.floor((o.progress || 0) * n / 100));
+        }
+
+        let ORDERS = [];
+        let curTab = 'all';
+        let detailId = null;
+
+        function fmtMoney(n) { return (Number(n) || 0).toLocaleString('zh-CN'); }
+
+        function load() {
+            ORDERS = (typeof DataBridge !== 'undefined') ? DataBridge.loadServiceOrders() : [];
+            // 服务筛选下拉
+            const svcs = [...new Set(ORDERS.map(o => o.svcName).filter(Boolean))];
+            const sel = document.getElementById('fSvc');
+            sel.innerHTML = '<option value="">全部服务</option>' + svcs.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
+
+        function setTab(t, btn) {
+            curTab = t;
+            if (btn) {
+                document.querySelectorAll('.status-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+            render();
+        }
+
+        function render() {
+            const q = document.getElementById('q').value.trim().toLowerCase();
+            const fSvc = document.getElementById('fSvc').value;
+            let list = ORDERS;
+            if (curTab === 'unpaid') list = ORDERS.filter(o => o.status === 'unpaid');
+            else if (curTab === 'serving') list = ORDERS.filter(o => o.status === 'serving');
+            else if (curTab === 'done') list = ORDERS.filter(o => o.status === 'done' || o.status === 'reviewed');
+            list = list.filter(o => {
+                if (q && !(o.id.toLowerCase().includes(q) || o.svcName.toLowerCase().includes(q) || o.company.toLowerCase().includes(q))) return false;
+                if (fSvc && o.svcName !== fSvc) return false;
+                return true;
+            });
+
+            // Tab 计数
+            document.getElementById('cUnpaid').textContent = ORDERS.filter(o => o.status === 'unpaid').length || '';
+            document.getElementById('cServing').textContent = ORDERS.filter(o => o.status === 'serving').length || '';
+            document.getElementById('cDone').textContent = ORDERS.filter(o => o.status === 'done' || o.status === 'reviewed').length || '';
+            document.getElementById('orderCount').textContent = list.length;
+
+            const tbody = document.getElementById('orderTableBody');
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400"><i class="fa fa-inbox text-2xl block mb-2"></i>暂无符合条件的服务订单</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = list.map(o => {
+                const st = statusMap[o.status] || statusMap.unpaid;
+                let acts = `<button onclick="openDetail('${o.id}')" class="px-3 py-1.5 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 text-slate-600 text-xs rounded-lg transition-all">详情</button>`;
+                if (o.status === 'unpaid') acts += ` <span class="text-xs text-slate-400">等待客户付款</span>`;
+                else if (o.status === 'serving') acts += ` <button onclick="advanceOrder('${o.id}')" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg transition-all">推进进度</button>`;
+                else if (o.status === 'done') acts += ` <button onclick="markReviewed('${o.id}')" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs rounded-lg transition-all">标记已评价</button>`;
+                return `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4"><span class="text-xs font-mono text-slate-500">${o.id}</span></td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center"><i class="fa ${o.icon || 'fa-cube'} text-xs"></i></div>
+                            <span class="text-sm font-medium">${o.svcName}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600">
+                        <div>${o.company}</div>
+                        <div class="text-xs text-slate-400">${o.contact} ${o.phone}</div>
+                    </td>
+                    <td class="px-6 py-4"><span class="text-orange-600 font-bold">¥${fmtMoney(o.amount)}</span></td>
+                    <td class="px-6 py-4 text-xs text-slate-500">${o.createTime}</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center space-x-1 text-xs px-3 py-1 rounded-full ${st.cls}">
+                            <i class="fa ${st.icon}"></i><span>${st.text}</span>
+                        </span>
+                        ${o.status === 'serving' ? `<div class="text-[10px] text-slate-400 mt-1">进度 ${o.progress}%</div>` : ''}
+                    </td>
+                    <td class="px-6 py-4"><div class="flex items-center justify-center space-x-2">${acts}</div></td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ===== 运营侧操作 =====
+        function persist() { if (typeof DataBridge !== 'undefined') DataBridge.saveServiceOrders(ORDERS); }
+        let advanceTargetId = null;
+        let advanceSelectedIdx = -1;
+        function advanceOrder(id) {
+            const o = ORDERS.find(x => x.id === id);
+            if (!o) return;
+            advanceTargetId = id;
+            const steps = getMilestones(o);
+            const cur = curMsIdx(o);
+            advanceSelectedIdx = cur;
+            // 订单信息
+            document.getElementById('advanceOrderInfo').innerHTML =
+                '<i class="fa fa-file-text-o text-orange-400 mr-1"></i><b>' + (o.svcName||'-') + '</b> · '
+                + (o.company||'-') + ' · 当前进度 <b class="text-orange-600">' + (o.progress||0) + '%</b>';
+            // 里程碑列表
+            const list = document.getElementById('advanceMilestoneList');
+            list.innerHTML = steps.map((s, i) => {
+                const isDone = i < cur;
+                const isCur = i === cur;
+                const pct = Math.round((i + 1) * 100 / steps.length);
+                const radio = isCur ? '<i class="fa fa-dot-circle-o text-orange-500 text-lg"></i>'
+                          : isDone ? '<i class="fa fa-check-circle text-green-500 text-lg"></i>'
+                          : '<i class="fa fa-circle-o text-slate-300 text-lg"></i>';
+                const bg = isCur ? 'border-2 border-orange-300 bg-orange-50' : isDone ? 'border border-slate-200 bg-green-50/40' : 'border border-slate-200 bg-white';
+                const st = isDone ? '<span class="text-[10px] text-green-600 font-bold">已完成</span>' : isCur ? '<span class="text-[10px] text-orange-600 font-bold">进行中</span>' : '<span class="text-[10px] text-slate-400 font-bold">待开始</span>';
+                return '<label onclick="selectAdvance(' + i + ')" class="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-50 transition-all ' + bg + '">'
+                    + '<div class="adv-radio-' + i + '">' + radio + '</div>'
+                    + '<div class="flex-1"><div class="flex items-center justify-between"><span class="text-sm font-bold text-slate-800">' + s.name + '</span>' + st + '</div>'
+                    + '<div class="text-[11px] text-slate-400 mt-0.5">交付物：' + (s.deliv||'-') + ' · 推进至 ' + pct + '%</div></div>'
+                    + '</label>';
+            }).join('');
+            showM('advanceModal');
+        }
+        function selectAdvance(idx) {
+            advanceSelectedIdx = idx;
+            const steps = getMilestones(ORDERS.find(x => x.id === advanceTargetId));
+            const cur = curMsIdx(ORDERS.find(x => x.id === advanceTargetId));
+            steps.forEach((s, i) => {
+                const label = document.querySelector('.adv-radio-' + i);
+                if (!label) return;
+                const isSel = i === idx;
+                const isDone = i < cur;
+                if (isSel) label.innerHTML = '<i class="fa fa-dot-circle-o text-orange-500 text-lg"></i>';
+                else if (isDone) label.innerHTML = '<i class="fa fa-check-circle text-green-500 text-lg"></i>';
+                else label.innerHTML = '<i class="fa fa-circle-o text-slate-300 text-lg"></i>';
+            });
+        }
+        function closeAdvance() { hideM('advanceModal'); advanceTargetId = null; }
+        function confirmAdvance() {
+            const o = ORDERS.find(x => x.id === advanceTargetId);
+            if (!o) return;
+            const steps = getMilestones(o);
+            const idx = advanceSelectedIdx;
+            const pct = Math.round((idx + 1) * 100 / steps.length);
+            o.progress = Math.min(100, pct);
+            if (o.progress >= 100) o.status = 'done';
+            persist(); render();
+            closeAdvance();
+            if (o.status === 'done') alert('服务进度已推进至 100%，订单状态变更为「已完成」，等待客户评价。');
+        }
+        function markReviewed(id) {
+            const o = ORDERS.find(x => x.id === id);
+            if (!o) return;
+            o.status = 'reviewed';
+            persist(); render();
+        }
+
+        // ===== 交付能力（里程碑随商品流程动态生成） =====
+        const SEED_NOTES = [
+            { who:'李专家（运营）', avatar:'李', color:'blue', time:'2026-09-01 14:25', text:'已完成需求评估，企业知识产权情况已确认，进入方案制定阶段。' },
+            { who:'张经理（企业）', avatar:'张', color:'orange', time:'2026-09-01 15:30', text:'收到，方案中知识产权布局部分请重点关注，我们专利数量较少。' }
+        ];
+        let deliverables = {}; let notes = {}; let uploadMsIdx = null; let noteMsIdx = null;
+
+        // 已完成里程碑的种子交付物（演示用；真实场景由运营在时间轴上传）
+        function seedFileName(st) {
+            if (st.name.indexOf('合同') >= 0) return '服务合同_双方盖章.pdf';
+            return st.name + '_交付材料.pdf';
+        }
+        function seedDeliverablesFor(o) {
+            const steps = getMilestones(o);
+            const cur = curMsIdx(o);
+            const d0 = (o.createTime || '').slice(0, 10);
+            const out = [];
+            // 高企认定演示订单：更贴近真实的交付物
+            if (o.svcId === 'SVC001') {
+                const fixed = [
+                    { name:'服务合同_双方盖章.pdf', type:'pdf', date:d0 },
+                    { name:'需求确认书.pdf', type:'pdf', date:d0 },
+                    { name:'高企申报方案.pptx', type:'ppt', date:d0 },
+                    { name:'高企申报材料包.zip', type:'word', date:d0 },
+                    { name:'受理回执.pdf', type:'pdf', date:d0 }
+                ];
+                for (let i = 0; i < cur; i++) if (fixed[i]) out.push({ msIdx:i, ...fixed[i] });
+                return out;
+            }
+            for (let i = 0; i < cur; i++) out.push({ msIdx:i, name: seedFileName(steps[i]), type:'pdf', date:d0 });
+            return out;
+        }
+        function initDelivery(id, o) {
+            if (!deliverables[id]) deliverables[id] = seedDeliverablesFor(o);
+            if (!notes[id]) notes[id] = [...SEED_NOTES];
+        }
+        function openUpload(msIdx) {
+            uploadMsIdx = msIdx;
+            const st = getMilestones(ORDERS.find(x => x.id === detailId))[msIdx];
+            document.getElementById('uploadMilestone').textContent = st.name + ' · ' + st.deliv;
+            document.getElementById('uploadName').value=''; showM('uploadModal');
+        }
+        function closeUpload() { hideM('uploadModal'); uploadMsIdx = null; }
+        function confirmUpload() {
+            const name = document.getElementById('uploadName').value.trim();
+            if (!name) { alert('请填写交付物名称'); return; }
+            const type = document.getElementById('uploadType').value;
+            const today = new Date().toISOString().slice(0,10);
+            if (!deliverables[detailId]) deliverables[detailId] = [];
+            deliverables[detailId].push({msIdx:uploadMsIdx, name, type, date:today});
+            closeUpload(); openDetail(detailId); render();
+        }
+        function openNote(msIdx) { noteMsIdx = msIdx; document.getElementById('noteText').value=''; showM('noteModal'); }
+        function closeNote() { hideM('noteModal'); noteMsIdx = null; }
+        function confirmNote() {
+            const text = document.getElementById('noteText').value.trim();
+            if (!text) { alert('请填写记录内容'); return; }
+            const n = new Date(), pad = x=>String(x).padStart(2,'0');
+            const time = n.getFullYear()+'-'+pad(n.getMonth()+1)+'-'+pad(n.getDate())+' '+pad(n.getHours())+':'+pad(n.getMinutes());
+            if (!notes[detailId]) notes[detailId] = [];
+            notes[detailId].push({who:'运营管理员', avatar:'运', color:'orange', time, text});
+            closeNote(); openDetail(detailId);
+        }
+        function showM(id) { const m=document.getElementById(id); m.classList.remove('hidden'); m.classList.add('flex'); }
+        function hideM(id) { const m=document.getElementById(id); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+        // ===== 详情弹窗（动态填充，含交付物与记录） =====
+        function openDetail(id) {
+            const o = ORDERS.find(x => x.id === id);
+            if (!o) return;
+            detailId = id;
+            initDelivery(id, o);
+            const st = statusMap[o.status] || statusMap.unpaid;
+            const steps = getMilestones(o);
+            const stepIdx = curMsIdx(o);
+            const oldPrice = o.amount * 1.3;
+            const isDone = o.status === 'done' || o.status === 'reviewed';
+
+            // 里程碑时间轴（含交付物 + 操作按钮）
+            const stepsHtml = steps.map((m, i) => {
+                const done = isDone || i < stepIdx;
+                const cur = !isDone && i === stepIdx;
+                const dotCls = done ? 'bg-green-500' : cur ? 'bg-orange-500 animate-pulse' : 'bg-slate-200';
+                const cardCls = done ? 'bg-green-50 border-green-100' : cur ? 'bg-orange-50 border-orange-100' : 'bg-slate-50 border-slate-100';
+                const badge = done ? '<span class="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full">已完成</span>' : cur ? '<span class="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full">进行中</span>' : '<span class="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full">待开始</span>';
+                const delivs = (deliverables[id]||[]).filter(d => d.msIdx === i);
+                let delivHtml = '';
+                if (delivs.length > 0) {
+                    delivHtml = delivs.map(d => {
+                        const ic = d.type==='pdf'?'fa-file-pdf-o text-red-400':d.type==='word'?'fa-file-word-o text-blue-400':d.type==='excel'?'fa-file-excel-o text-green-500':d.type==='ppt'?'fa-file-powerpoint-o text-orange-400':'fa-file-o text-slate-400';
+                        return `<div class="flex items-center space-x-2 bg-white rounded-lg px-3 py-2 mb-1"><i class="fa ${ic}"></i><span class="text-xs flex-1">${d.name}</span><span class="text-[10px] text-slate-400">${d.date}</span></div>`;
+                    }).join('');
+                } else if (cur) delivHtml = '<div class="text-[10px] text-slate-400 italic">待上传交付物</div>';
+                const acts = cur ? `<button onclick="openUpload(${i})" class="text-[10px] text-orange-600 hover:underline ml-2"><i class="fa fa-upload mr-0.5"></i>上传交付物</button><button onclick="openNote(${i})" class="text-[10px] text-blue-600 hover:underline ml-2"><i class="fa fa-comment-o mr-0.5"></i>添加记录</button>` : '';
+                return `<div class="relative mb-5"><div class="timeline-dot absolute -left-6 top-0 w-4 h-4 ${dotCls} rounded-full border-4 border-white shadow"></div><div class="ml-4 p-4 ${cardCls} rounded-xl border"><div class="flex items-center justify-between mb-2"><h4 class="font-bold text-sm ${done||cur?'':'text-slate-500'}">${m.name}</h4>${badge}</div><p class="text-[10px] text-slate-400 mb-2">节点说明：${m.deliv}</p>${delivHtml}${acts}</div></div>`;
+            }).join('');
+
+            // 沟通记录
+            const notesHtml = (notes[id]||[]).map(n => `<div class="p-4 bg-slate-50 rounded-2xl"><div class="flex items-start space-x-3"><div class="w-8 h-8 bg-${n.color}-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">${n.avatar}</div><div class="flex-1"><div class="flex items-center justify-between mb-1"><span class="text-sm font-semibold">${n.who}</span><span class="text-[10px] text-slate-400">${n.time}</span></div><p class="text-xs text-slate-600">${n.text}</p></div></div></div>`).join('');
+
+            // 评价信息（done/reviewed 状态可见）
+            let evalHtml = '';
+            if (o.status === 'done' || o.status === 'reviewed') {
+                if (o.status === 'done' && (!o.rating || o.rating === 0)) {
+                    evalHtml = `<div><h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-star-o text-orange-500"></i><span>评价信息</span></h3><div class="p-6 bg-slate-50 rounded-2xl text-center"><i class="fa fa-clock-o text-3xl text-slate-300 mb-2"></i><p class="text-sm text-slate-500">服务已完成，等待客户评价</p></div></div>`;
+                } else {
+                    const starCls = i => i < Math.floor(o.rating) ? 'fa-star' : (i < o.rating ? 'fa-star-half-o' : 'fa-star-o');
+                    const stars = Array.from({length:5},(_,i)=>`<i class="fa ${starCls(i)} text-orange-400"></i>`).join('');
+                    const replyHtml = o.replyText ? `<div class="mt-3 p-4 bg-blue-50 rounded-xl border border-blue-100"><div class="flex items-center space-x-2 mb-1.5"><div class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">${(o.provider||'商')[0]}</div><span class="text-xs font-semibold text-blue-700">${o.provider||'服务商'} · 回复</span><span class="text-[10px] text-slate-400 ml-auto">${o.replyTime}</span></div><p class="text-xs text-slate-600 pl-8">${o.replyText}</p></div>` : '<div class="mt-3 text-xs text-orange-500"><i class="fa fa-circle-o mr-1"></i>待回复</div>';
+                    evalHtml = `<div><h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-star text-orange-500"></i><span>评价信息</span></h3><div class="p-5 bg-orange-50/60 rounded-2xl border border-orange-100"><div class="flex items-center space-x-3 mb-3"><div class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">${(o.contact||'客')[0]}</div><div><p class="text-sm font-semibold">${o.contact||'客户'}</p><div class="flex items-center space-x-1 text-sm">${stars}<span class="text-xs text-slate-400 ml-1">${o.rating}.0 分</span></div></div><span class="text-[10px] text-slate-400 ml-auto">${o.reviewTime}</span></div><p class="text-sm text-slate-600 pl-11">${o.reviewText}</p>${replyHtml}</div></div>`;
+                }
+            }
+
+            let acts = '';
+            if (o.status === 'unpaid') acts = `<div class="px-6 py-3 bg-slate-100 text-slate-500 rounded-2xl text-sm font-semibold"><i class="fa fa-clock-o mr-1"></i>等待客户付款，付款后可推进进度</div>`;
+            else if (o.status === 'serving') acts = `<button onclick="advanceOrder('${o.id}');openDetail('${o.id}')" class="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl text-sm font-semibold"><i class="fa fa-arrow-up mr-1"></i>推进进度</button>`;
+            else if (o.status === 'done') acts = `<button onclick="markReviewed('${o.id}');closeModal()" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl text-sm font-semibold">标记已评价</button>`;
+
+            document.getElementById('detailBody').innerHTML = `
+                <div class="flex items-center justify-between p-5 bg-gradient-to-r from-orange-50 to-orange-100 rounded-2xl">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center"><i class="fa ${st.icon} text-xl"></i></div>
+                        <div>
+                            <h4 class="font-bold text-base">${st.text}</h4>
+                            <p class="text-xs text-slate-500 mt-1">${o.status === 'serving' ? '服务进行中，进度 ' + o.progress + '%' : o.status === 'unpaid' ? '等待客户付款，付款后自动进入服务中' : o.status === 'done' ? '服务完成，等待客户评价' : '客户已评价，订单闭环'}</p>
+                        </div>
+                    </div>
+                    <span class="text-orange-600 font-black text-2xl">¥${fmtMoney(o.amount)}</span>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-cube text-orange-500"></i><span>服务信息</span></h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">订单编号</p><p class="text-sm font-medium">${o.id}</p></div>
+                        <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">服务名称</p><p class="text-sm font-medium">${o.svcName}</p></div>
+                        <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">服务分类</p><p class="text-sm font-medium">${o.category}</p></div>
+                        <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">服务商</p><p class="text-sm font-medium">${o.provider}</p></div>
+                        <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">下单时间</p><p class="text-sm font-medium">${o.createTime}</p></div>
+                        <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">支付方式</p><p class="text-sm font-medium">${o.payMethod || '— 待付款'}</p></div>
+                        <div class="p-4 bg-slate-50 rounded-xl col-span-2"><p class="text-[10px] text-slate-400 uppercase mb-1">企业信息</p><p class="text-sm font-medium">${o.company} · ${o.contact} · ${o.phone}</p></div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-money text-orange-500"></i><span>支付信息</span></h3>
+                    <div class="p-5 bg-slate-50 rounded-2xl space-y-3">
+                        <div class="flex items-center justify-between text-sm"><span class="text-slate-500">服务原价</span><span>¥${fmtMoney(Math.round(oldPrice))}</span></div>
+                        <div class="flex items-center justify-between text-sm"><span class="text-slate-500">优惠折扣</span><span class="text-green-500">-¥${fmtMoney(Math.round(oldPrice - o.amount))}</span></div>
+                        <div class="flex items-center justify-between text-sm"><span class="text-slate-500">支付方式</span><span>${o.payMethod || '—'}</span></div>
+                        <div class="border-t border-slate-200 pt-3 flex items-center justify-between"><span class="font-bold">实付金额</span><span class="text-orange-600 font-black text-xl">¥${fmtMoney(o.amount)}</span></div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-tasks text-orange-500"></i><span>交付里程碑</span></h3>
+                    <div class="relative pl-6">
+                        <div class="absolute left-2 top-2 bottom-2 w-0.5 bg-slate-100"></div>
+                        ${stepsHtml}
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-comments-o text-orange-500"></i><span>交付记录</span></h3>
+                    <div class="space-y-3">${notesHtml}</div>
+                </div>
+                ${evalHtml}
+                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+                    ${acts}
+                </div>`;
+            const modal = document.getElementById('orderDetailModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        function closeModal() {
+            const modal = document.getElementById('orderDetailModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            detailId = null;
+        }
+
+        // 初始化
+        load();
+        render();
+    </script>
+
+</body>
+</html>

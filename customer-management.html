@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户管理 - 策源易达政策销售平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+        .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .drawer-transition { transition: transform 0.3s ease-in-out; }
+        .modal-transition { transition: opacity 0.2s ease-in-out; }
+        /* 品牌绿色板（预编译 tailwind.css 未包含 brand 色，手动补充） */
+        :root { --brand-50:#f0fdf4; --brand-100:#dcfce7; --brand-200:#bbf7d0; --brand-300:#86efac; --brand-400:#4ade80; --brand-500:#22c55e; --brand-600:#16a34a; --brand-700:#15803d; --brand-800:#166534; --brand-900:#14532d; }
+        .bg-brand-50 { background-color: var(--brand-50); }
+        .bg-brand-50\/40 { background-color: #f0fdf466; }
+        .hover\:bg-brand-50:hover { background-color: var(--brand-50); }
+        .hover\:bg-brand-50\/40:hover { background-color: #f0fdf466; }
+        .bg-brand-100 { background-color: var(--brand-100); }
+        .bg-brand-600 { background-color: var(--brand-600); }
+        .hover\:bg-brand-700:hover { background-color: var(--brand-700); }
+        .text-brand-600 { color: var(--brand-600); }
+        .text-brand-700 { color: var(--brand-700); }
+        .hover\:text-brand-600:hover { color: var(--brand-600); }
+        .hover\:text-brand-700:hover { color: var(--brand-700); }
+        .border-brand-600 { border-color: var(--brand-600); }
+        .hover\:border-brand-300:hover { border-color: var(--brand-300); }
+        .focus\:ring-brand-500:focus { --tw-ring-color: var(--brand-500); }
+        .from-brand-500 { --tw-gradient-from: var(--brand-500); --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)); }
+        .to-brand-700 { --tw-gradient-to: var(--brand-700); }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 顶部导航 -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div class="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center">
+                    <i class="fa fa-users text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">用户管理</h1>
+                    <p class="text-xs text-gray-500">平台注册用户自动汇聚 · 政策匹配与跟进</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="text-gray-600 hover:text-brand-600"><i class="fa fa-bell"></i></button>
+                <div class="flex items-center space-x-2">
+                    <img src="https://api.dicebear.com/7.x/initials/svg?seed=张销售" class="w-9 h-9 rounded-full bg-brand-100">
+                    <span class="text-sm text-gray-700">张销售</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto px-6 py-6">
+        <!-- 搜索筛选与操作 -->
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-6">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex-1 min-w-[280px] relative">
+                    <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="搜索企业名称、联系人、手机号..."
+                        class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                </div>
+                <select id="filterIndustry" onchange="renderTable()" class="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-gray-700">
+                    <option value="">全部行业</option>
+                    <option>电子信息</option>
+                    <option>生物医药</option>
+                    <option>新材料</option>
+                    <option>高端装备</option>
+                    <option>新能源</option>
+                </select>
+                <select id="filterStatus" onchange="renderTable()" class="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-gray-700">
+                    <option value="">全部状态</option>
+                    <option>潜在客户</option>
+                    <option>意向客户</option>
+                    <option>成交客户</option>
+                    <option>活跃用户</option>
+                    <option>潜在用户</option>
+                    <option>意向用户</option>
+                </select>
+                <button onclick="resetFilters()" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                    <i class="fa fa-refresh mr-1"></i>重置
+                </button>
+            </div>
+        </div>
+
+        <!-- 用户类型 Tab -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-3 border-b border-gray-100 flex items-center space-x-1">
+                <button id="tabAll" onclick="switchUserTab('all')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors bg-brand-600 text-white">全部用户 <span id="cntAll" class="ml-1 opacity-75">0</span></button>
+                <button id="tabEnt" onclick="switchUserTab('enterprise')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors text-gray-600 hover:bg-gray-50">🟢 企业用户 <span id="cntEnt" class="ml-1 opacity-60">0</span></button>
+                <button id="tabPer" onclick="switchUserTab('personal')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors text-gray-600 hover:bg-gray-50">🔵 个人用户 <span id="cntPer" class="ml-1 opacity-60">0</span></button>
+            </div>
+            <div class="overflow-x-auto scrollbar-thin">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-500 text-left">
+                            <th class="px-6 py-3 font-medium">类型</th>
+                            <th class="px-6 py-3 font-medium">名称</th>
+                            <th class="px-6 py-3 font-medium">行业/职业</th>
+                            <th class="px-6 py-3 font-medium">下次跟进</th>
+                            <th class="px-6 py-3 font-medium">状态</th>
+                            <th class="px-6 py-3 font-medium">注册时间</th>
+                            <th class="px-6 py-3 font-medium text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100" id="customerTable"></tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
+                <span id="tableCount">共 0 条记录</span>
+                <div class="flex items-center space-x-1">
+                    <button class="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-50"><i class="fa fa-chevron-left"></i></button>
+                    <button class="px-3 py-1.5 bg-brand-600 text-white rounded">1</button>
+                    <button class="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-50"><i class="fa fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 客户详情抽屉 -->
+    <div id="overlay" class="fixed inset-0 bg-black/30 z-40 hidden" onclick="closeDrawer()"></div>
+    <aside id="drawer" class="fixed top-0 right-0 h-full w-full max-w-[520px] bg-white shadow-2xl z-50 drawer-transition transform translate-x-full overflow-y-auto scrollbar-thin">
+        <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+            <h3 class="font-semibold text-gray-800">客户详情</h3>
+            <button onclick="closeDrawer()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <div id="drawerBody" class="p-6"></div>
+        <div class="sticky bottom-0 bg-white border-t border-gray-100 p-4">
+            <button onclick="openFollowupModal()" class="w-full py-2.5 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700">
+                <i class="fa fa-plus mr-1"></i>新增跟进记录
+            </button>
+        </div>
+    </aside>
+
+    <!-- 新增跟进弹窗 -->
+    <div id="followupModalOverlay" class="fixed inset-0 bg-black/40 z-[60] hidden items-center justify-center modal-transition">
+        <div class="bg-white rounded-2xl w-full max-w-[480px] shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 id="followupModalTitle" class="font-semibold text-gray-800">新增跟进</h3>
+                <button onclick="closeFollowupModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">跟进方式</label>
+                        <select id="fuType" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                            <option>电话沟通</option><option>上门拜访</option><option>邮件发送</option><option>微信沟通</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 mb-1 block">跟进日期</label>
+                        <input id="fuDate" type="date" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">沟通纪要 <span class="text-red-500">*</span></label>
+                    <textarea id="fuContent" rows="4" placeholder="记录本次沟通要点、客户反馈、达成共识..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 mb-1 block">下次跟进计划（日期，可选）</label>
+                    <input id="fuPlan" type="date" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-3">
+                <button onclick="closeFollowupModal()" class="px-5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">取消</button>
+                <button onclick="saveFollowup()" class="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js?v=20261016g"></script>
+    <script>
+        var CUSTOMERS = [];
+        var CURRENT_ID = null;   // 抽屉当前用户
+        var CURRENT_TAB = 'all'; // 用户类型 tab：all / enterprise / personal
+        var DRAWER_TAB = 'credits'; // 抽屉内选项卡：credits 策能值记录 / orders 服务商城订单 / followups 跟进记录与计划
+
+        var AVATAR_COLORS = ['bg-brand-100 text-brand-700', 'bg-blue-100 text-blue-700', 'bg-purple-100 text-purple-700', 'bg-orange-100 text-orange-700', 'bg-teal-100 text-teal-700', 'bg-pink-100 text-pink-700'];
+        // 企业状态色
+        var ENT_STATUS_COLORS = { '潜在客户': 'bg-blue-50 text-blue-700', '意向客户': 'bg-orange-50 text-orange-700', '成交客户': 'bg-emerald-50 text-emerald-700', '流失客户': 'bg-gray-100 text-gray-500' };
+        // 个人状态色
+        var PER_STATUS_COLORS = { '潜在用户': 'bg-blue-50 text-blue-700', '意向用户': 'bg-orange-50 text-orange-700', '活跃用户': 'bg-emerald-50 text-emerald-700', '沉睡用户': 'bg-gray-100 text-gray-500' };
+        var FU_ICONS = { '电话沟通': ['fa-phone', 'bg-brand-100 text-brand-600'], '上门拜访': ['fa-map-marker', 'bg-blue-100 text-blue-600'], '邮件发送': ['fa-envelope', 'bg-orange-100 text-orange-600'], '微信沟通': ['fa-weixin', 'bg-green-100 text-green-600'] };
+        function statusColor(u) {
+            if (u.type === 'personal') return PER_STATUS_COLORS[u.status] || 'bg-gray-100 text-gray-500';
+            return ENT_STATUS_COLORS[u.status] || 'bg-gray-100 text-gray-500';
+        }
+
+        function load() {
+            CUSTOMERS = DataBridge.loadCustomers();
+            // 迁移：旧数据无 type 字段则补 enterprise，无 registerTime 则补默认值
+            CUSTOMERS.forEach(function(u) {
+                if (!u.type) u.type = 'enterprise';
+                if (!u.registerTime) u.registerTime = '2026-08-01';
+                if (u.credits == null) u.credits = 0;
+                if (!Array.isArray(u.creditHistory)) u.creditHistory = [];
+            });
+            renderTable();
+        }
+
+        // ===== 工具 =====
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        function getCustomer(id) {
+            for (var i = 0; i < CUSTOMERS.length; i++) if (CUSTOMERS[i].id === id) return CUSTOMERS[i];
+            return null;
+        }
+        function nextId() {
+            var max = 0;
+            CUSTOMERS.forEach(function(c) { var n = parseInt(String(c.id).replace(/\D/g, '')) || 0; if (n > max) max = n; });
+            return 'U' + String(max + 1).padStart(3, '0');
+        }
+        function persist() { DataBridge.saveCustomers(CUSTOMERS); }
+
+        function lastFollowup(u) {
+            if (!u.followups || !u.followups.length) return null;
+            var arr = u.followups.slice().sort(function(a, b) { return b.date.localeCompare(a.date); });
+            return arr[0];
+        }
+        function nextPlan(u) {
+            var today = new Date().toISOString().slice(0, 10);
+            var plans = (u.followups || []).map(function(f) { return f.plan; }).filter(function(p) { return p && p >= today; });
+            plans.sort();
+            return plans.length ? plans[0] : '';
+        }
+
+        // ===== Tab 切换 =====
+        function switchUserTab(tab) {
+            CURRENT_TAB = tab;
+            document.getElementById('tabAll').className = 'px-4 py-2 rounded-lg text-sm font-bold transition-colors ' + (tab === 'all' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50');
+            document.getElementById('tabEnt').className = 'px-4 py-2 rounded-lg text-sm font-bold transition-colors ' + (tab === 'enterprise' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50');
+            document.getElementById('tabPer').className = 'px-4 py-2 rounded-lg text-sm font-bold transition-colors ' + (tab === 'personal' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50');
+            renderTable();
+        }
+
+        // ===== 列表渲染 =====
+        function filteredCustomers() {
+            var kw = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+            var ind = document.getElementById('filterIndustry').value;
+            var st = document.getElementById('filterStatus').value;
+            return CUSTOMERS.filter(function(c) {
+                if (CURRENT_TAB !== 'all' && c.type !== CURRENT_TAB) return false;
+                if (kw) {
+                    // 企业：搜 name/contact/phone；个人：搜 realName/phone/occupation
+                    var hay = c.type === 'personal' ? (c.realName + ' ' + c.phone + ' ' + (c.occupation || '')) : (c.name + ' ' + (c.contact || '') + ' ' + (c.phone || ''));
+                    if (hay.toLowerCase().indexOf(kw) === -1) return false;
+                }
+                if (ind) {
+                    // 行业筛选只对企业生效
+                    if (c.type === 'enterprise' && c.industry !== ind) return false;
+                }
+                if (st && c.status !== st) return false;
+                return true;
+            });
+        }
+
+        function renderTable() {
+            // 更新 tab 徽章
+            document.getElementById('cntAll').textContent = CUSTOMERS.length;
+            var entCnt = CUSTOMERS.filter(function(u){ return u.type === 'enterprise'; }).length;
+            var perCnt = CUSTOMERS.filter(function(u){ return u.type === 'personal'; }).length;
+            document.getElementById('cntEnt').textContent = entCnt;
+            document.getElementById('cntPer').textContent = perCnt;
+
+            var list = filteredCustomers();
+            var tbody = document.getElementById('customerTable');
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-gray-400 text-sm"><i class="fa fa-inbox mr-1"></i>暂无' + (CURRENT_TAB === 'enterprise' ? '企业' : CURRENT_TAB === 'personal' ? '个人' : '') + '注册用户</td></tr>';
+            } else {
+                tbody.innerHTML = list.map(function(u, i) {
+                    var typeLabel = u.type === 'personal' ? '<span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-bold">🔵 个人</span>' : '<span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-bold">🟢 企业</span>';
+                    var mainName = u.type === 'personal' ? (u.realName || '—') : u.name;
+                    var subLine = u.type === 'personal' ? (u.phone || '—') : (u.code || '—');
+                    var indOrJob = u.type === 'personal' ? (u.occupation || '—') : (u.industry || '—');
+                    var plan = nextPlan(u);
+                    return '<tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer(\'' + u.id + '\')">' +
+                        '<td class="px-6 py-3.5">' + typeLabel + '</td>' +
+                        '<td class="px-6 py-3.5"><div class="flex items-center space-x-3">' +
+                            '<div class="w-9 h-9 ' + AVATAR_COLORS[i % 6] + ' rounded-lg flex items-center justify-center font-semibold text-sm">' + esc((u.type === 'personal' ? u.realName : u.name) || '—').charAt(0) + '</div>' +
+                            '<div><p class="font-medium text-gray-800">' + esc(mainName) + '</p><p class="text-xs text-gray-400">' + esc(subLine) + '</p></div>' +
+                        '</div></td>' +
+                        '<td class="px-6 py-3.5"><span class="text-gray-600">' + esc(indOrJob) + '</span></td>' +
+                        '<td class="px-6 py-3.5">' + (plan ? '<span class="px-2 py-0.5 bg-orange-50 text-orange-700 rounded text-xs font-medium"><i class="fa fa-calendar-check-o mr-1"></i>' + plan + '</span>' : '<span class="text-gray-300">—</span>') + '</td>' +
+                        '<td class="px-6 py-3.5"><span class="px-2.5 py-1 rounded-full text-xs ' + statusColor(u) + '">' + esc(u.status || '—') + '</span></td>' +
+                        '<td class="px-6 py-3.5 text-gray-500 text-xs">' + esc(u.registerTime || '—') + '</td>' +
+                        '<td class="px-6 py-3.5 text-right">' +
+                            '<button class="text-brand-600 hover:text-brand-700 mr-1" title="查看详情" onclick="event.stopPropagation();openDrawer(\'' + u.id + '\')"><i class="fa fa-eye"></i></button>' +
+                            '<button class="text-blue-600 hover:text-blue-700 mr-1" title="政策雷达匹配" onclick="event.stopPropagation();window.parent&&window.parent.switchPage?window.parent.switchPage(\'policy-radar.html\',null):(window.location.href=\'policy-radar.html\')"><i class="fa fa-radar"></i></button>' +
+                            '<button class="text-orange-500 hover:text-orange-600 mr-1" title="记录跟进" onclick="event.stopPropagation();openDrawer(\'' + u.id + '\', \'followup\')"><i class="fa fa-comments"></i></button>' +
+                        '</td></tr>';
+                }).join('');
+            }
+            document.getElementById('tableCount').textContent = '共 ' + list.length + ' 条记录';
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterIndustry').value = '';
+            document.getElementById('filterStatus').value = '';
+            renderTable();
+        }
+
+        // ===== 详情抽屉 =====
+        // focus: 'followup'=直接弹出新增跟进
+        function openDrawer(id, focus) {
+            var c = getCustomer(id);
+            if (!c) return;
+            CURRENT_ID = id;
+            if (focus === 'followup') DRAWER_TAB = 'followups';
+            renderDrawer(c);
+            document.getElementById('overlay').classList.remove('hidden');
+            document.getElementById('drawer').classList.remove('translate-x-full');
+            if (focus === 'followup') setTimeout(openFollowupModal, 150);
+        }
+        function closeDrawer() {
+            CURRENT_ID = null;
+            document.getElementById('overlay').classList.add('hidden');
+            document.getElementById('drawer').classList.add('translate-x-full');
+        }
+
+        function renderDrawer(u) {
+            var html = '';
+            var isPer = (u.type === 'personal');
+            var credits = Number(u.credits) || 0; // 剩余可用策能值（头部常驻展示）
+
+            // 用户头部（差异化：企业🏢/个人👤）
+            var avatarIcon = isPer ? '👤' : '🏢';
+            var mainName = isPer ? (u.realName || '—') : u.name;
+            var subtitle = isPer
+                ? ((u.occupation || '未填职业') + ' · ' + (u.region || '未填区域'))
+                : ((u.industry || '未填行业') + ' · ' + (u.region || '未填区域'));
+            html += '<div class="flex items-center space-x-4 mb-5">' +
+                '<div class="w-14 h-14 rounded-xl flex items-center justify-center text-2xl ' + (isPer ? 'bg-blue-100 text-blue-700' : 'bg-brand-100 text-brand-700') + '">' + avatarIcon + '</div>' +
+                '<div class="flex-1"><h4 class="text-lg font-bold text-gray-800">' + esc(mainName) + '</h4>' +
+                '<p class="text-sm text-gray-500">' + esc(subtitle) + '</p>' +
+                '<div class="flex items-center gap-2 mt-1.5">' +
+                '<span class="px-2 py-0.5 rounded text-xs ' + statusColor(u) + '">' + esc(u.status || '—') + '</span>' +
+                '<span class="text-[10px] text-gray-400">注册 ' + esc(u.registerTime || '—') + '</span>' +
+                '</div></div>' +
+                '<div class="flex-shrink-0 text-right">' +
+                '<span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600 text-xs font-bold"><i class="fa fa-bolt mr-1"></i>剩余 ' + credits.toLocaleString() + '</span>' +
+                '<p class="text-[10px] text-gray-400 mt-1">策能值</p>' +
+                '</div></div>';
+
+            // 注册信息（字段与注册页完全一致：企业=名称/信用代码/联系人/地区/手机号，个人=手机号/地区）
+            html += '<div class="bg-gray-50 rounded-lg p-4 mb-5"><h5 class="text-sm font-semibold text-gray-700 mb-3"><i class="fa ' + (isPer ? 'fa-user text-blue-600' : 'fa-building text-brand-600') + ' mr-1"></i>' + (isPer ? '注册信息' : '企业注册信息') + '</h5><div class="grid grid-cols-2 gap-3 text-sm">';
+            if (isPer) {
+                html += '<div><span class="text-gray-500">手机号：</span><span class="text-gray-700">' + esc(u.phone || '—') + '</span></div>' +
+                    '<div><span class="text-gray-500">所在地区：</span><span class="text-gray-700">' + esc(u.region || '—') + '</span></div>' +
+                    '<div class="col-span-2 mt-1 pt-2 border-t border-gray-200/60"><p class="text-[10px] text-gray-400"><i class="fa fa-info-circle mr-1"></i>个人注册仅需手机号与所在地区，更多资料可在会员中心完善</p></div>';
+            } else {
+                html += '<div><span class="text-gray-500">企业名称：</span><span class="text-gray-700">' + esc(u.name || '—') + '</span></div>' +
+                    '<div><span class="text-gray-500">联系人：</span><span class="text-gray-700">' + esc(u.contact || '—') + '</span></div>' +
+                    '<div><span class="text-gray-500">手机号：</span><span class="text-gray-700">' + esc(u.phone || '—') + '</span></div>' +
+                    '<div><span class="text-gray-500">所在地区：</span><span class="text-gray-700">' + esc(u.region || '—') + '</span></div>' +
+                    '<div class="col-span-2"><span class="text-gray-500">统一社会信用代码：</span><span class="text-gray-700">' + esc(u.code || '—') + '</span></div>';
+            }
+            html += '</div></div>';
+
+            // 服务商城订单（客户下单支付生成，数据来自服务商城订单表）
+            var orders = [];
+            try {
+                orders = (DataBridge.loadServiceOrders() || []).filter(function(o) {
+                    return isPer ? (o.contact === (u.realName || '')) : (o.company === (u.name || ''));
+                });
+            } catch (e) {}
+            var O_ST = { unpaid: ['待付款', 'bg-red-50 text-red-600'], serving: ['服务中', 'bg-blue-50 text-blue-600'], done: ['已完成', 'bg-emerald-50 text-emerald-600'], reviewed: ['已评价', 'bg-slate-100 text-slate-500'] };
+
+            // 策能值获取记录（按客户维度记录，倒序）
+            var creditHist = (u.creditHistory || []).slice().sort(function(a, b) { return String(b.date).localeCompare(String(a.date)); });
+
+            // 选项卡：策能值记录 / 服务商城订单 / 跟进记录与计划（默认展示上次停留的面板）
+            var tabBtn = 'px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ';
+            var tabOn = 'bg-brand-600 text-white';
+            var tabOff = 'bg-gray-100 text-gray-600';
+            html += '<div class="flex gap-2 mb-3">' +
+                '<button onclick="switchDrawerTab(\'credits\')" class="' + tabBtn + (DRAWER_TAB === 'credits' ? tabOn : tabOff) + '"><i class="fa fa-bolt mr-1"></i>策能值记录 (' + creditHist.length + ')</button>' +
+                '<button onclick="switchDrawerTab(\'orders\')" class="' + tabBtn + (DRAWER_TAB === 'orders' ? tabOn : tabOff) + '"><i class="fa fa-shopping-bag mr-1"></i>服务商城订单 (' + orders.length + ')</button>' +
+                '<button onclick="switchDrawerTab(\'followups\')" class="' + tabBtn + (DRAWER_TAB === 'followups' ? tabOn : tabOff) + '"><i class="fa fa-comments mr-1"></i>跟进记录与计划 (' + (u.followups || []).length + ')</button>' +
+                '</div>';
+
+            // 面板一：策能值记录
+            html += '<div id="drawerPanelCredits"' + (DRAWER_TAB === 'credits' ? '' : ' class="hidden"') + '>';
+            if (creditHist.length) {
+                html += '<div class="space-y-1.5">' + creditHist.map(function(h) {
+                    return '<div class="flex items-center justify-between bg-white border border-gray-100 rounded-lg px-3 py-2">' +
+                        '<div class="flex items-center gap-2 min-w-0">' +
+                        '<span class="text-xs text-gray-400 flex-shrink-0">' + esc(h.date) + '</span>' +
+                        '<span class="text-xs text-gray-700 truncate">' + esc(h.item) + '</span></div>' +
+                        '<span class="text-xs font-bold text-emerald-600 flex-shrink-0">+' + (Number(h.amount) || 0) + '</span></div>';
+                }).join('') + '</div>';
+            } else {
+                html += '<div class="border border-dashed border-gray-200 rounded-lg p-3 text-center bg-white"><p class="text-xs text-gray-400">暂无策能值获取记录</p></div>';
+            }
+            html += '</div>';
+
+            // 面板二：服务商城订单
+            html += '<div id="drawerPanelOrders"' + (DRAWER_TAB === 'orders' ? '' : ' class="hidden"') + '>';
+            html += '<div class="mb-5"><div class="flex items-center justify-between mb-3">' +
+                '<h5 class="text-sm font-semibold text-gray-700"><i class="fa fa-shopping-bag text-orange-500 mr-1"></i>服务商城订单</h5>' +
+                (orders.length ? '<span class="text-[10px] text-gray-400">累计消费 ¥' + orders.reduce(function(s, o) { return s + (Number(o.amount) || 0); }, 0).toLocaleString() + '</span>' : '') +
+                '</div>';
+            if (orders.length) {
+                html += '<div class="space-y-2">' + orders.map(function(o) {
+                    var st = O_ST[o.status] || O_ST.unpaid;
+                    return '<div class="flex items-center gap-3 border border-gray-100 rounded-lg px-3 py-2.5 hover:border-orange-200 transition-colors">' +
+                        '<div class="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0"><i class="fa ' + esc(o.icon || 'fa-file-text-o') + ' text-orange-500 text-sm"></i></div>' +
+                        '<div class="flex-1 min-w-0"><p class="text-sm font-medium text-gray-700 truncate">' + esc(o.svcName) + '</p>' +
+                        '<p class="text-[10px] text-gray-400 mt-0.5">' + esc(o.createTime) + ' · ' + esc(o.provider || '') + '</p></div>' +
+                        '<div class="text-right flex-shrink-0"><p class="text-sm font-bold text-gray-800">¥' + (Number(o.amount) || 0).toLocaleString() + '</p>' +
+                        '<span class="text-[10px] px-1.5 py-0.5 rounded ' + st[1] + '">' + st[0] + '</span></div></div>';
+                }).join('') + '</div>';
+            } else {
+                html += '<div class="border border-dashed border-gray-200 rounded-lg p-3 text-center"><p class="text-xs text-gray-400">暂无订单 · 客户尚未在服务商城下单</p></div>';
+            }
+            html += '</div>';
+            html += '</div>';   // 面板二结束
+
+            // 面板三：跟进记录与计划
+            html += '<div id="drawerPanelFollowups"' + (DRAWER_TAB === 'followups' ? '' : ' class="hidden"') + '>';
+            html += '<div><div class="flex items-center justify-between mb-3">' +
+                '<h5 class="text-sm font-semibold text-gray-700"><i class="fa fa-comments ' + (isPer ? 'text-blue-600' : 'text-brand-600') + ' mr-1"></i>跟进记录与计划</h5>' +
+                '<button onclick="openFollowupModal()" class="text-xs ' + (isPer ? 'text-blue-600 hover:text-blue-700' : 'text-brand-600 hover:text-brand-700') + '"><i class="fa fa-plus mr-0.5"></i>添加</button></div>' +
+                '<div class="space-y-4">' +
+                ((u.followups || []).slice().sort(function(a, b) { return b.date.localeCompare(a.date); }).map(function(f) {
+                    var ic = FU_ICONS[f.type] || ['fa-comment', 'bg-gray-100 text-gray-600'];
+                    return '<div class="flex space-x-3"><div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ' + ic[1] + '"><i class="fa ' + ic[0] + ' text-xs"></i></div>' +
+                        '<div class="flex-1"><div class="flex items-center justify-between">' +
+                        '<p class="text-sm font-medium text-gray-700">' + esc(f.type) + '</p>' +
+                        '<span class="text-xs text-gray-400">' + esc(f.date) + '</span></div>' +
+                        '<p class="text-xs text-gray-500 mt-1">' + esc(f.content) + '</p>' +
+                        (f.plan ? '<p class="text-[10px] text-orange-600 mt-1"><i class="fa fa-calendar-check-o mr-1"></i>跟进计划：' + esc(f.plan) + '</p>' : '') +
+                        '</div></div>';
+                }).join('') || '<p class="text-xs text-gray-400 py-2">暂无跟进记录</p>') +
+                '</div></div>';
+            html += '</div>';   // 面板三结束
+
+            document.getElementById('drawerBody').innerHTML = html;
+        }
+
+        // 抽屉内选项卡切换（重绘抽屉即可同步按钮高亮与面板显隐）
+        function switchDrawerTab(tab) {
+            if (!CURRENT_ID) return;
+            DRAWER_TAB = tab;
+            var c = getCustomer(CURRENT_ID);
+            if (c) renderDrawer(c);
+        }
+
+        // ===== 新增跟进 =====
+        function openFollowupModal() {
+            if (!CURRENT_ID) return;
+            document.getElementById('followupModalTitle').textContent = '新增跟进 · ' + (getCustomer(CURRENT_ID).name || getCustomer(CURRENT_ID).realName || '');
+            document.getElementById('fuType').value = '电话沟通';
+            document.getElementById('fuDate').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('fuContent').value = '';
+            document.getElementById('fuPlan').value = '';
+            showOverlay('followupModalOverlay');
+        }
+        function closeFollowupModal() { hideOverlay('followupModalOverlay'); }
+        function saveFollowup() {
+            var c = getCustomer(CURRENT_ID);
+            if (!c) return;
+            var content = document.getElementById('fuContent').value.trim();
+            if (!content) { alert('请填写沟通纪要'); return; }
+            if (!c.followups) c.followups = [];
+            c.followups.unshift({
+                type: document.getElementById('fuType').value,
+                date: document.getElementById('fuDate').value || new Date().toISOString().slice(0, 10),
+                content: content,
+                plan: document.getElementById('fuPlan').value
+            });
+            persist();
+            closeFollowupModal();
+            renderDrawer(c);
+            renderTable();
+        }
+
+        // ===== 弹窗通用 =====
+        function showOverlay(id) {
+            var el = document.getElementById(id);
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+        }
+        function hideOverlay(id) {
+            var el = document.getElementById(id);
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+        }
+
+        document.addEventListener('DOMContentLoaded', load);
+    </script>
+</body>
+</html>

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>政策详情 - 策源易答</title>
+    <!--
+      ============================================================================
+      政策详情 · PC 网页版（站内消息跳转）：会员中心「站内消息」点击政策后打开
+      URL：policy-view.html?id={政策ID}&shareId={分享ID}
+      与 policy-viewer.html（H5 落地页）的区别：
+        · 面向已登录的站内客户 → 全文与申报条件直接展示，无锁定 / 无注册 CTA
+        · 桌面端横向布局（左正文 + 右侧申报窗口栏），适配 Web 宽屏
+      相同点：同一份 localStorage 数据；浏览 {at, durSec} 写回 ceyuan_policy_shares
+      ============================================================================
+    -->
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f1f5f9; }
+        .sec-card { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 20px 22px; }
+        .sec-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 14px; }
+        .sec-title::before { content: ''; width: 4px; height: 15px; border-radius: 2px; background: #d97706; }
+        .prose { font-size: 12.5px; color: #475569; line-height: 1.9; white-space: pre-line; }
+    </style>
+</head>
+<body>
+    <!-- 顶栏 -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="goBack()">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-sm" style="background:linear-gradient(135deg,#d97706,#f59e0b);">策</div>
+                <div>
+                    <div class="text-sm font-black text-slate-800">策源易答 · 政策速递</div>
+                    <div class="text-[10px] text-slate-400" id="shareMeta">来自专属顾问的推送</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="window.print()" class="px-3.5 py-2 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 hover:border-amber-300 hover:text-amber-600 transition-all"><i class="fa fa-print mr-1"></i>打印 / 存 PDF</button>
+                <button onclick="goBack()" class="px-3.5 py-2 rounded-lg text-[11px] font-bold text-white transition-all" style="background:linear-gradient(135deg,#d97706,#f59e0b);"><i class="fa fa-arrow-left mr-1"></i>返回会员中心</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 链接失效 -->
+    <div id="invalidBox" class="hidden max-w-6xl mx-auto px-6 py-24 text-center">
+        <i class="fa fa-link text-4xl text-slate-200 block mb-4"></i>
+        <p class="text-sm font-black text-slate-600">链接已失效或政策不存在</p>
+        <p class="text-[11px] text-slate-400 mt-1">请联系您的专属顾问重新推送</p>
+    </div>
+
+    <!-- 政策主体：单栏正文 + 底部顾问通栏 -->
+    <main id="policyBox" class="hidden max-w-4xl mx-auto px-6 py-6 space-y-5">
+        <div class="space-y-5">
+            <!-- 标题卡 -->
+            <section class="sec-card">
+                <h1 id="pName" class="text-xl font-black text-slate-800 leading-snug"></h1>
+                <div class="flex flex-wrap gap-2 mt-3" id="pTags"></div>
+            </section>
+            <!-- 政策要点 -->
+            <section class="sec-card">
+                <div class="sec-title"><i class="fa fa-star text-amber-500"></i>政策要点</div>
+                <div class="prose" id="pDigest"></div>
+            </section>
+            <!-- 政策全文 -->
+            <section class="sec-card">
+                <div class="sec-title"><i class="fa fa-file-text-o text-amber-500"></i>政策全文</div>
+                <div class="prose" id="pContent"></div>
+            </section>
+            <!-- 申报条件 -->
+            <section class="sec-card">
+                <div class="sec-title"><i class="fa fa-list-ol text-amber-500"></i>申报条件与材料</div>
+                <div class="prose" id="pConditions"></div>
+            </section>
+        </div>
+
+        <!-- 顾问通栏：左信息 / 右操作（横排） -->
+        <section class="sec-card" style="background:linear-gradient(120deg,#d97706,#f59e0b);border:0;color:#fff;">
+            <div class="flex items-center gap-4 flex-wrap">
+                <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center font-black text-lg flex-shrink-0">张</div>
+                <div class="flex-1" style="min-width:180px;">
+                    <p class="text-sm font-black">张销售 · 专属顾问</p>
+                    <p class="text-[10.5px] opacity-80 mt-0.5">这条政策适合您吗？工作时间 9:00 - 18:00 随时联系 · 分享编号 <span id="pShareId">—</span></p>
+                </div>
+                <div class="flex items-center gap-2.5 flex-shrink-0">
+                    <button onclick="consultAdvisor()" class="px-5 py-2.5 rounded-xl bg-white text-amber-600 text-xs font-black hover:bg-amber-50 transition-all"><i class="fa fa-comments mr-1"></i>咨询顾问</button>
+                    <button onclick="entrustDeclare()" class="px-5 py-2.5 rounded-xl text-xs font-black transition-all border border-white/50 text-white hover:bg-white/10"><i class="fa fa-briefcase mr-1"></i>委托申报</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast" class="fixed left-1/2 -translate-x-1/2 top-16 z-50 px-4 py-2.5 rounded-full text-xs font-bold text-white opacity-0 transition-opacity pointer-events-none" style="background:rgba(15,23,42,.88);"></div>
+
+    <!-- ===== 在线咨询对话窗（右下角浮窗，Mock 顾问应答） ===== -->
+    <div id="chatPanel" class="hidden fixed z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden" style="right:24px;bottom:24px;width:360px;height:480px;max-height:70vh;">
+        <div class="flex items-center gap-2.5 px-4 py-3 text-white flex-shrink-0" style="background:linear-gradient(120deg,#d97706,#f59e0b);">
+            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-black text-xs">张</div>
+            <div class="flex-1">
+                <p class="text-xs font-black leading-none">张销售 · 专属顾问</p>
+                <p class="text-[9px] opacity-80 mt-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-green-300 mr-1"></span>在线 · 平均 1 分钟内回复</p>
+            </div>
+            <button onclick="closeChat()" class="w-7 h-7 rounded-lg hover:bg-white/15 flex items-center justify-center"><i class="fa fa-times text-xs"></i></button>
+        </div>
+        <div id="chatBody" class="flex-1 overflow-y-auto px-3.5 py-3 space-y-2.5" style="background:#f8fafc;"></div>
+        <div class="flex items-center gap-2 px-3 py-2.5 border-t border-slate-100 bg-white flex-shrink-0">
+            <input id="chatInput" type="text" placeholder="输入您的问题…" class="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-amber-400" onkeydown="if(event.key==='Enter')sendChat()">
+            <button onclick="sendChat()" class="px-3.5 py-2 rounded-xl text-xs font-black text-white flex-shrink-0" style="background:linear-gradient(135deg,#d97706,#f59e0b);">发送</button>
+        </div>
+    </div>
+
+    <!-- ===== 委托申报弹窗（表单提交） ===== -->
+    <div id="entrustMask" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,.45);" onclick="if(event.target===this)closeEntrust()">
+        <div class="bg-white rounded-2xl w-full shadow-2xl overflow-hidden" style="max-width:420px;">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                <div>
+                    <h3 class="text-sm font-black text-slate-800"><i class="fa fa-briefcase text-amber-500 mr-1.5"></i>委托申报</h3>
+                    <p class="text-[10px] text-slate-400 mt-0.5" id="entrustPolicyName"></p>
+                </div>
+                <button onclick="closeEntrust()" class="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="px-5 py-4 space-y-3">
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 block mb-1">联系人 <span class="text-red-400">*</span></label>
+                    <input id="etContact" type="text" placeholder="姓名" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-amber-400">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 block mb-1">手机号 <span class="text-red-400">*</span></label>
+                    <input id="etPhone" type="text" maxlength="11" placeholder="11 位手机号" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-amber-400">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 block mb-1">备注说明</label>
+                    <textarea id="etRemark" rows="3" placeholder="如：希望评估申报可行性 / 想了解服务费用…" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-amber-400 resize-none"></textarea>
+                </div>
+                <p class="text-[10px] text-slate-400 leading-relaxed"><i class="fa fa-info-circle mr-1"></i>提交后专属顾问将在 1 个工作日内联系您，确认申报方案与服务费用</p>
+            </div>
+            <div class="px-5 py-3.5 border-t border-slate-100 flex gap-2.5">
+                <button onclick="closeEntrust()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-50">再想想</button>
+                <button onclick="submitEntrust()" class="flex-1 py-2.5 rounded-xl text-xs font-black text-white" style="background:linear-gradient(135deg,#d97706,#f59e0b);">提交委托</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js?v=20261016g"></script>
+    <script>
+    (function () {
+        'use strict';
+        var DB = window.DataBridge || {};
+        function $(id) { return document.getElementById(id); }
+        function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+        function todayStr() { var n = new Date(); return n.getFullYear() + '-' + pad2(n.getMonth() + 1) + '-' + pad2(n.getDate()); }
+        function fmtTime(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+        function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+        var toastTimer = null;
+        window.toast = function (text) {
+            var t = $('toast'); t.textContent = text; t.style.opacity = 1;
+            clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.style.opacity = 0; }, 2400);
+        };
+        window.goBack = function () {
+            try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage('member-center.html?sec=reports', null); return; } } catch (e) {}
+            window.location.href = 'member-center.html';
+        };
+        // 当前页内跳转（壳内走 switchPage，独立打开退化为 location.href）
+        function goPage(url) {
+            try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage(url, null); return; } } catch (e) {}
+            window.location.href = url;
+        }
+
+        // ---------- 在线咨询对话窗（消息经 DataBridge 落库；销售端 H5 消息中心接收并回复，本窗轮询取回） ----------
+        var chatOpened = false, chatPollTimer = null, clueCreated = false;
+        var renderedIds = {}; // 已渲染的入库消息 id（防止轮询重复渲染）
+        function chatTime() { var d = new Date(); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+        function pushMsg(from, text, atText) {
+            var mine = from === 'me';
+            var html = mine
+                ? '<div class="flex justify-end"><div class="max-w-[80%] px-3 py-2 rounded-2xl rounded-br-md text-[11.5px] leading-relaxed text-white" style="background:linear-gradient(135deg,#d97706,#f59e0b);">' + esc(text) + '</div></div>'
+                : '<div class="flex items-start gap-2"><div class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black text-white flex-shrink-0" style="background:linear-gradient(135deg,#d97706,#f59e0b);">张</div>' +
+                  '<div><div class="max-w-[240px] px-3 py-2 rounded-2xl rounded-tl-md bg-white border border-slate-100 text-[11.5px] text-slate-700 leading-relaxed shadow-sm">' + esc(text) + '</div>' +
+                  '<p class="text-[9px] text-slate-300 mt-0.5 ml-1">' + (atText || chatTime()) + '</p></div></div>';
+            $('chatBody').insertAdjacentHTML('beforeend', html);
+            $('chatBody').scrollTop = $('chatBody').scrollHeight;
+        }
+        // 当前会话标识：优先 shareId，兜底 policyId+客户名
+        function chatKey() { return share ? share.shareId : ''; }
+        function chatCustomer() { return share && share.toName && share.toName !== '（匿名访问）' ? share.toName : '访客'; }
+        // 发送入库（客户/顾问共用入口）
+        function postMsg(from, text) {
+            if (!DB.addConsultMessage) return null;
+            return DB.addConsultMessage({
+                customerName: chatCustomer(), policyId: policy ? policy.id : '', policyName: policy ? policy.name : '',
+                shareId: chatKey(), from: from, text: text
+            });
+        }
+        // 顾问 Mock 应答：按关键词给政策相关答复，其余兜底转人工
+        function advisorReply(q) {
+            if (/费用|多少钱|服务费|收费/.test(q)) return '申报管家服务费按政策类型收取，这条政策的服务方案我整理后发您；委托成功才收费，前期评估免费。';
+            if (/条件|资格|能不能|符合/.test(q)) return '从您的档案看，这条政策的核心条件基本具备；个别指标我先帮您免费做一次申报可行性评估，今天下班前给您结论。';
+            if (/材料|资料|清单/.test(q)) return '材料清单我稍后通过站内消息推送给您，重点准备近三年的研发费用辅助账和知识产权证书。';
+            if (/时间|截止|批次|窗口/.test(q)) return '这条政策目前处于常年受理/滚动批次状态，没有硬性截止压力，但建议尽早启动，留足材料补正时间。';
+            if (/委托|代办|申报/.test(q)) return '可以的，您点页面下方「委托申报」填一下联系方式，我 1 个工作日内联系您确认方案；也可以直接在这里告诉我您的安排。';
+            return '收到，我记录下您的问题，稍后给您详细答复；如果比较着急，也可以拨打我的工作电话 138****6666（工作时间 9:00-18:00）。';
+        }
+        // 轮询：拉取销售端 H5 消息中心发来的顾问回复（本 shareId 会话内、未渲染过的）
+        function pollAdvisorMsgs() {
+            if (!DB.loadConsultMessages || !chatKey()) return;
+            var list = DB.loadConsultMessages() || [];
+            list.forEach(function (m) {
+                if (!m || m.shareId !== chatKey() || m.from !== 'advisor') return;
+                if (renderedIds[m.id]) return;
+                renderedIds[m.id] = 1;
+                pushMsg('advisor', m.text, (m.at || '').slice(11));
+            });
+        }
+        window.consultAdvisor = function () {
+            $('chatPanel').classList.remove('hidden');
+            if (!chatOpened) {
+                chatOpened = true;
+                pushMsg('advisor', '您好，我是您的专属顾问张销售。看到您正在查看《' + (policy ? policy.name : '政策') + '》，关于申报条件、材料清单或服务费用，都可以直接问我。');
+                chatPollTimer = setInterval(pollAdvisorMsgs, 3000);
+            }
+            setTimeout(function () { $('chatInput').focus(); }, 50);
+        };
+        window.closeChat = function () { $('chatPanel').classList.add('hidden'); };
+        window.sendChat = function () {
+            var v = $('chatInput').value.trim();
+            if (!v) return;
+            $('chatInput').value = '';
+            pushMsg('me', v);
+            var rec = postMsg('customer', v);
+            if (rec) renderedIds[rec.id] = 1;
+            // 首次咨询自动沉淀为销售线索（同源同客户去重，由数据层保证）
+            if (!clueCreated && DB.addClue) {
+                clueCreated = true;
+                DB.addClue({ company: chatCustomer(), source: '咨询触发',
+                    intent: '咨询《' + (policy ? policy.name : '政策') + '》', note: v });
+            }
+            // Mock 即时应答（原型演示）；正式版由顾问在 H5 消息中心人工回复，本窗轮询展示
+            setTimeout(function () {
+                var reply = advisorReply(v);
+                pushMsg('advisor', reply);
+                var r2 = postMsg('advisor', reply);
+                if (r2) renderedIds[r2.id] = 1;
+            }, 900);
+        };
+
+        // ---------- 委托申报弹窗 ----------
+        window.entrustDeclare = function () {
+            $('entrustPolicyName').textContent = '委托政策：' + (policy ? policy.name + '（' + (policy.type || '') + '）' : '—');
+            $('entrustMask').classList.remove('hidden');
+        };
+        window.closeEntrust = function () { $('entrustMask').classList.add('hidden'); };
+        window.submitEntrust = function () {
+            var contact = $('etContact').value.trim();
+            var phone = $('etPhone').value.trim();
+            if (!contact) { toast('请填写联系人'); return; }
+            if (!/^1\d{10}$/.test(phone)) { toast('请填写 11 位手机号'); return; }
+            // 委托申报单落库 → 销售端 H5「消息中心 · 委托申报」接收处理
+            if (DB.addEntrust) {
+                DB.addEntrust({
+                    customerName: chatCustomer(), policyId: policy ? policy.id : '', policyName: policy ? policy.name : '',
+                    shareId: chatKey(), contact: contact, phone: phone, remark: $('etRemark').value.trim()
+                });
+            }
+            // 委托是强意向信号 → 同步沉淀为销售线索（与咨询线索分开来源统计）
+            if (DB.addClue) {
+                DB.addClue({ company: chatCustomer(), source: '委托触发',
+                    intent: '委托申报《' + (policy ? policy.name : '政策') + '》',
+                    note: $('etRemark').value.trim() || ('联系人 ' + contact + ' ' + phone) });
+            }
+            closeEntrust();
+            toast('委托已提交，顾问将在 1 个工作日内联系您');
+            // 提交后自动打开咨询窗，承接进一步沟通
+            setTimeout(consultAdvisor, 1200);
+        };
+
+        // ---------- 定位政策与分享记录 ----------
+        var params = new URLSearchParams(location.search);
+        var lib = (DB.loadPolicyLibrary ? DB.loadPolicyLibrary() : []) || [];
+        var policy = null;
+        lib.forEach(function (p) { if (p.id === params.get('id')) policy = p; });
+        var share = null;
+        var policyShares = (DB.loadPolicyShares ? DB.loadPolicyShares() : []) || [];
+        policyShares.forEach(function (s) { if (s.shareId === params.get('shareId')) share = s; });
+        if (!policy) { $('invalidBox').classList.remove('hidden'); return; }
+
+        // ---------- 浏览追踪 ----------
+        var startAt = new Date(), flushed = false;
+        function flushView() {
+            if (flushed || !share) return;
+            flushed = true;
+            var dur = Math.round((Date.now() - startAt.getTime()) / 1000);
+            if (dur < 2) return;
+            if (dur > 1800) dur = 1800;
+            share.views = share.views || [];
+            share.views.push({ at: fmtTime(startAt), durSec: dur });
+            if (DB.savePolicyShares) DB.savePolicyShares(policyShares);
+        }
+        document.addEventListener('visibilitychange', function () { if (document.hidden) flushView(); });
+        window.addEventListener('beforeunload', flushView);
+        window.addEventListener('pagehide', flushView);
+
+        // ---------- 渲染 ----------
+        document.title = policy.name + ' - 策源易答';
+        if (share) {
+            $('shareMeta').textContent = '张销售推送于 ' + (share.createdAt || '—');
+            $('pShareId').textContent = share.shareId;
+        } else { $('pShareId').textContent = '—'; }
+        $('pName').textContent = policy.name;
+        var levelColor = { '国家级': '#dc2626', '省级': '#d97706', '市级': '#2563eb', '区县': '#059669' };
+        $('pTags').innerHTML =
+            '<span class="text-[10px] px-2.5 py-1 rounded-full text-white font-black" style="background:' + (levelColor[policy.level] || '#64748b') + '">' + esc(policy.level) + '</span>' +
+            '<span class="text-[10px] px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-bold">' + esc(policy.type) + '</span>' +
+            '<span class="text-[10px] px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-bold"><i class="fa fa-map-marker mr-1"></i>' + esc(policy.region) + '</span>' +
+            (policy.department ? '<span class="text-[10px] px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-bold">' + esc(policy.department) + '</span>' : '') +
+            (policy.benefit ? '<span class="text-[10px] px-2.5 py-1 rounded-full font-black" style="background:#fef3c7;color:#b45309;">预计权益 ' + esc(policy.benefit) + '</span>' : '');
+        // 要点 = 正文前两段
+        var paras = (policy.content || '').split(/\n+/).filter(function (s) { return s.trim(); });
+        $('pDigest').textContent = paras.slice(0, 2).join('\n') || '——';
+        $('pContent').textContent = policy.content || '——';
+        $('pConditions').textContent = policy.conditions || '详见原文附件';
+
+        $('policyBox').classList.remove('hidden');
+    })();
+    </script>
+</body>
+</html>

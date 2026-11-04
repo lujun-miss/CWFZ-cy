@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-slate-50 p-8 overflow-y-auto">
+    <!-- 企业头部 -->
+    <div class="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm mb-8 flex items-center justify-between relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-blue-600/5 rounded-full -mr-32 -mt-32"></div>
+        <div class="relative z-10 flex items-center space-x-8">
+            <div class="w-24 h-24 rounded-3xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=200&h=200&fit=crop" class="w-full h-full object-cover">
+            </div>
+            <div>
+                <div class="flex items-center space-x-3 mb-2">
+                    <h1 class="text-3xl font-black text-slate-800 tracking-tight">某数智科技有限公司</h1>
+                    <span class="px-3 py-1 bg-blue-600 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest">认证企业 Lvl 4</span>
+                </div>
+                <div class="flex items-center space-x-6 text-sm text-slate-500 font-medium">
+                    <span><i class="fa fa-tag mr-2 text-blue-600"></i> 先进制造业</span>
+                    <span><i class="fa fa-map-marker mr-2 text-blue-600"></i> 广东 · 深圳 · 南山区</span>
+                    <span><i class="fa fa-calendar mr-2 text-blue-600"></i> 成立于 2018年</span>
+                </div>
+            </div>
+        </div>
+        <div class="relative z-10">
+            <button class="px-8 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">同步研知 π 实时数据</button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <!-- 左侧核心指标 (数字化画像指标中心) -->
+        <div class="xl:col-span-2 space-y-8">
+            <div class="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-xl font-bold text-slate-800">数字化画像指标中心</h3>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-lg">实时同步中...</span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- 指标 1：研发投入占比 (绿灯) -->
+                    <div class="p-6 rounded-[24px] bg-slate-50 border border-slate-100 relative group cursor-pointer hover:bg-white hover:shadow-xl transition-all">
+                        <div class="absolute top-4 right-4 flex items-center">
+                            <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse mr-2"></span>
+                            <span class="text-[10px] text-green-600 font-bold uppercase">已达标</span>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-black text-slate-800 mb-1">6.5%</div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">研发投入占比</div>
+                            <div class="mt-4 p-2 bg-green-50 rounded-xl">
+                                <p class="text-[10px] text-green-700 font-medium">高于行业 15%</p>
+                                <p class="text-[8px] text-green-600/60 mt-0.5">高新认定门槛: 5.0%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 指标 2：有效知识产权 (黄灯) -->
+                    <div class="p-6 rounded-[24px] bg-slate-50 border border-slate-100 relative group cursor-pointer hover:bg-white hover:shadow-xl transition-all">
+                        <div class="absolute top-4 right-4 flex items-center">
+                            <span class="w-3 h-3 bg-orange-400 rounded-full mr-2"></span>
+                            <span class="text-[10px] text-orange-600 font-bold uppercase">临界点</span>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-black text-slate-800 mb-1">12<span class="text-sm">项</span></div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">有效知识产权</div>
+                            <div class="mt-4 p-2 bg-orange-50 rounded-xl">
+                                <p class="text-[10px] text-orange-700 font-medium">建议补全 2 项</p>
+                                <p class="text-[8px] text-orange-600/60 mt-0.5">小巨人门槛: 15.0项</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 指标 3：销售增长率 (绿灯) -->
+                    <div class="p-6 rounded-[24px] bg-slate-50 border border-slate-100 relative group cursor-pointer hover:bg-white hover:shadow-xl transition-all">
+                        <div class="absolute top-4 right-4 flex items-center">
+                            <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                            <span class="text-[10px] text-green-600 font-bold uppercase">表现优秀</span>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-black text-slate-800 mb-1">18.5%</div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">销售增长率</div>
+                            <div class="mt-4 p-2 bg-green-50 rounded-xl">
+                                <p class="text-[10px] text-green-700 font-medium">符合成长型指标</p>
+                                <p class="text-[8px] text-green-600/60 mt-0.5">高新评分: 18/20分</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 趋势分析标题 -->
+                <div class="mt-12 mb-6 flex items-center justify-between">
+                    <h4 class="text-sm font-bold text-slate-800 uppercase tracking-widest">创新研发趋势分析 (2021-2026)</h4>
+                    <div class="flex items-center space-x-4">
+                        <span class="flex items-center text-[10px] text-slate-400"><span class="w-2 h-2 bg-blue-600 rounded-full mr-2"></span> 研发投入</span>
+                        <span class="flex items-center text-[10px] text-slate-400"><span class="w-2 h-2 bg-slate-200 rounded-full mr-2"></span> 行业均值</span>
+                    </div>
+                </div>
+                
+                <!-- 图表区域 -->
+                <div class="h-64 bg-slate-50 rounded-[32px] border border-slate-100 p-6">
+                    <canvas id="growthChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm">
+                <h3 class="text-xl font-bold text-slate-800 mb-6">核心技术领域与产品</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div class="flex items-center space-x-3 mb-2">
+                            <div class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center">
+                                <i class="fa fa-microchip"></i>
+                            </div>
+                            <span class="font-bold text-slate-800 text-sm">智能传感器控制系统</span>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed">主导研发的第三代传感器系统，拥有 3 项核心发明专利，贡献了 42% 的营业收入。</p>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div class="flex items-center space-x-3 mb-2">
+                            <div class="w-8 h-8 bg-green-600 text-white rounded-lg flex items-center justify-center">
+                                <i class="fa fa-code"></i>
+                            </div>
+                            <span class="font-bold text-slate-800 text-sm">数智边缘计算平台</span>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed">已获得 5 项软件著作权，作为高新技术产品已在 12 个省份进行商业化落地。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧能力雷达 -->
+        <div class="space-y-8">
+            <div class="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm flex flex-col items-center">
+                <h3 class="text-lg font-bold text-slate-800 mb-8 self-start">企业竞争力雷达图</h3>
+                <div class="w-full h-64">
+                    <canvas id="radarChart"></canvas>
+                </div>
+                <div class="mt-8 space-y-4 w-full">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 font-bold uppercase tracking-widest">综合竞争力排名</span>
+                        <span class="text-blue-600 font-black">Top 12%</span>
+                    </div>
+                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-600 rounded-full" style="width: 88%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 rounded-[32px] p-8 text-white">
+                <h3 class="text-lg font-bold mb-6">高层次人才画像</h3>
+                <div class="space-y-6">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold">张</div>
+                        <div>
+                            <p class="text-sm font-bold">张教授 · 首席科学家</p>
+                            <p class="text-[10px] text-white/40">国家万人计划领军人才</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center font-bold">李</div>
+                        <div>
+                            <p class="text-sm font-bold">李博士 · 研发总监</p>
+                            <p class="text-[10px] text-white/40">深圳市高层次人才 (B类)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 渲染图表
+        const growthCtx = document.getElementById('growthChart').getContext('2d');
+        new Chart(growthCtx, {
+            type: 'line',
+            data: {
+                labels: ['2021', '2022', '2023', '2024', '2025', '2026'],
+                datasets: [{
+                    label: '研发投入 (百万)',
+                    data: [12, 19, 25, 22, 30, 45],
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { display: false }, x: { grid: { display: false } } }
+            }
+        });
+
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['研发能力', '成长性', '产权质量', '人才优势', '合规水平', '财务表现'],
+                datasets: [{
+                    data: [85, 78, 92, 88, 75, 82],
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                    pointBackgroundColor: '#2563eb'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { r: { display: false } }
+            }
+        });
+    </script>
+</body>
+</html>

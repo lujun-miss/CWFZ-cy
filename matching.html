@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        .radar-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: dash 3s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: 0; }
+        }
+        .step-active { background-color:var(--color-blue-600);color:var(--color-white);border-color:var(--color-blue-600);--tw-shadow:0 10px 15px -3px var(--tw-shadow-color,#0000001a),0 4px 6px -4px var(--tw-shadow-color,#0000001a);box-shadow:var(--tw-inset-shadow),var(--tw-inset-ring-shadow),var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow);--tw-shadow-color:oklch(93.2% .032 255.585); }
+        .step-pending { background-color:var(--color-white);color:var(--color-slate-400);border-color:var(--color-slate-200); }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-slate-50 p-8">
+    <!-- 诊断头部 -->
+    <div class="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm mb-8 flex items-center justify-between">
+        <div class="flex items-center space-x-6">
+            <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl">
+                <i class="fa fa-magic"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">智能匹配诊断系统</h1>
+                <p class="text-slate-500 mt-1">自动识别企业资质短板，规划最优政策路径</p>
+            </div>
+        </div>
+        <div class="flex space-x-4">
+            <button class="px-6 py-3 bg-white text-slate-600 border border-slate-200 rounded-2xl font-bold hover:bg-slate-50 transition-all flex items-center">
+                <i class="fa fa-file-pdf-o mr-2"></i> 导出完整分析报告
+            </button>
+            <button class="px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center">
+                <i class="fa fa-refresh mr-2"></i> 重新同步画像数据
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <!-- 左侧维度筛选 -->
+        <div class="space-y-6">
+            <div class="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-widest mb-6">诊断政策分类</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-blue-50 border border-blue-100 cursor-pointer">
+                        <span class="text-sm font-bold text-blue-600">高新技术企业</span>
+                        <span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">85分</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent transition-all cursor-pointer">
+                        <span class="text-sm font-medium text-slate-600">专精特新小巨人</span>
+                        <span class="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">62分</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent transition-all cursor-pointer">
+                        <span class="text-sm font-medium text-slate-600">科技型中小企业</span>
+                        <span class="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">通过</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent transition-all cursor-pointer">
+                        <span class="text-sm font-medium text-slate-600">瞪羚企业认定</span>
+                        <span class="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">45分</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 rounded-[32px] p-6 text-white">
+                <h3 class="text-lg font-bold mb-4">专家建议路线</h3>
+                <div class="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-white/10">
+                    <div class="relative pl-8">
+                        <div class="absolute left-0 top-1 w-6 h-6 rounded-full border-2 border-blue-500 bg-slate-900 z-10 flex items-center justify-center text-[10px] font-bold">1</div>
+                        <p class="text-sm font-bold">补齐发明专利</p>
+                        <p class="text-xs text-white/40 mt-1">当前 1 项，建议再增加 2 项以获取高分</p>
+                    </div>
+                    <div class="relative pl-8">
+                        <div class="absolute left-0 top-1 w-6 h-6 rounded-full border-2 border-white/20 bg-slate-900 z-10 flex items-center justify-center text-[10px] font-bold">2</div>
+                        <p class="text-sm font-bold">整理立项文件</p>
+                        <p class="text-xs text-white/40 mt-1">近三年需 15 个以上规范立项文件</p>
+                    </div>
+                    <div class="relative pl-8">
+                        <div class="absolute left-0 top-1 w-6 h-6 rounded-full border-2 border-white/20 bg-slate-900 z-10 flex items-center justify-center text-[10px] font-bold">3</div>
+                        <p class="text-sm font-bold">提交认定申报</p>
+                        <p class="text-xs text-white/40 mt-1">预计申报窗口期：2026年5-8月</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="xl:col-span-3 space-y-8">
+            <div class="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-xl font-bold text-slate-800">项目监控列表</h3>
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <input type="text" placeholder="搜索项目名称..." class="pl-8 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50">
+                                <th class="pb-4 font-bold">项目名称</th>
+                                <th class="pb-4 font-bold text-center">政策级别 <i class="fa fa-filter ml-1"></i></th>
+                                <th class="pb-4 font-bold text-center">发文部门 <i class="fa fa-filter ml-1"></i></th>
+                                <th class="pb-4 font-bold text-center">申报状态 <i class="fa fa-filter ml-1"></i></th>
+                                <th class="pb-4 font-bold text-center">扶持方式 <i class="fa fa-filter ml-1"></i></th>
+                                <th class="pb-4 font-bold text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                <td class="py-4 font-medium text-slate-800">乡村振兴农业现代化示范项目</td>
+                                <td class="py-4 text-center text-slate-500">省级</td>
+                                <td class="py-4 text-center text-slate-500">济南市人力资源和社会保障局</td>
+                                <td class="py-4 text-center">
+                                    <span class="bg-green-50 text-green-600 px-3 py-1 rounded-lg text-[10px] font-bold">已成功</span>
+                                </td>
+                                <td class="py-4 text-center text-slate-500">资金扶持</td>
+                                <td class="py-4 text-right">
+                                    <button class="text-blue-600 font-bold hover:underline">查看</button>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                <td class="py-4 font-medium text-slate-800">新能源汽车产业升级扶持计划</td>
+                                <td class="py-4 text-center text-slate-500">市级</td>
+                                <td class="py-4 text-center text-slate-500">济南市人力资源和社会保障局</td>
+                                <td class="py-4 text-center">
+                                    <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold">申报中</span>
+                                </td>
+                                <td class="py-4 text-center text-slate-500">称号认定</td>
+                                <td class="py-4 text-right">
+                                    <button class="text-blue-600 font-bold hover:underline">查看</button>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                <td class="py-4 font-medium text-slate-800">数字经济创新发展试验区建设</td>
+                                <td class="py-4 text-center text-slate-500">国家级</td>
+                                <td class="py-4 text-center text-slate-500">济南市市场监督管理局</td>
+                                <td class="py-4 text-center">
+                                    <span class="bg-orange-50 text-orange-600 px-3 py-1 rounded-lg text-[10px] font-bold">未成功</span>
+                                </td>
+                                <td class="py-4 text-center text-slate-500">减税降费</td>
+                                <td class="py-4 text-right">
+                                    <button class="text-blue-600 font-bold hover:underline">查看</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-xl font-bold text-slate-800">高新技术企业对标分析 (2026版)</h3>
+                    <div class="flex space-x-2">
+                        <span class="px-3 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-lg border border-green-100">核心指标：已达标</span>
+                        <span class="px-3 py-1 bg-orange-50 text-orange-600 text-xs font-bold rounded-lg border border-orange-100">评分指标：待优化</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- 指标 1 -->
+                    <div class="p-6 rounded-[24px] bg-slate-50 border border-slate-100">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-bold text-slate-800">研发费用占比</h4>
+                                <p class="text-xs text-slate-400 mt-1">要求：销售额 5,000w-2亿，占比需 ≥ 4%</p>
+                            </div>
+                            <i class="fa fa-check-circle text-green-500 text-2xl"></i>
+                        </div>
+                        <div class="flex items-end space-x-2">
+                            <span class="text-2xl font-black text-slate-800">6.5%</span>
+                            <span class="text-xs text-green-600 font-bold mb-1">高于标准 2.5%</span>
+                        </div>
+                        <div class="h-2 bg-white rounded-full mt-4 overflow-hidden">
+                            <div class="h-full bg-green-500 rounded-full" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <!-- 指标 2 -->
+                    <div class="p-6 rounded-[24px] bg-slate-50 border border-slate-100">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-bold text-slate-800">知识产权得分</h4>
+                                <p class="text-xs text-slate-400 mt-1">要求：Ⅰ类产权 ≥ 1项 或 Ⅱ类产权 ≥ 5项</p>
+                            </div>
+                            <i class="fa fa-exclamation-circle text-orange-500 text-2xl"></i>
+                        </div>
+                        <div class="flex items-end space-x-2">
+                            <span class="text-2xl font-black text-slate-800">18 <span class="text-sm font-normal text-slate-400">/ 30分</span></span>
+                            <span class="text-xs text-orange-600 font-bold mb-1">建议补全</span>
+                        </div>
+                        <div class="h-2 bg-white rounded-full mt-4 overflow-hidden">
+                            <div class="h-full bg-orange-500 rounded-full" style="width: 60%"></div>
+                        </div>
+                    </div>
+
+                    <!-- 指标 3 -->
+                    <div class="p-6 rounded-[24px] bg-slate-50 border border-slate-100">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-bold text-slate-800">科技人员占比</h4>
+                                <p class="text-xs text-slate-400 mt-1">要求：研发人员占当年总人数 ≥ 10%</p>
+                            </div>
+                            <i class="fa fa-check-circle text-green-500 text-2xl"></i>
+                        </div>
+                        <div class="flex items-end space-x-2">
+                            <span class="text-2xl font-black text-slate-800">15.2%</span>
+                            <span class="text-xs text-green-600 font-bold mb-1">符合要求</span>
+                        </div>
+                        <div class="h-2 bg-white rounded-full mt-4 overflow-hidden">
+                            <div class="h-full bg-green-500 rounded-full" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <!-- 指标 4 -->
+                    <div class="p-6 rounded-[24px] bg-slate-50 border border-slate-100">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-bold text-slate-800">企业成长性</h4>
+                                <p class="text-xs text-slate-400 mt-1">要求：净资产 & 销售增长率综合评分</p>
+                            </div>
+                            <i class="fa fa-check-circle text-green-500 text-2xl"></i>
+                        </div>
+                        <div class="flex items-end space-x-2">
+                            <span class="text-2xl font-black text-slate-800">16 <span class="text-sm font-normal text-slate-400">/ 20分</span></span>
+                            <span class="text-xs text-green-600 font-bold mb-1">表现稳健</span>
+                        </div>
+                        <div class="h-2 bg-white rounded-full mt-4 overflow-hidden">
+                            <div class="h-full bg-green-500 rounded-full" style="width: 80%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 p-6 bg-slate-900 rounded-[24px] flex items-center justify-between text-white">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fa fa-lightbulb-o"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold">提升建议</p>
+                            <p class="text-xs text-white/60">通过“研知 π”导出全套申报底稿，可提升“研发管理水平”得分 (当前 12/20分)</p>
+                        </div>
+                    </div>
+                    <button class="px-6 py-2 bg-white text-slate-900 rounded-xl font-bold text-xs hover:bg-slate-100 transition-all">立即导出底稿</button>
+                </div>
+
+                <!-- 成功案例参考 (吸取精华：同类企业背书) -->
+                <div class="mt-12">
+                    <h3 class="text-lg font-bold text-slate-800 mb-6">同行业获批参考</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <img src="https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&h=100&fit=crop" class="w-8 h-8 rounded-lg object-cover">
+                                <span class="text-xs font-bold text-slate-800">XX半导体有限公司</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 leading-relaxed">2025年成功通过高新认定，研发占比 5.8%，拥有发明专利 4 项。</p>
+                        </div>
+                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <img src="https://images.unsplash.com/photo-1554469384-e58fac16e23a?w=100&h=100&fit=crop" class="w-8 h-8 rounded-lg object-cover">
+                                <span class="text-xs font-bold text-slate-800">YY智能制造中心</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 leading-relaxed">2026年Q1通过，重点解决了“研发核算不规范”问题，评分 88分。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

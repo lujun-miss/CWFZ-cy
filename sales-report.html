@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能报告 - 策源易达政策销售平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+        .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .ai-gradient { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); }
+        /* 品牌绿色板（预编译 tailwind.css 未包含 brand 色，手动补充） */
+        :root { --brand-50:#f0fdf4; --brand-100:#dcfce7; --brand-200:#bbf7d0; --brand-300:#86efac; --brand-500:#22c55e; --brand-600:#16a34a; --brand-700:#15803d; }
+        .bg-brand-50 { background-color: var(--brand-50); }
+        .bg-brand-50\/30 { background-color: #f0fdf466; }
+        .bg-brand-50\/40 { background-color: #f0fdf466; }
+        .hover\:bg-brand-50\/40:hover { background-color: #f0fdf466; }
+        .bg-brand-100 { background-color: var(--brand-100); }
+        .bg-brand-600 { background-color: var(--brand-600); }
+        .hover\:bg-brand-700:hover { background-color: var(--brand-700); }
+        .text-brand-600 { color: var(--brand-600); }
+        .text-brand-700 { color: var(--brand-700); }
+        .hover\:text-brand-700:hover { color: var(--brand-700); }
+        .border-brand-300 { border-color: var(--brand-300); }
+        .hover\:border-brand-300:hover { border-color: var(--brand-300); }
+        .border-brand-600 { border-color: var(--brand-600); }
+        .focus\:ring-brand-500:focus { --tw-ring-color: var(--brand-500); }
+        .from-brand-500 { --tw-gradient-from: var(--brand-500); --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position)); }
+        .to-brand-700 { --tw-gradient-to: var(--brand-700); }
+        .ai-gradient { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); }
+        /* 步骤条 */
+        .step-dot { width: 32px; height: 32px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; background: #e5e7eb; color: #9ca3af; transition: all .25s; }
+        .step-dot.active { background: #16a34a; color: #fff; box-shadow: 0 0 0 4px #dcfce7; }
+        .step-dot.done { background: #dcfce7; color: #15803d; }
+        /* 报告编辑区 */
+        .rep-label { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; display: flex; align-items: center; }
+        .rep-label::before { content: ''; width: 4px; height: 14px; background: #16a34a; border-radius: 2px; margin-right: 8px; }
+        .rep-textarea { width: 100%; border: 1px dashed #d1d5db; border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.7; color: #4b5563; background: #fafafa; outline: none; resize: vertical; }
+        .rep-textarea:focus { border-color: #16a34a; background: #fff; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; padding: 10px 20px; border-radius: 10px; font-size: 13px; color: #fff; box-shadow: 0 8px 20px rgba(0,0,0,.15); opacity: 0; transition: opacity .25s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+        /* 生成中动画 */
+        @keyframes pulse-ai { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+        .ai-loading { animation: pulse-ai 1s infinite; }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 顶部导航 -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div class="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center">
+                    <i class="fa fa-file-text-o text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">智能报告</h1>
+                    <p class="text-xs text-gray-500">输入企业名称 → 自动生成草稿 → 补充数据 → 微调后导出 PDF / 链接</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="text-gray-600 hover:text-brand-600"><i class="fa fa-bell"></i></button>
+                <div class="flex items-center space-x-2">
+                    <div class="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold">张</div>
+                    <span class="text-sm text-gray-700">张销售</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto px-6 py-6">
+        <!-- 步骤条 -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-8 py-4 mb-6">
+            <div class="flex items-center justify-between max-w-2xl mx-auto">
+                <div class="flex items-center space-x-3">
+                    <div class="step-dot active" id="dot1">1</div>
+                    <span class="text-sm font-medium text-gray-700" id="stepLabel1">选择企业</span>
+                </div>
+                <div class="flex-1 h-0.5 bg-gray-200 mx-4" id="bar1"></div>
+                <div class="flex items-center space-x-3">
+                    <div class="step-dot" id="dot2">2</div>
+                    <span class="text-sm font-medium text-gray-400" id="stepLabel2">补充企业数据</span>
+                </div>
+                <div class="flex-1 h-0.5 bg-gray-200 mx-4" id="bar2"></div>
+                <div class="flex items-center space-x-3">
+                    <div class="step-dot" id="dot3">3</div>
+                    <span class="text-sm font-medium text-gray-400" id="stepLabel3">微调与生成</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧：向导主体 -->
+            <div class="lg:col-span-2">
+                <!-- Step 1: 选择企业 -->
+                <div id="panel1" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="ai-gradient p-6 text-white">
+                        <div class="flex items-center space-x-3 mb-1">
+                            <i class="fa fa-magic text-2xl"></i>
+                            <h2 class="text-lg font-bold">AI 智能报告生成</h2>
+                        </div>
+                        <p class="text-sm text-brand-50">输入企业名称，AI 自动获取企业画像、政策匹配与科创能力数据，秒级生成报告草稿</p>
+                    </div>
+                    <div class="p-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">企业名称 <span class="text-red-500">*</span></label>
+                        <div class="relative mb-4">
+                            <i class="fa fa-building absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input id="inpName" list="customerList" type="text" placeholder="输入或选择企业名称，如：星河智造科技有限公司"
+                                class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                            <datalist id="customerList"></datalist>
+                            <p class="text-xs text-gray-400 mt-1.5"><i class="fa fa-database mr-1"></i>已有客户将自动获取画像与匹配数据；新企业将自动建档</p>
+                        </div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">报告类型</label>
+                        <select id="selType" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm mb-5">
+                            <option value="政策匹配">企业分析报告（企业画像 + 政策机会 + 申报建议）</option>
+                            <option value="能力诊断">科创测评报告</option>
+                        </select>
+                        <button onclick="generateDraft()" id="btnGen" class="w-full py-3 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700 flex items-center justify-center">
+                            <i class="fa fa-magic mr-2"></i>AI 生成报告草稿
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: 补充企业数据 -->
+                <div id="panel2" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <h2 class="font-semibold text-gray-800"><i class="fa fa-pencil-square-o text-brand-600 mr-2"></i>补充企业数据</h2>
+                        <span class="text-xs text-gray-400">AI 将根据以下数据重新分析生成报告</span>
+                    </div>
+                    <div class="p-6">
+                        <p class="rep-label">基本信息</p>
+                        <div class="grid grid-cols-2 gap-4 mb-5">
+                            <div><label class="text-xs text-gray-500 mb-1 block">企业名称</label><input id="cName" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">统一社会信用代码</label><input id="cCode" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">所属行业</label>
+                                <select id="cIndustry" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option>电子信息</option><option>生物医药</option><option>新材料</option><option>高端装备</option><option>新能源</option><option>其他</option>
+                                </select>
+                            </div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">所属区域</label><input id="cRegion" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">联系人</label><input id="cContact" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">手机号</label><input id="cPhone" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                        </div>
+                        <p class="rep-label">经营与资质</p>
+                        <div class="grid grid-cols-2 gap-4 mb-5">
+                            <div><label class="text-xs text-gray-500 mb-1 block">员工人数</label><input id="cEmployees" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">年营收（万元）</label><input id="cRevenue" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div class="col-span-2"><label class="text-xs text-gray-500 mb-1 block">已获资质（逗号分隔，如：国家高新,专精特新）</label><input id="cQuals" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                        </div>
+                        <p class="rep-label">科创测评 <span class="text-xs font-normal text-gray-400 ml-2">（已有诊断数据自动带入，可修正）</span></p>
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div><label class="text-xs text-gray-500 mb-1 block">综合得分</label><input id="cScore" type="number" min="0" max="100" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">评级</label>
+                                <select id="cGrade" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option value="">未诊断</option><option>A+</option><option>A</option><option>B</option><option>C</option><option>D</option>
+                                </select>
+                            </div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">待补短板（逗号分隔）</label><input id="cWeak" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                        </div>
+                        <div class="flex justify-between">
+                            <button onclick="gotoStep(1)" class="px-5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"><i class="fa fa-arrow-left mr-1"></i>上一步</button>
+                            <button onclick="saveCompanyAndNext()" class="px-6 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 font-bold">AI 重新分析并生成 <i class="fa fa-arrow-right ml-1"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: 微调与生成 -->
+                <div id="panel3" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+                        <h2 class="font-semibold text-gray-800"><i class="fa fa-edit text-brand-600 mr-2"></i>报告微调</h2>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="gotoStep(2)" class="px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50"><i class="fa fa-arrow-left mr-1"></i>上一步</button>
+                            <button onclick="saveReport()" class="px-3 py-1.5 border border-brand-600 text-brand-600 rounded-lg text-xs hover:bg-brand-50 font-bold"><i class="fa fa-save mr-1"></i>保存报告</button>
+                            <button onclick="exportPDF()" class="px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 font-bold"><i class="fa fa-file-pdf-o mr-1"></i>一键生成 PDF</button>
+                            <button onclick="copyLink()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 font-bold"><i class="fa fa-link mr-1"></i>生成链接</button>
+                        </div>
+                    </div>
+                    <div class="p-6 space-y-5">
+                        <div>
+                            <label class="rep-label">报告标题</label>
+                            <input id="rTitle" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div class="grid grid-cols-4 gap-3" id="kpiRow"></div>
+                        <div>
+                            <label class="rep-label">报告摘要 <span class="text-xs font-normal text-gray-400 ml-2">（可直接编辑微调）</span></label>
+                            <textarea id="rSummary" rows="4" class="rep-textarea"></textarea>
+                        </div>
+                        <div>
+                            <label class="rep-label">一、企业画像</label>
+                            <textarea id="rProfile" rows="4" class="rep-textarea"></textarea>
+                        </div>
+                        <div>
+                            <label class="rep-label">二、政策机会 <span class="text-xs font-normal text-gray-400 ml-2">（点击 × 可移除，数据来源于政策匹配）</span></label>
+                            <div id="rPolicies" class="space-y-2 mb-2"></div>
+                            <div class="flex items-center gap-2">
+                                <input id="npTitle" type="text" placeholder="政策名称" class="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-brand-500">
+                                <input id="npBenefit" type="text" placeholder="权益，如 补贴 30万" class="w-36 px-2 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-brand-500">
+                                <button onclick="addPolicy()" class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs hover:bg-gray-200"><i class="fa fa-plus mr-1"></i>添加</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="rep-label">三、申报建议 <span class="text-xs font-normal text-gray-400 ml-2">（每行一条）</span></label>
+                            <textarea id="rAdvice" rows="5" class="rep-textarea"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：已生成报告 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-fit">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="font-semibold text-gray-800">已生成报告</h2>
+                    <span class="text-xs text-gray-400" id="reportCount"></span>
+                </div>
+                <div class="divide-y divide-gray-100 max-h-[680px] overflow-y-auto scrollbar-thin" id="reportList"></div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="data-bridge.js"></script>
+    <script>
+        var CUSTOMERS = [], REPORTS = [];
+        var STEP = 1;
+        var DRAFT = null;      // 当前草稿 {company, diagnosis, policies, summary, profile, advice}
+        var EDIT_ID = null;    // 正在编辑的已生成报告 id（null=新报告）
+
+        // ===== 工具 =====
+        function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        function toast(msg, ok) {
+            var t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.background = ok === false ? '#dc2626' : '#16a34a';
+            t.classList.add('show');
+            setTimeout(function() { t.classList.remove('show'); }, 2200);
+        }
+        function now() {
+            var d = new Date();
+            function p(n) { return String(n).padStart(2, '0'); }
+            return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+        }
+        function newId() { return 'R' + Date.now(); }
+        function getCustomer(name) {
+            for (var i = 0; i < CUSTOMERS.length; i++) if (CUSTOMERS[i].name === name) return CUSTOMERS[i];
+            return null;
+        }
+        // 从权益文本提取金额（万）
+        function parseWan(s) { var m = String(s || '').match(/([\d.]+)\s*万/); return m ? parseFloat(m[1]) : 0; }
+
+        // ===== 初始化 =====
+        function load() {
+            CUSTOMERS = DataBridge.loadCustomers();
+            REPORTS = DataBridge.loadSalesReports();
+            var dl = document.getElementById('customerList');
+            dl.innerHTML = CUSTOMERS.filter(function(c) { return c.type !== 'personal'; }).map(function(c) { return '<option value="' + esc(c.name) + '">'; }).join('');
+            renderReportList();
+        }
+
+        // ===== 步骤切换 =====
+        function gotoStep(n) {
+            STEP = n;
+            ['panel1', 'panel2', 'panel3'].forEach(function(id, i) {
+                document.getElementById(id).classList.toggle('hidden', i !== n - 1);
+            });
+            for (var i = 1; i <= 3; i++) {
+                var dot = document.getElementById('dot' + i);
+                dot.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
+                if (i < n) dot.innerHTML = '<i class="fa fa-check"></i>'; else dot.textContent = i;
+                document.getElementById('stepLabel' + i).className = 'text-sm font-medium ' + (i === n ? 'text-gray-700' : 'text-gray-400');
+            }
+            document.getElementById('bar1').style.background = n > 1 ? '#16a34a' : '#e5e7eb';
+            document.getElementById('bar2').style.background = n > 2 ? '#16a34a' : '#e5e7eb';
+            window.scrollTo(0, 0);
+        }
+
+        // ===== Step1 → 生成草稿 =====
+        function generateDraft() {
+            var name = document.getElementById('inpName').value.trim();
+            if (!name) { toast('请输入企业名称', false); return; }
+            var type = document.getElementById('selType').value;
+
+            // 自动获取数据：已有客户直接取数；新客户自动建档
+            var c = getCustomer(name);
+            if (!c) {
+                c = {
+                    id: 'C' + String(Date.now()).slice(-6), name: name, code: '', industry: '其他',
+                    contact: '', phone: '', employees: 0, revenue: 0, region: '', quals: [],
+                    status: '潜在客户', lastDiagnosis: null,
+                    matchedPolicies: autoMatchFromLibrary(), followups: []
+                };
+                CUSTOMERS.unshift(c);
+                DataBridge.saveCustomers(CUSTOMERS);
+            }
+
+            DRAFT = buildDraft(c, type);
+            fillCompanyForm(DRAFT);
+            EDIT_ID = null;
+            gotoStep(2);
+        }
+
+        // 新企业无匹配数据时，从政策库按资质/行业粗匹配生成候选
+        function autoMatchFromLibrary() {
+            var lib = DataBridge.loadPolicyLibrary();
+            return lib.slice(0, 3).map(function(p, i) {
+                var benefit = (p.type === '税收减免' ? '减税 ' : (p.type === '资质奖励' ? '奖励 ' : '补贴 ')) + (p.amount || 10) + '万';
+                return { title: p.name, benefit: benefit, level: i === 0 ? '高匹配' : '中匹配', match: 82 - i * 4 };
+            });
+        }
+
+        // ===== AI 草稿生成 =====
+        function buildDraft(c, type) {
+            var co = {
+                name: c.name, code: c.code || '', industry: c.industry || '其他', contact: c.contact || '',
+                phone: c.phone || '', employees: c.employees || 0, revenue: c.revenue || 0,
+                region: c.region || '', quals: (c.quals || []).slice()
+            };
+            var diag = c.lastDiagnosis ? JSON.parse(JSON.stringify(c.lastDiagnosis)) : null;
+            var policies = (c.matchedPolicies || []).slice();
+            var wanTotal = 0, matchSum = 0;
+            policies.forEach(function(p) { wanTotal += parseWan(p.benefit); matchSum += (p.match || 80); });
+            var matchAvg = policies.length ? Math.round(matchSum / policies.length) : 0;
+            var qualsText = co.quals.length ? co.quals.join('、') : '成长型';
+            var top = policies.slice().sort(function(a, b) { return (b.match || 0) - (a.match || 0); })[0];
+
+            // 摘要
+            var summary = co.name + '作为' + qualsText + '企业，在' + co.industry + '领域' +
+                (co.employees >= 200 ? '具备一定规模优势' : '处于快速发展阶段') + '。经 AI 综合分析，企业可申报政策 ' +
+                policies.length + ' 项，预计可获权益 ' + wanTotal + ' 万元' +
+                (matchAvg ? '，综合匹配度 ' + matchAvg + '%' : '') +
+                (top ? '，建议优先申报「' + top.title + '」' : '') + '。';
+            if (diag) summary += ' 科创能力综合得分 ' + diag.avg + ' 分（评级 ' + diag.grade + '）。';
+
+            // 企业画像
+            var profile = '企业' + (co.region ? '位于' + co.region + '，' : '') + '属' + co.industry + '行业' +
+                (co.employees ? '，现有员工 ' + co.employees + ' 人' : '') +
+                (co.revenue ? '，年营收约 ' + (co.revenue / 10000).toFixed(1) + ' 亿元' : '') + '。' +
+                (co.quals.length ? '已获' + co.quals.join('、') + '资质认定。' : '暂无已获资质认定，建议从科技型中小企业评价切入。') +
+                (diag ? '科创能力综合得分 ' + diag.avg + ' 分（评级 ' + diag.grade + '）' + (diag.weak && diag.weak.length ? '，' + diag.weak.join('、') + '为当前待补短板。' : '。') : '');
+
+            // 申报建议（每行一条）
+            var tips = [];
+            if (top) tips.push('1. 建议优先申报「' + top.title + '」（' + top.benefit + '），建议尽快启动申报材料准备。');
+            if (diag && diag.weak && diag.weak.length) tips.push((tips.length + 1) + '. 针对' + diag.weak.join('、') + '短板，建议在申报前补充相关证明材料，提升评审通过率。');
+            if (policies.length > 1) tips.push((tips.length + 1) + '. 可将加计扣除与资质类申报同步推进，注意研发费用归集口径一致性。');
+            tips.push((tips.length + 1) + '. 申报材料建议由专人统筹，提前预留 2-4 周准备期。');
+            var advice = tips.join('\n');
+
+            return {
+                company: co, diagnosis: diag, policies: policies,
+                summary: summary, profile: profile, advice: advice,
+                matchAvg: matchAvg, wanTotal: wanTotal, type: type
+            };
+        }
+
+        // ===== Step2 表单填充 / 收集 =====
+        function fillCompanyForm(d) {
+            document.getElementById('cName').value = d.company.name;
+            document.getElementById('cCode').value = d.company.code;
+            document.getElementById('cIndustry').value = d.company.industry;
+            document.getElementById('cRegion').value = d.company.region;
+            document.getElementById('cContact').value = d.company.contact;
+            document.getElementById('cPhone').value = d.company.phone;
+            document.getElementById('cEmployees').value = d.company.employees || '';
+            document.getElementById('cRevenue').value = d.company.revenue || '';
+            document.getElementById('cQuals').value = (d.company.quals || []).join(',');
+            document.getElementById('cScore').value = d.diagnosis ? d.diagnosis.avg : '';
+            document.getElementById('cGrade').value = d.diagnosis ? d.diagnosis.grade : '';
+            document.getElementById('cWeak').value = d.diagnosis && d.diagnosis.weak ? d.diagnosis.weak.join(',') : '';
+        }
+
+        function saveCompanyAndNext() {
+            var name = document.getElementById('cName').value.trim();
+            if (!name) { toast('企业名称不能为空', false); return; }
+            DRAFT.company = {
+                name: name,
+                code: document.getElementById('cCode').value.trim(),
+                industry: document.getElementById('cIndustry').value,
+                region: document.getElementById('cRegion').value.trim(),
+                contact: document.getElementById('cContact').value.trim(),
+                phone: document.getElementById('cPhone').value.trim(),
+                employees: parseInt(document.getElementById('cEmployees').value) || 0,
+                revenue: parseFloat(document.getElementById('cRevenue').value) || 0,
+                quals: document.getElementById('cQuals').value.split(/[,，]/).map(function(s) { return s.trim(); }).filter(Boolean)
+            };
+            var score = document.getElementById('cScore').value;
+            var grade = document.getElementById('cGrade').value;
+            var weak = document.getElementById('cWeak').value.split(/[,，]/).map(function(s) { return s.trim(); }).filter(Boolean);
+            DRAFT.diagnosis = (score && grade) ? { avg: parseInt(score), grade: grade, weak: weak } : null;
+
+            // 同步回客户档案
+            var c = getCustomer(DRAFT.company.name);
+            if (c) {
+                c.code = DRAFT.company.code; c.industry = DRAFT.company.industry; c.region = DRAFT.company.region;
+                c.contact = DRAFT.company.contact; c.phone = DRAFT.company.phone;
+                c.employees = DRAFT.company.employees; c.revenue = DRAFT.company.revenue;
+                c.quals = DRAFT.company.quals;
+                if (DRAFT.diagnosis) c.lastDiagnosis = DRAFT.diagnosis;
+                DataBridge.saveCustomers(CUSTOMERS);
+            }
+
+            // AI 重新分析
+            DRAFT.type = document.getElementById('selType').value;
+            var rebuilt = buildDraft(c || DRAFT.company, DRAFT.type);
+            rebuilt.company = DRAFT.company; rebuilt.diagnosis = DRAFT.diagnosis;
+            DRAFT = rebuilt;
+            fillStep3();
+            gotoStep(3);
+        }
+
+        // ===== Step3 微调 =====
+        function fillStep3() {
+            document.getElementById('rTitle').value = (EDIT_ID ? (findReport(EDIT_ID) || {}).title : '') ||
+                DRAFT.company.name + (DRAFT.type === '能力诊断' ? '科创测评报告' : '企业分析报告');
+            document.getElementById('rSummary').value = DRAFT.summary;
+            document.getElementById('rProfile').value = DRAFT.profile;
+            document.getElementById('rAdvice').value = DRAFT.advice;
+            renderPolicyList();
+            renderKpi();
+        }
+
+        function renderKpi() {
+            var wan = 0, mSum = 0;
+            DRAFT.policies.forEach(function(p) { wan += parseWan(p.benefit); mSum += (p.match || 80); });
+            var avg = DRAFT.policies.length ? Math.round(mSum / DRAFT.policies.length) : 0;
+            DRAFT.matchAvg = avg; DRAFT.wanTotal = wan;
+            document.getElementById('kpiRow').innerHTML =
+                kpiCard(DRAFT.policies.length, '可申报政策') +
+                kpiCard(wan ? wan + '万' : '—', '预计权益') +
+                kpiCard(avg ? avg + '%' : '—', '综合匹配度') +
+                kpiCard(DRAFT.diagnosis ? DRAFT.diagnosis.grade : '—', '科创评级');
+        }
+        function kpiCard(v, label) {
+            return '<div class="bg-gray-50 rounded-lg p-3 text-center"><p class="text-2xl font-bold text-brand-600">' + v + '</p><p class="text-xs text-gray-500 mt-0.5">' + label + '</p></div>';
+        }
+
+        function renderPolicyList() {
+            document.getElementById('rPolicies').innerHTML = DRAFT.policies.map(function(p, i) {
+                var lvColor = p.level === '高匹配' ? 'bg-brand-50 text-brand-700' : 'bg-blue-50 text-blue-700';
+                return '<div class="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">' +
+                    '<div><span class="text-sm font-medium text-gray-800">' + esc(p.title) + '</span>' +
+                    '<span class="text-xs text-gray-400 ml-2">' + esc(p.benefit) + (p.match ? ' · 匹配度 ' + p.match + '%' : '') + '</span></div>' +
+                    '<div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded text-xs ' + lvColor + '">' + esc(p.level || '推荐') + '</span>' +
+                    '<button onclick="removePolicy(' + i + ')" class="text-gray-300 hover:text-red-500"><i class="fa fa-times"></i></button></div></div>';
+            }).join('') || '<p class="text-xs text-gray-400 py-1">暂无政策机会，可在下方手动添加</p>';
+        }
+        function removePolicy(i) { DRAFT.policies.splice(i, 1); renderPolicyList(); renderKpi(); }
+        function addPolicy() {
+            var t = document.getElementById('npTitle').value.trim();
+            if (!t) { toast('请填写政策名称', false); return; }
+            DRAFT.policies.push({ title: t, benefit: document.getElementById('npBenefit').value.trim() || '面议', level: '推荐', match: 0 });
+            document.getElementById('npTitle').value = '';
+            document.getElementById('npBenefit').value = '';
+            renderPolicyList(); renderKpi();
+        }
+
+        // ===== 保存 / 导出 =====
+        function collectReport() {
+            return {
+                id: EDIT_ID || newId(),
+                title: document.getElementById('rTitle').value.trim() || DRAFT.company.name + '企业分析报告',
+                customerName: DRAFT.company.name,
+                type: DRAFT.type || '政策匹配',
+                createdAt: now(),
+                views: (EDIT_ID ? (findReport(EDIT_ID) || {}).views || 0 : 0),
+                shares: (EDIT_ID ? (findReport(EDIT_ID) || {}).shares || 0 : 0),
+                company: DRAFT.company,
+                diagnosis: DRAFT.diagnosis,
+                summary: document.getElementById('rSummary').value.trim(),
+                profile: document.getElementById('rProfile').value.trim(),
+                policies: DRAFT.policies,
+                advice: document.getElementById('rAdvice').value.trim()
+            };
+        }
+
+        function saveReport(silent) {
+            var r = collectReport();
+            if (EDIT_ID) {
+                var idx = REPORTS.findIndex(function(x) { return x.id === EDIT_ID; });
+                if (idx > -1) REPORTS[idx] = r; else REPORTS.unshift(r);
+            } else {
+                REPORTS.unshift(r);
+                EDIT_ID = r.id;
+            }
+            DataBridge.saveSalesReports(REPORTS);
+            renderReportList();
+            if (!silent) toast('报告已保存');
+            return r;
+        }
+
+        function exportPDF() {
+            var r = saveReport(true);
+            toast('正在打开 PDF 导出...');
+            var url = 'report-viewer.html?id=' + r.id + '&print=1';
+            if (parent && parent.window && parent.window.switchPage) parent.window.switchPage(url, null);
+            else window.location.href = url;
+        }
+
+        function copyLink() {
+            var r = saveReport(true);
+            // 弹窗输入分享对象
+            var name = prompt('分享给客户（姓名或部门，回车使用销售联系人）', (DRAFT.company && DRAFT.company.contact) || '');
+            if (name === null) return;
+            name = name.trim() || (DRAFT.company && DRAFT.company.name) || '未知客户';
+            var shareId = 'S' + Date.now();
+            var phone = (DRAFT.company && DRAFT.company.phone) || '';
+            var expire = new Date(); expire.setDate(expire.getDate() + 30);
+            function p(n) { return String(n).padStart(2, '0'); }
+            var nowTs = new Date();
+            var createdAt = nowTs.getFullYear() + '-' + p(nowTs.getMonth()+1) + '-' + p(nowTs.getDate()) + ' ' + p(nowTs.getHours()) + ':' + p(nowTs.getMinutes());
+            var expireAt = expire.getFullYear() + '-' + p(expire.getMonth()+1) + '-' + p(expire.getDate());
+            if (!Array.isArray(r.shares)) r.shares = [];
+            r.shares.push({ shareId: shareId, toName: name, toPhone: phone, createdAt: createdAt, expireAt: expireAt, views: [] });
+            DataBridge.saveSalesReports(REPORTS);
+            renderReportList();
+            var url = location.origin + '/report-viewer.html?id=' + r.id + '&shareId=' + shareId;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function() { toast('已生成分享链接给「' + name + '」并复制'); })
+                    .catch(function() { prompt('复制报告链接：', url); });
+            } else prompt('复制报告链接：', url);
+        }
+
+        function findReport(id) {
+            for (var i = 0; i < REPORTS.length; i++) if (REPORTS[i].id === id) return REPORTS[i];
+            return null;
+        }
+
+        // ===== 报告列表 =====
+        function renderReportList() {
+            var box = document.getElementById('reportList');
+            document.getElementById('reportCount').textContent = '共 ' + REPORTS.length + ' 份';
+            if (!REPORTS.length) {
+                box.innerHTML = '<p class="p-8 text-center text-sm text-gray-400"><i class="fa fa-inbox mr-1"></i>暂无报告，左侧生成第一份</p>';
+                return;
+            }
+            var typeColors = { '政策匹配': 'bg-brand-50 text-brand-700', '能力诊断': 'bg-blue-50 text-blue-700', '行业分析': 'bg-orange-50 text-orange-700' };
+            box.innerHTML = REPORTS.map(function(r) {
+                var sh = Array.isArray(r.shares) ? r.shares : [];
+                var totalViews = 0;
+                sh.forEach(function(s) { if (Array.isArray(s.views)) totalViews += s.views.length; });
+                var totalShares = sh.length;
+                return '<div class="p-4 hover:bg-brand-50/40 cursor-pointer" onclick="editReport(\'' + r.id + '\')">' +
+                    '<div class="flex items-start justify-between mb-1.5">' +
+                    '<h4 class="text-sm font-medium text-gray-800 flex-1">' + esc(r.title) + '</h4>' +
+                    '<span class="px-2 py-0.5 rounded text-xs flex-shrink-0 ml-2 ' + (typeColors[r.type] || 'bg-gray-100 text-gray-600') + '">' + esc(r.type) + '</span></div>' +
+                    '<p class="text-xs text-gray-400 mb-2">' + esc(r.customerName) + '</p>' +
+                    '<div class="flex items-center justify-between text-xs text-gray-500">' +
+                    '<span><i class="fa fa-clock-o mr-1"></i>' + esc(r.createdAt) + '</span>' +
+                    '<div class="flex items-center space-x-2">' +
+                    '<span title="浏览"><i class="fa fa-eye mr-0.5"></i>' + totalViews + '</span>' +
+                    '<span title="分享"><i class="fa fa-share-alt mr-0.5"></i>' + totalShares + '</span>' +
+                    '<button title="查看/分享页" class="hover:text-brand-600" onclick="event.stopPropagation();viewReport(\'' + r.id + '\')"><i class="fa fa-external-link"></i></button>' +
+                    '<button title="删除" class="hover:text-red-500" onclick="event.stopPropagation();deleteReport(\'' + r.id + '\')"><i class="fa fa-trash"></i></button>' +
+                    '</div></div></div>';
+            }).join('');
+        }
+
+        function editReport(id) {
+            var r = findReport(id);
+            if (!r) return;
+            EDIT_ID = id;
+            DRAFT = {
+                company: JSON.parse(JSON.stringify(r.company)),
+                diagnosis: r.diagnosis ? JSON.parse(JSON.stringify(r.diagnosis)) : null,
+                policies: JSON.parse(JSON.stringify(r.policies || [])),
+                summary: r.summary, profile: r.profile, advice: r.advice, type: r.type
+            };
+            document.getElementById('inpName').value = r.customerName;
+            document.getElementById('selType').value = r.type === '能力诊断' ? '能力诊断' : '政策匹配';
+            fillCompanyForm(DRAFT);
+            fillStep3();
+            gotoStep(3);
+        }
+
+        function viewReport(id) {
+            var url = 'report-viewer.html?id=' + id;
+            if (parent && parent.window && parent.window.switchPage) parent.window.switchPage(url, null);
+            else window.location.href = url;
+        }
+
+        function deleteReport(id) {
+            if (!confirm('确定删除该报告？')) return;
+            REPORTS = REPORTS.filter(function(x) { return x.id !== id; });
+            DataBridge.saveSalesReports(REPORTS);
+            if (EDIT_ID === id) { EDIT_ID = null; gotoStep(1); }
+            renderReportList();
+            toast('已删除');
+        }
+
+        document.addEventListener('DOMContentLoaded', load);
+    </script>
+</body>
+</html>

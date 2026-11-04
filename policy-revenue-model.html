@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>政策收益模型管理 - 策源易答运营平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(139,92,246,0.18); }
+        .modal-mask { background: rgba(15,23,42,0.5); backdrop-filter: blur(2px); }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+        .matrix-cell { transition: all 0.2s; }
+        .matrix-cell:hover { transform: scale(1.1); }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-slate-50 p-8">
+
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-slate-800 flex items-center">
+                <i class="fa fa-cubes text-purple-600 mr-3"></i>政策收益模型管理
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">运营管理平台 / 政策收益模型管理</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="openMatrixModal()" class="px-4 py-2.5 bg-white border border-purple-200 text-purple-600 rounded-xl text-sm font-bold hover:bg-purple-50 transition-all flex items-center shadow-sm">
+                <i class="fa fa-th mr-2"></i>互斥兼容矩阵
+            </button>
+            <button onclick="deployToCalculator()" class="px-4 py-2.5 bg-white border-2 border-dashed border-purple-400 text-purple-700 rounded-xl text-sm font-bold hover:bg-purple-50 transition-all flex items-center shadow-sm">
+                <i class="fa fa-cloud-upload mr-2"></i>下发到计算器
+            </button>
+            <button onclick="openEditModal()" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all flex items-center shadow-lg shadow-purple-600/20">
+                <i class="fa fa-plus mr-2"></i>新增收益项
+            </button>
+        </div>
+    </div>
+
+    <!-- 说明条 -->
+    <div class="mb-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100 flex items-start space-x-3">
+        <i class="fa fa-info-circle text-purple-500 mt-0.5"></i>
+        <div class="text-xs text-slate-600 leading-relaxed">
+            <b class="text-purple-700">本模块为「政策计算器」的核心数据源。</b>管理可叠加计算的政策收益项，包括收益金额、计算公式、到账周期、互斥/兼容关系。
+            前端计算器的 <code class="px-1 bg-white rounded text-purple-600">POLICY_DB</code> 政策库由此处配置下发，勾选叠加、互斥拦截均依赖此处规则。
+        </div>
+    </div>
+
+    <!-- 数据同步状态 -->
+    <div id="syncStatus" class="mb-6 p-3 rounded-xl border flex items-center space-x-2 text-sm">
+        <i id="syncStatusIcon" class="fa fa-exclamation-triangle text-amber-500"></i>
+        <span id="syncStatusText" class="font-bold text-amber-700">⚠ 尚未下发，前端使用默认配置</span>
+    </div>
+
+    
+
+    <!-- 搜索筛选 + 列表 -->
+    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex flex-wrap items-center gap-3">
+            <div class="relative flex-1 min-w-[240px] max-w-md">
+                <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" placeholder="搜索政策名称 / ID" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all">
+            </div>
+            <select class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option>全部收益类型</option>
+                <option>税收减免</option>
+                <option>项目补贴</option>
+                <option>资质奖励</option>
+            </select>
+            <select class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option>全部互斥组</option>
+                <option>无互斥</option>
+                <option>REWARD_A（资质奖励二选一）</option>
+            </select>
+            <select class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option>全部状态</option>
+                <option>启用</option>
+                <option>停用</option>
+            </select>
+            <button class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all"><i class="fa fa-search mr-1"></i>查询</button>
+            <button class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all"><i class="fa fa-refresh mr-1"></i>重置</button>
+        </div>
+
+        <!-- 表格 -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 text-xs uppercase">
+                        <th class="px-5 py-3 text-left font-bold">政策ID</th>
+                        <th class="px-5 py-3 text-left font-bold">政策名称 / 计算公式</th>
+                        <th class="px-5 py-3 text-left font-bold">收益类型</th>
+                        <th class="px-5 py-3 text-right font-bold">收益金额</th>
+                        <th class="px-5 py-3 text-center font-bold">到账周期</th>
+                        <th class="px-5 py-3 text-left font-bold">互斥组</th>
+                        <th class="px-5 py-3 text-left font-bold">兼容政策</th>
+                        <th class="px-5 py-3 text-center font-bold">状态</th>
+                        <th class="px-5 py-3 text-left font-bold">操作</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4"><code class="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">R&D_JJ</code></td>
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">研发费用加计扣除</div>
+                            <div class="text-xs text-slate-400 mt-0.5">研发投入 × 100% × 25%税率</div>
+                        </td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-md">税收减免</span></td>
+                        <td class="px-5 py-4 text-right font-black text-emerald-600">¥84.5<span class="text-xs">万</span></td>
+                        <td class="px-5 py-4 text-center text-xs text-slate-500">第 9-12 月</td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-400">—</span></td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">高企 / 立项补贴</span></td>
+                        <td class="px-5 py-4 text-center"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">启用</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-pause mr-0.5"></i>停用</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4"><code class="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">GAOXIN</code></td>
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">高新技术企业（税率差额）</div>
+                            <div class="text-xs text-slate-400 mt-0.5">利润 × (25% - 15%)</div>
+                        </td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-md">税收减免</span></td>
+                        <td class="px-5 py-4 text-right font-black text-emerald-600">¥42.3<span class="text-xs">万</span></td>
+                        <td class="px-5 py-4 text-center text-xs text-slate-500">第 6-10 月</td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-400">—</span></td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">研发加计 / 专精特新</span></td>
+                        <td class="px-5 py-4 text-center"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">启用</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-pause mr-0.5"></i>停用</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4"><code class="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">LIXIANG_ZJ</code></td>
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">研发项目立项补贴</div>
+                            <div class="text-xs text-slate-400 mt-0.5">项目总投资 × 20%</div>
+                        </td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-md">项目补贴</span></td>
+                        <td class="px-5 py-4 text-right font-black text-blue-600">¥50.0<span class="text-xs">万</span></td>
+                        <td class="px-5 py-4 text-center text-xs text-slate-500">第 3-5 月</td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-400">—</span></td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">研发加计 / 专精特新</span></td>
+                        <td class="px-5 py-4 text-center"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">启用</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-pause mr-0.5"></i>停用</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4"><code class="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">CGZH</code></td>
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">科技成果转化补贴</div>
+                            <div class="text-xs text-slate-400 mt-0.5">技术合同成交额 × 5%</div>
+                        </td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-md">项目补贴</span></td>
+                        <td class="px-5 py-4 text-right font-black text-blue-600">¥25.0<span class="text-xs">万</span></td>
+                        <td class="px-5 py-4 text-center text-xs text-slate-500">第 4-7 月</td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-400">—</span></td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">立项补贴 / 专精特新</span></td>
+                        <td class="px-5 py-4 text-center"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">启用</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-pause mr-0.5"></i>停用</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4"><code class="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">ZHUANJIN</code></td>
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">专精特新企业奖励</div>
+                            <div class="text-xs text-slate-400 mt-0.5">省级专精特新一次性奖励</div>
+                        </td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-md">资质奖励</span></td>
+                        <td class="px-5 py-4 text-right font-black text-indigo-600">¥10.0<span class="text-xs">万</span></td>
+                        <td class="px-5 py-4 text-center text-xs text-slate-500">第 2-3 月</td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-md">REWARD_A</span></td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">高企 / 立项补贴</span></td>
+                        <td class="px-5 py-4 text-center"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">启用</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-pause mr-0.5"></i>停用</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-purple-50/30 transition-colors">
+                        <td class="px-5 py-4"><code class="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded">DENGLING</code></td>
+                        <td class="px-5 py-4">
+                            <div class="font-bold text-slate-800">瞪羚企业认定奖励</div>
+                            <div class="text-xs text-slate-400 mt-0.5">瞪羚认定一次性奖励（与专精特新互斥）</div>
+                        </td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-md">资质奖励</span></td>
+                        <td class="px-5 py-4 text-right font-black text-indigo-600">¥8.0<span class="text-xs">万</span></td>
+                        <td class="px-5 py-4 text-center text-xs text-slate-500">第 2-4 月</td>
+                        <td class="px-5 py-4"><span class="px-2 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-md">REWARD_A</span></td>
+                        <td class="px-5 py-4"><span class="text-xs text-slate-500">立项补贴</span></td>
+                        <td class="px-5 py-4 text-center"><span class="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-md">启用</span></td>
+                        <td class="px-5 py-4">
+                            <div class="flex items-center space-x-2 text-xs">
+                                <button onclick="openEditModal()" class="text-purple-600 hover:text-purple-800 font-bold"><i class="fa fa-edit mr-0.5"></i>编辑</button>
+                                <button class="text-slate-500 hover:text-slate-700 font-bold"><i class="fa fa-pause mr-0.5"></i>停用</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between text-sm">
+            <span class="text-slate-500">共 <span class="font-bold text-slate-700">6</span> 条记录</span>
+            <div class="flex items-center space-x-1">
+                <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50"><i class="fa fa-angle-left"></i></button>
+                <button class="w-8 h-8 rounded-lg bg-purple-600 text-white font-bold">1</button>
+                <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"><i class="fa fa-angle-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 收益项编辑弹窗 -->
+    <div id="editModal" class="fixed inset-0 modal-mask z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-[20px] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-lg font-black text-slate-800 flex items-center"><i class="fa fa-edit text-purple-600 mr-2"></i>新增 / 编辑收益项</h3>
+                <button onclick="closeEditModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="grid grid-cols-2 gap-5">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">政策ID <span class="text-red-500">*</span></label>
+                        <input type="text" value="R&D_JJ" placeholder="唯一标识，如 R&D_JJ" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">政策名称 <span class="text-red-500">*</span> <span class="text-slate-400 font-normal text-[10px]">从政策库加载</span></label>
+                        <select id="policyNameSelect" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all">
+                            <option value="">请选择政策</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">收益类型 <span class="text-red-500">*</span></label>
+                        <select class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option>税收减免</option>
+                            <option>项目补贴</option>
+                            <option>资质奖励</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">收益金额 <span class="text-slate-400 font-normal text-[10px]">由公式计算，无需手动填写</span></label>
+                        <div class="w-full px-4 py-2.5 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-sm text-slate-400 text-center">
+                            <i class="fa fa-calculator mr-1"></i>金额在计算器读取企业数据后自动得出
+                        </div>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">计算公式（结构化）</label>
+                        <div id="formulaList" class="space-y-2 mb-2"></div>
+                        <button type="button" onclick="addFormulaItem()" class="w-full py-2 border border-dashed border-slate-300 text-slate-500 rounded-xl text-xs font-bold hover:border-purple-400 hover:text-purple-600 hover:bg-purple-50/30 transition-all flex items-center justify-center">
+                            <i class="fa fa-plus mr-1"></i>添加公式项
+                        </button>
+                        <p class="text-[10px] text-slate-400 mt-1">由变量+运算符+系数组合，计算器可解析执行</p>
+                        <div class="mt-2 p-2.5 bg-purple-50/50 border border-purple-100 rounded-lg">
+                            <p class="text-[10px] text-slate-500 mb-1">公式预览：</p>
+                            <p id="formulaPreview" class="text-xs font-bold text-purple-700">—</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">到账周期 · 最早月</label>
+                        <input type="number" min="1" max="24" value="9" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all">
+                        <p class="text-[10px] text-slate-400 mt-1">申报开始后第几个月</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">到账周期 · 最晚月</label>
+                        <input type="number" min="1" max="24" value="12" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all">
+                        <p class="text-[10px] text-slate-400 mt-1">数据来源：历史到账回归中位数</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">互斥组</label>
+                        <input type="text" placeholder="留空表示无互斥，如 REWARD_A" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all">
+                        <p class="text-[10px] text-slate-400 mt-1">同组政策仅可选一项</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">标签颜色</label>
+                        <select class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="emerald">绿色（税收减免）</option>
+                            <option value="blue">蓝色（项目补贴）</option>
+                            <option value="indigo">靛蓝（资质奖励）</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">兼容政策（可叠加） <span class="text-slate-400 font-normal text-[10px]">从政策库加载</span></label>
+                        <div id="compatList" class="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl min-h-[60px]">
+                            <span class="text-xs text-slate-400 self-center">请先选择政策名称</span>
+                        </div>
+                    </div>
+                    <!-- 申报成本（本政策专属） -->
+                    <div class="col-span-2 bg-amber-50/40 border border-amber-200 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <label class="text-xs font-bold text-amber-700 flex items-center gap-1.5"><i class="fa fa-calculator"></i>申报成本（本政策专属）</label>
+                            <span class="text-[10px] text-amber-600">成本随政策单独维护，未填则使用 cost-config 全局默认值</span>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-500 mb-1 block">申报人力（人·日）</label>
+                                <input type="number" id="costHrDays" placeholder="如 28" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-500 mb-1 block">人力单价（元/日）</label>
+                                <input type="number" id="costHrRate" placeholder="如 800" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-500 mb-1 block">第三方服务费（元）</label>
+                                <input type="number" id="costServiceFee" placeholder="如 50000" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-500 mb-1 block">其他费用（元）</label>
+                                <input type="number" id="costOtherFee" placeholder="如 8000" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-amber-600 mt-2 flex items-center gap-1"><i class="fa fa-info-circle"></i>此处的成本仅用于该政策；若全留空，计算器将回退到全局默认成本配置。</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">状态</label>
+                        <select class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option>启用</option>
+                            <option>停用</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <button onclick="closeEditModal()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-100 transition-all">取消</button>
+                <button onclick="closeEditModal()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-purple-600/20"><i class="fa fa-check mr-1"></i>保存配置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 互斥兼容矩阵弹窗 -->
+    <div id="matrixModal" class="fixed inset-0 modal-mask z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-[20px] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-lg font-black text-slate-800 flex items-center"><i class="fa fa-th text-purple-600 mr-2"></i>互斥 / 兼容关系矩阵</h3>
+                <button onclick="closeMatrixModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 overflow-x-auto flex-1">
+                <p class="text-xs text-slate-500 mb-4"><i class="fa fa-info-circle mr-1 text-purple-400"></i>勾选表示两项政策<b class="text-emerald-600">兼容可叠加</b>，未勾选表示<b class="text-red-500">互斥不可同选</b>。绿色=兼容，红色=互斥。</p>
+                <table class="w-full text-xs border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="p-2"></th>
+                            <th class="p-2 text-slate-500 font-bold text-center">研发加计</th>
+                            <th class="p-2 text-slate-500 font-bold text-center">高企税率</th>
+                            <th class="p-2 text-slate-500 font-bold text-center">立项补贴</th>
+                            <th class="p-2 text-slate-500 font-bold text-center">成果转化</th>
+                            <th class="p-2 text-slate-500 font-bold text-center">专精特新</th>
+                            <th class="p-2 text-slate-500 font-bold text-center">瞪羚</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="p-2 text-slate-500 font-bold text-right whitespace-nowrap">研发加计</td>
+                            <td class="matrix-cell p-1 text-center bg-slate-100 text-slate-300">—</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                        </tr>
+                        <tr><td class="p-2 text-slate-500 font-bold text-right whitespace-nowrap">高企税率</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-slate-100 text-slate-300">—</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                        </tr>
+                        <tr><td class="p-2 text-slate-500 font-bold text-right whitespace-nowrap">立项补贴</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                            <td class="matrix-cell p-1 text-center bg-slate-100 text-slate-300">—</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                        </tr>
+                        <tr><td class="p-2 text-slate-500 font-bold text-right whitespace-nowrap">成果转化</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-slate-100 text-slate-300">—</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                        </tr>
+                        <tr><td class="p-2 text-slate-500 font-bold text-right whitespace-nowrap">专精特新</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-slate-100 text-slate-300">—</td>
+                            <td class="matrix-cell p-1 text-center bg-red-100 text-red-600 border-2 border-red-400 rounded font-black cursor-pointer">互斥</td>
+                        </tr>
+                        <tr><td class="p-2 text-slate-500 font-bold text-right whitespace-nowrap">瞪羚</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                            <td class="matrix-cell p-1 text-center bg-emerald-50 text-emerald-600 border border-emerald-200 rounded cursor-pointer">✓</td>
+                            <td class="matrix-cell p-1 text-center bg-red-50 text-red-400 border border-red-100 rounded cursor-pointer">✗</td>
+                            <td class="matrix-cell p-1 text-center bg-red-100 text-red-600 border-2 border-red-400 rounded font-black cursor-pointer">互斥</td>
+                            <td class="matrix-cell p-1 text-center bg-slate-100 text-slate-300">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <button onclick="closeMatrixModal()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-100 transition-all">关闭</button>
+                <button onclick="closeMatrixModal()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all"><i class="fa fa-check mr-1"></i>保存矩阵</button>
+            </div>
+        </div>
+    </div>
+
+<script src="data-bridge.js"></script>
+<script>
+    // 公式变量库（计算器可解析执行）
+    const FORMULA_VARS = {
+        'rdInvest':     { label: '研发投入',       unit: '万元' },
+        'revenue':      { label: '年度营业收入',    unit: '万元' },
+        'profit':       { label: '年度净利润',     unit: '万元' },
+        'netAssets':    { label: '净资产',         unit: '万元' },
+        'employees':    { label: '员工人数',       unit: '人'  },
+        'taxRate':      { label: '企业所得税率',   unit: '%'    },
+        'rdRatio':      { label: '研发费用占比',   unit: '%'    }
+    };
+    const FORMULA_OPS = ['×', '+', '-', '×(1-)', '×(', ')', '/', 'min', 'max'];
+
+    // ========== 政策库联动：政策名称下拉 + 兼容政策动态生成 ==========
+    let POLICY_LIBRARY_CACHE = [];
+    // 当前编辑政策的兼容列表（ID 数组），用于回显
+    let CURRENT_COMPAT = [];
+
+    // 加载政策库到下拉
+    function loadPolicyLibraryToSelect(selectedId) {
+        const sel = document.getElementById('policyNameSelect');
+        if (!sel) return;
+        POLICY_LIBRARY_CACHE = (typeof DataBridge !== 'undefined')
+            ? DataBridge.loadPolicyLibrary()
+            : [];
+        sel.innerHTML = '<option value="">请选择政策</option>';
+        POLICY_LIBRARY_CACHE.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name + '（' + (p.dept || '-') + '）';
+            if (p.id === selectedId) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    }
+
+    // 根据当前政策 ID 渲染兼容政策标签（排除自身）
+    function renderCompatList(currentPolicyId, compatibleIds) {
+        const box = document.getElementById('compatList');
+        if (!box) return;
+        box.innerHTML = '';
+        const candidates = POLICY_LIBRARY_CACHE.filter(p => p.id !== currentPolicyId);
+        if (candidates.length === 0) {
+            box.innerHTML = '<span class="text-xs text-slate-400 self-center">政策库无其他政策</span>';
+            return;
+        }
+        const checked = Array.isArray(compatibleIds) ? compatibleIds : [];
+        candidates.forEach(p => {
+            const isChecked = checked.includes(p.id);
+            const lbl = document.createElement('label');
+            lbl.className = 'px-3 py-1.5 text-xs rounded-lg border cursor-pointer flex items-center transition-all ' +
+                (isChecked ? 'bg-purple-50 text-purple-600 border-purple-200' : 'bg-slate-100 text-slate-500 border-slate-200');
+            lbl.innerHTML = '<input type="checkbox" class="hidden" value="' + p.id + '"' + (isChecked ? ' checked' : '') + '>' +
+                '<i class="fa ' + (isChecked ? 'fa-check-square-o' : 'fa-square-o') + ' mr-1"></i>' + p.name;
+            lbl.addEventListener('click', function() {
+                const cb = this.querySelector('input');
+                cb.checked = !cb.checked;
+                if (cb.checked) {
+                    this.className = 'px-3 py-1.5 text-xs rounded-lg border cursor-pointer flex items-center transition-all bg-purple-50 text-purple-600 border-purple-200';
+                    this.querySelector('i').className = 'fa fa-check-square-o mr-1';
+                } else {
+                    this.className = 'px-3 py-1.5 text-xs rounded-lg border cursor-pointer flex items-center transition-all bg-slate-100 text-slate-500 border-slate-200';
+                    this.querySelector('i').className = 'fa fa-square-o mr-1';
+                }
+            });
+            box.appendChild(lbl);
+        });
+    }
+
+    // 政策名称下拉变更 → 联动渲染兼容政策
+    document.addEventListener('DOMContentLoaded', function() {
+        const sel = document.getElementById('policyNameSelect');
+        if (sel) {
+            sel.addEventListener('change', function() {
+                renderCompatList(this.value, []);
+            });
+        }
+        // 初始加载政策库到下拉
+        loadPolicyLibraryToSelect('');
+    });
+
+    // 添加一个公式项：变量/运算符/系数 三选一
+    function addFormulaItem(data) {
+        data = data || {};
+        const list = document.getElementById('formulaList');
+        const row = document.createElement('div');
+        row.className = 'formula-row flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-2';
+
+        // 类型切换：变量 / 运算符 / 系数
+        const typeSel = document.createElement('select');
+        typeSel.className = 'f-type w-24 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-400';
+        typeSel.innerHTML = '<option value="var">变量</option><option value="op">运算符</option><option value="num">系数</option>';
+        typeSel.onchange = () => renderFormulaItem(row, typeSel.value, data);
+
+        // 值容器
+        const valueWrap = document.createElement('div');
+        valueWrap.className = 'f-value flex-1';
+
+        // 删除
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'w-7 h-7 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all';
+        delBtn.innerHTML = '<i class="fa fa-times"></i>';
+        delBtn.onclick = () => { row.remove(); updateFormulaPreview(); };
+
+        row.appendChild(typeSel);
+        row.appendChild(valueWrap);
+        row.appendChild(delBtn);
+        list.appendChild(row);
+
+        // 默认渲染
+        const initType = data.type || (data.var ? 'var' : (data.op ? 'op' : 'num'));
+        typeSel.value = initType;
+        renderFormulaItem(row, initType, data);
+    }
+
+    // 渲染公式项的值输入控件
+    function renderFormulaItem(row, type, data) {
+        const wrap = row.querySelector('.f-value');
+        wrap.innerHTML = '';
+
+        if (type === 'var') {
+            const sel = document.createElement('select');
+            sel.className = 'f-var w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-400';
+            Object.keys(FORMULA_VARS).forEach(k => {
+                const opt = document.createElement('option');
+                opt.value = k;
+                opt.textContent = FORMULA_VARS[k].label + ' (' + FORMULA_VARS[k].unit + ')';
+                if (data.var === k) opt.selected = true;
+                sel.appendChild(opt);
+            });
+            sel.onchange = updateFormulaPreview;
+            wrap.appendChild(sel);
+        } else if (type === 'op') {
+            const sel = document.createElement('select');
+            sel.className = 'f-op w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-center focus:outline-none focus:ring-2 focus:ring-purple-400';
+            FORMULA_OPS.forEach(op => {
+                const opt = document.createElement('option');
+                opt.value = op; opt.textContent = op;
+                if (data.op === op) opt.selected = true;
+                sel.appendChild(opt);
+            });
+            sel.onchange = updateFormulaPreview;
+            wrap.appendChild(sel);
+        } else {
+            const inp = document.createElement('input');
+            inp.type = 'number';
+            inp.step = '0.01';
+            inp.className = 'f-num w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-400';
+            inp.placeholder = '如 100, 25, 0.2';
+            if (data.num !== undefined) inp.value = data.num;
+            inp.oninput = updateFormulaPreview;
+            wrap.appendChild(inp);
+        }
+        updateFormulaPreview();
+    }
+
+    // 公式预览（拼接成可读字符串）
+    function updateFormulaPreview() {
+        const rows = document.querySelectorAll('.formula-row');
+        const parts = [];
+        rows.forEach(r => {
+            const type = r.querySelector('.f-type')?.value;
+            if (type === 'var') {
+                const v = r.querySelector('.f-var')?.value;
+                parts.push(v ? FORMULA_VARS[v].label : '?');
+            } else if (type === 'op') {
+                parts.push(r.querySelector('.f-op')?.value || '?');
+            } else {
+                parts.push(r.querySelector('.f-num')?.value || '0');
+            }
+        });
+        const preview = parts.length ? parts.join(' ') : '—';
+        const previewEl = document.getElementById('formulaPreview');
+        if (previewEl) previewEl.textContent = preview;
+    }
+
+    // 初始化默认公式：研发投入 × 100% × 25%税率
+    function initDefaultFormula() {
+        const list = document.getElementById('formulaList');
+        if (!list) return;
+        list.innerHTML = '';
+        addFormulaItem({ type: 'var', var: 'rdInvest' });
+        addFormulaItem({ type: 'op',  op: '×' });
+        addFormulaItem({ type: 'num', num: 100 });
+        addFormulaItem({ type: 'op',  op: '×' });
+        addFormulaItem({ type: 'num', num: 25 });
+        updateFormulaPreview();
+    }
+
+    function openEditModal() {
+        const m = document.getElementById('editModal');
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+        initDefaultFormula();
+    }
+    function closeEditModal() {
+        const m = document.getElementById('editModal');
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+        // 编辑保存后刷新同步状态条（提示用户重新下发）
+        updateSyncStatus();
+    }
+    function openMatrixModal() {
+        const m = document.getElementById('matrixModal');
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+    }
+    function closeMatrixModal() {
+        const m = document.getElementById('matrixModal');
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+    }
+
+    // ========== 数据桥接：同步状态与下发 ==========
+
+    // 兼容政策名称 → POLICY_DB ID 映射
+    const COMPAT_MAP = {
+        '高企': 'GAOXIN', '高新技术企业': 'GAOXIN',
+        '研发加计': 'R&D_JJ', '研发': 'R&D_JJ',
+        '立项补贴': 'LIXIANG_ZJ', '研发项目立项补贴': 'LIXIANG_ZJ',
+        '成果转化': 'CGZH', '科技成果转化补贴': 'CGZH',
+        '专精特新': 'ZHUANJIN', '专精特新奖励': 'ZHUANJIN',
+        '瞪羚': 'DENGLING', '瞪羚认定': 'DENGLING'
+    };
+
+    function parseCompatible(text) {
+        const result = [];
+        (text || '').split(/\s*[\/、,，]\s*/).forEach(p => {
+            p = p.trim();
+            if (COMPAT_MAP[p]) result.push(COMPAT_MAP[p]);
+        });
+        return result;
+    }
+
+    /** 从表格 DOM 中收集6行政策数据，构建为 POLICY_DB 格式数组 */
+    function collectPolicyDB() {
+        const rows = document.querySelectorAll('table tbody tr');
+        const db = [];
+        rows.forEach(row => {
+            const cells = row.children;
+            const id = cells[0].querySelector('code').textContent.trim();
+            const divs = cells[1].querySelectorAll('div');
+            const name = divs[0] ? divs[0].textContent.trim() : '';
+            const desc = divs[1] ? divs[1].textContent.trim() : '';
+            const type = cells[2].querySelector('span').textContent.trim();
+            const amountText = (cells[3].textContent || '').replace(/[¥,，万\s]/g, '');
+            const amount = parseFloat(amountText) || 0;
+            const monthsText = cells[4].textContent.trim();
+            const monthsMatch = monthsText.match(/(\d+)\s*-\s*(\d+)/);
+            const months = monthsMatch ? [parseInt(monthsMatch[1], 10), parseInt(monthsMatch[2], 10)] : [6, 9];
+            const mutexText = cells[5].textContent.trim();
+            const mutex = (!mutexText || mutexText === '—') ? null : mutexText;
+            const compatible = parseCompatible(cells[6].textContent.trim());
+            const cat = type === '税收减免' ? 'tax' : (type === '项目补贴' ? 'subsidy' : 'reward');
+            const badgeColor = cat === 'tax' ? 'emerald' : (cat === 'subsidy' ? 'blue' : 'indigo');
+            db.push({ id, name, type, cat, amount, months, mutex, badgeColor, desc, compatible });
+        });
+        return db;
+    }
+
+    /** 下发政策收益模型到 localStorage */
+    function deployToCalculator() {
+        const db = collectPolicyDB();
+        if (!db || db.length === 0) {
+            showToast('未收集到任何政策数据', true);
+            return;
+        }
+        const ok = DataBridge.savePolicyDB(db);
+        if (ok) {
+            showToast('✓ 配置已下发到政策计算器，前端刷新后生效');
+            updateSyncStatus();
+        } else {
+            showToast('下发失败，请检查浏览器 localStorage 权限', true);
+        }
+    }
+
+    /** 更新同步状态条 */
+    function updateSyncStatus() {
+        const status = DataBridge.getSyncStatus();
+        const bar = document.getElementById('syncStatus');
+        const icon = document.getElementById('syncStatusIcon');
+        const text = document.getElementById('syncStatusText');
+        if (status.policyModel) {
+            bar.className = 'mb-6 p-3 rounded-xl border flex items-center space-x-2 text-sm bg-green-50 border-green-200';
+            icon.className = 'fa fa-check-circle text-green-600';
+            text.className = 'font-bold text-green-700';
+            text.textContent = '✓ 已下发配置到计算器';
+        } else {
+            bar.className = 'mb-6 p-3 rounded-xl border flex items-center space-x-2 text-sm bg-amber-50 border-amber-200';
+            icon.className = 'fa fa-exclamation-triangle text-amber-500';
+            text.className = 'font-bold text-amber-700';
+            text.textContent = '⚠ 尚未下发，前端使用默认配置';
+        }
+    }
+
+    /** 显示 toast 提示（3秒后自动消失） */
+    function showToast(msg, isError) {
+        let toast = document.getElementById('toastDiv');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'toastDiv';
+            toast.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:bold;box-shadow:0 8px 24px -6px rgba(0,0,0,0.18);';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = msg;
+        if (isError) {
+            toast.style.background = '#fef2f2';
+            toast.style.color = '#b91c1c';
+            toast.style.border = '1px solid #fecaca';
+        } else {
+            toast.style.background = '#ecfdf5';
+            toast.style.color = '#047857';
+            toast.style.border = '1px solid #a7f3d0';
+        }
+        toast.style.display = 'block';
+        clearTimeout(window.__toastTimer);
+        window.__toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    // 页面加载时初始化同步状态
+    (function initSyncStatus() {
+        if (typeof DataBridge !== 'undefined') updateSyncStatus();
+    })();
+</script>
+</body>
+</html>

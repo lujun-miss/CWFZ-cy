@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策源易答 - 智能政策搜索</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+        .left-sidebar { background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4); }
+        .scroll-thin::-webkit-scrollbar { width: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 3px; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .hot-chip { cursor: pointer; transition: all .15s ease; }
+        .hot-chip:hover { border-color: #6366f1; color: #4f46e5; background: #eef2ff; transform: translateY(-1px); }
+        .policy-card { transition: all .25s ease; cursor: pointer; }
+        .policy-card:hover { transform: translateY(-3px); box-shadow: 0 14px 28px -12px rgba(79,70,229,.25); border-color: #818cf8; }
+        .search-input:focus { outline: none; }
+        .search-box:focus-within { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,.12), 0 20px 40px -16px rgba(79,70,229,.25); }
+        /* 打字机光标 */
+        .typing-cursor { display: inline-block; width: 8px; height: 15px; background: #6366f1; vertical-align: -2px; animation: blink .8s infinite; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+        /* 历史抽屉 */
+        #historyDrawer { transition: transform .28s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fadeUp .35s ease both; }
+        /* ===== Hero 科技感 ===== */
+        .hero-title { background: linear-gradient(100deg, #1e293b 25%, #4f46e5 48%, #9333ea 55%, #1e293b 80%); background-size: 220% auto; -webkit-background-clip: text; background-clip: text; color: transparent; animation: heroSheen 5s linear infinite; }
+        @keyframes heroSheen { 0% { background-position: 0% center; } 100% { background-position: 220% center; } }
+        .hero-pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: #6366f1; display: inline-block; animation: heroDot 1.6s ease-in-out infinite; }
+        @keyframes heroDot { 0% { box-shadow: 0 0 0 0 rgba(99,102,241,.5); } 70% { box-shadow: 0 0 0 7px rgba(99,102,241,0); } 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); } }
+        .hero-border-flow { padding: 2px; border-radius: 18px; background: linear-gradient(100deg, #6366f1, #a855f7, #22d3ee, #6366f1); background-size: 300% 100%; animation: borderFlow 5s linear infinite; box-shadow: 0 18px 38px -16px rgba(79,70,229,.35); }
+        @keyframes borderFlow { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
+        .hero-corner { position: absolute; width: 18px; height: 18px; pointer-events: none; opacity: .8; }
+        .hero-scanline { position: absolute; left: 6%; right: 6%; top: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(99,102,241,.45), transparent); animation: scanMove 5s ease-in-out infinite; }
+        @keyframes scanMove { 0% { top: 2%; opacity: 0; } 15% { opacity: .7; } 50% { top: 94%; } 85%, 100% { opacity: 0; } }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="flex h-screen">
+        <!-- 左侧窄导航 -->
+        <aside class="left-sidebar w-20 flex-shrink-0 flex flex-col items-center" style="background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4);">
+            <div class="w-full pt-4 pb-3 border-b border-white/30 flex flex-col items-center">
+                <div style="position:relative;width:62px;height:28px;"><svg style="position:absolute;top:0;left:0;" width="62" height="14" viewBox="0 0 62 14"><path d="M3 13 C 18 1, 44 -1, 59 7" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round"/></svg><div style="position:absolute;top:5px;left:0;width:62px;text-align:center;font-size:17px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#1d4ed8;font-family:Arial,sans-serif;">ELHP</div></div><div class="text-[10px] font-black text-slate-800" style="margin-top:2px;">策源易答</div>
+            </div>
+            <div class="w-full pt-3 pb-3 flex flex-col items-center gap-1.5">
+                <button onclick="goPage('dashboard.html')" class="flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="智能政策搜索">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center" style="background:#6366f1;"><i class="fa fa-comments text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold" style="color:#4f46e5;">政策问答</span>
+                </button>
+                <button onclick="goPage('policy-radar.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策雷达</span>
+                </button>
+                <button onclick="goPage('ability-diagnosis.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="科创能力评估">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-stethoscope text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">科创测评</span>
+                </button>
+                <button onclick="goPage('declaration-butler.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="申报材料自查">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-file-text-o text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">申报管家</span>
+                </button>
+                <button onclick="goPage('policy-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
+                <button onclick="goPage('service-market.html')" class="flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold text-orange-600">服务商城</span>
+                </button>
+            </div>
+            <div class="mt-auto w-full pt-2 pb-3 border-t border-white/30 flex flex-col items-center gap-1.5">
+                <button onclick="goPage('member-center.html?action=plan')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="策能值充值">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-amber-400 to-orange-500"><i class="fa fa-bolt text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold">充值中心</span>
+                </button>
+                <button onclick="goPage('member-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="会员中心">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-user text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">会员中心</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto scroll-thin" style="background: linear-gradient(135deg, #eef2ff 0%, #e0f2fe 50%, #f5f3ff 100%);">
+            <!-- 顶栏 -->
+            <div class="sticky top-0 z-10 flex items-center justify-between px-6 py-3 bg-white/60 backdrop-blur-md border-b border-white/50">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-md">
+                        <i class="fa fa-bolt text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-black text-slate-800 leading-tight">策源易答</h1>
+                        <p class="text-[11px] text-slate-500">AI 政策智能搜索 · 打开即有答案</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleCityPanel()" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all" title="切换城市，查看当地政策">
+                        <i class="fa fa-map-marker mr-1"></i><span id="cityLabel">成都市</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
+                    </button>
+                    <div class="relative group">
+                        <button onclick="goPage('member-center.html')" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all flex items-center gap-1.5">
+                            <i class="fa fa-user-circle mr-1"></i><span id="userLabel">未登录</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
+                        </button>
+                        <div class="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                            <div class="px-4 py-3 border-b border-slate-100">
+                                <div id="ddUserName" class="text-xs font-bold text-slate-700">未登录</div>
+                                <div id="ddUserPhone" class="text-[10px] text-slate-400 mt-0.5">—</div>
+                            </div>
+                            <button onclick="goPage('member-center.html')" class="w-full px-4 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50 flex items-center gap-2">
+                                <i class="fa fa-user w-3.5"></i>会员中心
+                            </button>
+                            <button onclick="logout()" class="w-full px-4 py-2.5 text-left text-xs text-red-500 hover:bg-red-50 flex items-center gap-2">
+                                <i class="fa fa-sign-out w-3.5"></i>退出登录
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero 搜索区 -->
+            <div class="mx-auto px-6 pt-6 pb-4 relative" id="heroSection" style="overflow:visible;max-width:1400px;">
+                <!-- 顶部呼吸灯 + 扫描线 -->
+                <div class="flex items-center justify-center gap-1.5 mb-2">
+                    <span class="hero-pulse-dot"></span><span class="hero-pulse-dot" style="animation-delay:.2s"></span><span class="hero-pulse-dot" style="animation-delay:.4s"></span>
+                    <span class="text-[11px] font-bold tracking-widest ml-2" style="color:#6366f1;">ELHP · AI 政策引擎</span>
+                </div>
+                <div class="text-center mb-3">
+                    <h2 class="text-2xl font-black tracking-tight hero-title">问政策，一搜就有答案</h2>
+                    <p class="text-sm text-slate-500 mt-1.5">基于海量政策数据与企业画像的 AI 引擎，直接给出结论、依据与可申报入口</p>
+                </div>
+                <!-- 流光边框搜索框 -->
+                <div class="hero-border-flow">
+                    <div class="relative overflow-hidden bg-white rounded-2xl shadow-inner" style="padding:10px 14px;">
+                        <!-- L 角标 -->
+                        <div class="hero-corner" style="top:8px;left:8px;border-top:2px solid #6366f1;border-left:2px solid #6366f1;"></div>
+                        <div class="hero-corner" style="top:8px;right:8px;border-top:2px solid #a855f7;border-right:2px solid #a855f7;"></div>
+                        <div class="hero-corner" style="bottom:8px;left:8px;border-bottom:2px solid #22d3ee;border-left:2px solid #22d3ee;"></div>
+                        <div class="hero-corner" style="bottom:8px;right:8px;border-bottom:2px solid #6366f1;border-right:2px solid #6366f1;"></div>
+                        <!-- 扫描线 -->
+                        <div class="hero-scanline"></div>
+                        <div class="flex items-center" style="position:relative;z-index:2;">
+                            <i class="fa fa-search text-indigo-400 text-base mr-3" style="margin-left:6px;"></i>
+                            <input id="searchInput" type="text" class="search-input flex-1 py-2.5 text-sm text-slate-700 bg-transparent" placeholder="输入您的政策问题，如：高新技术企业认定需要什么条件？"
+                                onkeydown="if(event.key==='Enter')doSearch()">
+                            <button onclick="toggleHistory()" title="历史搜索" style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;margin-left:10px;border-radius:12px;background:#f1f5f9;color:#94a3b8;font-size:13px;transition:all .15s;cursor:pointer;" onmouseover="this.style.background='#eef2ff';this.style.color='#4f46e5';" onmouseout="this.style.background='#f1f5f9';this.style.color='#94a3b8';">
+                                <i class="fa fa-history"></i>
+                            </button>
+                            <button onclick="doSearch()" class="ml-3 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90 transition-all flex-shrink-0">
+                                <i class="fa fa-magic mr-1"></i>智能搜索
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative flex items-center justify-center gap-2 mt-3">
+                    <div class="flex items-center justify-center gap-2 flex-wrap" id="hotChips"></div>
+                    <button onclick="toggleHotRule(event)" class="w-4 h-4 flex-shrink-0 rounded-full border border-slate-300 text-slate-400 text-[10px] leading-none flex items-center justify-center hover:border-indigo-400 hover:text-indigo-500 transition-all" title="查看热搜展示规则">?</button>
+                    <!-- 热搜规则浮层 -->
+                    <div id="hotRulePop" class="hidden absolute left-1/2 -translate-x-1/2 top-7 z-20 w-[280px] bg-white rounded-xl border border-slate-200 shadow-xl p-3 text-left">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-black text-slate-700"><i class="fa fa-info-circle text-indigo-500 mr-1"></i>热搜展示规则</span>
+                            <button onclick="toggleHotRule()" class="text-slate-400 hover:text-slate-600 text-[11px]"><i class="fa fa-times"></i></button>
+                        </div>
+                        <div class="space-y-1.5 text-[10px] text-slate-500 leading-relaxed">
+                            <div><b class="text-slate-700">数据来源</b> · 后台「内容运营 · 热搜配置」</div>
+                            <div><b class="text-slate-700">展示数量</b> · 首页最多 6 条</div>
+                            <div><b class="text-slate-700">排序规则</b> · 手动置顶词优先，其余按近 7 天搜索热度自动补位</div>
+                            <div><b class="text-slate-700">更新频率</b> · 每日按热度重算，热度下降的词自动淘汰</div>
+                            <div><b class="text-slate-700">点击行为</b> · 点击后直接带入该词发起搜索</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 布局：上排 政策快讯（宽列）+ 申报日历；底部 热门服务通栏 -->
+            <div id="defaultSection" class="mx-auto px-6 pb-4 flex flex-col gap-4" style="max-width:1400px;">
+                <div class="flex gap-4 items-stretch">
+                    <!-- 左：政策快讯 -->
+                    <div class="flex-1" style="min-width:0;">
+                        <div class="relative bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-4 h-full flex flex-col">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-xs font-black text-slate-800"><i class="fa fa-newspaper-o text-blue-500 mr-1"></i>政策快讯</h3>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="toggleNewsRule(event)" class="w-4 h-4 rounded-full border border-slate-300 text-slate-400 text-[10px] leading-none flex items-center justify-center hover:border-indigo-400 hover:text-indigo-500 transition-all" title="查看快讯展示规则">?</button>
+                                    <button onclick="goPage('policy-center.html')" class="text-[10px] text-indigo-500 font-bold">进入政策中心 <i class="fa fa-angle-right"></i></button>
+                                </div>
+                            </div>
+                            <div id="newsBody" class="flex-1"></div>
+                            <!-- 快讯规则浮层 -->
+                            <div id="newsRulePop" class="hidden absolute right-3 top-10 z-20 w-[290px] bg-white rounded-xl border border-slate-200 shadow-xl p-3">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-[11px] font-black text-slate-700"><i class="fa fa-info-circle text-indigo-500 mr-1"></i>快讯展示规则</span>
+                                    <button onclick="toggleNewsRule()" class="text-slate-400 hover:text-slate-600 text-[11px]"><i class="fa fa-times"></i></button>
+                                </div>
+                                <div class="space-y-1.5 text-[10px] text-slate-500 leading-relaxed">
+                                    <div><b class="text-slate-700">展示数量</b> · 首页最多 6 条，按发布时间倒序排列</div>
+                                    <div><b class="text-slate-700">时效范围</b> · 仅收录近 30 天内容</div>
+                                    <div><b class="text-slate-700">地区优先</b> · 当前所选城市的省市级政策优先展示</div>
+                                    <div><b class="text-slate-700">类型均衡</b> · 同一类型连续不超过 2 条，避免单一类型占满</div>
+                                    <div><b class="text-slate-700">内容来源</b> · 政策库模块</div>
+                                </div>
+                                <div class="mt-2 pt-2 border-t border-slate-100 text-[9px] text-slate-400">完整列表与分类筛选请进入政策中心</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 右：申报日历 -->
+                    <div class="w-[340px] flex-shrink-0">
+                        <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-4 h-full flex flex-col">
+                            <h3 class="text-xs font-black text-slate-800 mb-2"><i class="fa fa-calendar text-emerald-500 mr-1"></i>申报日历</h3>
+                            <div id="calendarBody" class="flex-1"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 底部：热门服务（通栏横向卡片） -->
+                <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-xs font-black text-slate-800"><i class="fa fa-star text-amber-500 mr-1"></i>热门服务</h3>
+                        <button onclick="goPage('service-market.html')" class="text-[10px] text-indigo-500 font-bold">全部 <i class="fa fa-angle-right"></i></button>
+                    </div>
+                    <div id="serviceBody" class="grid grid-cols-4 gap-3"></div>
+                </div>
+            </div>
+
+            <!-- 页脚：仅服务热线 -->
+            <div class="mx-auto px-6 pb-3" style="max-width:1400px;">
+                <div class="border-t border-white/60 pt-3 text-center">
+                    <i class="fa fa-headphones text-slate-400 text-xs mr-1"></i>
+                    <span class="text-[11px] text-slate-400">服务热线</span>
+                    <span class="text-sm font-black text-slate-700 mx-1 tracking-wide">400-1787170</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 城市切换弹窗 -->
+    <div id="cityMask" class="hidden fixed inset-0 z-50 bg-slate-900/40 flex items-start justify-center" onclick="if(event.target===this)toggleCityPanel()">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 animate-fade-up" style="margin-top:64px;width:760px;max-width:92vw;max-height:80vh;display:flex;flex-direction:column;">
+            <div class="p-5 pb-3 flex items-center justify-between border-b border-slate-100">
+                <h3 class="text-sm font-black text-slate-800"><i class="fa fa-map-marker text-indigo-500 mr-1"></i>切换城市</h3>
+                <button onclick="toggleCityPanel()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa fa-times text-xs"></i></button>
+            </div>
+            <div class="p-5 pt-4 overflow-y-auto scroll-thin">
+                <div class="text-xs font-bold text-slate-500 mb-2">城市搜索</div>
+                <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 mb-5">
+                    <i class="fa fa-search text-slate-300 text-xs mr-2"></i>
+                    <input id="citySearch" type="text" class="flex-1 text-xs text-slate-700 bg-transparent" style="outline:none;" placeholder="输入城市名，如：成都 / 杭州 / 深圳" oninput="renderCitySearch()">
+                </div>
+                <div id="citySearchResult" class="hidden mb-5"></div>
+                <div id="cityBrowseWrap">
+                    <div class="text-xs font-bold text-slate-500 mb-2">热门城市</div>
+                    <div class="grid gap-2 mb-5" style="grid-template-columns:repeat(6,1fr);" id="hotCityGrid"></div>
+                    <div class="text-xs font-bold text-slate-500 mb-2">按省份选择</div>
+                    <div id="provCityList" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 政策月历弹窗：点击申报日历日期后弹出（大图月历 + 当日事项清单） -->
+    <div id="calMask" class="hidden fixed inset-0 z-50 bg-slate-900/40 flex items-start justify-center" onclick="if(event.target===this)closeCalModal()">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 animate-fade-up" style="margin-top:56px;width:680px;max-width:94vw;max-height:82vh;display:flex;flex-direction:column;">
+            <!-- 头部：标题 + 年月切换 -->
+            <div class="p-5 pb-3 flex items-center justify-between border-b border-slate-100">
+                <div>
+                    <h3 class="text-sm font-black text-slate-800"><i class="fa fa-calendar text-indigo-500 mr-1.5"></i>政策月历</h3>
+                    <p id="calModalTitle" class="text-[10px] text-slate-400 mt-0.5"></p>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="calShiftMonth(-1)" class="w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-500 text-xs"><i class="fa fa-chevron-left"></i></button>
+                    <span id="calModalMonth" class="text-xs font-black text-slate-700 px-1" style="min-width:76px;text-align:center;"></span>
+                    <button onclick="calShiftMonth(1)" class="w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-500 text-xs"><i class="fa fa-chevron-right"></i></button>
+                    <button id="calTodayBtn" onclick="calBackToday()" class="ml-1 px-2.5 h-7 rounded-lg border border-indigo-200 text-indigo-500 hover:bg-indigo-50 text-[11px] font-bold">今天</button>
+                    <button onclick="closeCalModal()" class="ml-2 w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa fa-times text-xs"></i></button>
+                </div>
+            </div>
+            <div class="p-5 pt-4 overflow-y-auto scroll-thin">
+                <!-- 大图月历 -->
+                <div id="calModalGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+                <!-- 当日事项清单 -->
+                <div id="calModalList" class="mt-4 pt-4 border-t border-slate-100"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 历史搜索抽屉 -->
+    <div id="historyMask" class="hidden fixed inset-0 z-50 bg-slate-900/40" onclick="if(event.target===this)toggleHistory()">
+        <div id="historyDrawer" class="absolute right-0 top-0 h-full w-80 bg-white shadow-2xl translate-x-full flex flex-col">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-sm font-black text-slate-800"><i class="fa fa-clock-o text-indigo-500 mr-2"></i>历史搜索</h3>
+                <div class="flex items-center gap-2">
+                    <button onclick="clearHistory()" class="text-[11px] text-slate-400 hover:text-red-500 font-bold">清空</button>
+                    <button onclick="toggleHistory()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa fa-times text-xs"></i></button>
+                </div>
+            </div>
+            <div id="historyList" class="flex-1 overflow-y-auto scroll-thin p-3 space-y-2"></div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js"></script>
+    <script>
+        function goPage(url) {
+            try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage(url, null); return; } } catch (e) {}
+            window.location.href = url;
+        }
+        function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        // ===== 登录用户信息 =====
+        function loadLoginUser() {
+            try {
+                var d = JSON.parse(localStorage.getItem('ceyuan_member_profile') || 'null');
+                if (d && d.phone) return d;
+            } catch (e) {}
+            return null;
+        }
+        function logout() {
+            if (!confirm('确定退出当前账号吗？')) return;
+            try { localStorage.removeItem('ceyuan_member_profile'); } catch (e) {}
+            showToast('已退出登录，正在跳转登录页');
+            setTimeout(function(){ goPage('login.html'); }, 800);
+        }
+        function renderUserInfo() {
+            var u = loadLoginUser();
+            var label = document.getElementById('userLabel');
+            var ddName = document.getElementById('ddUserName');
+            var ddPhone = document.getElementById('ddUserPhone');
+            if (u) {
+                var name = u.contact || u.company || u.phone;
+                label.textContent = name.length > 6 ? name.slice(0, 6) + '…' : name;
+                ddName.textContent = name;
+                ddPhone.textContent = u.phone;
+            } else {
+                label.textContent = '未登录';
+                ddName.textContent = '未登录';
+                ddPhone.textContent = '—';
+            }
+        }
+        renderUserInfo();
+
+        var POLICIES = DataBridge.loadPolicyLibrary();
+        var LEVEL_STYLE = {
+            '国家级': { bg:'#eef2ff', color:'#4f46e5' },
+            '省级':   { bg:'#eff6ff', color:'#2563eb' },
+            '市级':   { bg:'#f0fdfa', color:'#0d9488' },
+            '区县级': { bg:'#fffbeb', color:'#d97706' }
+        };
+        var HOT_QUESTIONS = [
+            '高新技术企业认定需要什么条件？',
+            '专精特新企业有哪些补贴政策？',
+            '研发费用加计扣除怎么计算？',
+            '成都有哪些区级研发补贴？',
+            '知识产权贯标有什么资助？',
+            '技术改造项目能申请什么补贴？'
+        ];
+
+        function regionText(p) {
+            if (!p.region || p.region.province === '全国') return '全国通用';
+            return [p.region.province, p.region.city, p.region.district].filter(Boolean).join(' · ');
+        }
+        // ===== 左栏：政策快讯 =====
+        var NEWS = [
+            { tag:'政策发布', color:'#4f46e5', bg:'#eef2ff', title:'四川省科技厅发布 2026 年度高新技术企业认定工作通知', desc:'明确申报条件、材料清单与时间节点，第一批 9 月 30 日截止网上申报', date:'2026-09-25' },
+            { tag:'申报通知', color:'#059669', bg:'#ecfdf5', title:'2026 年第一批高新技术企业认定申报已进入尾声，9 月 30 日截止', desc:'请企业尽快完成网上填报与纸质材料报送，逾期将转入下一批次', date:'2026-09-22' },
+            { tag:'公示公告', color:'#d97706', bg:'#fffbeb', title:'成都市高新区研发项目立项补贴拟立项名单公示（第一批）', desc:'共 86 个项目进入拟立项名单，公示期 5 个工作日，接受社会监督', date:'2026-09-19' },
+            { tag:'政策解读', color:'#2563eb', bg:'#eff6ff', title:'研发费用加计扣除比例提升至 120%？一文读懂新政变化', desc:'解读新政适用范围、归集口径与留存备查资料，附申报操作指引', date:'2026-09-15' },
+            { tag:'申报通知', color:'#059669', bg:'#ecfdf5', title:'绵阳市 2026 年度瞪羚企业认定申报通道开启', desc:'面向高成长科技型企业，入选可获最高 50 万元一次性奖励', date:'2026-09-10' },
+            { tag:'政策发布', color:'#4f46e5', bg:'#eef2ff', title:'工信部印发新一轮专精特新「小巨人」企业培育行动方案', desc:'提出梯度培育、数字化赋能、融资支持等八大举措', date:'2026-09-05' }
+        ];
+        function renderNews() {
+            document.getElementById('newsBody').innerHTML = NEWS.map(function(n) {
+                return '<div class="flex items-start gap-2.5 px-2 py-2 rounded-xl hover:bg-slate-50 cursor-pointer transition-all" onclick="goPage(\'policy-center.html\')">' +
+                    '<span class="text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0" style="color:' + n.color + ';background:' + n.bg + ';margin-top:1px;">' + n.tag + '</span>' +
+                    '<div class="flex-1" style="min-width:0;">' +
+                        '<div class="text-[11px] font-bold text-slate-700 truncate">' + n.title + '</div>' +
+                        '<div class="text-[10px] text-slate-400 truncate mt-0.5">' + n.desc + '</div>' +
+                    '</div>' +
+                    '<span class="text-[10px] text-slate-400 flex-shrink-0" style="margin-top:1px;">' + n.date + '</span>' +
+                '</div>';
+            }).join('');
+        }
+
+        /** 快讯规则浮层：点击「?」展开，点击浮层外关闭 */
+        function toggleNewsRule(e) {
+            if (e) e.stopPropagation();
+            var p = document.getElementById('newsRulePop');
+            if (p) p.classList.toggle('hidden');
+        }
+        /** 热搜规则浮层：点击「?」展开，点击浮层外关闭 */
+        function toggleHotRule(e) {
+            if (e) e.stopPropagation();
+            var p = document.getElementById('hotRulePop');
+            if (p) p.classList.toggle('hidden');
+        }
+        document.addEventListener('click', function(e) {
+            ['newsRulePop', 'hotRulePop'].forEach(function(id) {
+                var p = document.getElementById(id);
+                if (!p || p.classList.contains('hidden')) return;
+                if (p.contains(e.target)) return;
+                p.classList.add('hidden');
+            });
+        });
+
+        // ===== 右栏：申报日历 / 热门服务 =====
+        // 申报日历（月历视图：蓝点=批次开始，橙点=截止，今日高亮；附本月截止提醒）
+        // CAL = { y 显示年, m 显示月(0基), d 选中日 }；支持年月左右切换与日期点击弹「政策月历」详情窗
+        var CAL = (function() { var n = new Date(); return { y: n.getFullYear(), m: n.getMonth(), d: n.getDate() }; })();
+        function calPickDay(y, m, d) {
+            if (!d) return;
+            CAL.y = y; CAL.m = m; CAL.d = d;
+            renderCalendar();
+            openCalModal();
+        }
+        function renderRightRail() {
+            renderCalendar();
+            // 热门服务（读取服务商城上架商品，取前4）
+            var svcs = [];
+            try { svcs = (DataBridge.loadServiceProducts() || []).filter(function(s){ return s.status === 'on'; }); } catch (e) {}
+            document.getElementById('serviceBody').innerHTML = svcs.slice(0, 4).map(function(s) {
+                return '<div class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-orange-100 bg-orange-50/50 hover:bg-orange-50 cursor-pointer transition-all" onclick="goPage(\'service-market.html\')">' +
+                    '<div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#f97316,#ef4444);"><i class="fa ' + (s.icon || 'fa-cube') + ' text-white text-xs"></i></div>' +
+                    '<div class="flex-1" style="min-width:0;"><div class="text-[11px] font-bold text-slate-700 truncate">' + s.name + '</div>' +
+                    '<div class="text-[10px] text-orange-600 font-bold truncate">' + (s.price || '面议') + '</div></div>' +
+                    '<i class="fa fa-angle-right text-slate-300 text-[10px]"></i>' +
+                '</div>';
+            }).join('') || '<div class="text-[11px] text-slate-400 py-3 text-center col-span-4">暂无上架服务</div>';
+        }
+
+        /** 申报日历主体（右栏卡片） */
+        function renderCalendar() {
+            var nowD = new Date();
+            var ty = nowD.getFullYear(), tm = nowD.getMonth(), td = nowD.getDate();
+            var cy = CAL.y, cm = CAL.m;
+            var marks = calMarks(cy, cm);
+            var firstW = new Date(cy, cm, 1).getDay();
+            var daysInM = new Date(cy, cm + 1, 0).getDate();
+            var isCurMonth = (cy === ty && cm === tm);
+            var cal = '<div class="flex items-center justify-between mb-1.5">' +
+                '<button onclick="calShiftMonth(-1)" class="w-5 h-5 rounded hover:bg-slate-100 text-slate-400 text-[10px]"><i class="fa fa-chevron-left"></i></button>' +
+                '<span class="text-[11px] font-black text-slate-700">' + cy + '年' + (cm + 1) + '月' + (isCurMonth ? '' : ' <a onclick="calBackToday()" class="text-[9px] text-indigo-500 font-bold cursor-pointer">回今天</a>') + '</span>' +
+                '<button onclick="calShiftMonth(1)" class="w-5 h-5 rounded hover:bg-slate-100 text-slate-400 text-[10px]"><i class="fa fa-chevron-right"></i></button></div>' +
+                '<div class="text-[9px] text-slate-400 mb-1 text-right"><span style="color:#2563eb;">●</span> 开始 <span style="color:#f97316;">●</span> 截止 <span class="text-slate-300">· 点日期看当日事项</span></div>' +
+                '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;">';
+            '日一二三四五六'.split('').forEach(function(w) { cal += '<div class="text-[9px] text-slate-400 font-bold py-0.5">' + w + '</div>'; });
+            for (var wi = 0; wi < firstW; wi++) cal += '<div></div>';
+            for (var d2 = 1; d2 <= daysInM; d2++) {
+                var isToday = isCurMonth && d2 === td;
+                var isSel = (d2 === CAL.d);
+                var hasMark = !!marks[d2];
+                var style = 'font-size:11px;line-height:16px;cursor:pointer;border-radius:6px;';
+                if (isToday && !isSel) style += 'background:#6366f1;color:#fff;font-weight:700;';
+                else if (isSel) style += 'box-shadow:inset 0 0 0 1.5px #6366f1;color:#4f46e5;font-weight:700;background:#eef2ff;';
+                else style += 'color:#475569;' + (hasMark ? 'font-weight:700;' : '');
+                style += 'transition:background .12s;';
+                var dots = (marks[d2] || []).slice(0, 3).map(function(mk) { return '<span style="width:4px;height:4px;border-radius:9999px;background:' + mk.color + ';display:inline-block;margin:0 0.5px;"></span>'; }).join('');
+                cal += '<div onclick="calPickDay(' + cy + ',' + cm + ',' + d2 + ')" class="cal-day" style="' + style + '" onmouseover="if(!this.dataset.sel)this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'\'" data-sel="' + (isSel ? 1 : '') + '" title="' + (hasMark ? marks[d2].map(function(mk){ return mk.label; }).join('；') : '') + '">' + d2 +
+                    '<div style="height:5px;text-align:center;">' + dots + '</div></div>';
+            }
+            cal += '</div>';
+            var monthEnds = [];
+            POLICIES.forEach(function(p) {
+                (p.batches || []).forEach(function(b) {
+                    if (!b.end) return;
+                    var a = String(b.end).split('-');
+                    if (+a[0] === cy && +a[1] - 1 === cm) monthEnds.push({ name: p.name, bname: b.name, day: +a[2], left: +a[2] - (isCurMonth ? td : -99) });
+                });
+            });
+            monthEnds.sort(function(a, b) { return a.day - b.day; });
+            if (monthEnds.length) {
+                cal += '<div class="mt-2 pt-2 border-t border-slate-100">' + monthEnds.slice(0, 3).map(function(it) {
+                    var urgent = it.left >= 0 && it.left <= 7;
+                    return '<div class="flex items-center gap-2 py-1" style="cursor:pointer" onclick="calPickDay(' + cy + ',' + cm + ',' + it.day + ')"><i class="fa fa-bell-o text-[10px] ' + (urgent ? 'text-red-500' : 'text-slate-300') + '"></i>' +
+                        '<span class="flex-1 text-[10px] text-slate-600 truncate">' + it.name + ' · ' + it.bname + '</span>' +
+                        '<span class="text-[10px] font-bold flex-shrink-0" style="color:' + (it.left < 0 ? '#94a3b8' : urgent ? '#dc2626' : '#f97316') + ';">' + (it.left < 0 ? '已截止' : it.left === 0 ? '今天截止' : '剩' + it.left + '天') + '</span></div>';
+                }).join('') + '</div>';
+            }
+            document.getElementById('calendarBody').innerHTML = cal;
+        }
+
+        /** 汇总某年某月的日历标记：marks[日] = [{color, label, name, bname, dept, level, ds, kind}] */
+        function calMarks(cy, cm) {
+            var marks = {};
+            POLICIES.forEach(function(p) {
+                (p.batches || []).forEach(function(b) {
+                    [['start', '#2563eb', '开始'], ['end', '#f97316', '截止']].forEach(function(pair) {
+                        var ds = b[pair[0]];
+                        if (!ds) return;
+                        var a = String(ds).split('-');
+                        if (+a[0] === cy && +a[1] - 1 === cm) {
+                            var dd = +a[2];
+                            (marks[dd] = marks[dd] || []).push({
+                                color: pair[1], kind: pair[2], ds: ds,
+                                label: p.name + ' · ' + (b.name || '') + '（' + pair[2] + '）',
+                                name: p.name, bname: b.name || '', dept: p.dept || '', level: p.level || ''
+                            });
+                        }
+                    });
+                });
+            });
+            return marks;
+        }
+
+        /** 打开「政策月历」弹窗：大图月历 + 选中日的政策清单 */
+        function openCalModal() {
+            document.getElementById('calMask').classList.remove('hidden');
+            renderCalModal();
+        }
+        function closeCalModal() { document.getElementById('calMask').classList.add('hidden'); }
+
+        function renderCalModal() {
+            var nowD = new Date();
+            var ty = nowD.getFullYear(), tm = nowD.getMonth(), td = nowD.getDate();
+            var cy = CAL.y, cm = CAL.m;
+            var marks = calMarks(cy, cm);
+            var monthCount = Object.keys(marks).reduce(function(n, k) { return n + marks[k].length; }, 0);
+            // 头部
+            document.getElementById('calModalTitle').innerHTML =
+                cy + '年' + (cm + 1) + '月 · 申报事项 ' + monthCount + ' 项' +
+                '<span class="text-[10px] text-slate-400 font-normal ml-2"><span style="color:#2563eb;">●</span> 批次开始 <span style="color:#f97316;">●</span> 截止</span>';
+            document.getElementById('calModalMonth').textContent = cy + '年' + (cm + 1) + '月';
+            document.getElementById('calTodayBtn').style.display = (cy === ty && cm === tm) ? 'none' : '';
+            // 月历网格
+            var firstW = new Date(cy, cm, 1).getDay();
+            var daysInM = new Date(cy, cm + 1, 0).getDate();
+            var grid = '';
+            '日一二三四五六'.split('').forEach(function(w) { grid += '<div class="text-[10px] text-slate-400 font-bold py-1.5 text-center">' + w + '</div>'; });
+            for (var wi = 0; wi < firstW; wi++) grid += '<div></div>';
+            for (var d2 = 1; d2 <= daysInM; d2++) {
+                var list = marks[d2] || [];
+                var isToday = (cy === ty && cm === tm && d2 === td);
+                var isSel = (d2 === CAL.d);
+                var st = 'cursor:pointer;border-radius:10px;padding:6px 2px 4px;position:relative;transition:all .12s;border:1.5px solid transparent;';
+                if (isSel) st += 'background:#6366f1;box-shadow:0 4px 10px rgba(99,102,241,.3);';
+                else if (isToday) st += 'border-color:#6366f1;';
+                else if (list.length) st += 'background:#f8faff;';
+                grid += '<div onclick="calPickModalDay(' + d2 + ')" style="' + st + '" onmouseover="if(!this.dataset.sel)this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=this.dataset.bg||\'\'" data-sel="' + (isSel ? 1 : '') + '" data-bg="' + (isSel ? '#6366f1' : (list.length ? '#f8faff' : '')) + '">' +
+                    '<div class="text-center" style="font-size:13px;line-height:18px;font-weight:' + ((isSel || isToday || list.length) ? '800' : '500') + ';color:' + (isSel ? '#fff' : (isToday ? '#4f46e5' : '#334155')) + ';">' + d2 + '</div>' +
+                    (list.length
+                        ? '<div class="text-center" style="font-size:9px;line-height:12px;font-weight:800;color:' + (isSel ? '#c7d2fe' : '#94a3b8') + ';">' + list.length + ' 项</div>'
+                        : '<div style="height:12px"></div>') +
+                    '</div>';
+            }
+            document.getElementById('calModalGrid').innerHTML = grid;
+            // 当日清单
+            var dayList = (marks[CAL.d] || []).slice().sort(function(a, b) { return a.kind === '截止' ? -1 : 1; });
+            var dateLabel = cy + '年' + (cm + 1) + '月' + CAL.d + '日';
+            var html = '<div class="flex items-center justify-between mb-2">' +
+                '<span class="text-[12px] font-black text-slate-700">' + dateLabel + ' · ' + dayList.length + ' 项事项</span></div>';
+            if (!dayList.length) {
+                html += '<div class="text-[11px] text-slate-400 py-6 text-center">当日无申报开始 / 截止事项</div>';
+            } else {
+                var todayStr = ty + '-' + String(tm + 1).padStart(2, '0') + '-' + String(td).padStart(2, '0');
+                html += dayList.map(function(it) {
+                    var isEnd = it.kind === '截止';
+                    var left = Math.round((new Date(it.ds) - new Date(todayStr)) / 86400000);
+                    var stTxt, stColor;
+                    if (isEnd) { stTxt = left < 0 ? '已截止' : (left === 0 ? '今天截止' : '剩 ' + left + ' 天'); stColor = left < 0 ? '#94a3b8' : (left <= 7 ? '#dc2626' : '#f97316'); }
+                    else { stTxt = left < 0 ? '已开始' : (left === 0 ? '今天开始' : left + ' 天后开始'); stColor = left < 0 ? '#94a3b8' : '#2563eb'; }
+                    return '<div class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50/60 cursor-pointer transition-all" onclick="calGoPolicy(\'' + it.name.replace(/'/g, "\\'") + '\')">' +
+                        '<span style="width:8px;height:8px;border-radius:9999px;background:' + it.color + ';flex-shrink:0;"></span>' +
+                        '<div class="flex-1" style="min-width:0;">' +
+                            '<div class="text-[12px] font-bold text-slate-700 truncate">' + it.name + '</div>' +
+                            '<div class="text-[10px] text-slate-400 truncate">' + (it.bname ? it.bname + ' · ' : '') + (it.dept || '') + ' · ' + it.ds + ' ' + it.kind + '</div>' +
+                        '</div>' +
+                        (it.level ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold flex-shrink-0">' + it.level + '</span>' : '') +
+                        '<span class="text-[10px] font-black flex-shrink-0" style="color:' + stColor + '">' + stTxt + '</span>' +
+                    '</div>';
+                }).join('');
+            }
+            document.getElementById('calModalList').innerHTML = html;
+        }
+        /** 弹窗内点击日期 */
+        function calPickModalDay(d) { CAL.d = d; renderCalendar(); renderCalModal(); }
+        /** 弹窗内切月（同步右栏小日历） */
+        function calShiftMonth(step) {
+            CAL.m += step;
+            if (CAL.m < 0) { CAL.m = 11; CAL.y--; }
+            if (CAL.m > 11) { CAL.m = 0; CAL.y++; }
+            CAL.d = 1;
+            renderCalendar();
+            if (!document.getElementById('calMask').classList.contains('hidden')) renderCalModal();
+        }
+        function calBackToday() {
+            var n = new Date(); CAL.y = n.getFullYear(); CAL.m = n.getMonth(); CAL.d = n.getDate();
+            renderCalendar();
+            if (!document.getElementById('calMask').classList.contains('hidden')) renderCalModal();
+        }
+        /** 清单条目点击 → 跳转政策库检索该政策 */
+        function calGoPolicy(name) { goPage('policy-library.html?kw=' + encodeURIComponent(name)); }
+
+        // ===== 默认区渲染 =====
+        function renderDefault() {
+            renderRightRail();
+            renderNews();
+            renderHotChips();
+        }
+
+        // ===== 热门搜索：读取后台「热搜配置」，手动词优先 + 自动推荐补位 =====
+        var HOT_CFG_KEY = 'ceyuan_hot_search_config';
+        function loadHotConfig() { try { return JSON.parse(localStorage.getItem(HOT_CFG_KEY) || 'null'); } catch (e) { return null; } }
+        function escHtml(s) {
+            return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+                return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c];
+            });
+        }
+        function renderHotChips() {
+            var box = document.getElementById('hotChips');
+            if (!box) return;
+            var cfg = loadHotConfig();
+            var chipClass = 'hot-chip px-3 py-1.5 text-[11px] font-bold text-slate-500 bg-white/70 border border-slate-200 rounded-full flex items-center';
+
+            function chipHtml(it) {
+                var manual = it.mode === 'manual';
+                var tag = manual
+                    ? '<span class="text-[9px] font-black text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-0.5 mr-1">置顶</span>'
+                    : '<i class="fa fa-fire mr-1 text-orange-400"></i>';
+                return '<button class="' + chipClass + '" data-q="' + escHtml(it.keyword) + '" onclick="quickSearch(this)">' + tag + escHtml(it.keyword) + '</button>';
+            }
+
+            // 无配置：沿用默认热门问题
+            if (!cfg || !cfg.items || !cfg.items.length) {
+                box.innerHTML = HOT_QUESTIONS.map(function (q) {
+                    return '<button class="hot-chip px-3 py-1.5 text-[11px] font-bold text-slate-500 bg-white/70 border border-slate-200 rounded-full" data-q="' + escHtml(q) + '" onclick="quickSearch(this)">' + escHtml(q) + '</button>';
+                }).join('');
+                return;
+            }
+
+            var limit = cfg.limit || 6;
+            var manual = (cfg.items || []).filter(function (i) { return i.mode === 'manual' && i.enabled !== false; })
+                .sort(function (a, b) { return (a.sort || 0) - (b.sort || 0); }).slice(0, limit);
+            var auto = (cfg.items || []).filter(function (i) { return i.mode === 'auto' && i.enabled !== false; })
+                .sort(function (a, b) { return (b.count || 0) - (a.count || 0); });
+
+            var picks = manual.slice();
+            if (cfg.autoEnabled !== false) picks = picks.concat(auto);
+            picks = picks.slice(0, limit);
+
+            // 去重 + 不足时用默认问题补齐
+            var seen = {};
+            picks = picks.filter(function (it) {
+                if (seen[it.keyword]) return false;
+                seen[it.keyword] = true;
+                return true;
+            });
+            if (picks.length < limit) {
+                HOT_QUESTIONS.forEach(function (q) {
+                    if (picks.length >= limit || seen[q]) return;
+                    seen[q] = true;
+                    picks.push({ keyword: q, mode: 'auto' });
+                });
+            }
+            box.innerHTML = picks.map(chipHtml).join('');
+        }
+
+        // ===== 搜索：跳转对话页（qa-chat.html），携带问题并记录历史 =====
+        function quickSearch(btn) {
+            var q = btn.getAttribute('data-q') || btn.textContent.trim();
+            document.getElementById('searchInput').value = q;
+            doSearch();
+        }
+
+        var HISTORY_KEY = 'ceyuan_search_history';
+        function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch (e) { return []; } }
+        function saveHistory(list) { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 30))); } catch (e) {} }
+        function pushHistory(q) {
+            var list = loadHistory().filter(function(x){ return x.q !== q; });
+            list.unshift({ q: q, t: Date.now() });
+            saveHistory(list);
+        }
+        function clearHistory() { saveHistory([]); renderHistoryList(); }
+
+        function doSearch() {
+            var q = document.getElementById('searchInput').value.trim();
+            if (!q) { document.getElementById('searchInput').focus(); return; }
+            pushHistory(q);
+            goPage('qa-chat.html?q=' + encodeURIComponent(q));
+        }
+
+        // ===== 历史抽屉 =====
+        var historyOpen = false;
+        function toggleHistory() {
+            var mask = document.getElementById('historyMask');
+            var drawer = document.getElementById('historyDrawer');
+            historyOpen = !historyOpen;
+            if (historyOpen) {
+                mask.classList.remove('hidden');
+                renderHistoryList();
+                requestAnimationFrame(function(){ requestAnimationFrame(function(){ drawer.classList.remove('translate-x-full'); }); });
+            } else {
+                drawer.classList.add('translate-x-full');
+                setTimeout(function(){ mask.classList.add('hidden'); }, 280);
+            }
+        }
+        function renderHistoryList() {
+            var list = loadHistory();
+            var el = document.getElementById('historyList');
+            if (!list.length) {
+                el.innerHTML = '<div class="text-center py-12"><i class="fa fa-history text-3xl text-slate-200 mb-2"></i><p class="text-xs text-slate-400">暂无历史搜索记录</p></div>';
+                return;
+            }
+            el.innerHTML = list.map(function(h) {
+                var d = new Date(h.t);
+                var pad = function(n){ return String(n).padStart(2, '0'); };
+                var ts = (d.getMonth() + 1) + '-' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+                return '<div class="p-3 rounded-xl bg-slate-50 hover:bg-indigo-50 cursor-pointer transition-all group" onclick="rerunHistory(\'' + escapeHtml(h.q).replace(/'/g, "\\'") + '\')">' +
+                    '<div class="text-xs font-bold text-slate-700 line-clamp-2 group-hover:text-indigo-600">' + escapeHtml(h.q) + '</div>' +
+                    '<div class="text-[10px] text-slate-400 mt-1"><i class="fa fa-clock-o mr-1"></i>' + ts + '</div>' +
+                '</div>';
+            }).join('');
+        }
+        function rerunHistory(q) {
+            toggleHistory();
+            document.getElementById('searchInput').value = q;
+            doSearch();
+        }
+
+        // ===== 城市切换 =====
+        var CITY_KEY = 'ceyuan_current_city';
+        var HOT_CITIES = ['北京市','上海市','广州市','深圳市','杭州市','成都市','重庆市','武汉市','南京市','苏州市','西安市','天津市'];
+        var CITY_REGIONS = [
+            { letter:'直', provs:[{ name:'直辖市', cities:['北京市','天津市','上海市','重庆市'] }] },
+            { letter:'A', provs:[{ name:'安徽省', cities:['合肥市','芜湖市','蚌埠市','淮南市','马鞍山市','淮北市','铜陵市','安庆市','黄山市','滁州市','阜阳市','宿州市','六安市','亳州市','池州市','宣城市'] }] },
+            { letter:'F', provs:[{ name:'福建省', cities:['福州市','厦门市','莆田市','三明市','泉州市','漳州市','南平市','龙岩市','宁德市'] }] },
+            { letter:'G', provs:[
+                { name:'甘肃省', cities:['兰州市','嘉峪关市','金昌市','白银市','天水市','酒泉市','张掖市','武威市','定西市','陇南市'] },
+                { name:'广东省', cities:['广州市','深圳市','珠海市','汕头市','佛山市','韶关市','湛江市','肇庆市','江门市','茂名市','惠州市','梅州市','汕尾市','河源市','阳江市','清远市','东莞市','中山市','潮州市','揭阳市'] },
+                { name:'广西壮族自治区', cities:['南宁市','柳州市','桂林市','梧州市','北海市','防城港市','钦州市','贵港市','玉林市','百色市','贺州市','河池市','来宾市','崇左市'] },
+                { name:'贵州省', cities:['贵阳市','六盘水市','遵义市','安顺市','毕节市','铜仁市'] }
+            ] },
+            { letter:'H', provs:[
+                { name:'海南省', cities:['海口市','三亚市','三沙市','儋州市'] },
+                { name:'河北省', cities:['石家庄市','唐山市','秦皇岛市','邯郸市','邢台市','保定市','张家口市','承德市','沧州市','廊坊市','衡水市'] },
+                { name:'河南省', cities:['郑州市','开封市','洛阳市','平顶山市','安阳市','鹤壁市','新乡市','焦作市','濮阳市','许昌市','漯河市','三门峡市','南阳市','商丘市','信阳市','周口市','驻马店市'] },
+                { name:'黑龙江省', cities:['哈尔滨市','齐齐哈尔市','鸡西市','鹤岗市','双鸭山市','大庆市','伊春市','佳木斯市','七台河市','牡丹江市','黑河市','绥化市'] },
+                { name:'湖北省', cities:['武汉市','黄石市','十堰市','宜昌市','襄阳市','鄂州市','荆门市','孝感市','荆州市','黄冈市','咸宁市','随州市'] },
+                { name:'湖南省', cities:['长沙市','株洲市','湘潭市','衡阳市','邵阳市','岳阳市','常德市','张家界市','益阳市','郴州市','永州市','怀化市','娄底市'] }
+            ] },
+            { letter:'J', provs:[
+                { name:'吉林省', cities:['长春市','吉林市','四平市','辽源市','通化市','白山市','松原市','白城市'] },
+                { name:'江苏省', cities:['南京市','无锡市','徐州市','常州市','苏州市','南通市','连云港市','淮安市','盐城市','扬州市','镇江市','泰州市','宿迁市'] },
+                { name:'江西省', cities:['南昌市','景德镇市','萍乡市','九江市','新余市','鹰潭市','赣州市','吉安市','宜春市','抚州市','上饶市'] }
+            ] },
+            { letter:'L', provs:[{ name:'辽宁省', cities:['沈阳市','大连市','鞍山市','抚顺市','本溪市','丹东市','锦州市','营口市','阜新市','辽阳市','盘锦市','铁岭市','朝阳市','葫芦岛市'] }] },
+            { letter:'N', provs:[
+                { name:'内蒙古自治区', cities:['呼和浩特市','包头市','乌海市','赤峰市','通辽市','鄂尔多斯市','呼伦贝尔市','巴彦淖尔市','乌兰察布市'] },
+                { name:'宁夏回族自治区', cities:['银川市','石嘴山市','吴忠市','固原市','中卫市'] }
+            ] },
+            { letter:'Q', provs:[{ name:'青海省', cities:['西宁市','海东市'] }] },
+            { letter:'S', provs:[
+                { name:'山东省', cities:['济南市','青岛市','淄博市','枣庄市','东营市','烟台市','潍坊市','济宁市','泰安市','威海市','日照市','临沂市','德州市','聊城市','滨州市','菏泽市'] },
+                { name:'山西省', cities:['太原市','大同市','阳泉市','长治市','晋城市','朔州市','晋中市','运城市','忻州市','临汾市','吕梁市'] },
+                { name:'陕西省', cities:['西安市','铜川市','宝鸡市','咸阳市','渭南市','延安市','汉中市','榆林市','安康市','商洛市'] },
+                { name:'四川省', cities:['成都市','自贡市','攀枝花市','泸州市','德阳市','绵阳市','广元市','遂宁市','内江市','乐山市','南充市','眉山市','宜宾市','广安市','达州市','雅安市','巴中市','资阳市'] }
+            ] },
+            { letter:'T', provs:[{ name:'台湾省', cities:['台北市','高雄市','台中市'] }] },
+            { letter:'X', provs:[
+                { name:'西藏自治区', cities:['拉萨市','日喀则市','昌都市','林芝市','山南市','那曲市'] },
+                { name:'新疆维吾尔自治区', cities:['乌鲁木齐市','克拉玛依市','吐鲁番市','哈密市','昌吉市','伊宁市','库尔勒市'] }
+            ] },
+            { letter:'Y', provs:[{ name:'云南省', cities:['昆明市','曲靖市','玉溪市','保山市','昭通市','丽江市','普洱市','临沧市'] }] },
+            { letter:'Z', provs:[{ name:'浙江省', cities:['杭州市','宁波市','温州市','嘉兴市','湖州市','绍兴市','金华市','衢州市','舟山市','台州市','丽水市'] }] }
+        ];
+        function loadCity() { try { return JSON.parse(localStorage.getItem(CITY_KEY) || 'null'); } catch (e) { return null; } }
+        function curCityName() { var c = loadCity(); return (c && c.name) ? c.name : '成都市'; }
+        function renderCityLabel() { document.getElementById('cityLabel').textContent = curCityName(); }
+        function findProv(city) {
+            for (var i = 0; i < CITY_REGIONS.length; i++) for (var j = 0; j < CITY_REGIONS[i].provs.length; j++)
+                if (CITY_REGIONS[i].provs[j].cities.indexOf(city) > -1) return CITY_REGIONS[i].provs[j].name;
+            return '';
+        }
+        var cityOpen = false;
+        function toggleCityPanel() {
+            var m = document.getElementById('cityMask');
+            cityOpen = !cityOpen;
+            if (cityOpen) {
+                m.classList.remove('hidden');
+                document.getElementById('citySearch').value = '';
+                renderCitySearch();
+                renderCityBrowse();
+            } else m.classList.add('hidden');
+        }
+        function cityBtnHtml(name, prov) {
+            var active = curCityName() === name;
+            return '<button onclick="pickCity(\'' + name + '\',\'' + prov + '\')" class="px-2 py-1.5 rounded-lg text-xs transition-all ' +
+                (active ? 'font-black text-white bg-indigo-600 shadow-sm' : 'text-slate-600 bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600') + '">' + name + '</button>';
+        }
+        function renderCityBrowse() {
+            document.getElementById('hotCityGrid').innerHTML = HOT_CITIES.map(function(c) { return cityBtnHtml(c, findProv(c)); }).join('');
+            document.getElementById('provCityList').innerHTML = CITY_REGIONS.map(function(g) {
+                return g.provs.map(function(p) {
+                    return '<div class="flex gap-3">' +
+                        '<div class="flex-shrink-0 flex items-start gap-2 pt-1" style="width:88px;"><span class="text-[10px] font-black text-slate-300">' + g.letter + '</span><span class="text-xs font-bold text-slate-500">' + p.name + '</span></div>' +
+                        '<div class="flex-1 flex flex-wrap gap-1.5">' + p.cities.map(function(c) { return cityBtnHtml(c, p.name); }).join('') + '</div>' +
+                    '</div>';
+                }).join('');
+            }).join('');
+        }
+        function renderCitySearch() {
+            var q = document.getElementById('citySearch').value.trim();
+            var rs = document.getElementById('citySearchResult'), bw = document.getElementById('cityBrowseWrap');
+            if (!q) { rs.classList.add('hidden'); bw.classList.remove('hidden'); return; }
+            var hits = [];
+            CITY_REGIONS.forEach(function(g) { g.provs.forEach(function(p) { p.cities.forEach(function(c) { if (c.indexOf(q) > -1) hits.push({ name: c, prov: p.name }); }); }); });
+            rs.classList.remove('hidden'); bw.classList.add('hidden');
+            rs.innerHTML = '<div class="text-xs font-bold text-slate-500 mb-2">搜索结果（' + hits.length + '）</div>' +
+                (hits.length
+                    ? '<div class="flex flex-wrap gap-1.5">' + hits.map(function(h) { return cityBtnHtml(h.name, h.prov); }).join('') + '</div>'
+                    : '<div class="text-xs text-slate-400 py-4 text-center">未找到「' + escapeHtml(q) + '」相关城市</div>');
+        }
+        function pickCity(name, prov) {
+            try { localStorage.setItem(CITY_KEY, JSON.stringify({ name: name, province: prov, t: Date.now() })); } catch (e) {}
+            renderCityLabel();
+            toggleCityPanel();
+            toast('已切换至 ' + name + '，将为您推荐当地政策');
+        }
+        function showToast(msg) {
+            var t = document.createElement('div');
+            t.className = 'fixed top-16 px-4 py-2 rounded-xl text-xs font-bold text-white bg-slate-800 shadow-xl animate-fade-up';
+            t.style.cssText = 'left:50%;transform:translateX(-50%);z-index:999;';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(function(){ t.remove(); }, 2200);
+        }
+        function toast(msg) { showToast(msg); }
+
+        renderDefault();
+        renderCityLabel();
+    </script>
+</body>
+</html>

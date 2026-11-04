@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业档案 - 策源易答运营平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+    </style>
+    <script>
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-slate-50 p-8">
+    <script src="data-bridge.js"></script>
+
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-slate-800 flex items-center">
+                <i class="fa fa-folder-open-o text-indigo-500 mr-3"></i>企业档案
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">运营管理平台 / 客户管理 / 企业档案</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <div class="relative">
+                <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                <input id="searchInput" oninput="renderList()" placeholder="搜索企业名称" class="pl-8 pr-3 py-2.5 w-52 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <button onclick="renderList()" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
+                <i class="fa fa-refresh mr-2"></i>刷新
+            </button>
+        </div>
+    </div>
+
+    <div class="mb-5 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 flex items-start space-x-3">
+        <i class="fa fa-info-circle text-indigo-500 mt-0.5"></i>
+        <div class="text-xs text-slate-600 leading-relaxed space-y-1">
+            <p class="font-bold text-indigo-700">建档与合并规则</p>
+            <p><b>唯一键：</b>企业名称（去除首尾空格后完全相同）。名称相同即视为同一家企业，不论来自「科创测评」还是「精准政策雷达」，都合并到同一条档案。</p>
+            <p><b>字段合并：</b>同名字段用后填的非空值覆盖，原档案没有的字段直接追加；二者均为空时不写入，不会清空已有值。</p>
+            <p><b>名称不同：</b>即使其他信息完全一致也分别建档；简称与全称视为不同企业，建议统一填写工商全称。</p>
+            <p><b>名称留空：</b>不建档。删除档案后不可恢复。</p>
+        </div>
+    </div>
+
+    <div class="flex items-center justify-between mb-4">
+        <span class="text-xs text-slate-500">共 <b id="totalCount" class="text-indigo-600">0</b> 家企业</span>
+        <span class="text-[10px] text-slate-400">名称相同自动合并，后填非空值覆盖、新字段追加</span>
+    </div>
+
+    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+        <table class="w-full text-xs">
+            <thead>
+                <tr class="bg-slate-50/70 text-slate-400 text-[11px]">
+                    <th class="text-left font-bold px-5 py-3">企业名称</th>
+                    <th class="text-left font-bold px-4 py-3">所属行业</th>
+                    <th class="text-left font-bold px-4 py-3">已存字段</th>
+                    <th class="text-left font-bold px-4 py-3">最近更新</th>
+                    <th class="text-right font-bold px-5 py-3">操作</th>
+                </tr>
+            </thead>
+            <tbody id="profileBody"></tbody>
+        </table>
+        <div id="emptyState" class="hidden py-16 text-center">
+            <i class="fa fa-folder-open-o text-4xl text-slate-200 mb-3 block"></i>
+            <p class="text-sm text-slate-400">暂无企业档案</p>
+            <p class="text-[11px] text-slate-400 mt-1">企业在「科创测评」提交表单后会自动出现在这里</p>
+        </div>
+    </div>
+
+    <!-- 企业档案详情 -->
+    <div id="detailModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 items-center justify-center p-6">
+        <div class="bg-white rounded-[20px] w-full max-w-4xl max-h-[86vh] flex flex-col shadow-2xl">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <div>
+                    <h3 id="detailName" class="text-lg font-black text-slate-800">企业名称</h3>
+                    <p id="detailMeta" class="text-[11px] text-slate-400 mt-1"></p>
+                </div>
+                <button onclick="closeDetail()" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400"><i class="fa fa-times"></i></button>
+            </div>
+            <div id="detailBody" class="p-6 overflow-y-auto space-y-4"></div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end">
+                <button onclick="closeDetail()" class="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="hidden fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xl"></div>
+
+    <script>
+        function escapeHtml(s) {
+            return String(s === undefined || s === null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function fmtTime(iso) {
+            if (!iso) return '—';
+            var d = new Date(iso);
+            if (isNaN(d.getTime())) return '—';
+            function p(n) { return n < 10 ? '0' + n : n; }
+            return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+        }
+
+        function getRecords() {
+            if (window.DataBridge && DataBridge.loadEnterpriseList) return DataBridge.loadEnterpriseList();
+            return [];
+        }
+
+        function fieldCount(r) {
+            return (r.fields || []).reduce(function(n, g) { return n + (g.items || []).length; }, 0);
+        }
+
+        function industryOf(r) {
+            var found = '';
+            (r.fields || []).forEach(function(g) {
+                (g.items || []).forEach(function(it) {
+                    if (!found && (it.label === '所属行业' || it.label === '核心技术所属产业')) found = it.value;
+                });
+            });
+            if (found) return found;
+            return (r.inputs && r.inputs.formIndustry) || '—';
+        }
+
+        function renderList() {
+            var all = getRecords();
+            var kw = (document.getElementById('searchInput').value || '').trim();
+            var list = kw ? all.filter(function(r) { return (r.name || '').indexOf(kw) > -1; }) : all;
+
+            document.getElementById('totalCount').innerText = all.length;
+            var body = document.getElementById('profileBody');
+            var empty = document.getElementById('emptyState');
+
+            if (!list.length) {
+                body.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            body.innerHTML = list.map(function(r) {
+                return '<tr class="border-t border-slate-50 hover:bg-slate-50/60">' +
+                    '<td class="px-5 py-3">' +
+                        '<div class="flex items-center gap-2">' +
+                            '<div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center"><i class="fa fa-building-o"></i></div>' +
+                            '<span class="font-bold text-slate-700">' + escapeHtml(r.name || '未命名企业') + '</span>' +
+                        '</div>' +
+                    '</td>' +
+                    '<td class="px-4 py-3 text-slate-500">' + escapeHtml(industryOf(r)) + '</td>' +
+                    '<td class="px-4 py-3"><span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 text-[10px] font-bold">' + fieldCount(r) + ' 项</span></td>' +
+                    '<td class="px-4 py-3 text-slate-400">' + fmtTime(r.updatedAt) + '</td>' +
+                    '<td class="px-5 py-3 text-right whitespace-nowrap">' +
+                        '<button onclick="openDetail(\'' + r.id + '\')" class="px-3 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 mr-1"><i class="fa fa-eye mr-1"></i>详情</button>' +
+                        '<button onclick="removeRecord(\'' + r.id + '\')" class="px-3 py-1.5 text-[11px] font-bold text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100"><i class="fa fa-trash-o mr-1"></i>删除</button>' +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+        }
+
+        function openDetail(id) {
+            var rec = getRecords().find(function(r) { return r.id === id; });
+            if (!rec) return;
+            var groups = rec.fields || [];
+            document.getElementById('detailName').innerText = rec.name || '未命名企业';
+            document.getElementById('detailMeta').innerText = '已存 ' + fieldCount(rec) + ' 个字段 · 最近更新：' + fmtTime(rec.updatedAt);
+
+            var body = document.getElementById('detailBody');
+            if (!groups.length) {
+                body.innerHTML = '<div class="py-10 text-center text-xs text-slate-400">该企业暂无档案字段</div>';
+            } else {
+                body.innerHTML = groups.map(function(g) {
+                    return '<div class="border border-slate-100 rounded-xl p-4">' +
+                        '<p class="text-xs font-black text-slate-800 mb-3"><i class="fa fa-clipboard text-indigo-500 mr-1.5"></i>' + escapeHtml(g.group || '其他') + '</p>' +
+                        '<div class="grid grid-cols-2 gap-x-6 gap-y-1.5">' +
+                        (g.items || []).map(function(it) {
+                            return '<div class="flex items-start gap-2 text-[11px] py-0.5">' +
+                                '<span class="text-slate-400 flex-shrink-0 w-32">' + escapeHtml(it.label) + '</span>' +
+                                '<span class="text-slate-700 break-all">' + escapeHtml(it.value) + '</span>' +
+                            '</div>';
+                        }).join('') +
+                        '</div></div>';
+                }).join('');
+            }
+
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('detailModal').classList.add('flex');
+        }
+
+        function closeDetail() {
+            document.getElementById('detailModal').classList.add('hidden');
+            document.getElementById('detailModal').classList.remove('flex');
+        }
+
+        function removeRecord(id) {
+            var rec = getRecords().find(function(r) { return r.id === id; });
+            if (!rec) return;
+            if (!confirm('确定删除「' + (rec.name || '该企业') + '」的企业档案？删除后不可恢复。')) return;
+            if (window.DataBridge && DataBridge.deleteEnterpriseProfile) DataBridge.deleteEnterpriseProfile(id);
+            showToast('已删除企业档案');
+            renderList();
+        }
+
+        function showToast(msg) {
+            var t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.remove('hidden');
+            setTimeout(function() { t.classList.add('hidden'); }, 1800);
+        }
+
+        // ============ 演示数据（首次进入植入，便于直接查看列表/详情效果） ============
+        function seedDemoData() {
+            try {
+                if (localStorage.getItem('ceyuan_enterprise_profile_seeded') === '1') return;
+                if (getRecords().length) { localStorage.setItem('ceyuan_enterprise_profile_seeded', '1'); return; }
+                if (!window.DataBridge || !DataBridge.saveEnterpriseProfile) return;
+
+                function fields(name, industry, scale, employees, revenue, rdPct, ipCount, qual) {
+                    return [
+                        { group: '基本情况', items: [
+                            { label: '企业全称', value: name },
+                            { label: '所属行业', value: industry },
+                            { label: '企业规模', value: scale },
+                            { label: '职工总数（人）', value: employees },
+                            { label: '注册地', value: '浙江省杭州市滨江区' }
+                        ] },
+                        { group: '财务数据', items: [
+                            { label: '近一年营业收入（万元）', value: revenue },
+                            { label: '研发费用占比', value: rdPct + '%' },
+                            { label: '研发费用总额（万元）', value: Math.round(Number(revenue) * rdPct / 100) }
+                        ] },
+                        { group: '知识产权与企业资质', items: [
+                            { label: '有效知识产权（件）', value: ipCount },
+                            { label: '已获资质', value: qual }
+                        ] }
+                    ];
+                }
+
+                var demos = [
+                    { name: '杭州智算科技有限公司', fields: fields('杭州智算科技有限公司', '人工智能', '中型', 186, 8600, 12, 34, '高新技术企业、专精特新中小企业') },
+                    { name: '杭州智算科技有限公司', fields: fields('杭州智算科技有限公司', '人工智能', '中型', 186, 8600, 12, 34, '高新技术企业、专精特新中小企业') },
+                    { name: '苏州精材新材料股份有限公司', fields: fields('苏州精材新材料股份有限公司', '新材料', '小型', 96, 5200, 8, 21, '科技型中小企业') },
+                    { name: '深圳前海医疗机器人有限公司', fields: fields('深圳前海医疗机器人有限公司', '高端医疗器械', '中型', 312, 15800, 15, 58, '专精特新"小巨人"企业、高新技术企业') },
+                    { name: '上海云启信息技术有限公司', fields: [
+                        { group: '基本信息', items: [
+                            { label: '企业名称', value: '上海云启信息技术有限公司' },
+                            { label: '核心技术所属产业', value: '云计算、大数据' }
+                        ] },
+                        { group: '基础条件', items: [{ label: '基础条件', value: '成立满2年、注册资本1000万以上' }] },
+                        { group: '财务指标', items: [{ label: '财务指标', value: '收入100万以上、研发费500万以上' }] },
+                        { group: '企业资质', items: [{ label: '企业资质', value: '高新技术企业、科技型中小企业' }] }
+                    ] }
+                ];
+
+                demos.forEach(function(d) {
+                    var industry = d.fields[0] && d.fields[0].items[1] ? d.fields[0].items[1].value : '';
+                    DataBridge.saveEnterpriseProfile({
+                        name: d.name,
+                        fields: d.fields,
+                        inputs: { formName: d.name, formIndustry: industry }
+                    });
+                });
+                localStorage.setItem('ceyuan_enterprise_profile_seeded', '1');
+            } catch (e) {}
+        }
+
+        seedDemoData();
+        renderList();
+    </script>
+</body>
+</html>

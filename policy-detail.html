@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>政策详情 - 策源易答</title>
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f6f8; }
+        .left-sidebar { width: 80px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+        .left-sidebar button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; width: 100%; color: #475569; transition: all .15s; }
+        .left-sidebar button:hover { background: rgba(255,255,255,.4); }
+        .sb-dot { position: relative; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.8); box-shadow: 0 2px 6px -2px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; }
+        .sb-dot.active { background: #6366f1; }
+        .sb-dot.active i { color: #fff !important; }
+        .scroll-thin::-webkit-scrollbar { width: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: rgba(148,163,184,.35); border-radius: 3px; }
+
+        /* ===== 政务公文风格详情页 ===== */
+        .pd-wrap { max-width: 880px; margin: 0 auto; background: #fff; min-height: calc(100vh - 0px); box-shadow: 0 0 24px -8px rgba(0,0,0,.06); }
+        /* 面包屑 */
+        .pd-crumb { padding: 12px 32px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9; }
+        .pd-crumb a { color: #64748b; cursor: pointer; }
+        .pd-crumb a:hover { color: #2563eb; }
+        .pd-crumb .sep { margin: 0 8px; color: #cbd5e1; }
+
+        /* 元信息卡片 - 双列网格，方括号样式 */
+        .pd-meta-card { margin: 20px 32px 0; padding: 18px 22px; background: #fafbfc; border: 1px solid #e8ecf1; border-radius: 6px; }
+        .pd-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 36px; }
+        .pd-meta-row { font-size: 13px; line-height: 1.9; color: #1e293b; display: flex; align-items: baseline; }
+        .pd-meta-row .label { color: #94a3b8; flex-shrink: 0; min-width: 78px; }
+        .pd-meta-row .label::before { content: '['; margin-right: 1px; }
+        .pd-meta-row .label::after { content: ']'; margin-left: 1px; }
+        .pd-meta-row .val { color: #1e293b; font-weight: 600; margin-left: 10px; }
+        .pd-meta-row .val.valid { color: #059669; }
+        .pd-meta-row .val.expired { color: #dc2626; }
+
+        /* 标题区 */
+        .pd-title-wrap { padding: 28px 32px 14px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+        .pd-title { font-size: 22px; font-weight: 900; color: #0f172a; line-height: 1.55; font-family: "SimSun", "宋体", "PingFang SC", serif; }
+        .pd-tool-bar { display: flex; justify-content: flex-end; align-items: center; gap: 14px; padding: 10px 32px; font-size: 12px; color: #94a3b8; border-bottom: 1px dashed #e2e8f0; }
+        .pd-tool-bar .fs-ctrl span { cursor: pointer; padding: 2px 6px; border-radius: 3px; transition: all .12s; }
+        .pd-tool-bar .fs-ctrl span:hover { background: #eff6ff; color: #2563eb; }
+        .pd-tool-bar .fs-ctrl span.cur { background: #2563eb; color: #fff; font-weight: 700; }
+        .pd-tool-bar .print-btn { cursor: pointer; color: #64748b; }
+        .pd-tool-bar .print-btn:hover { color: #2563eb; }
+        .pd-tool-bar .print-btn i { margin-right: 3px; }
+
+        /* 正文区 - 公文排版 */
+        .pd-body { padding: 28px 56px 100px; font-family: "FangSong", "仿宋", "PingFang SC", serif; }
+        .pd-body.fs-sm { font-size: 14px; }
+        .pd-body.fs-md { font-size: 16px; }
+        .pd-body.fs-lg { font-size: 18px; }
+        .pd-para { text-indent: 2em; line-height: 1.9; margin-bottom: 14px; color: #1e293b; }
+        .pd-h2 { font-size: 17px; font-weight: 800; color: #0f172a; margin: 28px 0 14px; font-family: "SimHei", "黑体", "PingFang SC", sans-serif; }
+        .pd-h2 .num { margin-right: 6px; color: #2563eb; }
+        .pd-sub-h { font-weight: 700; color: #1e293b; margin: 14px 0 8px; }
+        .pd-list { margin: 8px 0 14px 2em; }
+        .pd-list-item { line-height: 1.9; margin-bottom: 6px; color: #1e293b; }
+        .pd-list-item .chk { color: #059669; margin-right: 6px; }
+
+        /* 申报批次表 */
+        .pd-batch-tbl { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-family: -apple-system, "PingFang SC", sans-serif; font-size: 13px; }
+        .pd-batch-tbl th, .pd-batch-tbl td { padding: 9px 12px; border: 1px solid #e2e8f0; text-align: left; }
+        .pd-batch-tbl th { background: #f8fafc; color: #475569; font-weight: 700; }
+        .pd-batch-tbl td { color: #1e293b; }
+        .pd-batch-tbl .st-open { color: #059669; font-weight: 700; }
+        .pd-batch-tbl .st-closed { color: #64748b; }
+        .pd-batch-tbl .st-upcoming { color: #d97706; font-weight: 700; }
+
+        /* 通知型提示 */
+        .pd-notice-box { padding: 16px 20px; background: #f5f3ff; border-left: 3px solid #7c3aed; border-radius: 4px; margin: 14px 0; font-family: -apple-system, "PingFang SC", sans-serif; font-size: 13px; color: #4c1d95; line-height: 1.7; }
+
+        @media print {
+            .left-sidebar, .pd-tool-bar { display: none !important; }
+            body { background: #fff; }
+            .pd-wrap { box-shadow: none; max-width: 100%; }
+        }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+<div class="flex h-screen">
+    <!-- 左侧导航 -->
+    <aside class="left-sidebar" style="background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,.4);">
+        <div class="w-full pt-4 pb-2 border-b border-white/30 flex flex-col items-center">
+            <div style="position:relative;width:62px;height:28px;"><svg width="62" height="14" viewBox="0 0 62 14"><path d="M3 13 C 18 1, 44 -1, 59 7" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round"/></svg><div style="position:absolute;top:5px;left:0;width:62px;text-align:center;font-size:17px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#1d4ed8;font-family:Arial,sans-serif;">ELHP</div></div>
+            <div class="text-[10px] font-black text-slate-800 mt-1">策源易答</div>
+        </div>
+        <div class="w-full pt-3 flex flex-col items-center gap-1.5">
+            <button onclick="goPage('dashboard.html')"><span class="sb-dot"><i class="fa fa-comments text-blue-600"></i></span><span class="text-[10px] font-bold">政策问答</span></button>
+            <button onclick="goPage('policy-radar.html')"><span class="sb-dot"><i class="fa fa-sitemap text-blue-600"></i></span><span class="text-[10px] font-bold">政策雷达</span></button>
+            <button onclick="goPage('ability-diagnosis.html')"><span class="sb-dot"><i class="fa fa-stethoscope text-blue-600"></i></span><span class="text-[10px] font-bold">科创测评</span></button>
+            <button onclick="goPage('declaration-butler.html')"><span class="sb-dot"><i class="fa fa-file-text-o text-blue-600"></i></span><span class="text-[10px] font-bold">申报管家</span></button>
+            <button onclick="goPage('policy-center.html')"><span class="sb-dot active"><i class="fa fa-university text-white"></i></span><span class="text-[10px] font-bold" style="color:#4f46e5;">政策中心</span></button>
+            <button onclick="goPage('service-market.html')"><span class="sb-dot" style="background:linear-gradient(135deg,#fb923c,#ea580c);"><i class="fa fa-shopping-bag text-white"></i></span><span class="text-[10px] font-bold text-orange-600">服务商城</span></button>
+        </div>
+        <div class="mt-auto w-full pt-2 pb-3 border-t border-white/30 flex flex-col items-center gap-1.5">
+            <button onclick="alert('演示环境')"><span class="sb-dot" style="background:linear-gradient(135deg,#fbbf24,#f97316);"><i class="fa fa-bolt text-white"></i></span><span class="text-[10px] font-bold">充值中心</span></button>
+            <button onclick="goPage('member-center.html')"><span class="sb-dot"><i class="fa fa-user text-blue-600"></i></span><span class="text-[10px] font-bold">会员中心</span></button>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="flex-1 overflow-y-auto scroll-thin" style="background:#f5f6f8;">
+        <!-- 顶栏 -->
+        <div class="sticky top-0 z-10 flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200">
+            <div class="flex items-center gap-3">
+                <button onclick="goPage('policy-center.html')" class="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 flex items-center justify-center"><i class="fa fa-arrow-left text-slate-500 text-xs"></i></button>
+                <div>
+                    <div class="text-sm font-black text-slate-800">政策详情</div>
+                    <div class="text-[11px] text-slate-400">策源易答 · 政务公开</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleFav()" id="favBtn" class="px-3 py-1.5 text-[11px] font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100"><i class="fa fa-star-o mr-1"></i>收藏</button>
+                <button onclick="sharePage()" class="px-3 py-1.5 text-[11px] font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100"><i class="fa fa-share-alt mr-1"></i>分享</button>
+            </div>
+        </div>
+
+        <div id="pageBody"></div>
+    </main>
+</div>
+
+<script src="data-bridge.js?v=20250929q"></script>
+<script>
+    function goPage(url) {
+        try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage(url, null); return; } } catch (e) {}
+        window.location.href = url;
+    }
+
+    function getParam(k) {
+        var m = window.location.search.match(new RegExp('[?&]' + k + '=([^&]+)'));
+        return m ? decodeURIComponent(m[1]) : '';
+    }
+
+    function conditionText(c) {
+        var map = { rdRatio:'研发费用占比', ipOwned:'拥有知识产权', hiTechRatio:'高新技术产品收入占比', rdInvest:'研发投入额', projectInvest:'项目投资额', qualification:'资质要求', staffCount:'职工人数', ipCount:'知识产权数量' };
+        var type = map[c.type] || c.type;
+        var val = (c.op === '==' || c.op === '===' || c.op === 'contains') ? String(c.val) : (c.op + ' ' + c.val);
+        if (c.type === 'ipOwned') return '企业拥有有效知识产权';
+        if (c.type === 'qualification') return '已取得「' + c.val + '」相关资质';
+        return type + ' ' + val;
+    }
+
+    function regionText(p) {
+        if (!p.region || p.region.province === '全国') return '全国';
+        return [p.region.province, p.region.city, p.region.district].filter(Boolean).join(' · ');
+    }
+
+    function latestBatch(p) {
+        if (!p.batches || !p.batches.length) return null;
+        var today = new Date();
+        var sorted = p.batches.slice().sort(function(a,b){ return String(a.end).localeCompare(String(b.end)); });
+        var open = sorted.filter(function(b){ return DataBridge.batchStatus(b, today) === 'open'; });
+        if (open.length) return open[0];
+        var upcoming = sorted.filter(function(b){ return DataBridge.batchStatus(b, today) === 'upcoming'; });
+        if (upcoming.length) return upcoming[0];
+        return sorted[sorted.length - 1];
+    }
+
+    function policyBatchStatus(p) {
+        if (!p.batches || !p.batches.length) return 'notice';
+        var today = new Date();
+        var hasOpen = p.batches.some(function(b){ return DataBridge.batchStatus(b, today) === 'open'; });
+        if (hasOpen) {
+            var urgent = p.batches.some(function(b){
+                if (DataBridge.batchStatus(b, today) !== 'open') return false;
+                var d = new Date(b.end); return (d - today) / 86400000 <= 7;
+            });
+            return urgent ? 'urgent' : 'open';
+        }
+        var hasUpcoming = p.batches.some(function(b){ return DataBridge.batchStatus(b, today) === 'upcoming'; });
+        if (hasUpcoming) return 'upcoming';
+        return 'closed';
+    }
+
+    function batchStatusTxt(b, today) {
+        today = today || new Date();
+        var s = DataBridge.batchStatus(b, today);
+        var map = { open:'申报中', urgent:'即将截止', upcoming:'未开始', closed:'已截止' };
+        return { s: s, txt: map[s] || '已截止' };
+    }
+
+    // 当前字号
+    var curFs = 'md';
+    function setFontSize(sz) {
+        curFs = sz;
+        var body = document.getElementById('pdBody');
+        if (!body) return;
+        body.className = 'pd-body fs-' + sz;
+        var spans = document.querySelectorAll('.fs-ctrl span');
+        spans.forEach(function(s){ s.classList.remove('cur'); });
+        var cur = document.querySelector('.fs-ctrl span[data-fs="' + sz + '"]');
+        if (cur) cur.classList.add('cur');
+    }
+
+    var policyId = getParam('policyId');
+    var POLICIES = DataBridge.loadPolicyLibrary();
+    var policy = POLICIES.filter(function(p){ return p.id === policyId; })[0];
+
+    if (!policy) {
+        document.getElementById('pageBody').innerHTML =
+            '<div class="max-w-2xl mx-auto text-center py-24 px-6">' +
+                '<i class="fa fa-folder-open-o text-5xl text-slate-300 mb-4"></i>' +
+                '<div class="text-base font-black text-slate-700 mb-2">未找到该政策</div>' +
+                '<div class="text-xs text-slate-400 mb-6">政策可能已下线或链接有误</div>' +
+                '<button onclick="goPage(\'policy-center.html\')" class="px-6 py-2.5 rounded-lg text-xs font-bold text-white" style="background:linear-gradient(135deg,#4f8cff,#3358d4);"><i class="fa fa-arrow-left mr-1"></i>返回政策中心</button>' +
+            '</div>';
+    } else {
+        renderDetail(policy);
+    }
+
+    function renderDetail(p) {
+        var hasBatch = DataBridge.isDeclaration(p);
+        var today = new Date();
+        var st = hasBatch ? policyBatchStatus(p) : 'notice';
+        var lb = hasBatch ? latestBatch(p) : null;
+
+        // 有效性
+        var validTxt, validCls;
+        if (p.expire) {
+            var exp = new Date(p.expire);
+            if (!isNaN(exp) && exp < today) { validTxt = '已失效'; validCls = 'expired'; }
+            else { validTxt = '现行有效'; validCls = 'valid'; }
+        } else {
+            validTxt = '现行有效'; validCls = 'valid';
+        }
+
+        // 政策类型
+        var policyType = hasBatch ? '申报类政策' : '通知公告';
+        var themeCat = p.industry || '通用';
+
+        // 成文日期 = 生效日期
+        var effDate = p.effective || '—';
+        var pubDate = p.effective || (lb && lb.start) || '—';
+        var expDate = p.expire || '长期有效';
+        var docNo = p.docNo || '—';
+
+        // 面包屑
+        var crumb = '<div class="pd-crumb">' +
+            '<a onclick="goPage(\'dashboard.html\')">首页</a><span class="sep">/</span>' +
+            '<a onclick="goPage(\'policy-center.html\')">政策中心</a><span class="sep">/</span>' +
+            '<span class="text-slate-500">' + (p.name.slice(0, 24)) + (p.name.length > 24 ? '...' : '') + '</span>' +
+        '</div>';
+
+        // 政策类型
+        var policyTypeTxt = hasBatch ? '申报类政策' : '通知公告';
+        var policyTypeCls = hasBatch ? '' : '';
+
+        // 元信息卡片 - 双列网格
+        var metaCard = '<div class="pd-meta-card">' +
+            '<div class="pd-meta-grid">' +
+                '<div class="pd-meta-row"><span class="label">政策类型</span><span class="val">' + policyTypeTxt + '</span></div>' +
+                '<div class="pd-meta-row"><span class="label">主题分类</span><span class="val">' + themeCat + '</span></div>' +
+                '<div class="pd-meta-row"><span class="label">制发单位</span><span class="val">' + (p.dept || '—') + '</span></div>' +
+                '<div class="pd-meta-row"><span class="label">实施日期</span><span class="val">' + effDate + '</span></div>' +
+                '<div class="pd-meta-row"><span class="label">成文日期</span><span class="val">' + effDate + '</span></div>' +
+                '<div class="pd-meta-row"><span class="label">发文字号</span><span class="val">' + docNo + '</span></div>' +
+                '<div class="pd-meta-row"><span class="label">失效日期</span><span class="val">' + expDate + '</span></div>' +
+                '<div class="pd-meta-row"><span class="label">发布日期</span><span class="val">' + pubDate + '</span></div>' +
+                '<div class="pd-meta-row"><span class="label">有效性</span><span class="val ' + validCls + '">' + validTxt + '</span></div>' +
+            '</div>' +
+        '</div>';
+
+        // 标题区
+        var titleWrap = '<div class="pd-title-wrap">' +
+            '<h1 class="pd-title">' + p.name + '</h1>' +
+        '</div>';
+
+        // 工具栏：字号 + 打印
+        var toolBar = '<div class="pd-tool-bar">' +
+            '<div class="fs-ctrl">字体：<span data-fs="sm" onclick="setFontSize(\'sm\')">小</span><span data-fs="md" class="cur" onclick="setFontSize(\'md\')">中</span><span data-fs="lg" onclick="setFontSize(\'lg\')">大</span></div>' +
+            '<div class="print-btn" onclick="window.print()"><i class="fa fa-print"></i>打印</div>' +
+        '</div>';
+
+        // 正文区
+        var body = '<div id="pdBody" class="pd-body fs-md">';
+
+        // 渲染真实 content：按 \n 分段，自动识别"一、""(一)""1."等章节标题
+        var content = p.content || '';
+        if (content) {
+            var paragraphs = content.split(/\n\n+/);
+            paragraphs.forEach(function(para){
+                para = para.trim();
+                if (!para) return;
+                // 判断是否中文数字章节标题（一、二、三、...）
+                var cnHdr = para.match(/^([一二三四五六七八九十]+、)\s*(.+)$/);
+                if (cnHdr && cnHdr[2]) {
+                    body += '<h2 class="pd-h2"><span class="num">' + cnHdr[1] + '</span>' + cnHdr[2].trim() + '</h2>';
+                } else if (/^[（(][一二三四五六七八九十]+[)）]/.test(para)) {
+                    body += '<div class="pd-sub-h">' + para + '</div>';
+                } else {
+                    // 普通段落或编号段落，逐行处理
+                    var lines = para.split(/\n/);
+                    lines.forEach(function(line){
+                        line = line.trim();
+                        if (!line) return;
+                        // 段落内的中文数字二级标题
+                        var cnSub = line.match(/^([一二三四五六七八九十]+、)\s*(.+)$/);
+                        if (cnSub && cnSub[2]) {
+                            body += '<h3 class="pd-h2" style="font-size:15px;"><span class="num">' + cnSub[1] + '</span>' + cnSub[2].trim() + '</h3>';
+                        } else if (/^[（(][一二三四五六七八九十]+[)）]/.test(line)) {
+                            body += '<div class="pd-sub-h">' + line + '</div>';
+                        } else if (/^\d+[.．、]\s*/.test(line)) {
+                            // 阿拉伯数字编号
+                            body += '<div class="pd-list-item">' + line.replace(/^\d+[.．、]\s*/, '') + '</div>';
+                        } else {
+                            body += '<div class="pd-para">' + line + '</div>';
+                        }
+                    });
+                }
+            });
+        } else {
+            // 旧数据无 content 时的兜底模板
+            body += '<div class="pd-para">该政策暂无完整正文，请联系发文单位' + (p.dept || '') + '获取原文，或通过政策库后台补充。</div>';
+        }
+
+        // 申报批次表格（申报型政策）
+        if (hasBatch && p.batches && p.batches.length) {
+            body += '<h2 class="pd-h2"><span class="num">附录·</span>申报批次</h2>';
+            body += '<div class="pd-para">本政策共设' + p.batches.length + '个申报批次，具体受理时间及状态如下：</div>';
+            body += '<table class="pd-batch-tbl">';
+            body += '<thead><tr><th style="width:34%">批次名称</th><th style="width:28%">开始时间</th><th style="width:22%">截止时间</th><th style="width:16%">当前状态</th></tr></thead><tbody>';
+            p.batches.forEach(function(bb){
+                var bs = batchStatusTxt(bb, today);
+                var stCls = bs.s === 'open' ? 'st-open' : (bs.s === 'upcoming' ? 'st-upcoming' : 'st-closed');
+                body += '<tr><td>' + (bb.name || '—') + '</td><td>' + (bb.start || '—') + '</td><td>' + (bb.end || '—') + '</td><td class="' + stCls + '">' + bs.txt + '</td></tr>';
+            });
+            body += '</tbody></table>';
+        }
+
+        body += '</div>';
+
+        // 拼装
+        document.getElementById('pageBody').innerHTML = '<div class="pd-wrap">' + crumb + metaCard + titleWrap + toolBar + body + '</div>';
+    }
+
+    function toggleFav() { toast('已加入收藏'); }
+    function sharePage() { toast('链接已复制'); }
+    function toast(msg) {
+        var t = document.createElement('div');
+        t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(30,41,59,.9);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:99;';
+        t.textContent = msg; document.body.appendChild(t);
+        setTimeout(function(){ t.style.opacity = 0; t.style.transition = '.3s'; }, 1500);
+        setTimeout(function(){ t.remove(); }, 2000);
+    }
+</script>
+</body>
+</html>

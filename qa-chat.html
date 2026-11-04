@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能问答 - 策源易答</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+        .left-sidebar { background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4); }
+        .scroll-thin::-webkit-scrollbar { width: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 3px; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .session-item { transition: all .15s ease; cursor: pointer; }
+        .session-item:hover { background: rgba(255,255,255,.85); }
+        .session-item.active { background: #fff; box-shadow: 0 4px 12px -4px rgba(79,70,229,.25); border-color: #c7d2fe; }
+        .typing-cursor { display: inline-block; width: 8px; height: 15px; background: #6366f1; vertical-align: -2px; animation: blink .8s infinite; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fadeUp .3s ease both; }
+        .think-dot { animation: thinkBounce 1.2s infinite; display:inline-block; }
+        .think-dot:nth-child(2) { animation-delay: .15s; }
+        .think-dot:nth-child(3) { animation-delay: .3s; }
+        @keyframes thinkBounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+        input:focus { outline: none; }
+        .chat-input-box:focus-within { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,.12); }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="flex h-screen">
+        <!-- 左侧窄导航 -->
+        <aside class="left-sidebar w-20 flex-shrink-0 flex flex-col items-center" style="background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4);">
+            <div class="w-full pt-4 pb-3 border-b border-white/30 flex flex-col items-center">
+                <div style="position:relative;width:62px;height:28px;"><svg style="position:absolute;top:0;left:0;" width="62" height="14" viewBox="0 0 62 14"><path d="M3 13 C 18 1, 44 -1, 59 7" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round"/></svg><div style="position:absolute;top:5px;left:0;width:62px;text-align:center;font-size:17px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#1d4ed8;font-family:Arial,sans-serif;">ELHP</div></div><div class="text-[10px] font-black text-slate-800" style="margin-top:2px;">策源易答</div>
+            </div>
+            <div class="w-full pt-3 pb-3 flex flex-col items-center gap-1.5">
+                <button onclick="goPage('dashboard.html')" class="flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="智能政策搜索">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center" style="background:#6366f1;"><i class="fa fa-comments text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold" style="color:#4f46e5;">政策问答</span>
+                </button>
+                <button onclick="goPage('policy-radar.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策雷达</span>
+                </button>
+                <button onclick="goPage('ability-diagnosis.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="科创能力评估">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-stethoscope text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">科创测评</span>
+                </button>
+                <button onclick="goPage('declaration-butler.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="申报材料自查">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-file-text-o text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">申报管家</span>
+                </button>
+                <button onclick="goPage('policy-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
+                <button onclick="goPage('service-market.html')" class="flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold text-orange-600">服务商城</span>
+                </button>
+            </div>
+            <div class="mt-auto w-full pt-2 pb-3 border-t border-white/30 flex flex-col items-center gap-1.5">
+                <button onclick="goPage('member-center.html?action=plan')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="策能值充值">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-amber-400 to-orange-500"><i class="fa fa-bolt text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold">充值中心</span>
+                </button>
+                <button onclick="goPage('member-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="会员中心">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-user text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">会员中心</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 历史会话栏 -->
+        <aside class="w-64 flex-shrink-0 flex flex-col border-r border-white/60" style="background: rgba(255,255,255,.55); backdrop-filter: blur(8px);">
+            <div class="p-3 border-b border-white/60">
+                <button onclick="newSession()" class="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90 transition-all shadow-md">
+                    <i class="fa fa-plus mr-1"></i>开启新对话
+                </button>
+            </div>
+            <div class="px-3 pt-3 pb-1 flex items-center justify-between">
+                <span class="text-[11px] font-black text-slate-500"><i class="fa fa-clock-o mr-1"></i>历史会话</span>
+                <button onclick="clearSessions()" class="text-[10px] text-slate-400 hover:text-red-500 font-bold">清空</button>
+            </div>
+            <div id="sessionList" class="flex-1 overflow-y-auto scroll-thin px-3 pb-3 space-y-1"></div>
+        </aside>
+
+        <!-- 对话主区 -->
+        <main class="flex-1 flex flex-col" style="background: linear-gradient(135deg, #eef2ff 0%, #e0f2fe 50%, #f5f3ff 100%); min-width:0;">
+            <!-- 消息区 -->
+            <div id="msgArea" class="flex-1 overflow-y-auto scroll-thin px-6 py-5">
+                <div class="max-w-3xl" style="margin:0 auto;" id="msgList"></div>
+            </div>
+            <!-- 底部输入框 -->
+            <div class="px-6 pb-4 pt-2">
+                <div class="max-w-3xl" style="margin:0 auto;">
+                    <div class="chat-input-box flex items-center bg-white rounded-2xl border border-slate-200 shadow-lg px-4 py-1.5 transition-all">
+                        <i class="fa fa-comments-o text-indigo-400 text-base mr-3"></i>
+                        <input id="chatInput" type="text" class="flex-1 py-3 text-sm text-slate-700 bg-transparent" placeholder="继续追问，或输入新的政策问题..."
+                            onkeydown="if(event.key==='Enter')sendChat()">
+                        <button onclick="sendChat()" class="ml-3 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90 transition-all flex-shrink-0">
+                            <i class="fa fa-send mr-1"></i>发送
+                        </button>
+                    </div>
+                    <p class="text-center text-[10px] text-slate-400 mt-2">内容由策源易答AI生成，仅供参考 · 支持上下文追问（如：条件呢？流程是什么？）</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 政策原文弹窗 -->
+    <div id="policyModal" class="fixed inset-0 z-50 hidden items-center justify-center" style="background:rgba(15,23,42,.45);backdrop-filter:blur(3px);">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden animate-fade-up" style="max-height:85vh;">
+            <div class="px-5 py-4 bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-between">
+                <div class="flex items-center gap-2 text-white">
+                    <i class="fa fa-file-text-o"></i>
+                    <span class="text-sm font-black">政策原文 · <span id="pmArticle"></span></span>
+                </div>
+                <button onclick="closePolicyDetail()" class="w-7 h-7 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-all"><i class="fa fa-close"></i></button>
+            </div>
+            <div class="p-5 overflow-y-auto scroll-thin" style="max-height:calc(85vh - 132px);">
+                <h3 id="pmName" class="text-base font-black text-slate-800"></h3>
+                <div id="pmMeta" class="flex flex-wrap items-center gap-2 mt-2"></div>
+                <div class="mt-4 rounded-xl bg-amber-50 border border-amber-100 p-4">
+                    <div class="text-[11px] font-black text-amber-700 mb-1.5"><i class="fa fa-quote-left mr-1"></i><span id="pmArticle2"></span> 原文摘录</div>
+                    <p id="pmText" class="text-xs text-slate-700 leading-relaxed"></p>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-3"><i class="fa fa-info-circle mr-1"></i>此为模拟演示原文，正式环境将对接政府公开文件库并附原文链接</p>
+            </div>
+            <div class="px-5 py-3 border-t border-slate-100 flex justify-end gap-2">
+                <button onclick="copyPolicyLink()" class="px-3 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all"><i class="fa fa-link mr-1"></i>复制原文链接</button>
+                <button onclick="closePolicyDetail()" class="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl hover:opacity-90 transition-all">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js"></script>
+    <script>
+        function goPage(url) {
+            try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage(url, null); return; } } catch (e) {}
+            window.location.href = url;
+        }
+        function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        var POLICIES = DataBridge.loadPolicyLibrary();
+        var LEVEL_STYLE = {
+            '国家级': { bg:'#eef2ff', color:'#4f46e5' },
+            '省级':   { bg:'#eff6ff', color:'#2563eb' },
+            '市级':   { bg:'#f0fdfa', color:'#0d9488' },
+            '区县级': { bg:'#fffbeb', color:'#d97706' }
+        };
+        function regionText(p) {
+            if (!p.region || p.region.province === '全国') return '全国通用';
+            return [p.region.province, p.region.city, p.region.district].filter(Boolean).join(' · ');
+        }
+
+        // ===== 会话存储（含上下文） =====
+        var SESSION_KEY = 'ceyuan_chat_sessions';
+        function loadSessions() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || '[]'); } catch (e) { return []; } }
+        function saveSessions(list) { try { localStorage.setItem(SESSION_KEY, JSON.stringify(list.slice(0, 50))); } catch (e) {} }
+        var CUR = null; // 当前会话 { id, title, lastTopic, msgs:[{role,text,refs,time}] }
+
+        function newSession(silent) {
+            CUR = { id: 'S' + Date.now(), title: '新对话', lastTopic: '', msgs: [] };
+            renderMessages();
+            renderSessionList();
+            if (!silent) document.getElementById('chatInput').focus();
+        }
+        function persistCur() {
+            var list = loadSessions().filter(function(s){ return s.id !== CUR.id; });
+            if (CUR.msgs.length) list.unshift(CUR);
+            saveSessions(list);
+            renderSessionList();
+        }
+        function openSession(id) {
+            var s = loadSessions().filter(function(x){ return x.id === id; })[0];
+            if (!s) return;
+            CUR = s;
+            renderMessages();
+            renderSessionList();
+        }
+        function clearSessions() {
+            saveSessions([]);
+            newSession(true);
+            renderSessionList();
+        }
+        function fmtTime(t) {
+            var d = new Date(t);
+            var pad = function(n){ return String(n).padStart(2, '0'); };
+            return (d.getMonth() + 1) + '-' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+        }
+        function renderSessionList() {
+            var list = loadSessions();
+            var el = document.getElementById('sessionList');
+            if (!list.length) {
+                el.innerHTML = '<div class="text-center py-12"><i class="fa fa-comments-o text-3xl text-slate-300 mb-2"></i><p class="text-[11px] text-slate-400">暂无历史会话</p></div>';
+                return;
+            }
+            el.innerHTML = list.map(function(s) {
+                return '<div class="session-item px-3 py-2 rounded-xl border border-transparent ' + (CUR && CUR.id === s.id ? 'active' : '') + '" data-sid="' + s.id + '">' +
+                    '<div class="text-xs font-bold text-slate-700 line-clamp-2">' + escapeHtml(s.title) + '</div>' +
+                    '<div class="text-[10px] text-slate-400 mt-0.5">' + fmtTime(s.createTime || s.msgs[0].time) + ' · ' + Math.ceil(s.msgs.length / 2) + ' 轮</div>' +
+                '</div>';
+            }).join('');
+        }
+        // 事件委托：点击历史会话项恢复（内联 onclick 在部分场景下不触发）
+        document.getElementById('sessionList').addEventListener('click', function(e) {
+            var item = e.target;
+            while (item && item !== this && !(item.classList && item.classList.contains('session-item'))) item = item.parentNode;
+            if (item && item !== this && item.getAttribute('data-sid')) openSession(item.getAttribute('data-sid'));
+        });
+
+        // ===== 政策匹配与回答生成 =====
+        function matchPolicies(q) {
+            var dict = ['高企','高新技术','专精特新','研发','加计','补贴','知识产权','专利','商标','成都','绵阳','广东','四川','武侯','高新','涪城','天河','技术改造','贯标','贷款贴息','科技成果'];
+            var kws = dict.filter(function(d){ return q.indexOf(d) >= 0; });
+            if (!kws.length) {
+                kws = q.replace(/[？?！!，,。\s]/g, ' ').split(' ').filter(function(w){ return w.length >= 2; });
+            }
+            if (!kws.length) return POLICIES.slice(0, 3);
+            return POLICIES.map(function(p) {
+                var hay = p.name + ' ' + (p.dept || '') + ' ' + (p.industry || '') + ' ' + regionText(p);
+                var score = 0;
+                kws.forEach(function(k){ if (hay.indexOf(k) >= 0) score += (p.name.indexOf(k) >= 0 ? 3 : 1); });
+                return { p: p, score: score };
+            }).filter(function(x){ return x.score > 0; })
+              .sort(function(a, b){ return b.score - a.score; })
+              .slice(0, 3).map(function(x){ return x.p; });
+        }
+        function detectTopic(q) {
+            if (q.indexOf('高新技术') >= 0 || q.indexOf('高企') >= 0) return '高新技术企业';
+            if (q.indexOf('专精特新') >= 0) return '专精特新';
+            if (q.indexOf('加计') >= 0) return '研发费用加计扣除';
+            if (q.indexOf('研发') >= 0) return '研发投入';
+            if (q.indexOf('知识产权') >= 0 || q.indexOf('专利') >= 0 || q.indexOf('贯标') >= 0) return '知识产权';
+            if (q.indexOf('技术改造') >= 0 || q.indexOf('补贴') >= 0) return '企业补贴';
+            return '';
+        }
+        // 追问维度识别：材料/条件/流程/时间/费用
+        function detectAspect(q) {
+            if (/材料|资料|清单|附件|证明/.test(q)) return 'materials';
+            if (/流程|步骤|怎么办|如何申报|怎么申报|去哪|入口/.test(q)) return 'process';
+            if (/时间|批次|截止|什么时候|何时|窗口/.test(q)) return 'time';
+            if (/费用|多少钱|成本|收费|免费/.test(q)) return 'cost';
+            if (/条件|要求|标准|门槛|资格/.test(q)) return 'conditions';
+            return '';
+        }
+        // 条款引用池（按主题+维度给条款号）
+        function citeArticle(topic, aspect, idx) {
+            var map = {
+                '高新技术企业':   { conditions:'第十一条', materials:'第十二条', process:'第十三条', general:'第十条' },
+                '专精特新':       { conditions:'第三条', materials:'第五条', process:'第六条', general:'第三条' },
+                '研发费用加计扣除':{ conditions:'第一条', materials:'第五条', process:'第七条', general:'第一条' },
+                '知识产权':       { conditions:'第二条', materials:'第四条', process:'第五条', general:'第二条' },
+                '企业补贴':       { conditions:'第三条', materials:'第六条', process:'第七条', general:'第三条' }
+            };
+            var t = map[topic];
+            var pool = ['第十条', '第三条', '第五条', '第八条'];
+            return (t && (t[aspect] || t.general)) || pool[idx % pool.length];
+        }
+        function answerText(q, topic, matched, isFollowUp, aspect) {
+            var names = matched.map(function(p){ return '《' + p.name + '》'; }).join('、');
+            var prefix = isFollowUp ? '承接上文关于「' + topic + '」的问题：' : '';
+            // 时间维度：动态列申报批次
+            if (aspect === 'time') {
+                var rows = [];
+                matched.forEach(function(p) {
+                    (p.batches || []).forEach(function(b) {
+                        var st = DataBridge.batchStatus(b, new Date());
+                        var stText = st === 'open' ? '申报中' : st === 'upcoming' ? '未开始' : '已截止';
+                        rows.push('《' + p.name + '》' + b.name + '：' + (b.start || '随时') + ' 至 ' + b.end + '（' + stText + '）');
+                    });
+                });
+                return prefix + (rows.length
+                    ? '相关政策的申报窗口如下——' + rows.slice(0, 4).join('；') + '。建议优先准备「申报中」批次的材料，临近截止的可在政策中心查看详情。'
+                    : '相关政策当前为常年受理，无固定申报批次，可随时在政策中心查看并启动申报。');
+            }
+            if (aspect === 'cost') {
+                return prefix + '费用方面：政策申报本身不向政府部门缴纳任何费用（认定/申报免费）。主要成本在材料准备环节——自行申报零费用但耗时较长；委托服务机构代办的参考费用为：高企认定全程辅导约 1.9 万元、专精特新一站式约 3.2 万元、知识产权贯标辅导约 1.6 万元，可在「服务商城」对比服务商报价后下单。';
+            }
+            // 分主题 × 分维度
+            var T = {
+                '高新技术企业': {
+                    conditions: '高新技术企业认定核心条件：① 企业成立满一年；② 拥有核心自主知识产权（发明专利、软著等）；③ 研发费用占销售收入比例不低于 5%；④ 高新技术产品收入占总收入 60% 以上。政策库中直接相关的有 ' + (names || '《高新技术企业认定管理办法》') + '，认定后可享 15% 企业所得税优惠，建议先用「科创测评」自评短板。',
+                    materials: '高企认定需准备的材料清单：① 高新技术企业认定申请书（在线填写导出）；② 知识产权证书及缴费凭证；③ 近三年财务会计报告与研发费用专项审计报告；④ 高新技术产品（服务）收入专项审计报告；⑤ 研发组织管理制度、成果转化证明材料；⑥ 企业职工与科技人员情况说明。可在「申报管家」按清单逐项上传核对。',
+                    process: '高企认定申报流程：① 自我评价并网上注册（科学技术部政务服务平台）；② 在线填写申请书并提交材料；③ 地方认定机构形式审查；④ 专家评审（约 20 个工作日）；⑤ 公示 10 个工作日；⑥ 备案发证。全程约 2-3 个月，建议提前 1 个批次准备材料。',
+                    general: '高新技术企业是国家级资质，认定依据 ' + (names || '《高新技术企业认定管理办法》') + '，核心价值为 15% 企业所得税优惠与地方配套奖励。您可以继续追问：认定条件、申报材料、申报流程或申报时间。'
+                },
+                '专精特新': {
+                    conditions: '专精特新中小企业认定通常要求：① 上年度研发费用占比不低于 3%；② 拥有核心自主知识产权；③ 主导产品在细分市场占有率位居前列；④ 部分地区要求先入库创新型中小企业。匹配政策：' + (names || '《专精特新企业奖励》') + '。',
+                    materials: '专精特新申报材料：① 专精特新中小企业申请表；② 营业执照与上年度审计报告；③ 研发费用专项说明；④ 知识产权证书；⑤ 主导产品市场占有率证明（行业协会或第三方报告）；⑥ 数字化转型/质量管理相关佐证。',
+                    process: '专精特新申报流程：① 入库创新型中小企业（常年）；② 省级工信部门发布申报通知；③ 网上填报并提交纸质材料；④ 专家评审与实地抽查；⑤ 公示发文。国家级「小巨人」在省级专精特新基础上择优推荐。',
+                    general: '专精特新是工信部主导的梯度培育体系（创新型中小企业→省级专精特新→国家级小巨人），匹配政策：' + (names || '《专精特新企业奖励》') + '。可继续追问认定条件、材料、流程。'
+                },
+                '研发费用加计扣除': {
+                    conditions: '研发费用加计扣除适用条件：① 会计核算健全、查账征收的居民企业；② 研发活动符合定义（新技术、新产品、新工艺）；③ 研发费用归集准确并设置辅助账。现行政策为 100% 加计扣除，匹配 ' + (names || '《研发费用加计扣除》') + '。',
+                    materials: '加计扣除留存备查材料：① 研发项目立项决议与计划书；② 研发费用辅助账及汇总表；③ 研发人员工时记录、设备使用记录；④ 委托/合作研发合同；⑤ 科技成果证明材料。无需事前审批，汇算清缴时申报享受。',
+                    process: '加计扣除享受流程：① 日常按研发项目归集费用并记录辅助账；② 预缴或汇算清缴时填写《研发费用加计扣除优惠明细表》（A107012）；③ 留存备查资料保存 10 年。10 月预缴可提前享受前三季度加计扣除。',
+                    general: '研发费用加计扣除是企业普惠性税收优惠，现行加计比例 100%（无形资产按成本 200% 摊销），匹配 ' + (names || '《研发费用加计扣除》') + '。可继续追问适用条件、留存材料、申报流程。'
+                },
+                '知识产权': {
+                    conditions: '知识产权类资助通常要求：企业拥有有效自主知识产权（发明专利、实用新型、软著等），贯标资助需通过 IPMS 认证审核。匹配 ' + (names || '知识产权贯标资助类政策') + '。',
+                    materials: '知识产权资助申请材料：① 资助申请表；② 知识产权证书及年费缴费凭证；③ 营业执照副本；④ 贯标认证证书（申请贯标资助时）；⑤ 专利法律状态查询证明。',
+                    process: '知识产权资助申报流程：① 确认知识产权有效状态；② 按属地市场监管部门通知网上申报；③ 提交证书与缴费凭证；④ 审核公示后拨付资助资金。',
+                    general: '知识产权资助覆盖专利申请资助、贯标认证资助、高价值专利培育奖励等，匹配 ' + (names || '知识产权贯标资助类政策') + '。可继续追问申请条件、材料、流程。'
+                },
+                '企业补贴': {
+                    conditions: '企业补贴类政策条件各异：技改补贴一般要求项目设备投入达到门槛（如 100 万元）并备案；研发补贴多要求年度研发投入达标；成果转化补贴要求成果已落地转化。匹配 ' + (names || '多条款项') + '。',
+                    materials: '企业补贴通用材料：① 项目备案/核准文件；② 设备购置发票与合同（技改类）；③ 专项审计报告；④ 营业执照与纳税证明；⑤ 项目验收材料。',
+                    process: '企业补贴申报流程：① 项目备案（发改/经信部门）；② 项目建设与投入；③ 申报通知发布后提交材料；④ 第三方审计与专家评审；⑤ 公示拨付。',
+                    general: '企业补贴覆盖研发补贴、技改设备补贴、成果转化补贴等方向，匹配 ' + (names || '多条款项') + '。可继续追问具体补贴的条件、材料、流程。'
+                }
+            };
+            var t = T[topic];
+            if (t) return prefix + (t[aspect] || t.general);
+            return prefix + '已为您从政策库检索到 ' + matched.length + ' 条相关政策' + (names ? '：' + names : '') + '。可点击下方条款引用查看政策原文，或继续追问该主题的条件、材料、流程、时间。';
+        }
+
+        // ===== 消息渲染 =====
+        function userMsgHtml(m) {
+            return '<div class="animate-fade-up flex justify-end mb-4">' +
+                '<div class="px-4 py-2.5 rounded-2xl text-sm text-white shadow-md" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); max-width:70%;">' + escapeHtml(m.text) + '</div>' +
+            '</div>';
+        }
+        function aiMsgHtml(m) {
+            // 条款引用块
+            var citeHtml = '';
+            if (m.cites && m.cites.length) {
+                citeHtml = '<div class="mt-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-3">' +
+                    '<div class="text-[11px] font-black text-amber-800 mb-2"><i class="fa fa-quote-left mr-1"></i>政策依据 · 条款引用</div>' +
+                    '<div class="space-y-1.5">' + m.cites.map(function(c) {
+                        var p = POLICIES.filter(function(x){ return x.id === c.id; })[0];
+                        if (!p) return '';
+                        return '<button onclick="openPolicyDetail(\'' + c.id + '\',\'' + c.article + '\')" class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg bg-white/70 border border-amber-200 hover:bg-amber-100 transition-all">' +
+                            '<i class="fa fa-file-text-o text-amber-500 flex-shrink-0"></i>' +
+                            '<span class="flex-1 text-[11px] text-amber-800 font-bold truncate">《' + escapeHtml(p.name) + '》' + c.article + '</span>' +
+                            '<span class="text-[10px] text-amber-600 flex-shrink-0">查看原文 <i class="fa fa-external-link"></i></span>' +
+                        '</button>';
+                    }).join('') + '</div>' +
+                '</div>';
+            }
+            return '<div class="animate-fade-up flex mb-4">' +
+                '<div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 mr-3 shadow-md"><i class="fa fa-magic text-white text-xs"></i></div>' +
+                '<div class="flex-1" style="min-width:0;">' +
+                    '<div class="bg-white/85 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-4">' +
+                        '<div class="flex items-center gap-2 mb-2"><span class="text-xs font-black text-slate-800">策源AI</span><span class="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">AI生成</span><span class="text-[10px] text-slate-400">' + fmtTime(m.time) + '</span></div>' +
+                        '<p class="text-sm text-slate-700 leading-relaxed">' + escapeHtml(m.text) + '</p>' +
+                        citeHtml +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }
+        function renderMessages() {
+            var el = document.getElementById('msgList');
+            if (!CUR || !CUR.msgs.length) {
+                el.innerHTML = '<div class="text-center py-12">' +
+                    '<div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg" style="margin:0 auto;"><i class="fa fa-magic text-white text-xl"></i></div>' +
+                    '<h2 class="text-lg font-black text-slate-800 mt-4">开始一个新的政策问答</h2>' +
+                    '<p class="text-xs text-slate-400 mt-1">支持上下文追问，如先问「高企认定条件」，再追问「需要什么材料」</p>' +
+                '</div>';
+                return;
+            }
+            el.innerHTML = CUR.msgs.map(function(m) {
+                return m.role === 'user' ? userMsgHtml(m) : aiMsgHtml(m);
+            }).join('');
+            scrollBottom();
+        }
+        function scrollBottom() {
+            var area = document.getElementById('msgArea');
+            area.scrollTop = area.scrollHeight;
+        }
+
+        // ===== 政策原文弹窗（条款引用点击） =====
+        var COND_LABEL = { rdRatio:'研发费用占销售收入比例', ipOwned:'拥有核心自主知识产权', hiTechRatio:'高新技术产品（服务）收入占比', rdInvest:'年度研发投入', revenue:'上年度营业收入', projectInvest:'项目总投资额' };
+        var CUR_POLICY = null;
+        function condText(c) {
+            var label = COND_LABEL[c.type] || c.type;
+            if (c.op === '==') return label;
+            var pct = (c.type === 'rdRatio' || c.type === 'hiTechRatio');
+            return label + (c.op === '>=' ? '不低于 ' : c.op + ' ') + c.val + (pct ? '%' : ' 万元');
+        }
+        function mockArticleText(p, article) {
+            var conds = (p.conditions || []).map(condText);
+            var body = conds.length
+                ? article + '　申报' + p.name + '的主体应当同时满足下列条件：' + conds.map(function(c, i){ return '（' + ['一','二','三','四','五'][i] + '）' + c + '；'; }).join('') + '具体申报要求以主管部门当年度发布的申报通知为准。'
+                : article + '　' + p.name + '面向符合条件的企业常年受理，申报主体按属地主管部门发布的申报通知要求提交材料，经审核、公示后按规定享受相应扶持。';
+            return body + '（发布部门：' + (p.dept || '主管部门') + '，施行日期：' + (p.effective || '以发文为准') + '）';
+        }
+        function openPolicyDetail(pid, article) {
+            var p = POLICIES.filter(function(x){ return x.id === pid; })[0];
+            if (!p) return;
+            CUR_POLICY = p;
+            document.getElementById('pmArticle').textContent = article;
+            document.getElementById('pmArticle2').textContent = article;
+            document.getElementById('pmName').textContent = p.name;
+            var lv = LEVEL_STYLE[p.level] || LEVEL_STYLE['国家级'];
+            document.getElementById('pmMeta').innerHTML =
+                '<span class="text-[10px] px-2 py-0.5 rounded-full font-bold" style="color:' + lv.color + ';background:' + lv.bg + ';">' + p.level + '</span>' +
+                '<span class="text-[10px] text-slate-500"><i class="fa fa-institution mr-1"></i>' + (p.dept || '—') + '</span>' +
+                '<span class="text-[10px] text-slate-500"><i class="fa fa-map-marker mr-1"></i>' + regionText(p) + '</span>' +
+                (p.effective ? '<span class="text-[10px] text-slate-500"><i class="fa fa-calendar mr-1"></i>生效 ' + p.effective + '</span>' : '');
+            document.getElementById('pmText').textContent = mockArticleText(p, article);
+            var modal = document.getElementById('policyModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        function closePolicyDetail() {
+            var modal = document.getElementById('policyModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        function copyPolicyLink() {
+            var link = 'https://zhengce.ceyuan-yida.cn/policy/' + (CUR_POLICY ? CUR_POLICY.id : '');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(link).then(function() { alert('原文链接已复制：\n' + link); }, function() { prompt('复制以下原文链接：', link); });
+            } else {
+                prompt('复制以下原文链接：', link);
+            }
+        }
+
+        // ===== 发送与回答（带思考动画 + 打字机） =====
+        var typingTimer = null;
+        var answering = false;
+        function typeInto(el, text, done) {
+            if (typingTimer) clearInterval(typingTimer);
+            var i = 0;
+            el.innerHTML = '<span class="typing-cursor"></span>';
+            typingTimer = setInterval(function() {
+                i += 2;
+                el.innerHTML = escapeHtml(text.slice(0, i)) + '<span class="typing-cursor"></span>';
+                scrollBottom();
+                if (i >= text.length) {
+                    clearInterval(typingTimer); typingTimer = null;
+                    el.innerHTML = escapeHtml(text);
+                    if (done) done();
+                }
+            }, 18);
+        }
+        function sendChat() {
+            var input = document.getElementById('chatInput');
+            var q = input.value.trim();
+            if (!q || answering) return;
+            input.value = '';
+            answering = true;
+
+            // 线索
+            try { if (window.DataBridge && DataBridge.addClue) DataBridge.addClue({ source:'问答触发', company:'匿名问答用户', intent: q.length > 30 ? q.slice(0, 30) + '...' : q }); } catch (e) {}
+
+            if (!CUR) newSession(true);
+            var isFirst = CUR.msgs.length === 0;
+            if (isFirst) CUR.title = q.length > 16 ? q.slice(0, 16) + '...' : q;
+            if (!CUR.createTime) CUR.createTime = Date.now();
+
+            // 上下文：未识别主题时承接上轮
+            var topic = detectTopic(q);
+            var isFollowUp = false;
+            if (!topic && CUR.lastTopic) { topic = CUR.lastTopic; isFollowUp = true; }
+            if (topic) CUR.lastTopic = topic;
+
+            CUR.msgs.push({ role:'user', text:q, time:Date.now() });
+            renderMessages();
+
+            // 思考动画
+            var listEl = document.getElementById('msgList');
+            var thinkId = 'think_' + Date.now();
+            var thinkDiv = document.createElement('div');
+            thinkDiv.id = thinkId;
+            thinkDiv.className = 'animate-fade-up flex mb-4';
+            thinkDiv.innerHTML =
+                '<div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 mr-3 shadow-md"><i class="fa fa-magic text-white text-xs"></i></div>' +
+                '<div class="bg-white/85 backdrop-blur rounded-2xl border border-white/60 shadow-sm px-4 py-3">' +
+                    '<span class="text-xs text-slate-500 font-bold">策源AI正在思考中</span> <span class="think-dot text-indigo-500">·</span><span class="think-dot text-indigo-500">·</span><span class="think-dot text-indigo-500">·</span>' +
+                    '<div class="mt-2"><p id="' + thinkId + '_text" class="text-sm text-slate-700 leading-relaxed"></p></div>' +
+                '</div>';
+            listEl.appendChild(thinkDiv);
+            scrollBottom();
+
+            var matched = matchPolicies(isFollowUp ? CUR.lastTopic + ' ' + q : q);
+            var aspect = detectAspect(q);
+            var cites = matched.map(function(p, i){ return { id: p.id, article: citeArticle(topic, aspect, i) }; });
+            var answer = answerText(q, topic, matched, isFollowUp, aspect);
+
+            setTimeout(function() {
+                typeInto(document.getElementById(thinkId + '_text'), answer, function() {
+                    CUR.msgs.push({ role:'ai', text:answer, cites: cites, time:Date.now() });
+                    persistCur();
+                    renderMessages();
+                    answering = false;
+                });
+            }, 900);
+        }
+
+        // 初始化：支持 ?q= 自动发起首轮
+        newSession(true);
+        renderSessionList();
+        (function() {
+            try {
+                var q = new URLSearchParams(location.search).get('q');
+                if (q) {
+                    document.getElementById('chatInput').value = q;
+                    setTimeout(sendChat, 300);
+                }
+            } catch (e) {}
+        })();
+    </script>
+</body>
+</html>

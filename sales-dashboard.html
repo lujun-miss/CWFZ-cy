@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>业绩看板 - 策源易达政策销售平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+        .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        /* brand 主题色（本地预编译 tailwind.css 不含 brand 色板，在此补齐） */
+        :root { --brand-50:#f0fdf4; --brand-100:#dcfce7; --brand-300:#86efac; --brand-500:#22c55e; --brand-600:#16a34a; --brand-700:#15803d; --brand-800:#166534; }
+        .bg-brand-50 { background-color: var(--brand-50); }
+        .bg-brand-100 { background-color: var(--brand-100); }
+        .bg-brand-300 { background-color: var(--brand-300); }
+        .bg-brand-500 { background-color: var(--brand-500); }
+        .bg-brand-600 { background-color: var(--brand-600); }
+        .text-brand-600 { color: var(--brand-600); }
+        .text-brand-700 { color: var(--brand-700); }
+        .text-brand-800 { color: var(--brand-800); }
+        .hover\:text-brand-600:hover { color: var(--brand-600); }
+        .hover\:text-brand-700:hover { color: var(--brand-700); }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 顶部导航 -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div class="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center">
+                    <i class="fa fa-dashboard text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">业绩看板</h1>
+                    <p class="text-xs text-gray-500">销售业绩实时洞察</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center bg-gray-100 rounded-lg p-0.5 text-sm">
+                    <button id="tabPersonal" onclick="switchScope('personal')" class="px-3 py-1 rounded-md bg-white shadow-sm text-gray-800 font-medium">个人</button>
+                    <button id="tabTeam" onclick="switchScope('team')" class="px-3 py-1 rounded-md text-gray-500">团队</button>
+                </div>
+                <select class="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600">
+                    <option>本月</option>
+                    <option>本季度</option>
+                    <option>本年度</option>
+                    <option>自定义</option>
+                </select>
+                <button class="text-gray-600 hover:text-brand-600"><i class="fa fa-bell"></i></button>
+                <div class="flex items-center space-x-2">
+                    <div class="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold">张</div>
+                    <span class="text-sm text-gray-700">张销售</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto px-6 py-6">
+        <!-- 核心指标 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">本月成交额</p>
+                        <p class="text-3xl font-bold text-gray-800 mt-1">¥486<span class="text-lg text-gray-400">.8万</span></p>
+                        <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +18.6%</p>
+                    </div>
+                    <div class="w-12 h-12 bg-brand-50 rounded-lg flex items-center justify-center">
+                        <i class="fa fa-yen text-brand-600 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 w-full bg-gray-100 rounded-full h-1.5">
+                    <div class="bg-brand-600 h-1.5 rounded-full" style="width: 78%"></div>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">目标完成 78%</p>
+            </div>
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">新增客户数</p>
+                        <p class="text-3xl font-bold text-gray-800 mt-1">128</p>
+                        <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +12.5%</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <i class="fa fa-user-plus text-blue-500 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 w-full bg-gray-100 rounded-full h-1.5">
+                    <div class="bg-blue-500 h-1.5 rounded-full" style="width: 85%"></div>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">目标完成 85%</p>
+            </div>
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">本月新增线索</p>
+                        <p class="text-3xl font-bold text-gray-800 mt-1">186</p>
+                        <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +22.3%</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+                        <i class="fa fa-bullseye text-orange-500 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 w-full bg-gray-100 rounded-full h-1.5">
+                    <div class="bg-orange-500 h-1.5 rounded-full" style="width: 88%"></div>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">目标完成 88%</p>
+            </div>
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">线索转化率</p>
+                        <p class="text-3xl font-bold text-gray-800 mt-1">17.5%</p>
+                        <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +2.1%</p>
+                    </div>
+                    <div class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center">
+                        <i class="fa fa-exchange text-emerald-500 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 w-full bg-gray-100 rounded-full h-1.5">
+                    <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 67%"></div>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">目标完成 67%</p>
+            </div>
+        </div>
+
+        <!-- 主看板：左 2/3 列（业绩趋势、销售排行），右 1/3 列（转化漏斗、申报构成） -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 月度业绩趋势 -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h2 class="font-semibold text-gray-800">月度业绩趋势</h2>
+                        <p class="text-xs text-gray-400 mt-0.5">近 6 个月成交额变化（万元）</p>
+                    </div>
+                    <div class="flex items-center space-x-3 text-xs">
+                        <span class="flex items-center"><span class="w-2.5 h-2.5 bg-brand-500 rounded-sm mr-1.5"></span>成交额</span>
+                        <span class="flex items-center"><span class="w-2.5 h-2.5 bg-gray-300 rounded-sm mr-1.5"></span>目标</span>
+                    </div>
+                </div>
+                <!-- 简易柱状图 -->
+                <div class="flex items-end justify-between h-64 px-2">
+                    <div class="flex flex-col items-center flex-1">
+                        <div class="text-xs text-gray-500 mb-1">286</div>
+                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 50%"></div>
+                        <div class="w-full max-w-[40px] bg-brand-500 rounded-t -mt-[50%]" style="height: 38%"></div>
+                        <div class="text-xs text-gray-400 mt-2">4月</div>
+                    </div>
+                    <div class="flex flex-col items-center flex-1">
+                        <div class="text-xs text-gray-500 mb-1">328</div>
+                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 55%"></div>
+                        <div class="w-full max-w-[40px] bg-brand-500 rounded-t -mt-[55%]" style="height: 44%"></div>
+                        <div class="text-xs text-gray-400 mt-2">5月</div>
+                    </div>
+                    <div class="flex flex-col items-center flex-1">
+                        <div class="text-xs text-gray-500 mb-1">356</div>
+                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 60%"></div>
+                        <div class="w-full max-w-[40px] bg-brand-500 rounded-t -mt-[60%]" style="height: 48%"></div>
+                        <div class="text-xs text-gray-400 mt-2">6月</div>
+                    </div>
+                    <div class="flex flex-col items-center flex-1">
+                        <div class="text-xs text-gray-500 mb-1">382</div>
+                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 65%"></div>
+                        <div class="w-full max-w-[40px] bg-brand-500 rounded-t -mt-[65%]" style="height: 52%"></div>
+                        <div class="text-xs text-gray-400 mt-2">7月</div>
+                    </div>
+                    <div class="flex flex-col items-center flex-1">
+                        <div class="text-xs text-gray-500 mb-1">410</div>
+                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 70%"></div>
+                        <div class="w-full max-w-[40px] bg-brand-500 rounded-t -mt-[70%]" style="height: 56%"></div>
+                        <div class="text-xs text-gray-400 mt-2">8月</div>
+                    </div>
+                    <div class="flex flex-col items-center flex-1">
+                        <div class="text-xs text-brand-600 font-semibold mb-1">486</div>
+                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 82%"></div>
+                        <div class="w-full max-w-[40px] bg-brand-600 rounded-t -mt-[82%]" style="height: 66%"></div>
+                        <div class="text-xs text-brand-600 font-medium mt-2">9月</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 客户漏斗 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="font-semibold text-gray-800 mb-1">客户转化漏斗</h2>
+                <p class="text-xs text-gray-400 mb-5">各阶段转化率</p>
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">线索</span>
+                            <span class="text-sm font-semibold text-gray-800">628</span>
+                        </div>
+                        <div class="w-full bg-brand-100 rounded h-8 flex items-center justify-center text-xs text-brand-700" style="width: 100%">100%</div>
+                    </div>
+                    <div class="text-center text-gray-400 text-xs"><i class="fa fa-arrow-down"></i> 转化 56.4%</div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">意向</span>
+                            <span class="text-sm font-semibold text-gray-800">354</span>
+                        </div>
+                        <div class="bg-brand-300 rounded h-8 flex items-center justify-center text-xs text-brand-800" style="width: 56%">56.4%</div>
+                    </div>
+                    <div class="text-center text-gray-400 text-xs"><i class="fa fa-arrow-down"></i> 转化 47.5%</div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">方案</span>
+                            <span class="text-sm font-semibold text-gray-800">168</span>
+                        </div>
+                        <div class="bg-brand-500 rounded h-8 flex items-center justify-center text-xs text-white" style="width: 27%">26.8%</div>
+                    </div>
+                    <div class="text-center text-gray-400 text-xs"><i class="fa fa-arrow-down"></i> 转化 65.5%</div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-600">成交</span>
+                            <span class="text-sm font-semibold text-gray-800">110</span>
+                        </div>
+                        <div class="bg-brand-600 rounded h-8 flex items-center justify-center text-xs text-white" style="width: 18%">17.5%</div>
+                    </div>
+                </div>
+                <div class="mt-5 pt-4 border-t border-gray-100">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500">整体转化率</span>
+                        <span class="font-bold text-brand-600">17.5%</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 销售排行榜 -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="font-semibold text-gray-800">销售排行榜</h2>
+                    <span class="text-xs text-gray-400">本月</span>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center text-yellow-600 font-bold">1</div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-7 h-7 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-semibold">张</div>
+                                    <span class="text-sm font-medium text-gray-800">张明远</span>
+                                </div>
+                                <span class="text-sm font-bold text-brand-600">¥98.6万</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2">
+                                <div class="bg-brand-600 h-2 rounded-full" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 font-bold">2</div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-semibold">李</div>
+                                    <span class="text-sm font-medium text-gray-800">李思琪</span>
+                                </div>
+                                <span class="text-sm font-bold text-gray-700">¥82.3万</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2">
+                                <div class="bg-blue-500 h-2 rounded-full" style="width: 83%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600 font-bold">3</div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-7 h-7 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-xs font-semibold">王</div>
+                                    <span class="text-sm font-medium text-gray-800">王浩然</span>
+                                </div>
+                                <span class="text-sm font-bold text-gray-700">¥76.8万</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2">
+                                <div class="bg-purple-500 h-2 rounded-full" style="width: 78%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 font-bold">4</div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-7 h-7 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center text-xs font-semibold">赵</div>
+                                    <span class="text-sm font-medium text-gray-800">赵雨欣</span>
+                                </div>
+                                <span class="text-sm font-bold text-gray-700">¥65.2万</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2">
+                                <div class="bg-teal-500 h-2 rounded-full" style="width: 66%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 font-bold">5</div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-7 h-7 bg-pink-100 text-pink-700 rounded-full flex items-center justify-center text-xs font-semibold">陈</div>
+                                    <span class="text-sm font-medium text-gray-800">陈志强</span>
+                                </div>
+                                <span class="text-sm font-bold text-gray-700">¥52.7万</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2">
+                                <div class="bg-pink-500 h-2 rounded-full" style="width: 53%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 政策申报分布 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h2 class="font-semibold text-gray-800">政策申报分布</h2>
+                        <p class="text-xs text-gray-400 mt-0.5">本月各类型政策申报占比</p>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-sm text-gray-700">高新技术企业认定</span>
+                            <span class="text-sm text-gray-500">68 次 · 32%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5">
+                            <div class="bg-brand-600 h-2.5 rounded-full" style="width: 32%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-sm text-gray-700">专精特新中小企业</span>
+                            <span class="text-sm text-gray-500">45 次 · 21%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5">
+                            <div class="bg-blue-500 h-2.5 rounded-full" style="width: 21%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-sm text-gray-700">研发费用加计扣除</span>
+                            <span class="text-sm text-gray-500">38 次 · 18%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5">
+                            <div class="bg-orange-500 h-2.5 rounded-full" style="width: 18%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-sm text-gray-700">研发中心建设补助</span>
+                            <span class="text-sm text-gray-500">26 次 · 12%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5">
+                            <div class="bg-purple-500 h-2.5 rounded-full" style="width: 12%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-sm text-gray-700">技术改造专项</span>
+                            <span class="text-sm text-gray-500">20 次 · 9%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5">
+                            <div class="bg-teal-500 h-2.5 rounded-full" style="width: 9%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-sm text-gray-700">其他政策</span>
+                            <span class="text-sm text-gray-500">16 次 · 8%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5">
+                            <div class="bg-gray-400 h-2.5 rounded-full" style="width: 8%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-5 pt-4 border-t border-gray-100 grid grid-cols-3 gap-3 text-center">
+                    <div>
+                        <p class="text-xl font-bold text-brand-600">213</p>
+                        <p class="text-xs text-gray-500">总申报数</p>
+                    </div>
+                    <div>
+                        <p class="text-xl font-bold text-emerald-600">186</p>
+                        <p class="text-xs text-gray-500">已通过</p>
+                    </div>
+                    <div>
+                        <p class="text-xl font-bold text-orange-600">87.3%</p>
+                        <p class="text-xs text-gray-500">通过率</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 个人/团队视角切换（演示数据，切换按钮状态）
+        function switchScope(scope) {
+            var on = 'px-3 py-1 rounded-md bg-white shadow-sm text-gray-800 font-medium';
+            var off = 'px-3 py-1 rounded-md text-gray-500';
+            var p = document.getElementById('tabPersonal'), t = document.getElementById('tabTeam');
+            if (scope === 'personal') { p.className = on; t.className = off; }
+            else { t.className = on; p.className = off; }
+        }
+    </script>
+</body>
+</html>

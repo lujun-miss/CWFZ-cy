@@ -1,0 +1,2395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>申报管家 - 策源易答</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 申报书生成依赖：docx.js 生成可编辑 Word，file-saver 触发下载 -->
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <style>
+        /* 申报书预览弹窗 - A4 纸张样式 */
+        .apply-modal{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.5);overflow:auto;}
+        .apply-paper{width:210mm;min-height:297mm;margin:20px auto;background:#fff;padding:20mm 18mm;
+            box-shadow:0 6px 24px rgba(0,0,0,.15);font-family:'SimSun','宋体',serif;line-height:1.8;color:#111;}
+        .apply-paper h1{font-size:22pt;text-align:center;margin:0 0 12mm;font-weight:bold;}
+        .apply-paper h2{font-size:14pt;border-left:4px solid #2563eb;padding-left:8px;margin:8mm 0 4mm;font-weight:bold;page-break-before:always;}
+        .apply-paper h2.first-sec{page-break-before:auto;}
+        .apply-paper table{width:100%;border-collapse:collapse;font-size:10.5pt;margin:4mm 0;}
+        .apply-paper td,.apply-paper th{border:1px solid #555;padding:6px 8px;vertical-align:top;}
+        .apply-paper .kv-table td:first-child{width:30%;background:#f8fafc;font-weight:bold;}
+        .apply-paper .cover{margin-bottom:8mm;}
+        .apply-paper .meta-line{font-size:11pt;color:#666;text-align:center;margin:4mm 0;}
+        .apply-toolbar{position:sticky;top:0;left:0;right:0;background:#fff;border-bottom:1px solid #e2e8f0;
+            padding:10px 16px;display:flex;gap:8px;align-items:center;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+        .apply-enterprise-edit{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin:0 0 12px;}
+        .apply-enterprise-edit input{border:1px solid #cbd5e1;border-radius:4px;padding:4px 8px;font-size:12px;}
+        @media print{
+            body * { visibility:hidden !important; }
+            .apply-paper, .apply-paper * { visibility:visible !important; }
+            .apply-paper{position:absolute;left:0;top:0;margin:0;box-shadow:none;width:100%;min-height:auto;padding:18mm 16mm;}
+            .apply-modal{position:static;background:transparent;overflow:visible;}
+            .apply-toolbar{display:none !important;}
+            .apply-enterprise-edit{display:none !important;}
+            .apply-paper h2{page-break-before:always;}
+            .apply-paper h2.first-sec{page-break-before:auto;}
+            .apply-paper table{page-break-inside:auto;}
+            .apply-paper tr{page-break-inside:avoid;page-break-after:auto;}
+            thead{display:table-header-group;}
+            @page{ size:A4; margin:18mm 16mm; }
+        }
+    </style>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+        }
+        .left-sidebar {
+            background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%);
+            border-right: 1px solid rgba(255,255,255,0.4);
+        }
+        .history-item {
+            transition: all 0.2s ease;
+        }
+        .history-item:hover {
+            background: rgba(255,255,255,0.55);
+            transform: translateX(2px);
+        }
+        .history-item.active {
+            background: rgba(255,255,255,0.85);
+            box-shadow: 0 4px 12px -4px rgba(59, 130, 246, 0.3);
+        }
+        .scroll-thin::-webkit-scrollbar { width: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 3px; }
+        @keyframes regionFadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+        .animate-fade-up { animation: regionFadeUp .22s ease-out; }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1);
+        }
+        .tab-active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+        .project-card {
+            transition: all 0.3s;
+        }
+        .project-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -12px rgba(0,0,0,0.12);
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 24px;
+            bottom: -8px;
+            width: 2px;
+            background: #e2e8f0;
+        }
+        .timeline-item:last-child::before {
+            display: none;
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        /* 材料智能提示气泡 */
+        .tip-pop {
+            display: none;
+            position: absolute;
+            z-index: 50;
+            min-width: 280px;
+            max-width: 360px;
+            background: #1e293b;
+            color: #f1f5f9;
+            padding: 12px 14px;
+            border-radius: 12px;
+            box-shadow: 0 12px 28px -8px rgba(30,41,59,0.45);
+            font-size: 11.5px;
+            line-height: 1.6;
+            left: 100%;
+            top: 50%;
+            transform: translate(8px, -50%);
+        }
+        .tip-pop::before {
+            content: '';
+            position: absolute;
+            left: -6px; top: 50%;
+            transform: translateY(-50%);
+            width: 0; height: 0;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-right: 6px solid #1e293b;
+        }
+        .tip-trigger:hover .tip-pop,
+        .tip-trigger:focus-within .tip-pop {
+            display: block;
+        }
+        /* 横向阶段时间线 */
+        .stage-node {
+            position: relative;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100px;
+        }
+        .stage-node + .stage-node::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            top: 16px;
+            width: 60px;
+            height: 2px;
+            background: #e2e8f0;
+            z-index: 0;
+        }
+        .stage-node.done + .stage-node::before { background: #22c55e; }
+        .stage-node.doing + .stage-node::before { background: linear-gradient(90deg,#3b82f6 50%,#e2e8f0 50%); }
+        /* 模态遮罩 */
+        .modal-mask {
+            position: fixed; inset: 0;
+            background: rgba(15,23,42,0.55);
+            backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100;
+        }
+        .sample-modal {
+            width: 640px;
+            max-height: 80vh;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 30px 60px -15px rgba(15,23,42,0.4);
+        }
+        /* 环形进度 */
+        .ring-progress { transform: rotate(-90deg); }
+        /* 项目芯片选择 */
+        .project-chip {
+            transition: all 0.25s;
+            cursor: pointer;
+        }
+        .project-chip.active {
+            background: linear-gradient(135deg,#2563eb,#4f46e5);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 8px 18px -6px rgba(79,70,229,0.55);
+        }
+        /* 材料行 hover */
+        .mat-row:hover { background: #f8fafc; }
+        .mat-badge {
+            display: inline-flex; align-items: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px; font-weight: 700;
+        }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="flex h-screen">
+        <aside class="left-sidebar w-20 flex-shrink-0 flex flex-col items-center" style="background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4);">
+            <!-- Logo -->
+            <div class="w-full pt-4 pb-3 border-b border-white/30 flex flex-col items-center">
+                <div style="position:relative;width:62px;height:28px;"><svg style="position:absolute;top:0;left:0;" width="62" height="14" viewBox="0 0 62 14"><path d="M3 13 C 18 1, 44 -1, 59 7" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round"/></svg><div style="position:absolute;top:5px;left:0;width:62px;text-align:center;font-size:17px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#1d4ed8;font-family:Arial,sans-serif;">ELHP</div></div><div class="text-[10px] font-black text-slate-800" style="margin-top:2px;">策源易答</div>
+            </div>
+
+            <!-- 智能功能导航 -->
+            <div class="w-full pt-3 pb-3 flex flex-col items-center gap-1.5">
+                <button onclick="goPage('dashboard.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="智能政策问答">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-comments text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策问答</span>
+                </button>
+                <button onclick="goPage('policy-radar.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策雷达</span>
+                </button>
+                <button onclick="goPage('ability-diagnosis.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="科创能力评估">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-stethoscope text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">科创测评</span>
+                </button>
+                <button onclick="goPage('declaration-butler.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="申报材料自查">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center" style="background:#6366f1;"><i class="fa fa-file-text-o text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold" style="color:#4f46e5;">申报管家</span>
+                </button>
+                <button onclick="goPage('policy-center.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
+                <button onclick="goPage('service-market.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold text-orange-600">服务商城</span>
+                </button>
+            </div>
+
+            <!-- 底部：充值中心 / 会员中心 -->
+            <div class="mt-auto w-full pt-2 pb-3 border-t border-white/30 flex flex-col items-center gap-1.5">
+                <button onclick="goPage('member-center.html?action=plan')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="策能值充值">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-amber-400 to-orange-500"><i class="fa fa-bolt text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold">充值中心</span>
+                </button>
+                <button onclick="goPage('member-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="会员中心">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-user text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">会员中心</span>
+                </button>
+            </div>
+        </aside>
+        <main class="flex-1 overflow-y-auto" style="background: linear-gradient(135deg, #eef2ff 0%, #e0f2fe 50%, #f5f3ff 100%);">
+            <div class="sticky top-0 z-10 flex items-center justify-between px-6 py-3 bg-white/60 backdrop-blur-md border-b border-white/50">
+                <div class="flex items-center space-x-3">
+                    <div class="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full text-xs font-bold tracking-wider">策源智答 2.0</div>
+                    <span class="text-xs text-slate-500">当前页面：申报管家</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="tbOpenCity()" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all" title="切换城市，查看当地政策">
+                        <i class="fa fa-map-marker mr-1"></i><span id="tbCity">成都市</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
+                    </button>
+                    <div class="relative group">
+                        <button onclick="goPage('member-center.html')" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all flex items-center gap-1.5">
+                            <i class="fa fa-user-circle mr-1"></i><span id="tbUser">未登录</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
+                        </button>
+                        <div class="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                            <div class="px-4 py-3 border-b border-slate-100">
+                                <div id="tbUserName" class="text-xs font-bold text-slate-700">未登录</div>
+                                <div id="tbUserPhone" class="text-[10px] text-slate-400 mt-0.5">—</div>
+                            </div>
+                            <button onclick="goPage('member-center.html')" class="w-full px-4 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50 flex items-center gap-2">
+                                <i class="fa fa-user w-3.5"></i>会员中心
+                            </button>
+                            <button onclick="tbLogout()" class="w-full px-4 py-2.5 text-left text-xs text-red-500 hover:bg-red-50 flex items-center gap-2">
+                                <i class="fa fa-sign-out w-3.5"></i>退出登录
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    <div class="max-w-[1400px] mx-auto p-6">
+        <!-- 页面标题 + 快捷操作 -->
+        <div class="mb-5 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 mb-1">申报材料自查助手</h1>
+                <p class="text-sm text-slate-500">查询申报所需材料 · 智能填写提示 · 材料准备完成度自查</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="openMaterialLibrary()" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all">
+                    <i class="fa fa-database mr-1.5"></i>材料库
+                </button>
+                <button onclick="downloadAllPackage()" class="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all shadow-lg shadow-indigo-200">
+                    <i class="fa fa-download mr-1.5"></i>导出全部材料清单
+                </button>
+
+            </div>
+        </div>
+
+        <!-- 申报项目选择器 -->
+        <div class="bg-white rounded-2xl border border-slate-100 p-5 mb-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-black text-slate-700 flex items-center">
+                    <i class="fa fa-flag text-blue-600 mr-2"></i>选择申报项目（切换查看所需材料清单与完成度）
+                </h3>
+                <div class="flex items-center space-x-2">
+                    <div class="relative">
+                        <i class="fa fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[11px]"></i>
+                        <input type="text" oninput="filterProjects(this.value)" placeholder="搜索项目..." class="pl-7 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none focus:bg-white focus:ring-2 focus:ring-blue-400 w-44">
+                    </div>
+                </div>
+            </div>
+            <!-- 地区切换：与政策问答页城市切换同款（按钮 + 弹层面板，省/市/县区级联） -->
+            <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
+                <button id="regionBtn" onclick="toggleRegionPanel()" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all" title="切换省/市/县区，筛选当地申报项目">
+                    <i class="fa fa-map-marker mr-1"></i><span id="regionLabel">全部地区</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
+                </button>
+                <span id="regionCountHint" class="text-[10.5px] text-slate-400"></span>
+            </div>
+            <div id="projectChips" class="flex flex-wrap gap-2">
+                <!-- 项目芯片由JS动态渲染 -->
+            </div>
+        </div>
+
+        <!-- 地区切换弹层（与政策问答城市切换同款交互） -->
+        <div id="regionMask" class="hidden fixed inset-0 z-50 bg-slate-900/40 flex items-start justify-center" onclick="if(event.target===this)toggleRegionPanel()">
+            <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 animate-fade-up" style="margin-top:96px;width:680px;max-width:92vw;max-height:78vh;display:flex;flex-direction:column;">
+                <div class="p-5 pb-3 flex items-center justify-between border-b border-slate-100">
+                    <h3 class="text-sm font-black text-slate-800"><i class="fa fa-map-marker text-indigo-500 mr-1"></i>切换地区</h3>
+                    <button onclick="toggleRegionPanel()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa fa-times text-xs"></i></button>
+                </div>
+                <div class="p-5 pt-4 overflow-y-auto scroll-thin" id="regionPanelBody"></div>
+            </div>
+        </div>
+
+        <!-- ===== 双栏输出区 ===== -->
+        <div class="grid grid-cols-12 gap-5">
+            <!-- ===== 左栏：个性化申报材料包 ===== -->
+            <div class="col-span-7">
+                <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                    <!-- 材料包头部 -->
+                    <div class="p-5 border-b border-slate-100 bg-gradient-to-r from-indigo-50/70 to-blue-50/70">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <div class="flex items-center space-x-2 mb-1.5" id="pkgBadges"></div>
+                                <h2 class="text-base font-black text-slate-800" id="pkgTitle">—</h2>
+                                <p class="text-[11px] text-slate-500 mt-0.5" id="pkgSubtitle">—</p>
+                                <div id="regionMatchBar" class="mt-2"></div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[10px] text-slate-400 mb-1">材料完成度</div>
+                                <div class="text-2xl font-black text-blue-600" id="pkgPercent">—</div>
+                                <div class="text-[10px] text-slate-500 mt-0.5" id="pkgRatio">—</div>
+                            </div>
+                        </div>
+                        <!-- 完成度条 -->
+                        <div class="h-2 bg-white/80 rounded-full overflow-hidden mb-3">
+                            <div id="pkgBar" class="h-full rounded-full transition-all duration-500" style="width:0%; background:linear-gradient(90deg,#6366f1,#3b82f6,#22c55e);"></div>
+                        </div>
+                        <!-- 操作按钮 -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <button onclick="generateApplicationDoc()" class="px-3 py-1.5 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white text-[11px] font-bold rounded-lg transition-all shadow-md shadow-rose-100" title="按当前项目所在省份模板自动生成申报书（HTML 预览+打印 PDF+导出 Word）">
+                                    <i class="fa fa-file-text mr-1"></i>一键生成申报书
+                                </button>
+                                <button onclick="downloadPkg()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-lg transition-all">
+                                    <i class="fa fa-download mr-1"></i>导出材料清单
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-3 text-[10px]">
+                                <span class="flex items-center"><span class="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>已上传</span>
+                                <span class="flex items-center"><span class="w-2 h-2 bg-rose-500 rounded-full mr-1.5"></span>未上传</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 材料分组列表 -->
+                    <div id="materialGroups" class="p-5 space-y-4 max-h-[680px] overflow-y-auto scroll-thin">
+                        <!-- 材料分组由JS动态渲染 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 右栏：进度跟踪看板 ===== -->
+            <div class="col-span-5 space-y-5">
+                <!-- 顶部：环形进度 + 综合信息 -->
+                <div class="bg-white rounded-2xl border border-slate-100 p-5">
+                    <div class="flex items-start space-x-5">
+                        <!-- 环形进度 -->
+                        <div class="relative flex-shrink-0">
+                            <svg class="ring-progress w-28 h-28" viewBox="0 0 120 120">
+                                <circle cx="60" cy="60" r="52" fill="none" stroke="#e2e8f0" stroke-width="10"/>
+                                <circle id="ringCircle" cx="60" cy="60" r="52" fill="none" stroke="url(#ringGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+                                <defs>
+                                    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stop-color="#6366f1"/>
+                                        <stop offset="50%" stop-color="#3b82f6"/>
+                                        <stop offset="100%" stop-color="#22c55e"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <div class="text-2xl font-black text-slate-800" id="ringPercent">—%</div>
+                                <div class="text-[9px] text-slate-400 mt-0.5">综合进度</div>
+                            </div>
+                        </div>
+                        <!-- 项目信息摘要 -->
+                        <div class="flex-1 pt-1">
+                            <div class="flex items-center space-x-1.5 mb-1.5" id="boardBadges"></div>
+                            <h3 class="text-sm font-black text-slate-800 mb-2" id="boardTitle">—</h3>
+                            <div class="space-y-1.5 text-[11px]">
+                                <div class="flex items-center justify-between"><span class="text-slate-500">主管部门</span><span class="font-bold text-slate-700" id="boardDept">—</span></div>
+                                <div class="flex items-center justify-between"><span class="text-slate-500">申报截止</span><span class="font-bold text-orange-600" id="boardDeadline">—</span></div>
+                                <div class="flex items-center justify-between"><span class="text-slate-500">预计扶持</span><span class="font-bold text-green-600" id="boardSubsidy">—</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 材料准备完成度看板 -->
+                <div class="bg-white rounded-2xl border border-slate-100 p-5">
+                    <h3 class="text-xs font-black text-slate-700 flex items-center mb-4">
+                        <i class="fa fa-pie-chart text-indigo-600 mr-2"></i>材料准备完成度
+                    </h3>
+                    <!-- 二色统计卡 -->
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <div class="text-center p-2.5 rounded-xl bg-green-50 border border-green-100">
+                            <div class="text-lg font-black text-green-600" id="statDone">—</div>
+                            <div class="text-[9px] text-slate-500 mt-0.5">已上传</div>
+                        </div>
+                        <div class="text-center p-2.5 rounded-xl bg-rose-50 border border-rose-100">
+                            <div class="text-lg font-black text-rose-500" id="statTodo">—</div>
+                            <div class="text-[9px] text-slate-500 mt-0.5">未上传</div>
+                        </div>
+                    </div>
+                    <!-- 必填材料完成度 -->
+                    <div class="mb-4">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[11px] font-bold text-slate-600">必填材料完成度</span>
+                            <span class="text-[11px] font-black text-rose-500" id="requiredPct">—</span>
+                        </div>
+                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div id="requiredBar" class="h-full rounded-full bg-gradient-to-r from-rose-400 to-rose-500 transition-all duration-700" style="width:0%"></div>
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-1" id="requiredRatio">—</div>
+                    </div>
+                    <!-- 全部材料完成度 -->
+                    <div class="mb-4">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[11px] font-bold text-slate-600">全部材料完成度</span>
+                            <span class="text-[11px] font-black text-indigo-600" id="totalPct">—</span>
+                        </div>
+                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div id="totalBar" class="h-full rounded-full bg-gradient-to-r from-indigo-400 via-blue-400 to-green-400 transition-all duration-700" style="width:0%"></div>
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-1" id="totalRatio">—</div>
+                    </div>
+                </div>
+
+                <!-- 各分组完成度 -->
+                <div class="bg-white rounded-2xl border border-slate-100 p-5">
+                    <h3 class="text-xs font-black text-slate-700 flex items-center mb-4">
+                        <i class="fa fa-list-ul text-blue-600 mr-2"></i>各分组完成度
+                    </h3>
+                    <div id="groupBars" class="space-y-3">
+                        <!-- 分组进度条由JS动态渲染 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </main>
+    </div>
+
+<script src="data-bridge.js"></script>
+<script>
+    // ========== 0. 企业材料库（模拟数据，真实场景来自 material_library 接口）==========
+    var LIBRARY_CATS = ['全部', '营业执照', '财务报告', 'IP证书', '资质文件', '管理制度'];
+    var LIBRARY = [
+        { id:'L01', name:'营业执照_2024版.pdf', cat:'营业执照', size:'2.3MB', time:'2025-06-12', usage:['高企2025','专精特新2025'], matched:false },
+        { id:'L02', name:'2024年度审计报告.pdf', cat:'财务报告', size:'8.7MB', time:'2025-04-30', usage:['高企2025'], matched:true, matchReason:'与当前项目"审计报告"需求匹配' },
+        { id:'L03', name:'2023年度审计报告.pdf', cat:'财务报告', size:'7.9MB', time:'2024-05-15', usage:['高企2024'], matched:true, matchReason:'与当前项目"审计报告"需求匹配' },
+        { id:'L04', name:'2022年度审计报告.pdf', cat:'财务报告', size:'6.5MB', time:'2023-06-20', usage:['高企2023'], matched:true, matchReason:'与当前项目"审计报告"需求匹配' },
+        { id:'L05', name:'发明专利_高效组件封装ZL20211.pdf', cat:'IP证书', size:'1.2MB', time:'2023-06-15', usage:['高企2023','高企2025'], matched:true, matchReason:'匹配"知识产权证书"需求' },
+        { id:'L06', name:'发明专利_MPPT算法ZL20211.pdf', cat:'IP证书', size:'1.1MB', time:'2024-01-08', usage:['高企2025'], matched:true, matchReason:'匹配"知识产权证书"需求' },
+        { id:'L07', name:'实用新型_智能汇流箱ZL20222.pdf', cat:'IP证书', size:'0.8MB', time:'2024-03-22', usage:['高企2025'], matched:true, matchReason:'匹配"知识产权证书"需求' },
+        { id:'L08', name:'软件著作权登记证书_监控系统.pdf', cat:'IP证书', size:'0.5MB', time:'2024-05-10', usage:['高企2025'], matched:true, matchReason:'匹配"知识产权证书"需求' },
+        { id:'L09', name:'高新技术企业证书.pdf', cat:'资质文件', size:'0.6MB', time:'2023-10-25', usage:['高企2023'], matched:false },
+        { id:'L10', name:'ISO9001质量管理体系认证.pdf', cat:'资质文件', size:'1.8MB', time:'2024-08-01', usage:['客户审核'], matched:false },
+        { id:'L11', name:'研发项目管理制度汇编.pdf', cat:'管理制度', size:'3.4MB', time:'2025-01-15', usage:['高企2025'], matched:true, matchReason:'匹配"研发组织管理制度"需求' },
+        { id:'L12', name:'知识产权管理办法.pdf', cat:'管理制度', size:'1.2MB', time:'2025-01-15', usage:['内部管理'], matched:true, matchReason:'匹配"IP关联研发项目说明"需求' },
+        { id:'L13', name:'2024年度企业所得税申报表.pdf', cat:'财务报告', size:'4.2MB', time:'2025-03-18', usage:['高企2025'], matched:true, matchReason:'匹配"所得税申报表"需求' },
+        { id:'L14', name:'社保缴纳证明_202601-06.pdf', cat:'资质文件', size:'1.5MB', time:'2026-07-08', usage:['专精特新2025'], matched:false }
+    ];
+
+    // ========== 基础导航 ==========
+    function goPage(url) {
+        try {
+            if (parent && parent.window && typeof parent.window.switchPage === 'function') {
+                parent.window.switchPage(url, null);
+            } else {
+                window.location.href = url;
+            }
+        } catch (e) {
+            window.location.href = url;
+        }
+    }
+    function showToast(msg, type) {
+        type = type || 'success';
+        var m = { success:'bg-green-500', info:'bg-blue-500', warn:'bg-orange-500', error:'bg-red-500'};
+        var i = { success:'check-circle', info:'info-circle', warn:'exclamation-triangle', error:'times-circle'};
+        var d = document.createElement('div');
+        d.className = m[type]+' text-white px-5 py-3 rounded-xl shadow-xl fixed top-6 right-6 z-[9999] text-sm font-bold flex items-center space-x-2';
+        d.style.cssText='opacity:0;transform:translateX(20px);transition:all .3s;';
+        d.innerHTML = '<i class="fa fa-'+i[type]+'"></i><span>'+msg+'</span>';
+        document.body.appendChild(d);
+        requestAnimationFrame(function(){ d.style.opacity='1'; d.style.transform='translateX(0)'; });
+        setTimeout(function(){ d.style.opacity='0'; d.style.transform='translateX(20px)'; setTimeout(function(){ d.remove(); }, 300); }, 2600);
+    }
+
+    // ========== 1. 项目数据（从 DataBridge 读取后台配置 ==========
+    var PROJECTS = [];
+    // 全国行政区划（省/市），地区切换弹层使用完整数据而非项目去重
+    var PROVINCE_OPTIONS = ['北京市','天津市','上海市','重庆市','河北省','山西省','辽宁省','吉林省','黑龙江省','江苏省','浙江省','安徽省','福建省','江西省','山东省','河南省','湖北省','湖南省','广东省','海南省','四川省','贵州省','云南省','陕西省','甘肃省','青海省','内蒙古自治区','广西壮族自治区','宁夏回族自治区','新疆维吾尔自治区','西藏自治区'];
+    var CITY_MAP = {
+        '北京市':['东城区','西城区','朝阳区','海淀区','丰台区','石景山区','通州区','昌平区','大兴区','顺义区'],
+        '天津市':['和平区','河东区','河西区','南开区','河北区','红桥区','滨海新区','西青区','武清区','宝坻区'],
+        '上海市':['黄浦区','徐汇区','长宁区','静安区','普陀区','虹口区','浦东新区','闵行区','宝山区','嘉定区'],
+        '重庆市':['渝中区','江北区','南岸区','九龙坡区','沙坪坝区','渝北区','巴南区','北碚区','万州区','涪陵区'],
+        '河北省':['石家庄市','唐山市','秦皇岛市','邯郸市','邢台市','保定市','张家口市','承德市','沧州市','廊坊市','衡水市'],
+        '山西省':['太原市','大同市','阳泉市','长治市','晋城市','朔州市','晋中市','运城市','忻州市','临汾市','吕梁市'],
+        '辽宁省':['沈阳市','大连市','鞍山市','抚顺市','本溪市','丹东市','锦州市','营口市','盘锦市','铁岭市','朝阳市','葫芦岛市'],
+        '吉林省':['长春市','吉林市','四平市','辽源市','通化市','白山市','松原市','白城市','延边朝鲜族自治州'],
+        '黑龙江省':['哈尔滨市','齐齐哈尔市','鸡西市','鹤岗市','双鸭山市','大庆市','伊春市','佳木斯市','七台河市','牡丹江市','黑河市','绥化市'],
+        '江苏省':['南京市','无锡市','徐州市','常州市','苏州市','南通市','连云港市','淮安市','盐城市','扬州市','镇江市','泰州市','宿迁市'],
+        '浙江省':['杭州市','宁波市','温州市','嘉兴市','湖州市','绍兴市','金华市','衢州市','舟山市','台州市','丽水市'],
+        '安徽省':['合肥市','芜湖市','蚌埠市','淮南市','马鞍山市','淮北市','铜陵市','安庆市','黄山市','滁州市','阜阳市','宿州市','六安市','亳州市','池州市','宣城市'],
+        '福建省':['福州市','厦门市','莆田市','三明市','泉州市','漳州市','南平市','龙岩市','宁德市'],
+        '江西省':['南昌市','景德镇市','萍乡市','九江市','新余市','鹰潭市','赣州市','吉安市','宜春市','抚州市','上饶市'],
+        '山东省':['济南市','青岛市','淄博市','枣庄市','东营市','烟台市','潍坊市','济宁市','泰安市','威海市','日照市','临沂市','德州市','聊城市','滨州市','菏泽市'],
+        '河南省':['郑州市','开封市','洛阳市','平顶山市','安阳市','鹤壁市','新乡市','焦作市','濮阳市','许昌市','漯河市','三门峡市','南阳市','商丘市','信阳市','周口市','驻马店市'],
+        '湖北省':['武汉市','黄石市','十堰市','宜昌市','襄阳市','鄂州市','荆门市','孝感市','荆州市','黄冈市','咸宁市','随州市','恩施土家族苗族自治州'],
+        '湖南省':['长沙市','株洲市','湘潭市','衡阳市','邵阳市','岳阳市','常德市','张家界市','益阳市','郴州市','永州市','怀化市','娄底市','湘西土家族苗族自治州'],
+        '广东省':['广州市','深圳市','珠海市','汕头市','佛山市','韶关市','湛江市','肇庆市','江门市','茂名市','惠州市','梅州市','汕尾市','河源市','阳江市','清远市','东莞市','中山市','潮州市','揭阳市','云浮市'],
+        '海南省':['海口市','三亚市','三沙市','儋州市'],
+        '四川省':['成都市','自贡市','攀枝花市','泸州市','德阳市','绵阳市','广元市','遂宁市','内江市','乐山市','南充市','眉山市','宜宾市','广安市','达州市','雅安市','巴中市','资阳市','阿坝藏族羌族自治州','甘孜藏族自治州','凉山彝族自治州'],
+        '贵州省':['贵阳市','六盘水市','遵义市','安顺市','毕节市','铜仁市','黔西南布依族苗族自治州','黔东南苗族侗族自治州','黔南布依族苗族自治州'],
+        '云南省':['昆明市','曲靖市','玉溪市','保山市','昭通市','丽江市','普洱市','临沧市','楚雄彝族自治州','红河哈尼族彝族自治州','文山壮族苗族自治州','西双版纳傣族自治州','大理白族自治州','德宏傣族景颇族自治州','怒江傈僳族自治州','迪庆藏族自治州'],
+        '陕西省':['西安市','铜川市','宝鸡市','咸阳市','渭南市','延安市','汉中市','榆林市','安康市','商洛市'],
+        '甘肃省':['兰州市','嘉峪关市','金昌市','白银市','天水市','武威市','张掖市','平凉市','酒泉市','庆阳市','定西市','陇南市','临夏回族自治州','甘南藏族自治州'],
+        '青海省':['西宁市','海东市','海北藏族自治州','黄南藏族自治州','海南藏族自治州','果洛藏族自治州','玉树藏族自治州','海西蒙古族藏族自治州'],
+        '内蒙古自治区':['呼和浩特市','包头市','乌海市','赤峰市','通辽市','鄂尔多斯市','呼伦贝尔市','巴彦淖尔市','乌兰察布市','兴安盟','锡林郭勒盟','阿拉善盟'],
+        '广西壮族自治区':['南宁市','柳州市','桂林市','梧州市','北海市','防城港市','钦州市','贵港市','玉林市','百色市','贺州市','河池市','来宾市','崇左市'],
+        '宁夏回族自治区':['银川市','石嘴山市','吴忠市','固原市','中卫市'],
+        '新疆维吾尔自治区':['乌鲁木齐市','克拉玛依市','吐鲁番市','哈密市','昌吉回族自治州','博尔塔拉蒙古自治州','巴音郭楞蒙古自治州','阿克苏地区','克孜勒苏柯尔克孜自治州','喀什地区','和田地区','伊犁哈萨克自治州','塔城地区','阿勒泰地区'],
+        '西藏自治区':['拉萨市','日喀则市','昌都市','林芝市','山南市','那曲市','阿里地区']
+    };
+    var _HARDCODED_FALLBACK = [
+        {
+            id: 'gqx',
+            name: '2026年国家高新技术企业认定',
+            level: '国家级', type: '资金补贴', status: '申报中', statusColor: 'green',
+            icon: 'fa-star', iconColor: 'blue',
+            dept: '科技部火炬中心',
+            deadline: '2026-08-18 (4天后)',
+            subsidy: '¥50万 - 200万 + 所得税减免10%',
+            progress: 65,
+            stages: [
+                { name:'材料准备', status:'done', date:'07-01', desc:'企业基础材料+财务+IP归集完成', rate:100 },
+                { name:'提交申请', status:'done', date:'07-28', desc:'区科技局在线申报系统提交成功', rate:100 },
+                { name:'专家评审', status:'doing', date:'08-10', desc:'技术+财务双维度评审进行中', rate:55 },
+                { name:'公示名单', status:'pending', date:'09-15', desc:'拟认定企业名单公示期10个工作日', rate:0 },
+                { name:'证书颁发', status:'pending', date:'10-01', desc:'制发高企证书并完成备案', rate:0 }
+            ],
+            reminders: [
+                { lv:'urgent', title:'研发费用明细表缺失', time:'今天', desc:'需3天内上传近3年研发费用辅助账' },
+                { lv:'warn', title:'科技成果转化证明待补充', time:'2天后', desc:'高新产品收入占比≥60%佐证材料' },
+                { lv:'info', title:'评审反馈回复', time:'12天后', desc:'专家评审反馈窗口开放' },
+                { lv:'done', title:'知识产权评价报告', time:'已完成', desc:'12项发明专利+28软著已归集' }
+            ],
+            // 个性化材料清单（按政策类型自动生成）
+            groups: [
+                { title:'一、基础资质类材料', icon:'fa-id-card', color:'blue', items:[
+                    { id:'m1', name:'高新技术企业认定申请书', required:true, status:'done', tip:'系统在线填写后导出PDF，需法人签字、加盖企业公章后扫描上传；填写数据需与审计报告、纳税申报表口径完全一致。', sampleName:'高企申请书填写样例.pdf', samplePreview:'申请书共包含8个核心章节：企业基本信息、知识产权表、研发项目表、科技成果转化表、研发组织管理水平表、企业财务状况表、近3年研发投入表、高新产品收入表。...' },
+                    { id:'m2', name:'企业营业执照副本', required:true, status:'done', tip:'三证合一彩色扫描件，需最新年检有效状态；若企业名称有变更，需同步上传工商局名称变更核准通知书。', sampleName:'营业执照扫描件样例.jpg', samplePreview:'统一社会信用代码：913701XXXXXXXXXXXX 企业名称：济南XX新能源科技有限公司 类型：有限责任公司 法定代表人：XXX 注册资本：5000万元整 成立日期：2018年XX月XX日...' },
+                    { id:'m3', name:'近3年年度审计报告', required:true, status:'done', tip:'必须具备资质的会计师事务所出具；合并报表需同时提供单体报告；报告首页防伪二维码需清晰可扫。', sampleName:'年度审计报告模板.pdf', samplePreview:'XX会专审字[2025]第XXX号 审计报告 我们审计了后附的XX公司财务报表，包括202X年12月31日的资产负债表、202X年度的利润表、现金流量表、所有者权益变动表以及财务报表附注。...' },
+                    { id:'m4', name:'企业所得税年度纳税申报表', required:true, status:'todo', tip:'近3年A类申报表主表+全部附表；需税务局章或电子税务局在线导出；研发费用加计扣除优惠明细表(A107012)务必完整。', sampleName:'企业所得税申报表样例.pdf', samplePreview:'中华人民共和国企业所得税年度纳税申报表(A类) 税款所属期间：2025年01月01日 至 2025年12月31日 金额单位：人民币元(列至角分) 行次 类别 项 目 金 额 ...' },
+                ]},
+                { title:'二、知识产权类材料', icon:'fa-shield', color:'orange', items:[
+                    { id:'m5', name:'知识产权证书及缴费凭证', required:true, status:'done', tip:'发明专利、实用新型、软著等证书扫描件+最近一次年费缴费收据；权属人须为申报企业，未发生转让或变更。', sampleName:'专利证书样例.png', samplePreview:'证书号第XXXXXX号 发明专利证书 发明名称：一种高效光伏组件封装方法 发明人：XXX 专利号：ZL 2021 1 0XXXXXX.X 专利权人：济南XX新能源科技有限公司...' },
+                    { id:'m6', name:'知识产权有效性评价报告', required:true, status:'todo', tip:'国家知识产权局出具的专利权评价报告（针对实用新型/软著）；或由省级以上协会出具的IP有效性证明；出具时间需在申报期内。', sampleName:'专利权评价报告样例.pdf', samplePreview:'国家知识产权局 专利权评价报告 专利号：ZL 2022 2 XXXXXXXX 专利权人：济南XX新能源科技有限公司 外观设计名称：智能光伏汇流箱外壳 评价结论：全部权利要求符合专利法规定...' },
+                    { id:'m7', name:'知识产权关联研发项目说明', required:false, status:'todo', tip:'每项IP对应说明其来源（自主研发/受让/独占许可）、与核心技术关联度、在高新产品中的应用场景。建议按IP清单做一张映射矩阵表。', sampleName:'IP-项目映射表.xlsx', samplePreview:'序号|专利名称|专利号|对应研发项目|转化产品|应用情况 1|高效光伏组件封装|ZL20211...|RD03 高效组件研发|P2 450W组件|核心工艺 2|智能汇流箱结构|ZL20222...|RD05 监控系统|P5 智能汇流箱|核心结构...' },
+                ]},
+                { title:'三、研发投入与财务类', icon:'fa-line-chart', color:'green', items:[
+                    { id:'m8', name:'近3年研发费用辅助账', required:true, status:'todo', tip:'**核心打分项**：按八大费用分类（人员人工、直接投入、折旧、装备调试、无形资产摊销、设计费、委外研发、其他）；委外需提供合同+发票；其他费用不得超过研发总额20%。', sampleName:'研发费用辅助账模板.xlsx', samplePreview:'研发项目编号：RD03 项目名称：高效光伏组件研发 科目 2023年度 2024年度 2025年度 合计 人员人工 180.5 240.8 320.5 741.8 直接投入 96.2 138.5 185.2 419.9 折旧费用 48.0 52.0 58.0 158.0 ...' },
+                    { id:'m9', name:'高新产品收入明细表', required:true, status:'todo', tip:'高新产品（PS）收入须占同期总收入≥60%；每项PS提供对应销售发票样本（3-5张大额）、合同首页关键页；核心PS收入建议单独标注。', sampleName:'高新产品收入表.xlsx', samplePreview:'高新产品名称 收入金额(万元) 占比 对应核心技术 对应知识产权 P2 450W高效组件 8,200 32.5% 低损耗封装工艺 ZL20211... P5 智能汇流箱 3,600 14.3% MPPT算法 ZL20222... 合计 25,800 100% - -' },
+                    { id:'m10', name:'研发费用加计扣除证明', required:false, status:'done', tip:'税局出具的A107012表或研发项目鉴定意见；**加分项**：已享受加计扣除可侧面证明研发投入合规性。', sampleName:'加计扣除鉴定表.pdf', samplePreview:'研发项目鉴定意见书 项目编号：RD03 项目名称：高效光伏组件研发 技术领域：新能源与节能 - 高效光伏技术 鉴定结论：符合研发活动加计扣除条件 鉴定机构：XX市科技创新服务中心...' },
+                ]},
+                { title:'四、科技成果转化与组织管理', icon:'fa-flask', color:'purple', items:[
+                    { id:'m11', name:'科技成果转化汇总表', required:true, status:'todo', tip:'近3年年均转化≥5项为满分档；每项转化提供对应合同、验收报告、样品检测报告；同一IP多次转化按项计数。', sampleName:'成果转化汇总表.xlsx', samplePreview:'序号|转化项目名称|转化方式|对应IP|完成时间|证明材料 1|高效组件量产|自行投资|ZL20211+软著|2025.03|量产验收报告 2|监控系统升级|技术服务|ZL20222|2025.06|客户验收单 3|...' },
+                    { id:'m12', name:'研发组织管理制度文件', required:true, status:'done', tip:'研发项目立项管理、研发投入核算、研发人员绩效考核、IP保护制度、人才培养引进制度、科技成果转化激励制度等；建议出具红头文件加盖公章。', sampleName:'研发管理制度汇编.pdf', samplePreview:'济南XX新能源科技有限公司 文件 XX科字〔2025〕008号 关于印发《研发项目立项与过程管理办法》等5项制度的通知 各部门：为规范公司研发活动管理，经总经理办公会审议通过，现印发《研发项目立项管理办法》《研发投入核算办法》《研发人员绩效考核办法》...' },
+                ]}
+            ]
+        },
+        {
+            id: 'zjtx',
+            name: '山东省专精特新企业认定',
+            level: '省级', type: '税收减免', status: '申报中', statusColor: 'green',
+            icon: 'fa-rocket', iconColor: 'emerald',
+            dept: '山东省工信厅',
+            deadline: '2026-09-01 (18天后)',
+            subsidy: '¥50万奖励 + 研发费用175%加计扣除',
+            progress: 35,
+            stages: [
+                { name:'准备材料', status:'done', date:'07-20', desc:'专精特新基础数据梳理完成', rate:100 },
+                { name:'提交申请', status:'doing', date:'08-12', desc:'省工信厅系统在线填报中', rate:40 },
+                { name:'各市初审', status:'pending', date:'09-05', desc:'各市工信局核查+现场抽查', rate:0 },
+                { name:'专家评审', status:'pending', date:'09-25', desc:'省厅组织专家量化打分', rate:0 },
+                { name:'公示发布', status:'pending', date:'10-20', desc:'拟认定企业名单公示', rate:0 }
+            ],
+            reminders: [
+                { lv:'warn', title:'财务报表尚未上传', time:'2天后', desc:'2023-2025三年审计报告扫描件' },
+                { lv:'warn', title:'社保缴纳证明待补充', time:'5天后', desc:'连续6个月社保缴纳人员明细' },
+                { lv:'info', title:'现场核查通知', time:'20天后', desc:'市工信局现场检查排期' },
+                { lv:'done', title:'研发项目立项材料', time:'已完成', desc:'8项主导产品研发立项报告' }
+            ],
+            groups: [
+                { title:'一、主体资格与基础信息', icon:'fa-id-card', color:'blue', items:[
+                    { id:'z1', name:'专精特新申请表', required:true, status:'done', tip:'工信厅系统在线填报导出；主营业务收入占比需≥70%；细分市场占有率行业排名须有佐证。', sampleName:'专精特新申请表样例.pdf', samplePreview:'一、企业基本信息 企业名称：山东XX智能装备有限公司 统一社会信用代码：XXXX 注册地址：济南市高新区XX路XX号 法定代表人：XXX 二、主营业务情况 2025年营业收入总额：18,500万元 主导产品收入：14,800万元 占比：80.0%...' },
+                    { id:'z2', name:'营业执照与章程', required:true, status:'done', tip:'三证合一彩色扫描件；公司章程需含股东签字盖章页；实缴资本佐证（验资报告或银行进账单）。', sampleName:'公司章程样例.pdf', samplePreview:'山东XX智能装备有限公司 章程 第一章 总则 第一条 为维护公司、股东和债权人的合法权益，规范公司的组织和行为，根据《中华人民共和国公司法》...' },
+                ]},
+                { title:'二、专业化与精细化', icon:'fa-bullseye', color:'indigo', items:[
+                    { id:'z3', name:'财务报表(近2年)', required:true, status:'todo', tip:'营业收入复合增长率≥10%加分；利润率≥10%加分；需事务所审计报告+税局申报表数据一致。', sampleName:'利润表对比样例.xlsx', samplePreview:'项目 2023年 2024年 2025年 复合增长率 一、营业总收入 13,500 15,800 18,500 +17.1% 减：营业成本 9,200 10,600 12,400 - 毛利 4,300 5,200 6,100 +19.2% 毛利率 31.9% 32.9% 33.0% -' },
+                    { id:'z4', name:'社保缴纳人员明细', required:true, status:'todo', tip:'近6个月社保局打印版；研发人员占比≥15%为加分档；须与个税申报、工资表口径一致。', sampleName:'社保明细表.xlsx', samplePreview:'月份 参保人数 社保缴纳总额 其中研发人员 研发人员占比 2026.01 318 1,258,500 62 19.5% 2026.02 321 1,268,400 63 19.6%...' },
+                ]},
+                { title:'三、特色化与新颖化', icon:'fa-lightbulb-o', color:'amber', items:[
+                    { id:'z5', name:'特色产品证明材料', required:true, status:'todo', tip:'行业标准/团体标准参与证明；产品获省部级奖项、首台套认定、名优名牌等。', sampleName:'首台套认定证书.pdf', samplePreview:'山东省首台(套)技术装备 认定证书 证书编号：SDSTS-2025-0112 产品名称：XX-880智能六轴焊接机器人 完成单位：山东XX智能装备有限公司...' },
+                    { id:'z6', name:'研发与创新能力材料', required:true, status:'todo', tip:'有效IP清单（发明专利/实用新型/软著）≥10项加分；研发投入强度≥5%加分；省级以上创新平台加分。', sampleName:'IP与创新能力汇总.xlsx', samplePreview:'知识产权类型 数量 其中有效 近3年新增 发明专利 5 5 3 实用新型 18 18 8 软件著作权 12 12 5 合计 35 35 16 研发投入强度：6.8% 省级创新平台：1个（山东省机器人关节工程技术研究中心）' },
+                ]}
+            ]
+        },
+        {
+            id: 'znzz',
+            name: '济南市智能制造示范企业',
+            level: '市级', type: '资质认定', status: '即将截止', statusColor: 'orange',
+            icon: 'fa-bolt', iconColor: 'orange',
+            dept: '济南市工信局',
+            deadline: '2026-08-08 (3天后·紧急)',
+            subsidy: '¥20万奖励 + 项目贷款贴息',
+            progress: 85,
+            stages: [
+                { name:'材料准备', status:'done', date:'06-25', desc:'智能制造场景梳理完成', rate:100 },
+                { name:'提交申报', status:'done', date:'07-15', desc:'区工信局线上系统提交', rate:100 },
+                { name:'区级初审', status:'done', date:'07-28', desc:'区工信局核查通过', rate:100 },
+                { name:'现场核查', status:'doing', date:'08-05', desc:'专家现场核查智能产线', rate:70 },
+                { name:'公示发布', status:'pending', date:'08-25', desc:'示范企业名单公示', rate:0 },
+                { name:'授牌发证', status:'pending', date:'09-10', desc:'正式授牌+资金下达', rate:0 }
+            ],
+            reminders: [
+                { lv:'urgent', title:'智能车间项目报告缺失', time:'今天', desc:'需3天内补齐1.5万字车间建设报告' },
+                { lv:'urgent', title:'行业专家推荐函待签署', time:'1天后', desc:'需2位同行业正高级专家签字推荐' },
+                { lv:'info', title:'现场核查日程', time:'3天后', desc:'8月11日上午9:00 专家现场核查' },
+                { lv:'done', title:'基础申报材料', time:'已完成', desc:'申请表+营业执照+财务数据已齐' }
+            ],
+            groups: [
+                { title:'一、示范企业基础材料', icon:'fa-building', color:'blue', items:[
+                    { id:'x1', name:'智能制造示范企业申请书', required:true, status:'done', tip:'围绕5大维度：智能制造成熟度、数字化基础设施、关键工序自动化、数据采集互联互通、综合效益。', sampleName:'智能制造申请书样例.pdf', samplePreview:'一、企业基本情况 二、智能制造成熟度评估（自评估等级：三级-集成级） 三、数字化基础设施建设（工业互联网平台部署情况、ERP/MES/PLM/CRM上线率） 四、关键工序自动化情况（数控机床联网率、机器人密度、AGV应用场景）...' },
+                    { id:'x2', name:'营业执照与生产资质', required:true, status:'done', tip:'经营范围含制造类；生产许可证、环评安评等资质有效。', sampleName:'生产许可证样例.jpg', samplePreview:'全国工业产品生产许可证 证书编号：(鲁)XK06-001-XXXXX 产品名称：智能焊接机器人 住所：济南市高新区XX产业园 生产地址：XX产业园1号楼...' },
+                ]},
+                { title:'二、车间建设与项目报告', icon:'fa-cogs', color:'cyan', items:[
+                    { id:'x3', name:'智能车间建设报告', required:true, status:'todo', tip:'**最核心材料**：不少于1.5万字；含车间布局图、产线流程图、设备清单、工艺路线、数据采集点、数字化应用场景、成效对比（人工替代、效率提升、不良率下降、能耗降低）。', sampleName:'智能车间建设报告模板.docx', samplePreview:'《智能焊接车间建设与运营报告》 摘要：本车间建成于2024年6月，总投资5800万元，部署六轴焊接机器人28台、AGV智能物流车12台、MES系统1套，实现关键工序100%自动化。投产后人员从186人减至62人，单班产能从120台提升至260台，产品不良率从2.8%降至0.6%...' },
+                    { id:'x4', name:'行业专家推荐函(2封)', required:true, status:'todo', tip:'需同行业正高级技术职称专家；每人独立出具；需注明专家单位职称联系方式；手写签字+职称证复印件。', sampleName:'专家推荐函模板.doc', samplePreview:'专家推荐函 致济南市工业和信息化局： 本人XXX，教授级高工，任职于山东省机械设计研究院，从事智能制造研究26年。现郑重推荐济南XX智能装备有限公司申报济南市智能制造示范企业...' },
+                ]},
+                { title:'三、数字化与绩效数据', icon:'fa-area-chart', color:'purple', items:[
+                    { id:'x5', name:'数字化装备清单与联网率', required:true, status:'todo', tip:'设备名称/型号/数量/单价/供应商/是否联网/接入系统；关键工序数控化率≥80%加分。', sampleName:'设备联网率报表.xlsx', samplePreview:'工序 设备总数 联网数 联网率 数控化率 焊接 28 28 100% 100% 装配 42 38 90.5% 90.5% 检测 16 16 100% 100% 物流 12 12 100% - 合计 98 94 95.9% 95.8%' },
+                    { id:'x6', name:'综合效益对比表', required:false, status:'done', tip:'建设前后对比：生产效率、运营成本、产品研发周期、不良率、能耗、人均产值。至少3项改善≥20%。', sampleName:'综合效益对比表.xlsx', samplePreview:'核心指标 建设前 建设后 改善率 人均产值(万元/年) 82 215 +162% 产品不良率 2.8% 0.6% -78.6% 单位产品能耗 85kWh 52kWh -38.8% 订单交付周期 18天 9天 -50%' },
+                ]}
+            ]
+        },
+        {
+            id: 'kjxq',
+            name: '科技型中小企业评价入库',
+            level: '国家级', type: '资质入库', status: '待申报', statusColor: 'blue',
+            icon: 'fa-flask', iconColor: 'purple',
+            dept: '科技部服务中心',
+            deadline: '2026-09-10 (27天后)',
+            subsidy: '研发费用175%加计扣除 + 亏损结转10年',
+            progress: 10,
+            stages: [
+                { name:'企业自评', status:'doing', date:'08-20', desc:'科技型中小企业系统自评分', rate:30 },
+                { name:'在线填报', status:'pending', date:'08-28', desc:'科技部火炬中心系统填报', rate:0 },
+                { name:'省级审核', status:'pending', date:'09-05', desc:'省科技厅批量审核', rate:0 },
+                { name:'公示入库', status:'pending', date:'09-25', desc:'入库名单公示+入库登记编号', rate:0 }
+            ],
+            reminders: [
+                { lv:'info', title:'入库填报窗口开放', time:'10天后', desc:'系统开放日2026-08-20 09:00' },
+                { lv:'info', title:'研发费用辅助账归集', time:'建议准备', desc:'2025年度研发费用辅助账建议提前整理' },
+            ],
+            groups: [
+                { title:'一、入库填报基础材料', icon:'fa-file-text-o', color:'blue', items:[
+                    { id:'k1', name:'企业基础信息表', required:true, status:'todo', tip:'职工总数≤500人、年营收≤2亿、资产总额≤2亿；三项同时满足是入库前提。', sampleName:'中小企业基础信息表.xlsx', samplePreview:'指标 数值 达标判断 职工总数(人) 286 ≤500 ✓ 年销售收入(万元) 18,500 ≤20,000 ✓ 资产总额(万元) 25,800 ≤20,000 ✗ 需提供分公司或合并口径调整说明...' },
+                ]},
+                { title:'二、研发与IP证明', icon:'fa-flask', color:'purple', items:[
+                    { id:'k2', name:'知识产权清单', required:true, status:'todo', tip:'1项发明专利或5项实用新型/软著即可满分档；需为近5年内获取且仍有效。', sampleName:'知识产权清单.xlsx', samplePreview:'序号 类型 名称 专利号 获取时间 状态 发明人 1 发明 高效组件封装 ZL20211... 2023.06 有效 XX 2 发明 MPPT算法 ZL20211... 2024.01 有效 XX 合计：发明5 实用18 软著28' },
+                    { id:'k3', name:'2025年度研发项目表', required:true, status:'todo', tip:'项目名称、起止时间、参与人员、投入经费、核心技术、创新点；不少于3项为佳。', sampleName:'研发项目表.xlsx', samplePreview:'项目编号 名称 起止 人员 经费(万) 技术领域 RD01 高效晶体硅组件研发 2025.01-12 38人 680 新能源 RD02 光储一体化控制 2025.03-2026.02 24人 420 新能源...' },
+                ]}
+            ]
+        }
+    ];
+
+    // 从 DataBridge 读取后台配置，首次使用时将内置丰富数据写入作为可编辑初始数据
+    (function() {
+        var dbData = null;
+        try { dbData = DataBridge.loadDeclarationProjects(); } catch(e) {}
+        var dbDefault = JSON.stringify(DataBridge.DEFAULT_DECLARATION_PROJECTS);
+        var dbCurrent = JSON.stringify(dbData);
+        if (dbData && dbData.length > 0 && dbCurrent !== dbDefault) {
+            PROJECTS = dbData;
+        } else {
+            PROJECTS = JSON.parse(JSON.stringify(_HARDCODED_FALLBACK));
+            try { DataBridge.saveDeclarationProjects(PROJECTS); } catch(e) {}
+        }
+    })();
+
+    var CURRENT_PROJECT_ID = PROJECTS[0].id;
+    var FILTERED_IDS = PROJECTS.map(function(p){ return p.id; });
+    var CURRENT_PROVINCE = '全部'; // 省级筛选，默认全部
+    var CURRENT_CITY = '全部';     // 市级筛选
+    var CURRENT_DISTRICT = '全部'; // 区县级筛选
+
+    // ========== 2. 页面初始化 + 项目切换 ==========
+    document.addEventListener('DOMContentLoaded', function() {
+        renderRegionButton();
+        renderProjectChips();
+        switchProject(CURRENT_PROJECT_ID);
+        updateStats();
+    });
+
+    // 项目 region 取值（缺省按"全国"处理）
+    function projRegion(p) {
+        var r = p.region || {};
+        return { province: r.province || '全国', city: r.city || '', district: r.district || '' };
+    }
+    // 按当前 省/市/区县 三级条件筛选项目
+    function regionFilteredProjects() {
+        return PROJECTS.filter(function(p){
+            var r = projRegion(p);
+            if (CURRENT_PROVINCE !== '全部' && r.province !== CURRENT_PROVINCE) return false;
+            if (CURRENT_CITY !== '全部' && r.city !== CURRENT_CITY) return false;
+            if (CURRENT_DISTRICT !== '全部' && r.district !== CURRENT_DISTRICT) return false;
+            return true;
+        });
+    }
+    // 单个层级 Tab 按钮通用渲染
+    function regionTabHtml(label, val, current, fnName, count, activeBg) {
+        var active = (val === current);
+        var bg = active ? (activeBg + ' text-white') : 'bg-slate-50 text-slate-600 hover:bg-slate-100';
+        var badge = active ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-500';
+        return '<button onclick="' + fnName + '(\'' + val + '\')" class="' + bg + ' px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap flex items-center gap-1.5 transition-colors">'
+             + '<span>' + label + '</span>'
+             + '<span class="' + badge + ' px-1.5 py-0.5 rounded text-[9px] font-bold">' + count + '</span>'
+             + '</button>';
+    }
+    // 按钮文案：全部地区 / 全国 / 山东省 / 山东省 · 济南市 / 山东省 · 济南市 · XX区
+    function regionLabelText() {
+        if (CURRENT_PROVINCE === '全部') return '全部地区';
+        var parts = [CURRENT_PROVINCE];
+        if (CURRENT_CITY !== '全部') parts.push(CURRENT_CITY);
+        if (CURRENT_DISTRICT !== '全部') parts.push(CURRENT_DISTRICT);
+        return parts.join(' · ');
+    }
+    // 渲染顶部按钮：地区名 + 数量提示
+    function renderRegionButton() {
+        var label = document.getElementById('regionLabel');
+        if (label) label.textContent = regionLabelText();
+        var hint = document.getElementById('regionCountHint');
+        if (hint) {
+            var n = regionFilteredProjects().length;
+            hint.textContent = (CURRENT_PROVINCE === '全部') ? ('共 ' + n + ' 个申报项目') : ('该地区 ' + n + ' 个申报项目');
+        }
+    }
+    // 开/关地区弹层（与政策问答城市切换同款交互）
+    function toggleRegionPanel() {
+        var mask = document.getElementById('regionMask');
+        if (!mask) return;
+        if (mask.classList.contains('hidden')) {
+            renderRegionPanel();
+            mask.classList.remove('hidden');
+        } else {
+            mask.classList.add('hidden');
+        }
+    }
+    function closeRegionPanel() {
+        var mask = document.getElementById('regionMask');
+        if (mask) mask.classList.add('hidden');
+    }
+    // 弹层内容：省 → 市 → 县区 三级级联（选中上级才出现下级行）
+    function renderRegionPanel() {
+        var box = document.getElementById('regionPanelBody');
+        if (!box) return;
+        var html = '';
+        // 省份行（蓝）：使用完整省级行政区划，数量统计来自项目数据
+        var provs = ['全部'].concat(PROVINCE_OPTIONS);
+        html += '<div class="flex gap-3 mb-3"><div class="flex-shrink-0 text-[11px] font-black text-slate-400 pt-1.5" style="width:44px;">省份</div><div class="flex-1 flex flex-wrap gap-1.5">';
+        provs.forEach(function(pr){
+            var cnt = PROJECTS.filter(function(p){ return pr === '全部' || projRegion(p).province === pr; }).length;
+            html += regionTabHtml(pr === '全部' ? '全部省份' : pr, pr, CURRENT_PROVINCE, 'switchProvince', cnt, 'bg-blue-600');
+        });
+        html += '</div></div>';
+        // 城市行（靛蓝）：选中具体省份时，使用完整城市行政区划，数量统计来自项目数据
+        if (CURRENT_PROVINCE !== '全部') {
+            var cityList = CITY_MAP[CURRENT_PROVINCE] || [];
+            // 若 CITY_MAP 无该省，回退到项目数据去重
+            if (cityList.length === 0) {
+                PROJECTS.forEach(function(p){
+                    var r = projRegion(p);
+                    if (r.province === CURRENT_PROVINCE && r.city && cityList.indexOf(r.city) === -1) cityList.push(r.city);
+                });
+            }
+            var cities = ['全部'].concat(cityList);
+            if (cities.length > 1) {
+                html += '<div class="flex gap-3 mb-3"><div class="flex-shrink-0 text-[11px] font-black text-slate-400 pt-1.5" style="width:44px;">城市</div><div class="flex-1 flex flex-wrap gap-1.5">';
+                cities.forEach(function(c){
+                    var cnt = PROJECTS.filter(function(p){
+                        var r = projRegion(p);
+                        return r.province === CURRENT_PROVINCE && (c === '全部' || r.city === c);
+                    }).length;
+                    html += regionTabHtml(c === '全部' ? '全部城市' : c, c, CURRENT_CITY, 'switchCity', cnt, 'bg-indigo-600');
+                });
+                html += '</div></div>';
+                // 县区行（青色）：选中具体城市且该市下有非空区县时显示（区县暂用项目数据）
+                if (CURRENT_CITY !== '全部') {
+                    var districts = ['全部'];
+                    PROJECTS.forEach(function(p){
+                        var r = projRegion(p);
+                        if (r.province === CURRENT_PROVINCE && r.city === CURRENT_CITY && r.district && districts.indexOf(r.district) === -1) districts.push(r.district);
+                    });
+                    if (districts.length > 1) {
+                        html += '<div class="flex gap-3 mb-3"><div class="flex-shrink-0 text-[11px] font-black text-slate-400 pt-1.5" style="width:44px;">县区</div><div class="flex-1 flex flex-wrap gap-1.5">';
+                        districts.forEach(function(d){
+                            var cnt = PROJECTS.filter(function(p){
+                                var r = projRegion(p);
+                                return r.province === CURRENT_PROVINCE && r.city === CURRENT_CITY && (d === '全部' || r.district === d);
+                            }).length;
+                            html += regionTabHtml(d === '全部' ? '全部县区' : d, d, CURRENT_DISTRICT, 'switchDistrict', cnt, 'bg-cyan-600');
+                        });
+                        html += '</div></div>';
+                    }
+                }
+            }
+        }
+        html += '<div class="pt-3 border-t border-slate-100 text-[10.5px] text-slate-400"><i class="fa fa-info-circle mr-1"></i>地区选项为全国行政区划，可逐级选择省/市/区县查看该地区申报项目。</div>';
+        box.innerHTML = html;
+    }
+
+    // 统一应用筛选：重置搜索、重算结果、当前项目不在结果中时切到第一个
+    function applyRegionFilter() {
+        var searchInput = document.querySelector('input[oninput^="filterProjects"]');
+        if (searchInput) searchInput.value = '';
+        FILTERED_IDS = regionFilteredProjects().map(function(p){ return p.id; });
+        if (FILTERED_IDS.indexOf(CURRENT_PROJECT_ID) === -1 && FILTERED_IDS.length > 0) {
+            CURRENT_PROJECT_ID = FILTERED_IDS[0];
+        }
+        renderRegionButton();
+        renderProjectChips();
+        switchProject(CURRENT_PROJECT_ID);
+    }
+    // 切换省份：重置市/区县；选"全部省份"时收起弹层，否则展示城市级联
+    function switchProvince(prov) {
+        CURRENT_PROVINCE = prov;
+        CURRENT_CITY = '全部';
+        CURRENT_DISTRICT = '全部';
+        applyRegionFilter();
+        if (prov === '全部') {
+            closeRegionPanel();
+            showToast('已切换至 ' + regionLabelText(), 'success');
+        } else {
+            renderRegionPanel();
+        }
+    }
+    // 切换城市：重置区县；该市无区县数据时自动收起弹层
+    function switchCity(city) {
+        CURRENT_CITY = city;
+        CURRENT_DISTRICT = '全部';
+        applyRegionFilter();
+        var hasDist = false;
+        if (city !== '全部') {
+            PROJECTS.forEach(function(p){
+                var r = projRegion(p);
+                if (r.province === CURRENT_PROVINCE && r.city === city && r.district) hasDist = true;
+            });
+        }
+        if (city === '全部' || !hasDist) {
+            closeRegionPanel();
+            showToast('已切换至 ' + regionLabelText(), 'success');
+        } else {
+            renderRegionPanel();
+        }
+    }
+    // 切换区县：选完即收起弹层
+    function switchDistrict(dist) {
+        CURRENT_DISTRICT = dist;
+        applyRegionFilter();
+        closeRegionPanel();
+        showToast('已切换至 ' + regionLabelText(), 'success');
+    }
+
+    function renderProjectChips() {
+        var box = document.getElementById('projectChips');
+        var html = '';
+        PROJECTS.forEach(function(p) {
+            if (FILTERED_IDS.indexOf(p.id) === -1) return;
+            var active = p.id === CURRENT_PROJECT_ID ? 'active' : '';
+            var sc = { green:'bg-green-50 text-green-600', orange:'bg-orange-50 text-orange-500', blue:'bg-blue-50 text-blue-600' }[p.statusColor] || 'bg-slate-100 text-slate-600';
+            var lc = { '国家级':'bg-red-50 text-red-500', '省级':'bg-orange-50 text-orange-500', '市级':'bg-blue-50 text-blue-500' }[p.level];
+            html += '<div class="project-chip '+active+' px-3 py-2 rounded-xl border border-slate-200 bg-white min-w-[200px]" onclick="switchProject(\''+p.id+'\')">';
+            html += '  <div class="flex items-center justify-between mb-1">';
+            html += '    <div class="flex items-center space-x-1.5">';
+            html += '      <span class="w-6 h-6 rounded-lg bg-'+p.iconColor+'-100 text-'+p.iconColor+'-600 flex items-center justify-center"><i class="fa '+p.icon+' text-[11px]"></i></span>';
+            html += '      <span class="px-1.5 py-px rounded '+lc+' text-[9px] font-bold">'+p.level+'</span>';
+            html += '      <span class="px-1.5 py-px rounded '+sc+' text-[9px] font-bold">'+p.status+'</span>';
+            html += '    </div>';
+            html += '    <span class="text-[11px] font-black text-blue-600">'+p.progress+'%</span>';
+            html += '  </div>';
+            html += '  <div class="text-[11.5px] font-bold text-slate-700 truncate">'+p.name+'</div>';
+            html += '  <div class="text-[9px] text-slate-400 mt-0.5 truncate">'+p.dept+' · 截止 '+p.deadline.split(' ')[0]+'</div>';
+            html += '</div>';
+        });
+        box.innerHTML = html;
+    }
+
+    function filterProjects(q) {
+        q = (q||'').trim();
+        // 先按当前 省/市/区县 筛选
+        var base = regionFilteredProjects();
+        if (!q) { FILTERED_IDS = base.map(function(p){ return p.id; }); }
+        else {
+            FILTERED_IDS = base.filter(function(p){
+                return p.name.indexOf(q) !== -1 || p.dept.indexOf(q) !== -1;
+            }).map(function(p){ return p.id; });
+            if (FILTERED_IDS.length === 0) { FILTERED_IDS = base.map(function(p){ return p.id; }); }
+            if (FILTERED_IDS.indexOf(CURRENT_PROJECT_ID) === -1) {
+                CURRENT_PROJECT_ID = FILTERED_IDS[0];
+            }
+        }
+        renderProjectChips();
+        switchProject(CURRENT_PROJECT_ID);
+    }
+
+    function getCurrentProject() {
+        for (var i = 0; i < PROJECTS.length; i++) { if (PROJECTS[i].id === CURRENT_PROJECT_ID) return PROJECTS[i]; }
+        return PROJECTS[0];
+    }
+
+    // ========== 2.2 地区差异匹配（与后台「地区差异管理」同口径：省→市→区县逐级继承） ==========
+    var MERGED_VIEW = null; // 当前项目的地区合并视图 { _pid, groups, sourceMap, applied, chainLabel, addedCount, editedCount, removedCount }
+
+    function customerRegion() {
+        if (!CURRENT_PROVINCE || CURRENT_PROVINCE === '全部') return null;
+        return {
+            province: CURRENT_PROVINCE,
+            city: (CURRENT_CITY && CURRENT_CITY !== '全部') ? CURRENT_CITY : '',
+            district: (CURRENT_DISTRICT && CURRENT_DISTRICT !== '全部') ? CURRENT_DISTRICT : ''
+        };
+    }
+
+    function levelLabelOf(key) {
+        if (key.indexOf('district') > -1) return '区县';
+        if (key.indexOf('city') > -1) return '市级';
+        return '省级';
+    }
+
+    function buildMergedView(p) {
+        var region = customerRegion();
+        var baseGroups = JSON.parse(JSON.stringify(p.groups || []));
+        var sourceMap = {};
+        baseGroups.forEach(function(g) {
+            (g.items || []).forEach(function(it) { sourceMap[it.id] = { added:false, removed:false, overridden:false, levelLabel:'' }; });
+        });
+        var applied = false, addedCount = 0, editedCount = 0, removedCount = 0;
+        var chain = [];
+        if (region && region.province) {
+            chain.push('province·' + region.province);
+            if (region.city) chain.push('province·' + region.province + '·city·' + region.city);
+            if (region.district) chain.push('province·' + region.province + '·city·' + region.city + '·district·' + region.district);
+        }
+        chain.forEach(function(key) {
+            var ov = (p.regionOverrides || {})[key];
+            if (!ov) return;
+            applied = true;
+            var lv = levelLabelOf(key);
+            (ov.removes || []).forEach(function(rid) {
+                baseGroups.forEach(function(g) {
+                    g.items = g.items.filter(function(it) {
+                        if (it.id === rid) { if (sourceMap[rid] && !sourceMap[rid].removed) { sourceMap[rid].removed = true; removedCount++; } return false; }
+                        return true;
+                    });
+                });
+            });
+            (ov.edits || []).forEach(function(ed) {
+                baseGroups.forEach(function(g) {
+                    (g.items || []).forEach(function(it) {
+                        if (it.id === ed.itemId) {
+                            Object.assign(it, ed.changes || {});
+                            if (sourceMap[it.id] && !sourceMap[it.id].overridden) { sourceMap[it.id].overridden = true; sourceMap[it.id].levelLabel = lv; editedCount++; }
+                        }
+                    });
+                });
+            });
+            (ov.adds || []).forEach(function(ad) {
+                var tg = baseGroups.find(function(g) { return g.title === ad.group; });
+                if (!tg) { tg = { title: ad.group, icon: 'fa-folder', color: 'amber', items: [] }; baseGroups.push(tg); }
+                var ni = Object.assign({ status:'todo', tip:'', sampleName:'', samplePreview:'' }, ad);
+                tg.items.push(ni);
+                sourceMap[ni.id] = { added:true, removed:false, overridden:false, levelLabel:lv };
+                addedCount++;
+            });
+        });
+        return {
+            _pid: p.id,
+            groups: baseGroups,
+            sourceMap: sourceMap,
+            applied: applied,
+            region: region,
+            addedCount: addedCount,
+            editedCount: editedCount,
+            removedCount: removedCount,
+            chainLabel: region ? [region.province, region.city, region.district].filter(Boolean).join(' / ') : '全国通用'
+        };
+    }
+
+    // 当前项目按客户所在地区合并后的材料分组（未选地区时为基础模板）
+    function viewGroups(p) {
+        if (!MERGED_VIEW || MERGED_VIEW._pid !== p.id) MERGED_VIEW = buildMergedView(p);
+        return MERGED_VIEW.groups;
+    }
+
+    function renderRegionMatchBar() {
+        var bar = document.getElementById('regionMatchBar');
+        if (!bar || !MERGED_VIEW) return;
+        var mv = MERGED_VIEW;
+        if (!mv.applied) {
+            var ovCount = Object.keys((getCurrentProject() || {}).regionOverrides || {}).length;
+            bar.innerHTML = ovCount
+                ? '<div class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-500"><i class="fa fa-map-marker mr-1 text-slate-400"></i>当前展示<b>全国通用材料</b>；通过右上角「地区」选择省/市后，自动叠加该地区差异材料（后台已配置 ' + ovCount + ' 个地区版本）。</div>'
+                : '<div class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-400"><i class="fa fa-map-marker mr-1"></i>当前展示全国通用材料，后台暂未为本项目配置地区差异。</div>';
+        } else {
+            bar.innerHTML = '<div class="px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-center flex-wrap gap-x-3 gap-y-1">' +
+                '<span><i class="fa fa-map-marker mr-1"></i>已按 <b>' + escapeHtml(mv.chainLabel) + '</b> 匹配地区材料（基础模板逐级继承）</span>' +
+                (mv.addedCount ? '<span class="font-bold text-emerald-600">+' + mv.addedCount + ' 项本地区新增</span>' : '') +
+                (mv.editedCount ? '<span class="font-bold text-orange-600">' + mv.editedCount + ' 项要求调整</span>' : '') +
+                (mv.removedCount ? '<span class="font-bold text-rose-500">' + mv.removedCount + ' 项本地区不适用</span>' : '') +
+                '</div>';
+        }
+    }
+
+    function switchProject(pid) {
+        CURRENT_PROJECT_ID = pid;
+        renderProjectChips();
+        updateStats();
+        var p = getCurrentProject();
+        // ===== 材料包头部 =====
+        var lc = { '国家级':'bg-red-50 text-red-500', '省级':'bg-orange-50 text-orange-500', '市级':'bg-blue-50 text-blue-500' }[p.level];
+        var tc = { '资金补贴':'bg-blue-50 text-blue-600', '税收减免':'bg-green-50 text-green-600', '资质认定':'bg-purple-50 text-purple-600', '资质入库':'bg-indigo-50 text-indigo-600' }[p.type];
+        var sc = { green:'bg-green-50 text-green-600', orange:'bg-orange-50 text-orange-500', blue:'bg-blue-50 text-blue-600' }[p.statusColor];
+        document.getElementById('pkgBadges').innerHTML =
+            '<span class="px-2 py-0.5 rounded '+lc+' text-[10px] font-bold">'+p.level+'</span>'+
+            '<span class="px-2 py-0.5 rounded '+tc+' text-[10px] font-bold">'+p.type+'</span>'+
+            '<span class="px-2 py-0.5 rounded '+sc+' text-[10px] font-bold">'+p.status+'</span>';
+        document.getElementById('pkgTitle').innerText = p.name;
+        document.getElementById('pkgSubtitle').innerText = p.dept + ' · 截止 ' + p.deadline + ' · 预计扶持 ' + p.subsidy;
+        // ===== 按客户所在地区合并材料（省→市→区县继承差异），并渲染匹配提示条 =====
+        MERGED_VIEW = buildMergedView(p);
+        renderRegionMatchBar();
+        // 统计材料完成度（按实际上传附件，基于地区合并后的清单）
+        var total = 0, done = 0, todo = 0;
+        MERGED_VIEW.groups.forEach(function(g) {
+            g.items.forEach(function(m) {
+                total++;
+                if (isMatReady(m)) done++;
+                else todo++;
+            });
+        });
+        var pct = Math.round(done / total * 100);
+        document.getElementById('pkgPercent').innerText = pct + '%';
+        document.getElementById('pkgRatio').innerText = '已上传 ' + done + '/' + total + ' · 未上传 ' + todo;
+        setTimeout(function(){
+            document.getElementById('pkgBar').style.width = pct + '%';
+        }, 50);
+        // ===== 材料分组列表渲染 =====
+        renderMaterialGroups(p);
+        // ===== 进度看板渲染 =====
+        renderProgressBoard(p);
+    }
+
+    // ========== 2.1 统计卡片动态刷新（数据来源：实时聚合 PROJECTS + HISTORY_DONE）==========
+    // 已完成的历史申报项目（真实场景从 project 表 WHERE status='已完成' 查询）
+    var HISTORY_DONE = [
+        { name:'2025年高新技术企业认定', subsidy:200, year:2025 },
+        { name:'2025年山东省专精特新认定', subsidy:50, year:2025 },
+        { name:'2024年科技型中小企业入库', subsidy:85, year:2024 },
+        { name:'2024年济南市智能制造示范', subsidy:20, year:2024 },
+        { name:'2024年研发费用加计扣除', subsidy:120, year:2024 },
+        { name:'2023年高新技术企业认定', subsidy:200, year:2023 },
+        { name:'2023年山东省专精特新认定', subsidy:50, year:2023 },
+        { name:'2023年科技型中小企业入库', subsidy:70, year:2023 },
+        { name:'2022年高新技术企业认定', subsidy:200, year:2022 },
+        { name:'2022年研发费用加计扣除', subsidy:80, year:2022 },
+        { name:'2021年高新技术企业认定', subsidy:200, year:2021 },
+        { name:'2021年科技型中小企业入库', subsidy:60, year:2021 },
+        { name:'2020年济南市智能制造示范', subsidy:20, year:2020 },
+        { name:'2020年研发费用加计扣除', subsidy:60, year:2020 },
+        { name:'2019年高新技术企业认定', subsidy:200, year:2019 },
+        { name:'2019年山东省专精特新认定', subsidy:50, year:2019 },
+        { name:'2018年科技型中小企业入库', subsidy:45, year:2018 },
+        { name:'2017年高新技术企业认定', subsidy:200, year:2017 },
+        { name:'2016年研发费用加计扣除', subsidy:40, year:2016 },
+        { name:'2015年高新技术企业认定', subsidy:200, year:2015 },
+        { name:'2014年科技型中小企业入库', subsidy:35, year:2014 },
+        { name:'2013年济南市智能制造示范', subsidy:20, year:2013 },
+        { name:'2012年高新技术企业认定', subsidy:200, year:2012 }
+    ];
+    function updateStats() {
+    }
+
+    // ========== 3. 个性化材料清单自动生成（基于地区合并视图） ==========
+    function renderMaterialGroups(p) {
+        var box = document.getElementById('materialGroups');
+        var html = '';
+        var groups = MERGED_VIEW ? MERGED_VIEW.groups : (p.groups || []);
+        groups.forEach(function(g, gi) {
+            var groupDone = 0, groupTotal = g.items.length;
+            g.items.forEach(function(m){ if (isMatReady(m)) groupDone++; });
+            var groupAtts = 0;
+            g.items.forEach(function(m){ if (m.attName) groupAtts++; });
+            var regionAdds = 0;
+            if (MERGED_VIEW) g.items.forEach(function(m){ var sm = MERGED_VIEW.sourceMap[m.id]; if (sm && sm.added) regionAdds++; });
+            var gpct = Math.round(groupDone / groupTotal * 100);
+            var gcColor = { blue:'blue', orange:'orange', green:'emerald', purple:'purple', indigo:'indigo', amber:'amber', cyan:'cyan' }[g.color] || 'slate';
+            html += '<div class="border border-slate-100 rounded-xl overflow-hidden">';
+            // 分组头部
+            html += '  <div class="px-4 py-3 bg-'+gcColor+'-50/60 border-b border-'+gcColor+'-100 flex items-center justify-between">';
+            html += '    <div class="flex items-center space-x-2">';
+            html += '      <span class="w-7 h-7 rounded-lg bg-'+gcColor+'-100 text-'+gcColor+'-600 flex items-center justify-center"><i class="fa '+g.icon+' text-xs"></i></span>';
+            html += '      <span class="text-xs font-black text-slate-700">'+g.title+'</span>';
+            html += '      <span class="px-1.5 py-px bg-white rounded text-[10px] text-slate-500 font-bold border border-slate-200">'+groupDone+'/'+groupTotal+' · '+gpct+'%</span>';
+            if (groupAtts > 0) html += '      <span class="px-1.5 py-px bg-white rounded text-[10px] text-emerald-600 font-bold border border-emerald-200"><i class="fa fa-paperclip mr-0.5"></i>'+groupAtts+'个附件</span>';
+            if (regionAdds > 0) html += '      <span class="px-1.5 py-px bg-white rounded text-[10px] text-amber-600 font-bold border border-amber-200"><i class="fa fa-map-marker mr-0.5"></i>本地区差异 '+regionAdds+' 项</span>';
+            html += '    </div>';
+            html += '    <div class="flex items-center space-x-1.5">';
+            if (groupAtts > 0) {
+                html += '  <button onclick="downloadGroupAtts(\''+p.id+'\','+gi+')" class="px-2 py-1 rounded-md bg-white border border-slate-300 text-slate-600 text-[10px] font-bold hover:bg-slate-50 transition-all" title="下载本组全部已传附件"><i class="fa fa-download mr-1"></i>本组下载('+groupAtts+')</button>';
+            } else {
+                html += '  <button disabled class="px-2 py-1 rounded-md bg-white border border-slate-200 text-slate-300 text-[10px] font-bold cursor-not-allowed" title="本组暂无已上传附件"><i class="fa fa-download mr-1"></i>本组下载</button>';
+            }
+            html += '      <div class="w-20 h-1.5 bg-white rounded-full overflow-hidden ml-1"><div class="h-full bg-'+gcColor+'-500 rounded-full" style="width:'+gpct+'%"></div></div>';
+            html += '    </div>';
+            html += '  </div>';
+            // 材料行
+            html += '  <div>';
+            g.items.forEach(function(m) {
+                var ready = isMatReady(m);
+                var statMap = ready
+                    ? { dot:'bg-green-500', text:'已上传', badge:'bg-green-50 text-green-600 border-green-200' }
+                    : { dot:'bg-rose-500', text:'未上传', badge:'bg-rose-50 text-rose-600 border-rose-200' };
+                html += '    <div class="mat-row px-4 py-3 border-b border-slate-50 last:border-none flex items-center space-x-3">';
+                html += '      <span class="w-2 h-2 rounded-full '+statMap.dot+' flex-shrink-0"></span>';
+                // 名称+必填+智能提示
+                html += '      <div class="flex-1 min-w-0 relative tip-trigger">';
+                html += '        <div class="flex items-center flex-wrap gap-1 mb-0.5">';
+                html += '          <span class="text-xs font-bold text-slate-700">'+m.name+'</span>';
+                if (m.required) html += '<span class="text-rose-500 text-[10px] font-bold">*必填</span>';
+                else html += '<span class="text-slate-400 text-[10px] font-bold">选填</span>';
+                html += '          <span class="mat-badge border '+statMap.badge+'"><i class="fa fa-'+(ready?'check':'times')+'-circle mr-1"></i>'+statMap.text+'</span>';
+                if (MERGED_VIEW) {
+                    var sm = MERGED_VIEW.sourceMap[m.id];
+                    if (sm && sm.added) html += '<span class="mat-badge bg-amber-50 text-amber-700 border border-amber-200"><i class="fa fa-map-marker mr-1"></i>'+sm.levelLabel+'新增</span>';
+                    else if (sm && sm.overridden) html += '<span class="mat-badge bg-orange-50 text-orange-600 border border-orange-200"><i class="fa fa-pencil mr-1"></i>'+sm.levelLabel+'调整</span>';
+                }
+                html += '        </div>';
+                html += '        <div class="text-[10.5px] text-slate-500 truncate">'+m.tip.substring(0, Math.min(60, m.tip.length)) + (m.tip.length>60?'...':'')+'</div>';
+                // 已上传附件展示
+                if (m.attName) {
+                    html += '    <div class="mt-1 inline-flex items-center max-w-full px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded-md text-[10.5px] text-emerald-700 font-bold">';
+                    html += '      <i class="fa fa-paperclip mr-1 flex-shrink-0"></i><span class="truncate">'+m.attName+'</span>';
+                    if (m.attSize) html += '<span class="ml-1 text-emerald-400 font-normal flex-shrink-0">'+fmtFileSize(m.attSize)+'</span>';
+                    html += '    </div>';
+                }
+                // 智能提示气泡（hover出现）
+                html += '        <div class="tip-pop">';
+                html += '          <div class="flex items-center space-x-1 mb-2"><i class="fa fa-info-circle text-blue-300"></i><span class="text-[11px] font-black text-blue-200">智能填写提示</span></div>';
+                html += '          <div class="text-[11.5px] leading-relaxed text-slate-200">'+m.tip+'</div>';
+                html += '          <div class="mt-2 pt-2 border-t border-white/10 text-[10.5px] text-slate-400"><i class="fa fa-lightbulb-o text-amber-300 mr-1"></i>点击右侧「样例」可查看参考文档</div>';
+                html += '        </div>';
+                html += '      </div>';
+                // 操作按钮组
+                html += '      <div class="flex items-center space-x-1 flex-shrink-0">';
+                html += '        <button onclick="showSample(\''+p.id+'\',\''+m.id+'\')" class="px-2 py-1.5 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-all text-[10.5px] font-bold" title="查看样例参考"><i class="fa fa-file-text-o mr-1"></i>样例</button>';
+                if (m.attName) {
+                    html += '  <button onclick="downloadItemAtt(\''+p.id+'\',\''+m.id+'\')" class="px-2 py-1.5 rounded-lg border border-blue-200 bg-blue-600 text-white hover:bg-blue-700 transition-all text-[10.5px] font-bold" title="下载已上传的文件：'+m.attName+'"><i class="fa fa-download mr-1"></i>下载</button>';
+                    html += '  <button onclick="triggerItemUpload(\''+p.id+'\',\''+m.id+'\')" class="px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all text-[10.5px] font-bold" title="重新上传（覆盖原附件）"><i class="fa fa-upload mr-1"></i>重传</button>';
+                    html += '  <button onclick="removeItemAtt(\''+p.id+'\',\''+m.id+'\')" class="px-2 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 transition-all text-[10.5px] font-bold" title="删除已传附件"><i class="fa fa-trash mr-1"></i>删除</button>';
+                } else {
+                    html += '  <button onclick="downloadSampleFile(\''+p.id+'\',\''+m.id+'\')" class="px-2 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all text-[10.5px] font-bold" title="下载该材料的空白样例模板，参考填写"><i class="fa fa-download mr-1"></i>模板</button>';
+                    html += '  <button onclick="triggerItemUpload(\''+p.id+'\',\''+m.id+'\')" class="px-2 py-1.5 rounded-lg border border-blue-200 bg-blue-600 text-white hover:bg-blue-700 transition-all text-[10.5px] font-bold" title="上传该材料的电子文件，上传后即标记为已完成"><i class="fa fa-upload mr-1"></i>上传</button>';
+                }
+                html += '      </div>';
+                html += '    </div>';
+            });
+            html += '  </div>';
+            html += '</div>';
+        });
+        box.innerHTML = html;
+    }
+
+    // ========== 3.5 材料附件上传/下载（总项+分项） ==========
+    // 原型采用本地存储：文件内容(dataURL)存独立key，避免撑爆项目主数据；item上仅记录文件名/大小
+    var ATT_MAX_SIZE = 3 * 1024 * 1024; // 单文件3MB上限（localStorage限制）
+
+    function attStorageKey(pid, mid) { return 'yida_decl_att__' + pid + '__' + mid; }
+    function persistProjects() { try { DataBridge.saveDeclarationProjects(PROJECTS); } catch(e) {} }
+    function fmtFileSize(s) {
+        if (!s && s !== 0) return '';
+        if (s >= 1048576) return (s / 1048576).toFixed(1) + 'MB';
+        return Math.max(1, Math.round(s / 1024)) + 'KB';
+    }
+    function findProject(pid) {
+        for (var i=0;i<PROJECTS.length;i++) if (PROJECTS[i].id===pid) return PROJECTS[i];
+        return null;
+    }
+    // 材料是否完成：以实际上传附件为准（不再使用手动标记）
+    function isMatReady(m) { return !!(m && m.attName); }
+
+    // --- 分项：单文件上传 ---
+    function triggerItemUpload(pid, mid) {
+        var inp = document.getElementById('itemFileInput');
+        inp.value = '';
+        inp.dataset.pid = pid;
+        inp.dataset.mid = mid;
+        inp.click();
+    }
+    function handleItemFile(input) {
+        var f = input.files && input.files[0];
+        if (!f) return;
+        var pid = input.dataset.pid, mid = input.dataset.mid;
+        if (f.size > ATT_MAX_SIZE) { showToast('文件超过3MB上限（原型本地存储限制）：' + f.name, 'error'); return; }
+        var fr = new FileReader();
+        fr.onload = function() {
+            try {
+                localStorage.setItem(attStorageKey(pid, mid), JSON.stringify({ name:f.name, size:f.size, type:f.type||'application/octet-stream', data:fr.result }));
+            } catch (e) {
+                showToast('本地存储空间不足，请先删除部分已传附件', 'error');
+                return;
+            }
+            var m = findMaterial(pid, mid);
+            if (m) { m.attName = f.name; m.attSize = f.size; persistProjects(); }
+            switchProject(pid);
+            updateStats();
+            showToast('已上传：' + f.name, 'success');
+        };
+        fr.onerror = function() { showToast('文件读取失败', 'error'); };
+        fr.readAsDataURL(f);
+    }
+
+    // --- 分项：下载 / 删除 ---
+    function readAttObject(pid, mid) {
+        try {
+            var raw = localStorage.getItem(attStorageKey(pid, mid));
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+    }
+    function triggerBrowserDownload(obj) {
+        var a = document.createElement('a');
+        a.href = obj.data;
+        a.download = obj.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+    function downloadItemAtt(pid, mid) {
+        var obj = readAttObject(pid, mid);
+        var m = findMaterial(pid, mid);
+        if (!obj) {
+            showToast('附件内容不存在（可能已被浏览器清理），请重新上传', 'error');
+            if (m) { m.attName = null; m.attSize = null; persistProjects(); switchProject(pid); }
+            return;
+        }
+        triggerBrowserDownload(obj);
+    }
+    function removeItemAtt(pid, mid) {
+        var m = findMaterial(pid, mid);
+        if (!m) return;
+        if (!window.confirm('确定删除已上传的附件「' + (m.attName||'') + '」吗？')) return;
+        try { localStorage.removeItem(attStorageKey(pid, mid)); } catch(e) {}
+        m.attName = null; m.attSize = null;
+        persistProjects();
+        switchProject(pid);
+        updateStats();
+        showToast('附件已删除', 'info');
+    }
+
+    // --- 总项（分组）：多文件上传，按文件名自动匹配分项 ---
+    function triggerGroupUpload(pid, gi) {
+        var inp = document.getElementById('groupFileInput');
+        inp.value = '';
+        inp.dataset.pid = pid;
+        inp.dataset.gi = gi;
+        inp.click();
+    }
+    // 文件名与材料名的简易匹配：去扩展名/空格标点后双向包含
+    function nameMatches(fileName, matName) {
+        var norm = function(s){ return (s||'').replace(/\.[^.]+$/, '').replace(/[\s\-_（）()【】\[\]]/g, ''); };
+        var a = norm(fileName), b = norm(matName);
+        if (!a || !b) return false;
+        return a.indexOf(b) >= 0 || b.indexOf(a) >= 0;
+    }
+    function handleGroupFiles(input) {
+        var pid = input.dataset.pid, gi = Number(input.dataset.gi);
+        var p = findProject(pid);
+        // 使用地区合并视图的分组（含本地区差异材料）；写回时通过 findMaterial 定位真实数据对象
+        var g = null;
+        if (MERGED_VIEW && MERGED_VIEW._pid === pid && MERGED_VIEW.groups[gi]) g = MERGED_VIEW.groups[gi];
+        else if (p && p.groups[gi]) g = p.groups[gi];
+        if (!g) return;
+        var files = Array.prototype.slice.call(input.files);
+        var okNames = [], unmatched = [], oversize = [], failNames = [];
+        var idx = 0;
+
+        function saveOne(file, target, done) {
+            var fr = new FileReader();
+            fr.onload = function() {
+                try {
+                    localStorage.setItem(attStorageKey(pid, target.id), JSON.stringify({ name:file.name, size:file.size, type:file.type||'application/octet-stream', data:fr.result }));
+                    var real = findMaterial(pid, target.id) || target;
+                    real.attName = file.name; real.attSize = file.size;
+                    okNames.push(file.name);
+                } catch (e) {
+                    failNames.push(file.name);
+                }
+                done();
+            };
+            fr.onerror = function() { failNames.push(file.name); done(); };
+            fr.readAsDataURL(file);
+        }
+        function next() {
+            if (idx >= files.length) {
+                if (okNames.length) { persistProjects(); switchProject(pid); updateStats(); }
+                var msg = '本组上传完成：成功 ' + okNames.length + ' 份';
+                if (oversize.length) msg += '；超3MB跳过 ' + oversize.length + ' 份（' + oversize.join('、') + '）';
+                if (unmatched.length) msg += '；' + unmatched.length + ' 份未匹配到材料项（' + unmatched.join('、') + '），请改用对应分项的「上传」';
+                if (failNames.length) msg += '；存储失败 ' + failNames.length + ' 份（本地空间不足）';
+                showToast(msg, okNames.length ? 'success' : 'info');
+                return;
+            }
+            var f = files[idx++];
+            if (f.size > ATT_MAX_SIZE) { oversize.push(f.name); next(); return; }
+            var target = null;
+            for (var k=0;k<g.items.length;k++) {
+                if (!g.items[k].attName && nameMatches(f.name, g.items[k].name)) { target = g.items[k]; break; }
+            }
+            if (!target) { unmatched.push(f.name); next(); return; }
+            saveOne(f, target, next);
+        }
+        next();
+    }
+
+    // --- 总项（分组）：下载本组全部附件（逐个触发，间隔错开避免浏览器拦截） ---
+    function downloadGroupAtts(pid, gi) {
+        var items = null;
+        if (MERGED_VIEW && MERGED_VIEW._pid === pid && MERGED_VIEW.groups[gi]) items = MERGED_VIEW.groups[gi].items;
+        else {
+            var p = findProject(pid);
+            if (p && p.groups[gi]) items = p.groups[gi].items;
+        }
+        if (!items) return;
+        var objs = [];
+        items.forEach(function(m) {
+            if (m.attName) {
+                var o = readAttObject(pid, m.id);
+                if (o) objs.push(o);
+            }
+        });
+        if (!objs.length) { showToast('本组暂无可下载的附件', 'info'); return; }
+        objs.forEach(function(o, i) {
+            setTimeout(function(){ triggerBrowserDownload(o); }, i * 400);
+        });
+        showToast('开始下载本组 ' + objs.length + ' 份附件（如浏览器拦截请允许本站下载多个文件）', 'success');
+    }
+
+    // ========== 4. 样例参考弹窗 ==========
+    function findMaterial(pid, mid) {
+        for (var i=0;i<PROJECTS.length;i++) {
+            if (PROJECTS[i].id !== pid) continue;
+            for (var gi=0;gi<PROJECTS[i].groups.length;gi++) {
+                for (var mi=0;mi<PROJECTS[i].groups[gi].items.length;mi++) {
+                    if (PROJECTS[i].groups[gi].items[mi].id === mid) return PROJECTS[i].groups[gi].items[mi];
+                }
+            }
+            // 地区差异新增的材料存于 regionOverrides.adds（上传附件时需写回真实对象）
+            var ro = PROJECTS[i].regionOverrides || {};
+            var keys = Object.keys(ro);
+            for (var k=0;k<keys.length;k++) {
+                var adds = (ro[keys[k]] || {}).adds || [];
+                for (var a=0;a<adds.length;a++) {
+                    if (adds[a].id === mid) return adds[a];
+                }
+            }
+        }
+        return null;
+    }
+    function showSample(pid, mid) {
+        var m = findMaterial(pid, mid);
+        if (!m) return;
+        var mask = document.createElement('div');
+        mask.className = 'modal-mask';
+        mask.id = 'sampleModalMask';
+        mask.onclick = function(e) { if (e.target.id === 'sampleModalMask') closeSample(); };
+        mask.innerHTML = '<div class="sample-modal">'
+            + '<div class="px-6 py-4 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-slate-100 flex items-center justify-between">'
+            + '  <div class="flex items-center space-x-2"><i class="fa fa-file-text-o text-indigo-500"></i><div><div class="text-sm font-black text-slate-800">'+m.sampleName+'</div><div class="text-[10.5px] text-slate-500">样例参考 · 仅供学习与模板使用</div></div></div>'
+            + '  <div class="flex items-center space-x-2">'
+            + '    <button onclick="copySampleText()" class="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"><i class="fa fa-copy mr-1"></i>复制内容</button>'
+            + '    <button onclick="closeSample()" class="w-8 h-8 rounded-lg bg-white/70 hover:bg-white text-slate-500 flex items-center justify-center"><i class="fa fa-times"></i></button>'
+            + '  </div>'
+            + '</div>'
+            + '<div id="sampleBody" class="p-6 max-h-[60vh] overflow-y-auto scroll-thin">'
+            + '  <div class="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100 text-[11.5px] text-blue-700 leading-relaxed"><i class="fa fa-info-circle mr-1"></i><b>智能提示：</b>' + m.tip + '</div>'
+            + '  <pre id="sampleText" style="white-space:pre-wrap;font-family:inherit;font-size:12px;line-height:1.85;color:#334155;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px;">' + escapeHtml(m.samplePreview) + '</pre>'
+            + '</div>'
+            + '<div class="px-6 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">'
+            + '  <span class="text-[10.5px] text-slate-400"><i class="fa fa-shield mr-1"></i>样例来自2025年成功申报案例，已脱敏处理</span>'
+            + '  <button onclick="downloadSample()" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-all"><i class="fa fa-download mr-1"></i>下载样例文本</button>'
+            + '</div>'
+            + '</div>';
+        document.body.appendChild(mask);
+    }
+    function closeSample() {
+        var m = document.getElementById('sampleModalMask');
+        if (m) { m.style.transition='opacity .25s'; m.style.opacity='0'; setTimeout(function(){ m.remove(); }, 250); }
+    }
+    function copySampleText() {
+        var s = document.getElementById('sampleText');
+        if (!s) return;
+        try {
+            var ta = document.createElement('textarea');
+            ta.value = s.innerText;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+            showToast('样例内容已复制到剪贴板', 'success');
+        } catch(e) { showToast('复制失败，请手动选中', 'error'); }
+    }
+    function downloadSample() {
+        var s = document.getElementById('sampleText');
+        if (!s) return;
+        var titleEl = document.querySelector('#sampleModalMask .text-sm');
+        var fileName = (titleEl ? titleEl.innerText : '样例参考') + '.txt';
+        var blob = new Blob(['\uFEFF' + s.innerText], { type: 'text/plain;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        showToast('样例文本已下载', 'success');
+    }
+    // 直接按材料下载样例模板（无需打开样例弹窗）
+    function downloadSampleFile(pid, mid) {
+        var m = findMaterial(pid, mid);
+        if (!m) return;
+        var content = m.samplePreview || m.tip || '';
+        if (!content) { showToast('该材料暂未配置样例模板', 'info'); return; }
+        var body = '【' + m.name + '】样例参考模板\n';
+        body += '说明：以下内容为样例参考，请按企业实际情况准备正式材料。\n';
+        body += '='.repeat(46) + '\n\n';
+        body += '一、填写提示\n' + (m.tip || '无') + '\n\n';
+        body += '二、样例内容\n' + content + '\n';
+        var fileName = (m.sampleName && m.sampleName !== '-' ? m.sampleName.replace(/\.[^.]+$/, '') : m.name) + '_样例模板.txt';
+        var blob = new Blob(['\uFEFF' + body], { type: 'text/plain;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        showToast('样例模板已下载：' + fileName, 'success');
+    }
+    function viewAllSamples() {
+        var p = getCurrentProject();
+        var first = null;
+        for (var gi=0;gi<p.groups.length && !first;gi++) {
+            for (var mi=0;mi<p.groups[gi].items.length && !first;mi++) {
+                if (!isMatReady(p.groups[gi].items[mi])) first = p.groups[gi].items[mi];
+            }
+        }
+        if (!first && p.groups.length && p.groups[0].items.length) first = p.groups[0].items[0];
+        if (first) showSample(p.id, first.id);
+        showToast('可点击每个材料行右侧「样例」按钮分别查看参考文档', 'info');
+    }
+    function escapeHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ========== 5. 材料准备完成度看板渲染 ==========
+    function renderProgressBoard(p) {
+        // 徽章 + 标题 + 信息
+        var lc = { '国家级':'bg-red-50 text-red-500', '省级':'bg-orange-50 text-orange-500', '市级':'bg-blue-50 text-blue-500' }[p.level];
+        var sc = { green:'bg-green-50 text-green-600', orange:'bg-orange-50 text-orange-500', blue:'bg-blue-50 text-blue-600' }[p.statusColor];
+        document.getElementById('boardBadges').innerHTML =
+            '<span class="px-1.5 py-px rounded '+lc+' text-[9px] font-bold">'+p.level+'</span>'+
+            '<span class="px-1.5 py-px rounded '+sc+' text-[9px] font-bold">'+p.status+'</span>';
+        document.getElementById('boardTitle').innerText = p.name;
+        document.getElementById('boardDept').innerText = p.dept;
+        document.getElementById('boardDeadline').innerText = p.deadline;
+        document.getElementById('boardSubsidy').innerText = p.subsidy.split(' + ')[0];
+
+        // 统计材料数据（基于地区合并后的清单）
+        var total = 0, done = 0, todo = 0;
+        var reqTotal = 0, reqDone = 0;
+        var boardGroups = MERGED_VIEW && MERGED_VIEW._pid === p.id ? MERGED_VIEW.groups : (p.groups || []);
+        boardGroups.forEach(function(g) {
+            g.items.forEach(function(m) {
+                total++;
+                if (isMatReady(m)) done++;
+                else todo++;
+                if (m.required) {
+                    reqTotal++;
+                    if (isMatReady(m)) reqDone++;
+                }
+            });
+        });
+
+        // 环形进度 = 全部材料完成度
+        var pct = total > 0 ? Math.round(done / total * 100) : 0;
+        document.getElementById('ringPercent').innerText = pct + '%';
+        var circumference = 2 * Math.PI * 52;
+        var offset = circumference * (1 - pct / 100);
+        var circle = document.getElementById('ringCircle');
+        circle.style.transition = 'stroke-dashoffset .8s ease';
+        setTimeout(function(){ circle.setAttribute('stroke-dashoffset', offset.toFixed(2)); }, 50);
+
+        // 二色统计卡
+        document.getElementById('statDone').innerText = done;
+        document.getElementById('statTodo').innerText = todo;
+
+        // 必填材料完成度
+        var reqPct = reqTotal > 0 ? Math.round(reqDone / reqTotal * 100) : 0;
+        document.getElementById('requiredPct').innerText = reqPct + '%';
+        document.getElementById('requiredRatio').innerText = '已就绪 ' + reqDone + '/' + reqTotal + ' 项必填材料';
+        setTimeout(function(){ document.getElementById('requiredBar').style.width = reqPct + '%'; }, 50);
+
+        // 全部材料完成度
+        document.getElementById('totalPct').innerText = pct + '%';
+        document.getElementById('totalRatio').innerText = '已就绪 ' + done + '/' + total + ' 项全部材料';
+        setTimeout(function(){ document.getElementById('totalBar').style.width = pct + '%'; }, 50);
+
+        // 各分组完成度
+        renderGroupBars(p, boardGroups);
+    }
+
+    function renderGroupBars(p, groups) {
+        var box = document.getElementById('groupBars');
+        var html = '';
+        var colorMap = { blue:'blue', orange:'orange', green:'emerald', purple:'purple', indigo:'indigo', amber:'amber', cyan:'cyan' };
+        (groups || (p.groups || [])).forEach(function(g, idx) {
+            var groupDone = 0, groupTotal = g.items.length;
+            g.items.forEach(function(m){ if (isMatReady(m)) groupDone++; });
+            var gpct = groupTotal > 0 ? Math.round(groupDone / groupTotal * 100) : 0;
+            var gc = colorMap[g.color] || 'slate';
+            html += '<div>';
+            html += '  <div class="flex items-center justify-between mb-1.5">';
+            html += '    <div class="flex items-center space-x-2">';
+            html += '      <span class="w-6 h-6 rounded-lg bg-'+gc+'-100 text-'+gc+'-600 flex items-center justify-center"><i class="fa '+g.icon+' text-[10px]"></i></span>';
+            html += '      <span class="text-[11px] font-bold text-slate-700">'+g.title+'</span>';
+            html += '    </div>';
+            html += '    <span class="text-[11px] font-black text-'+gc+'-600">'+groupDone+'/'+groupTotal+'</span>';
+            html += '  </div>';
+            html += '  <div class="h-2 bg-slate-100 rounded-full overflow-hidden">';
+            html += '    <div class="h-full rounded-full bg-gradient-to-r from-'+gc+'-400 to-'+gc+'-500 transition-all duration-700" style="width:0%"></div>';
+            html += '  </div>';
+            html += '</div>';
+        });
+        box.innerHTML = html;
+        // 进度条动画
+        requestAnimationFrame(function(){
+            var wraps = box.children;
+            p.groups.forEach(function(g, idx) {
+                var groupDone = 0;
+                g.items.forEach(function(m){ if (isMatReady(m)) groupDone++; });
+                var gpct = g.items.length > 0 ? Math.round(groupDone / g.items.length * 100) : 0;
+                var bar = wraps[idx] ? wraps[idx].querySelector('.h-full') : null;
+                if (bar) setTimeout(function(){ bar.style.width = gpct + '%'; }, 80 + idx * 120);
+            });
+        });
+    }
+
+    // ========== 6. 企业材料库弹窗 ==========
+    var LIB_FILTER = { cat:'全部', q:'' };
+    function openMaterialLibrary() {
+        var mask = document.createElement('div');
+        mask.className = 'modal-mask';
+        mask.id = 'libraryMask';
+        mask.onclick = function(e){ if(e.target.id==='libraryMask') closeModal('libraryMask'); };
+        var matchedCount = LIBRARY.filter(function(l){ return l.matched; }).length;
+        mask.innerHTML =
+        '<div style="width:720px;max-height:82vh;background:white;border-radius:20px;overflow:hidden;box-shadow:0 30px 60px -15px rgba(15,23,42,0.4);display:flex;flex-direction:column;">'
+        + '<div class="px-6 py-4 bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-100 flex items-center justify-between">'
+        + '  <div class="flex items-center space-x-2"><i class="fa fa-database text-blue-600 text-lg"></i><div><div class="text-sm font-black text-slate-800">企业材料库</div><div class="text-[10.5px] text-slate-500">共 '+LIBRARY.length+' 份历史材料 · AI已智能匹配 <span class="text-blue-600 font-bold">'+matchedCount+'</span> 份适用材料</div></div></div>'
+        + '  <button onclick="closeModal(\'libraryMask\')" class="w-8 h-8 rounded-lg bg-white/70 hover:bg-white text-slate-500 flex items-center justify-center"><i class="fa fa-times"></i></button>'
+        + '</div>'
+        + '<div class="px-5 py-3 bg-white border-b border-slate-100">'
+        + '  <div class="flex items-center justify-between">'
+        + '    <div class="flex items-center space-x-1" id="libCats"></div>'
+        + '    <div class="relative">'
+        + '      <i class="fa fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>'
+        + '      <input type="text" oninput="LIB_FILTER.q=this.value;renderLibraryList()" placeholder="搜索材料..." class="pl-7 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none focus:bg-white focus:ring-2 focus:ring-blue-400 w-44">'
+        + '    </div>'
+        + '  </div>'
+        + '</div>'
+        + '<div id="libList" class="flex-1 overflow-y-auto scroll-thin p-5"></div>'
+        + '<div class="px-5 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">'
+        + '  <span class="text-[10.5px] text-slate-500"><i class="fa fa-lightbulb-o text-amber-400 mr-1"></i>点击材料行可预览详情，勾选后一键同步到当前申报项目</span>'
+        + '  <div class="flex items-center space-x-2">'
+        + '    <button onclick="closeModal(\'libraryMask\')" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">关闭</button>'
+        + '    <button onclick="syncMatchedToProject()" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-700"><i class="fa fa-check mr-1"></i>知道了，去材料行上传 ('+matchedCount+' 份可复用)</button>'
+        + '  </div>'
+        + '</div>'
+        + '</div>';
+        document.body.appendChild(mask);
+        // 渲染分类tab
+        var catsBox = document.getElementById('libCats');
+        var catsHtml = '';
+        LIBRARY_CATS.forEach(function(c){
+            var active = LIB_FILTER.cat === c ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200';
+            catsHtml += '<button onclick="LIB_FILTER.cat=\''+c+'\';renderLibraryCats();renderLibraryList()" class="px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all '+active+'">'+c+'</button>';
+        });
+        catsBox.innerHTML = catsHtml;
+        renderLibraryList();
+    }
+    function renderLibraryCats() {
+        var catsBox = document.getElementById('libCats');
+        var catsHtml = '';
+        LIBRARY_CATS.forEach(function(c){
+            var active = LIB_FILTER.cat === c ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200';
+            catsHtml += '<button onclick="LIB_FILTER.cat=\''+c+'\';renderLibraryCats();renderLibraryList()" class="px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all '+active+'">'+c+'</button>';
+        });
+        catsBox.innerHTML = catsHtml;
+    }
+    function renderLibraryList() {
+        var box = document.getElementById('libList');
+        var list = LIBRARY.filter(function(l){
+            var catOk = LIB_FILTER.cat === '全部' || l.cat === LIB_FILTER.cat;
+            var qOk = !LIB_FILTER.q || l.name.indexOf(LIB_FILTER.q) !== -1;
+            return catOk && qOk;
+        });
+        var html = '';
+        if (list.length === 0) {
+            html = '<div class="text-center py-12 text-slate-400 text-xs"><i class="fa fa-inbox text-3xl mb-2"></i><div>暂无匹配的材料</div></div>';
+        }
+        list.forEach(function(l){
+            var catColor = {
+                '营业执照':'bg-blue-50 text-blue-600',
+                '财务报告':'bg-emerald-50 text-emerald-600',
+                'IP证书':'bg-purple-50 text-purple-600',
+                '资质文件':'bg-amber-50 text-amber-600',
+                '管理制度':'bg-rose-50 text-rose-600'
+            }[l.cat] || 'bg-slate-50 text-slate-600';
+            var matchTag = l.matched
+                ? '<span class="px-1.5 py-px bg-green-50 text-green-600 text-[9.5px] font-bold rounded border border-green-200"><i class="fa fa-check-circle mr-0.5"></i>已匹配</span>'
+                : '<span class="px-1.5 py-px bg-slate-50 text-slate-500 text-[9.5px] font-bold rounded border border-slate-200">未匹配</span>';
+            var matchInfo = l.matched
+                ? '<div class="text-[10px] text-green-600 mt-1"><i class="fa fa-lightbulb-o mr-1"></i>'+l.matchReason+'</div>'
+                : '';
+            var usedBy = l.usage.map(function(u){ return '<span class="px-1.5 py-px bg-slate-100 rounded text-[9px] text-slate-500 mr-1">'+u+'</span>'; }).join('');
+            html += '<div class="border border-slate-100 rounded-xl p-3 mb-2 hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer" onclick="previewLibraryItem(\''+l.id+'\')">';
+            html += '  <div class="flex items-start justify-between">';
+            html += '    <div class="flex items-start space-x-3">';
+            html += '      <span class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0"><i class="fa fa-file-pdf-o text-red-500"></i></span>';
+            html += '      <div class="min-w-0">';
+            html += '        <div class="flex items-center flex-wrap gap-1.5 mb-1">';
+            html += '          <span class="text-[12px] font-bold text-slate-700">'+l.name+'</span>';
+            html += '          <span class="px-1.5 py-px rounded text-[9.5px] font-bold '+catColor+'">'+l.cat+'</span>';
+            html += '          '+matchTag;
+            html += '        </div>';
+            html += '        <div class="flex items-center text-[10px] text-slate-400 space-x-3 mb-1">';
+            html += '          <span><i class="fa fa-calendar mr-1"></i>'+l.time+'</span>';
+            html += '          <span><i class="fa fa-hdd-o mr-1"></i>'+l.size+'</span>';
+            html += '        </div>';
+            html += '        <div class="flex items-center">'+usedBy+'</div>';
+            html += '        '+matchInfo;
+            html += '      </div>';
+            html += '    </div>';
+            html += '    <span class="text-slate-300"><i class="fa fa-chevron-right"></i></span>';
+            html += '  </div>';
+            html += '</div>';
+        });
+        box.innerHTML = html;
+    }
+    function previewLibraryItem(id) {
+        var l = null;
+        for (var i=0;i<LIBRARY.length;i++) if (LIBRARY[i].id===id) { l = LIBRARY[i]; break; }
+        if (!l) return;
+        showToast('预览：' + l.name + '（真实系统将打开PDF在线预览）', 'info');
+    }
+    function syncMatchedToProject() {
+        var p = getCurrentProject();
+        var matched = LIBRARY.filter(function(l){ return l.matched; });
+        // 材料完成度以实际上传的附件为准：材料库仅提示可复用，不直接标记完成
+        closeModal('libraryMask');
+        showToast('材料库中 '+matched.length+' 份历史材料可复用，请在对应材料行点击「上传」选择文件完成上传', 'info');
+    }
+    // ========== 7. 下载申报包弹窗 ==========
+    function downloadPkg() {
+        var p = getCurrentProject();
+        var pkgName = p.name.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g,'_');
+        // 计算当前项目材料统计（按实际上传，基于地区合并后的清单）
+        var total=0, done=0, todo=0, reqTotal=0, reqDone=0;
+        var detail = [];
+        viewGroups(p).forEach(function(g){ g.items.forEach(function(m){
+            total++;
+            var ready = isMatReady(m);
+            if (ready) done++; else todo++;
+            if (m.required) { reqTotal++; if (ready) reqDone++; }
+            detail.push((m.required?'[必填] ':'[选填] ') + m.name + ' — ' + g.title + ' — ' + (ready?'已上传':'未上传'));
+        });});
+        var files = [];
+        viewGroups(p).forEach(function(g){ g.items.forEach(function(m){
+            files.push({ name:m.sampleName.replace('.pdf','.pdf').replace('.xlsx','.xlsx').replace('.docx','.docx'), required:m.required });
+        });});
+        openDownloadModal('materialPkgModal', {
+            title: '导出材料清单',
+            subtitle: p.name,
+            pkgName: pkgName + '_材料清单.zip',
+            sections: [
+                { label:'上传完成度', files:[
+                    '必填材料：' + reqDone + '/' + reqTotal + '（' + (reqTotal?Math.round(reqDone/reqTotal*100):0) + '%）',
+                    '全部材料：' + done + '/' + total + '（' + (total?Math.round(done/total*100):0) + '%）'
+                ], count: 2 },
+                { label:'材料明细 ('+detail.length+' 项)', files: detail, count: detail.length },
+                { label:'项目文件', files:[ p.name+'_申请表.docx', p.name+'_填写指南.pdf', p.name+'_政策解读.pdf' ] },
+                { label:'样例模板 ('+files.length+' 份)', files: files.map(function(f){ return f.name + (f.required?' [必填]':'') }), count: files.length },
+                { label:'智能提示文档', files: [ p.name+'_材料填写要点.pdf', p.name+'_常见问题FAQ.pdf' ] }
+            ],
+            stats: { total: total, done:done, todo:todo },
+            btnText: '打包下载（含清单+样例+模板+指南）'
+        });
+    }
+    function downloadAllPackage() {
+        var totalFiles = 0, projects = PROJECTS.length;
+        PROJECTS.forEach(function(p){
+            p.groups.forEach(function(g){ g.items.forEach(function(){ totalFiles++; }); });
+        });
+        var pkgName = '策源易答_全部申报材料包';
+        var sections = [];
+        PROJECTS.forEach(function(p){
+            var files = [];
+            p.groups.forEach(function(g){ g.items.forEach(function(m){ files.push(m.sampleName); }); });
+            sections.push({ label: p.name+' ('+p.level+')', files: files, count: files.length });
+        });
+        openDownloadModal('allPkgModal', {
+            title: '一键下载全部申报包',
+            subtitle: '共 '+projects+' 个进行中项目',
+            pkgName: pkgName + '.zip',
+            sections: sections,
+            stats: { total: totalFiles, projects: projects },
+            btnText: '打包全部 ' + projects + ' 个项目的材料（' + totalFiles + ' 份文件）'
+        });
+    }
+    function openDownloadModal(id, cfg) {
+        var mask = document.createElement('div');
+        mask.className = 'modal-mask';
+        mask.id = id;
+        mask.onclick = function(e){ if(e.target.id===id) closeModal(id); };
+        var statsHtml = '';
+        if (cfg.stats.projects) {
+            statsHtml = '<div class="flex items-center space-x-4 text-[11px]"><span class="text-slate-600">项目数: <b class="text-blue-600">'+cfg.stats.projects+'</b></span><span class="text-slate-600">文件总数: <b class="text-blue-600">'+cfg.stats.total+'</b></span></div>';
+        } else {
+            statsHtml = '<div class="flex items-center space-x-4 text-[11px]"><span class="text-slate-600">材料总数: <b class="text-blue-600">'+cfg.stats.total+'</b></span><span class="text-green-600">已上传: '+cfg.stats.done+'</span><span class="text-rose-500">未上传: '+cfg.stats.todo+'</span></div>';
+        }
+        var sectionsHtml = '';
+        cfg.sections.forEach(function(sec){
+            sectionsHtml += '<div class="mb-4">'
+                + '<div class="flex items-center justify-between mb-2"><span class="text-[12px] font-black text-slate-700">'+sec.label+'</span><span class="text-[10px] text-slate-400">'+sec.count+' 份</span></div>'
+                + '<div class="bg-slate-50 rounded-lg p-3 max-h-[120px] overflow-y-auto scroll-thin">'
+                + sec.files.map(function(f){ return '<div class="text-[10.5px] text-slate-600 py-0.5"><i class="fa fa-file-text-o text-slate-400 mr-1.5"></i>'+f+'</div>'; }).join('')
+                + '</div></div>';
+        });
+        mask.innerHTML =
+        '<div style="width:560px;max-height:85vh;background:white;border-radius:20px;overflow:hidden;box-shadow:0 30px 60px -15px rgba(15,23,42,0.4);display:flex;flex-direction:column;">'
+        + '<div class="px-6 py-4 bg-gradient-to-r from-indigo-50 to-blue-50 border-b border-slate-100 flex items-center justify-between">'
+        + '  <div class="flex items-center space-x-2"><i class="fa fa-download text-indigo-600 text-lg"></i><div><div class="text-sm font-black text-slate-800">'+cfg.title+'</div><div class="text-[10.5px] text-slate-500">'+cfg.subtitle+'</div></div></div>'
+        + '  <button onclick="closeModal(\''+id+'\')" class="w-8 h-8 rounded-lg bg-white/70 hover:bg-white text-slate-500 flex items-center justify-center"><i class="fa fa-times"></i></button>'
+        + '</div>'
+        + '<div class="px-6 py-4 border-b border-slate-100 bg-white">'
+        + '  <div class="flex items-center justify-between mb-2">'
+        + '    <span class="text-[11px] text-slate-500">输出文件名</span>'
+        + '    <span class="text-[11px] font-bold text-slate-700">'+cfg.pkgName+'</span>'
+        + '  </div>'
+        + statsHtml
+        + '</div>'
+        + '<div class="flex-1 overflow-y-auto scroll-thin px-6 py-4">'+sectionsHtml+'</div>'
+        + '<div class="px-6 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">'
+        + '  <span class="text-[10.5px] text-slate-500"><i class="fa fa-shield mr-1"></i>所有文件来自运营后台"政策模板库"，已脱敏处理</span>'
+        + '  <div class="flex items-center space-x-2">'
+        + '    <button onclick="closeModal(\''+id+'\')" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">取消</button>'
+        + '    <button onclick="confirmDownload(\''+id+'\',\''+cfg.pkgName+'\')" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:opacity-90 shadow-lg shadow-indigo-200"><i class="fa fa-download mr-1"></i>'+cfg.btnText+'</button>'
+        + '  </div>'
+        + '</div>'
+        + '</div>';
+        document.body.appendChild(mask);
+    }
+    function confirmDownload(maskId, fileName) {
+        closeModal(maskId);
+        showToast('正在打包生成「'+fileName+'」，浏览器将自动开始下载...', 'success');
+    }
+    // ========== 8. 通用关闭弹窗 ==========
+    function closeModal(id) {
+        var m = document.getElementById(id);
+        if (m) {
+            m.style.transition = 'opacity .2s';
+            m.style.opacity = '0';
+            setTimeout(function(){ m.remove(); }, 200);
+        }
+    }
+    // ========== 9. 一键生成申报书 ==========
+    var APPLY_ENT = null;     // 弹窗内当前企业信息（可临时编辑，不写回客户档案）
+    var APPLY_PROJ = null;    // 当前项目
+    var APPLY_TPL = null;     // 当前模板
+    var APPLY_HINT = '';      // 模板回退提示
+
+    function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    function findMaterialById(proj, id){
+        if(!proj||!proj.groups) return null;
+        for(var i=0;i<proj.groups.length;i++){
+            var g=proj.groups[i];
+            for(var j=0;j<(g.items||[]).length;j++){
+                if(g.items[j].id===id) return g.items[j];
+            }
+        }
+        return null;
+    }
+    function resolveSource(src, ent, proj){
+        if(!src) return '';
+        if(src==='static') return '__STATIC__';
+        var parts = src.split('.');
+        var ns = parts[0], rest = parts.slice(1).join('.');
+        if(ns==='enterprise'){
+            var v = ent[rest];
+            if(Array.isArray(v)) return v.join('、');
+            return v==null?'':String(v);
+        }
+        if(ns==='project'){
+            var v = proj[rest];
+            return v==null?'':String(v);
+        }
+        if(ns==='material'){
+            if(rest==='all'){
+                var lines = [];
+                (proj.groups||[]).forEach(function(g){
+                    (g.items||[]).forEach(function(m){ lines.push((m.required?'[必填] ':'[选填] ')+m.name); });
+                });
+                return lines.join('、');
+            }
+            var mParts = rest.split('.');
+            var matId = mParts[0], attr = mParts[1];
+            var m = findMaterialById(proj, matId);
+            if(!m) return '';
+            if(attr==='tip') return m.tip||'';
+            if(attr==='status') return m.status||'';
+            return m[attr]!=null?String(m[attr]):'';
+        }
+        return '';
+    }
+    function pickEnterprise(){
+        var list = DataBridge.loadCustomers();
+        var ent = (list && list.length>0) ? JSON.parse(JSON.stringify(list[0])) : {
+            name:'示例企业', code:'91000000MA000000X', industry:'电子信息',
+            contact:'张三', phone:'138****0000', employees:200, revenue:10000,
+            founded:'2020-01-01', regCap:'1000万', region:'山东省济南市', quals:['国家高新']
+        };
+        return ent;
+    }
+    function renderApplyPaper(tpl, ent, proj, hint){
+        var cover = (tpl.cover && tpl.cover.titleTpl) || '${enterprise.name}申报书';
+        var title = cover.replace('${enterprise.name}', ent.name||'')
+                         .replace('${project.name}', proj.name||'')
+                         .replace('${enterprise.region}', ent.region||'');
+        var dateStr = new Date().toISOString().slice(0,10);
+        var html = '';
+        html += '<div class="cover">';
+        html += '<h1>'+escapeHtml(title)+'</h1>';
+        html += '<div class="meta-line">项目名称：'+escapeHtml(proj.name||'')+'</div>';
+        html += '<div class="meta-line">申报日期：'+dateStr+'</div>';
+        if(hint){ html += '<div class="meta-line" style="color:#c2410c;font-size:10pt;"><i class="fa fa-info-circle"></i> '+escapeHtml(hint)+'</div>'; }
+        html += '</div>';
+        var sections = tpl.sections||[];
+        sections.forEach(function(sec, si){
+            html += '<h2 class="'+(si===0?'first-sec':'')+'">'+escapeHtml(sec.title||'')+'</h2>';
+            var hasMaterialAll = (sec.fields||[]).some(function(f){ return f.source==='material.all'; });
+            if(hasMaterialAll){
+                html += '<table><thead><tr><th style="width:22%">材料分组</th><th style="width:40%">材料名称</th><th style="width:12%">是否必填</th><th style="width:26%">填写提示</th></tr></thead><tbody>';
+                (proj.groups||[]).forEach(function(g){
+                    (g.items||[]).forEach(function(m){
+                        html += '<tr><td>'+escapeHtml(g.title||'')+'</td><td>'+escapeHtml(m.name||'')+'</td><td>'+(m.required?'必填':'选填')+'</td><td>'+escapeHtml((m.tip||'').slice(0,80))+'</td></tr>';
+                    });
+                });
+                html += '</tbody></table>';
+            }
+            var kvFields = (sec.fields||[]).filter(function(f){ return f.source!=='material.all'; });
+            if(kvFields.length>0){
+                html += '<table class="kv-table"><tbody>';
+                kvFields.forEach(function(f){
+                    var val = '';
+                    if(f.source==='static'){ val = f.default||''; }
+                    else { val = resolveSource(f.source, ent, proj); }
+                    html += '<tr><td>'+escapeHtml(f.label||f.key||'')+'</td><td>'+escapeHtml(val)+'</td></tr>';
+                });
+                html += '</tbody></table>';
+            }
+        });
+        return html;
+    }
+    function renderEntEdit(ent){
+        var fields = [
+            {k:'name', l:'企业名称'}, {k:'code', l:'信用代码'}, {k:'industry', l:'行业'},
+            {k:'region', l:'注册地'}, {k:'regCap', l:'注册资本'}, {k:'employees', l:'职工数'},
+            {k:'founded', l:'成立日期'}, {k:'quals', l:'资质(、分隔)'}, {k:'contact', l:'联系人'}, {k:'phone', l:'电话'}
+        ];
+        return '<div class="text-[11px] font-bold text-slate-600 mb-2"><i class="fa fa-building mr-1"></i>企业信息（仅本次生成有效，不写回客户档案）</div>'
+            + '<div class="grid grid-cols-2 gap-2">'
+            + fields.map(function(f){
+                var v = ent[f.k];
+                if(Array.isArray(v)) v = v.join('、');
+                return '<div class="flex items-center gap-1"><span class="text-[10px] text-slate-500 w-20 text-right">'+f.l+'</span><input class="flex-1" data-ent="'+f.k+'" value="'+escapeHtml(v||'')+'" oninput="onEntEdit(\''+f.k+'\', this.value)"></div>';
+            }).join('')
+            + '</div>'
+            + '<div class="text-[10px] text-slate-400 mt-1.5"><i class="fa fa-info-circle mr-0.5"></i>编辑后点击"打印"或"导出"按钮，将使用最新值重新生成</div>';
+    }
+    function generateApplicationDoc(){
+        var p = getCurrentProject();
+        if(!p){ showToast('请先选择申报项目','error'); return; }
+        var match = DataBridge.pickDeclarationTemplate(p);
+        if(!match.tpl){ showToast('未找到任何申报书模板','error'); return; }
+        APPLY_ENT = pickEnterprise();
+        // 申报书内容同样按客户所在地区合并后的材料清单生成
+        var srcProj = Object.assign({}, p, { groups: JSON.parse(JSON.stringify(viewGroups(p))) });
+        APPLY_PROJ = JSON.parse(JSON.stringify(srcProj));
+        APPLY_TPL = match.tpl;
+        APPLY_HINT = match.hint || '';
+        openApplyModal(match.tpl, APPLY_ENT, APPLY_PROJ, APPLY_HINT, match.fallback);
+    }
+    function openApplyModal(tpl, ent, proj, hint, fallback){
+        closeModal('applyMask');
+        var mask = document.createElement('div');
+        mask.className = 'apply-modal';
+        mask.id = 'applyMask';
+        mask.onclick = function(e){ if(e.target.id==='applyMask') closeApplyModal(); };
+        var paperHtml = renderApplyPaper(tpl, ent, proj, hint||'');
+        var fbBanner = fallback ? '<div class="fb-banner" style="background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;padding:8px 12px;border-radius:6px;font-size:12px;margin-bottom:8px;"><i class="fa fa-exclamation-triangle mr-1"></i>'+escapeHtml(hint||'')+'</div>' : '';
+        var entEditHtml = renderEntEdit(ent);
+        mask.innerHTML =
+            '<div class="apply-toolbar">'
+          + '  <div class="flex items-center space-x-2 flex-1 min-w-0">'
+          + '    <i class="fa fa-file-text text-blue-600 text-lg"></i>'
+          + '    <div class="min-w-0">'
+          + '      <div class="text-sm font-black text-slate-800 truncate">'+escapeHtml(tpl.name||'申报书')+'</div>'
+          + '      <div class="text-[10.5px] text-slate-500 truncate">模板：'+escapeHtml(tpl.region||'')+' · '+(tpl.projectType==='*'?'全部':(tpl.projectType||''))+' · 项目：'+escapeHtml(proj.name||'')+'</div>'
+          + '    </div>'
+          + '  </div>'
+          + '  <button onclick="toggleEntEdit()" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 whitespace-nowrap"><i class="fa fa-building mr-1"></i>企业信息</button>'
+          + '  <button onclick="printApplyDoc()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold whitespace-nowrap"><i class="fa fa-print mr-1"></i>打印为 PDF</button>'
+          + '  <button onclick="exportWordDoc()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold whitespace-nowrap"><i class="fa fa-file-word-o mr-1"></i>导出 Word</button>'
+          + '  <button onclick="closeApplyModal()" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-500 rounded-lg text-xs font-bold hover:bg-slate-50"><i class="fa fa-times"></i></button>'
+          + '</div>'
+          + '<div style="max-width:900px;margin:0 auto;padding:0 16px 12px;">'
+          +   fbBanner
+          +   '<div id="entEditBox" class="apply-enterprise-edit" style="display:none;">'+entEditHtml+'</div>'
+          + '</div>'
+          + '<div id="applyPaper" class="apply-paper">'+paperHtml+'</div>';
+        document.body.appendChild(mask);
+        document.body.style.overflow = 'hidden';
+    }
+    function toggleEntEdit(){
+        var box = document.getElementById('entEditBox');
+        if(box) box.style.display = (box.style.display==='none'?'block':'none');
+    }
+    function onEntEdit(k, v){
+        if(!APPLY_ENT) return;
+        if(k==='quals'){ APPLY_ENT.quals = v.split('、').map(function(s){return s.trim();}).filter(Boolean); }
+        else { APPLY_ENT[k] = v; }
+        // 不立即重渲染 paper，避免输入焦点丢失；点"打印/导出"按钮时统一 refreshApplyPaper
+    }
+    function refreshApplyPaper(){
+        var paper = document.getElementById('applyPaper');
+        if(!paper || !APPLY_TPL) return;
+        paper.innerHTML = renderApplyPaper(APPLY_TPL, APPLY_ENT, APPLY_PROJ, APPLY_HINT);
+    }
+    function closeApplyModal(){
+        closeModal('applyMask');
+        document.body.style.overflow = '';
+    }
+    function printApplyDoc(){
+        refreshApplyPaper();
+        setTimeout(function(){ window.print(); }, 100);
+    }
+    function exportWordDoc(){
+        if(!window.docx){ showToast('docx.js 库未加载，请检查网络后重试','error'); return; }
+        if(!window.saveAs){ showToast('file-saver 库未加载，请检查网络后重试','error'); return; }
+        refreshApplyPaper();
+        try{
+            var doc = buildDocxDoc(APPLY_ENT, APPLY_PROJ, APPLY_TPL);
+            var fileName = (APPLY_PROJ.name||'申报书')+'_申报书.docx';
+            window.docx.Packer.toBlob(doc).then(function(blob){
+                saveAs(blob, fileName);
+                showToast('Word 文档已生成','success');
+            }).catch(function(err){
+                showToast('Word 生成失败：'+(err&&err.message||''),'error');
+                console.error(err);
+            });
+        }catch(e){
+            showToast('Word 生成失败：'+(e&&e.message||''),'error');
+            console.error(e);
+        }
+    }
+    function buildDocxDoc(ent, proj, tpl){
+        var D = window.docx;
+        var Document = D.Document, Paragraph = D.Paragraph, TextRun = D.TextRun, Table = D.Table,
+            TableRow = D.TableRow, TableCell = D.TableCell, WidthType = D.WidthType,
+            HeadingLevel = D.HeadingLevel, AlignmentType = D.AlignmentType;
+        var children = [];
+        // 封面
+        var cover = (tpl.cover && tpl.cover.titleTpl) || '${enterprise.name}申报书';
+        var title = cover.replace('${enterprise.name}', ent.name||'')
+                         .replace('${project.name}', proj.name||'')
+                         .replace('${enterprise.region}', ent.region||'');
+        children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing:{before:2400, after:400},
+            children:[new TextRun({ text: title, bold:true, size:56 })]}));
+        children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing:{after:200},
+            children:[new TextRun({ text: '项目名称：'+(proj.name||''), size:28 })]}));
+        children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing:{after:200},
+            children:[new TextRun({ text: '申报日期：'+new Date().toISOString().slice(0,10), size:24, color:'666666' })]}));
+        children.push(new Paragraph({ children:[new TextRun({ text:'', break:1 })]}));
+        // 章节
+        (tpl.sections||[]).forEach(function(sec){
+            children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, spacing:{before:400, after:200},
+                children:[new TextRun({ text: sec.title||'', bold:true, size:32 })]}));
+            var hasMaterialAll = (sec.fields||[]).some(function(f){ return f.source==='material.all'; });
+            var kvFields = (sec.fields||[]).filter(function(f){ return f.source!=='material.all'; });
+            if(kvFields.length>0){
+                var rows = kvFields.map(function(f){
+                    var val = '';
+                    if(f.source==='static'){ val = f.default||''; }
+                    else { val = resolveSource(f.source, ent, proj); }
+                    return new TableRow({ children:[
+                        new TableCell({ width:{size:30,type:WidthType.PERCENTAGE}, children:[new Paragraph({ children:[new TextRun({ text: f.label||f.key||'', bold:true, size:22 })]})]}),
+                        new TableCell({ width:{size:70,type:WidthType.PERCENTAGE}, children:[new Paragraph({ children:[new TextRun({ text: String(val==null?'':val), size:22 })]})]})
+                    ]});
+                });
+                children.push(new Table({ width:{size:100,type:WidthType.PERCENTAGE}, rows: rows }));
+            }
+            if(hasMaterialAll){
+                var matHeader = new TableRow({ tableHeader:true, children:['材料分组','材料名称','是否必填','填写提示'].map(function(h){
+                    return new TableCell({ children:[new Paragraph({ children:[new TextRun({ text:h, bold:true, size:20 })]})]});
+                })});
+                var matRows = [matHeader];
+                (proj.groups||[]).forEach(function(g){
+                    (g.items||[]).forEach(function(m){
+                        matRows.push(new TableRow({ children:[
+                            new TableCell({ children:[new Paragraph({ children:[new TextRun({text: g.title||'', size:20})]})]}),
+                            new TableCell({ children:[new Paragraph({ children:[new TextRun({text: m.name||'', size:20})]})]}),
+                            new TableCell({ children:[new Paragraph({ children:[new TextRun({text: m.required?'必填':'选填', size:20})]})]}),
+                            new TableCell({ children:[new Paragraph({ children:[new TextRun({text: (m.tip||'').slice(0,80), size:20})]})]})
+                        ]}));
+                    });
+                });
+                children.push(new Table({ width:{size:100,type:WidthType.PERCENTAGE}, rows: matRows }));
+            }
+        });
+        return new Document({ sections:[{ children: children }] });
+    }
+    // ========== 10. 新建申报向导 ==========
+    // 可选政策目录（真实场景从 policy_catalog 表查询 status=1 的政策）
+    var POLICY_CATALOG = [
+        { code:'GXQ_2026', name:'国家高新技术企业认定', level:'国家级', dept:'科技部火炬中心', subsidy:'¥50-200万+所得税减免', deadline:'2026-08-18', icon:'fa-star', color:'blue',
+          desc:'适用：拥有核心自主知识产权、研发投入持续增长的科技型企业。核心指标：IP≥15项、研发投入占比≥5%、高新产品收入占比≥60%。' },
+        { code:'ZJTX_2026', name:'山东省专精特新企业认定', level:'省级', dept:'山东省工信厅', subsidy:'¥50万+175%加计扣除', deadline:'2026-09-01', icon:'fa-rocket', color:'emerald',
+          desc:'适用：主营业务突出、竞争力强的中小企业。核心指标：主营占比≥70%、营收复合增长≥10%、研发人员占比≥15%。' },
+        { code:'KJXQ_2026', name:'科技型中小企业评价入库', level:'国家级', dept:'科技部服务中心', subsidy:'175%加计扣除+亏损结转10年', deadline:'2026-09-10', icon:'fa-flask', color:'purple',
+          desc:'适用：职工≤500人、营收≤2亿、资产≤2亿的科技型企业。门槛较低，是高企认定的前置跳板。' },
+        { code:'ZNZZ_2026', name:'济南市智能制造示范企业', level:'市级', dept:'济南市工信局', subsidy:'¥20万+贷款贴息', deadline:'2026-08-08', icon:'fa-bolt', color:'orange',
+          desc:'适用：关键工序数控化率≥80%的制造企业。核心指标：数字化装备联网率、MES/ERP覆盖率、综合效益改善≥20%。' },
+        { code:'YFFY_2026', name:'研发费用加计扣除', level:'国家级', dept:'税务总局', subsidy:'175%税前加计扣除', deadline:'2027-05-31', icon:'fa-calculator', color:'indigo',
+          desc:'适用：所有开展研发活动的居民企业。按研发投入的175%在税前加计扣除，无需单独申报，汇算清缴时享受。' },
+        { code:'JSHT_2026', name:'技术合同登记认定', level:'国家级', dept:'科技部', subsidy:'增值税免征+所得税优惠', deadline:'全年滚动', icon:'fa-file-text-o', color:'cyan',
+          desc:'适用：技术开发/转让/咨询/服务合同。四技合同经登记后可享受增值税免征（技术开发/转让）及所得税优惠。' },
+        { code:'RCYJ_2026', name:'济南市人才引进补贴', level:'市级', dept:'济南市人社局', subsidy:'¥10-100万/人', deadline:'2026-10-15', icon:'fa-users', color:'rose',
+          desc:'适用：引进高层次人才的企业。按人才层级给予购房补贴、生活补贴、项目资助等。' },
+        { code:'RJQY_2026', name:'软件企业税收优惠', level:'国家级', dept:'工信部+税务总局', subsidy:'所得税两免三减半+增值税超3%即征即退', deadline:'2026-12-31', icon:'fa-code', color:'green',
+          desc:'适用：以软件开发为主营业务的企业。需先通过软件企业评估，享受所得税"两免三减半"及增值税优惠。' }
+    ];
+    var WIZARD_STEP = 1;
+    var WIZARD_SELECTED = null;
+    function openNewProjectWizard() {
+        WIZARD_STEP = 1;
+        WIZARD_SELECTED = null;
+        var mask = document.createElement('div');
+        mask.className = 'modal-mask';
+        mask.id = 'wizardMask';
+        mask.onclick = function(e){ if(e.target.id==='wizardMask') closeModal('wizardMask'); };
+        mask.innerHTML = '<div id="wizardBox" style="width:680px;max-height:88vh;background:white;border-radius:20px;overflow:hidden;box-shadow:0 30px 60px -15px rgba(15,23,42,0.4);display:flex;flex-direction:column;"></div>';
+        document.body.appendChild(mask);
+        renderWizardStep();
+    }
+    function renderWizardStep() {
+        var box = document.getElementById('wizardBox');
+        var steps = ['选择政策类型', '填写项目信息', '确认并生成材料包'];
+        var dotsHtml = '';
+        steps.forEach(function(s, i){
+            var n = i + 1;
+            var cls = n < WIZARD_STEP ? 'bg-green-500 text-white' : (n === WIZARD_STEP ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-slate-200 text-slate-500');
+            var labelCls = n === WIZARD_STEP ? 'text-blue-600 font-black' : (n < WIZARD_STEP ? 'text-green-600 font-bold' : 'text-slate-400');
+            dotsHtml += '<div class="flex items-center '+(i < steps.length-1 ? 'flex-1' : '')+'">'
+                + '<div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold '+cls+'">'+(n < WIZARD_STEP ? '<i class="fa fa-check"></i>' : n)+'</div>'
+                + '<span class="ml-2 text-[11px] '+labelCls+'">'+s+'</span>'
+                + (i < steps.length-1 ? '<div class="flex-1 h-0.5 mx-3 '+(n < WIZARD_STEP ? 'bg-green-400' : 'bg-slate-200')+'"></div>' : '')
+                + '</div>';
+        });
+        var bodyHtml = '';
+        if (WIZARD_STEP === 1) {
+            // 步骤1：选择政策类型
+            bodyHtml = '<div class="px-6 py-4"><div class="text-[11px] text-slate-500 mb-3">请选择要申报的政策类型，系统将根据政策自动生成个性化材料清单：</div><div class="grid grid-cols-2 gap-3 max-h-[420px] overflow-y-auto scroll-thin pr-1">';
+            POLICY_CATALOG.forEach(function(p){
+                var lc = { '国家级':'bg-red-50 text-red-500', '省级':'bg-orange-50 text-orange-500', '市级':'bg-blue-50 text-blue-500' }[p.level];
+                bodyHtml += '<div onclick="selectPolicy(\''+p.code+'\')" class="border-2 rounded-xl p-3 cursor-pointer transition-all hover:shadow-md '+(WIZARD_SELECTED===p.code?'border-blue-500 bg-blue-50/50':'border-slate-100 hover:border-blue-200')+'">'
+                    + '<div class="flex items-center justify-between mb-2">'
+                    +   '<div class="flex items-center space-x-2">'
+                    +     '<span class="w-8 h-8 rounded-lg bg-'+p.color+'-100 text-'+p.color+'-600 flex items-center justify-center"><i class="fa '+p.icon+' text-sm"></i></span>'
+                    +     '<span class="text-xs font-black text-slate-700">'+p.name+'</span>'
+                    +   '</div>'
+                    +   (WIZARD_SELECTED===p.code ? '<i class="fa fa-check-circle text-blue-500"></i>' : '')
+                    + '</div>'
+                    + '<div class="flex items-center space-x-1 mb-2"><span class="px-1.5 py-px rounded text-[9px] font-bold '+lc+'">'+p.level+'</span><span class="px-1.5 py-px rounded text-[9px] font-bold bg-slate-100 text-slate-500">'+p.dept+'</span></div>'
+                    + '<p class="text-[10px] text-slate-500 leading-relaxed mb-2">'+p.desc+'</p>'
+                    + '<div class="flex items-center justify-between text-[10px]"><span class="text-green-600 font-bold">'+p.subsidy+'</span><span class="text-orange-500">截止 '+p.deadline+'</span></div>'
+                    + '</div>';
+            });
+            bodyHtml += '</div></div>';
+        } else if (WIZARD_STEP === 2) {
+            // 步骤2：填写项目信息
+            var p = getPolicyByCode(WIZARD_SELECTED);
+            bodyHtml = '<div class="px-6 py-4 max-h-[420px] overflow-y-auto scroll-thin">'
+                + '<div class="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100">'
+                +   '<div class="flex items-center space-x-2 mb-1"><i class="fa fa-info-circle text-blue-500"></i><span class="text-xs font-bold text-blue-700">已选政策：'+p.name+'</span></div>'
+                +   '<p class="text-[10.5px] text-blue-600 leading-relaxed">'+p.desc+'</p>'
+                + '</div>'
+                + '<div class="space-y-3">'
+                +   '<div><label class="text-[11px] font-bold text-slate-600 block mb-1">项目名称 <span class="text-rose-500">*</span></label><input id="wizName" type="text" value="'+p.name+'" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-400"></div>'
+                +   '<div class="grid grid-cols-2 gap-3">'
+                +     '<div><label class="text-[11px] font-bold text-slate-600 block mb-1">企业名称 <span class="text-rose-500">*</span></label><input id="wizCompany" type="text" value="济南XX新能源科技有限公司" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-400"></div>'
+                +     '<div><label class="text-[11px] font-bold text-slate-600 block mb-1">统一社会信用代码</label><input id="wizCreditCode" type="text" value="913701XXXXXXXXXX" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-400"></div>'
+                +   '</div>'
+                +   '<div class="grid grid-cols-2 gap-3">'
+                +     '<div><label class="text-[11px] font-bold text-slate-600 block mb-1">联系人</label><input id="wizContact" type="text" value="张先生" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-400"></div>'
+                +     '<div><label class="text-[11px] font-bold text-slate-600 block mb-1">联系电话</label><input id="wizPhone" type="text" value="138XXXX1234" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-400"></div>'
+                +   '</div>'
+                +   '<div><label class="text-[11px] font-bold text-slate-600 block mb-1">申报截止日期</label><input id="wizDeadline" type="text" value="'+p.deadline+'" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-400"></div>'
+                +   '<div><label class="text-[11px] font-bold text-slate-600 block mb-1">备注说明</label><textarea id="wizRemark" rows="2" placeholder="可填写特殊需求或注意事项..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-400 resize-none"></textarea></div>'
+                + '</div></div>';
+        } else if (WIZARD_STEP === 3) {
+            // 步骤3：确认并生成
+            var p = getPolicyByCode(WIZARD_SELECTED);
+            var wizName = document.getElementById('wizName') ? document.getElementById('wizName').value : p.name;
+            bodyHtml = '<div class="px-6 py-4 max-h-[420px] overflow-y-auto scroll-thin">'
+                + '<div class="text-center mb-4"><div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3"><i class="fa fa-check text-green-500 text-2xl"></i></div><div class="text-sm font-black text-slate-800">确认创建申报项目</div><div class="text-[11px] text-slate-500 mt-1">系统将自动生成个性化材料清单和进度阶段</div></div>'
+                + '<div class="bg-slate-50 rounded-xl p-4 space-y-2 mb-4">'
+                +   '<div class="flex justify-between text-[11px]"><span class="text-slate-500">项目名称</span><span class="font-bold text-slate-700">'+wizName+'</span></div>'
+                +   '<div class="flex justify-between text-[11px]"><span class="text-slate-500">政策类型</span><span class="font-bold text-slate-700">'+p.name+' ('+p.level+')</span></div>'
+                +   '<div class="flex justify-between text-[11px]"><span class="text-slate-500">主管部门</span><span class="font-bold text-slate-700">'+p.dept+'</span></div>'
+                +   '<div class="flex justify-between text-[11px]"><span class="text-slate-500">截止日期</span><span class="font-bold text-orange-600">'+p.deadline+'</span></div>'
+                +   '<div class="flex justify-between text-[11px]"><span class="text-slate-500">预计扶持</span><span class="font-bold text-green-600">'+p.subsidy+'</span></div>'
+                + '</div>'
+                + '<div class="p-3 bg-blue-50 rounded-xl border border-blue-100">'
+                +   '<div class="flex items-center space-x-1 mb-2"><i class="fa fa-magic text-blue-500"></i><span class="text-[11px] font-black text-blue-700">系统将自动执行以下操作：</span></div>'
+                +   '<div class="space-y-1.5 text-[10.5px] text-blue-600">'
+                +     '<div class="flex items-center"><i class="fa fa-check-circle mr-2"></i>从政策模板库拉取「'+p.name+'」标准化材料清单</div>'
+                +     '<div class="flex items-center"><i class="fa fa-check-circle mr-2"></i>自动生成材料分组与智能填写提示</div>'
+                +     '<div class="flex items-center"><i class="fa fa-check-circle mr-2"></i>创建申报进度阶段时间线与关键节点提醒</div>'
+                +     '<div class="flex items-center"><i class="fa fa-check-circle mr-2"></i>匹配企业材料库中可复用的历史材料</div>'
+                +   '</div>'
+                + '</div></div>';
+        }
+        // 底部按钮
+        var footerHtml = '<div class="px-6 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">'
+            + '<button onclick="closeModal(\'wizardMask\')" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">取消</button>'
+            + '<div class="flex items-center space-x-2">'
+            + (WIZARD_STEP > 1 ? '<button onclick="WIZARD_STEP--;renderWizardStep()" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"><i class="fa fa-arrow-left mr-1"></i>上一步</button>' : '')
+            + (WIZARD_STEP < 3
+                ? '<button onclick="wizardNext()" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-700 '+(WIZARD_STEP===1 && !WIZARD_SELECTED ? 'opacity-50 pointer-events-none' : '')+'">下一步<i class="fa fa-arrow-right ml-1"></i></button>'
+                : '<button onclick="confirmCreateProject()" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:opacity-90 shadow-lg shadow-green-200"><i class="fa fa-check mr-1"></i>确认创建</button>')
+            + '</div></div>';
+        box.innerHTML =
+            '<div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-100 flex items-center justify-between">'
+            + '<div class="flex items-center space-x-2"><i class="fa fa-plus-circle text-blue-600 text-lg"></i><div><div class="text-sm font-black text-slate-800">新建申报项目</div><div class="text-[10.5px] text-slate-500">选择政策类型 → 填写信息 → 自动生成材料包</div></div></div>'
+            + '<button onclick="closeModal(\'wizardMask\')" class="w-8 h-8 rounded-lg bg-white/70 hover:bg-white text-slate-500 flex items-center justify-center"><i class="fa fa-times"></i></button>'
+            + '</div>'
+            + '<div class="px-6 py-3 bg-white border-b border-slate-100"><div class="flex items-center justify-between">' + dotsHtml + '</div></div>'
+            + '<div class="flex-1 overflow-y-auto scroll-thin">' + bodyHtml + '</div>'
+            + footerHtml;
+    }
+    function getPolicyByCode(code) {
+        for (var i=0;i<POLICY_CATALOG.length;i++) if (POLICY_CATALOG[i].code === code) return POLICY_CATALOG[i];
+        return POLICY_CATALOG[0];
+    }
+    function selectPolicy(code) {
+        WIZARD_SELECTED = code;
+        renderWizardStep();
+    }
+    function wizardNext() {
+        if (WIZARD_STEP === 1 && !WIZARD_SELECTED) { showToast('请先选择一个政策类型', 'warn'); return; }
+        WIZARD_STEP++;
+        renderWizardStep();
+    }
+    function confirmCreateProject() {
+        closeModal('wizardMask');
+        var p = getPolicyByCode(WIZARD_SELECTED);
+        var wizName = document.getElementById('wizName') ? document.getElementById('wizName').value : p.name;
+        // 创建进度弹窗
+        var mask = document.createElement('div');
+        mask.className = 'modal-mask';
+        mask.id = 'createMask';
+        mask.innerHTML =
+        '<div style="width:440px;background:white;border-radius:20px;overflow:hidden;box-shadow:0 30px 60px -15px rgba(15,23,42,0.4);">'
+        + '<div class="px-6 py-5 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-100 text-center">'
+        + '  <div class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3"><i class="fa fa-cog fa-spin text-blue-500 text-2xl"></i></div>'
+        + '  <div class="text-sm font-black text-slate-800 mb-1">正在创建申报项目</div>'
+        + '  <div class="text-[11px] text-slate-500">'+wizName+'</div>'
+        + '</div>'
+        + '<div class="px-6 py-5">'
+        + '  <div id="createLog" class="space-y-1.5 text-[10.5px] text-slate-500 max-h-[140px] overflow-y-auto scroll-thin"></div>'
+        + '  <div class="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="createBar" class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-300" style="width:0%"></div></div>'
+        + '</div></div>';
+        document.body.appendChild(mask);
+        var matCount = p.code.indexOf('GXQ')!==-1 ? 12 : (p.code.indexOf('ZJTX')!==-1 ? 6 : 4);
+        var steps = [
+            { text:'创建项目记录...', delay:400 },
+            { text:'拉取「'+p.name+'」政策模板...', delay:500 },
+            { text:'生成材料清单（'+matCount+'项材料）...', delay:500 },
+            { text:'生成申报阶段时间线...', delay:400 },
+            { text:'匹配企业材料库历史材料...', delay:500 },
+            { text:'创建关键节点提醒...', delay:400 },
+            { text:'项目创建完成！', delay:300 }
+        ];
+        var log = document.getElementById('createLog');
+        var bar = document.getElementById('createBar');
+        var idx = 0;
+        (function nextStep(){
+            if (idx >= steps.length) {
+                closeModal('createMask');
+                // 切换到新项目
+                var targetId = null;
+                if (p.code.indexOf('GXQ') !== -1) targetId = 'gqx';
+                else if (p.code.indexOf('ZJTX') !== -1) targetId = 'zjtx';
+                else if (p.code.indexOf('KJXQ') !== -1) targetId = 'kjxq';
+                else if (p.code.indexOf('ZNZZ') !== -1) targetId = 'znzz';
+                if (targetId) switchProject(targetId);
+                updateStats();
+                // 弹出创建成功 + 下一步指引面板
+                showCreateSuccessPanel(wizName, p, matCount, targetId);
+                return;
+            }
+            var s = steps[idx];
+            var line = document.createElement('div');
+            line.innerHTML = '<span class="text-slate-400">['+(idx+1)+'/'+steps.length+']</span> '+s.text;
+            log.appendChild(line);
+            log.scrollTop = log.scrollHeight;
+            bar.style.width = Math.round((idx+1)/steps.length*100) + '%';
+            idx++;
+            setTimeout(nextStep, s.delay);
+        })();
+    }
+    // ========== 11. 创建成功后的下一步指引面板 ==========
+    function showCreateSuccessPanel(wizName, policy, matCount, targetId) {
+        // 统计当前项目的材料状态
+        var done=0, todo=0;
+        if (targetId) {
+            var p = null;
+            for (var i=0;i<PROJECTS.length;i++) if (PROJECTS[i].id===targetId) { p=PROJECTS[i]; break; }
+            if (p) {
+                p.groups.forEach(function(g){ g.items.forEach(function(m){
+                    if (isMatReady(m)) done++;
+                    else todo++;
+                });});
+            }
+        }
+        var totalMat = done + todo;
+        var mask = document.createElement('div');
+        mask.className = 'modal-mask';
+        mask.id = 'successMask';
+        mask.onclick = function(e){ if(e.target.id==='successMask') closeModal('successMask'); };
+        mask.innerHTML =
+        '<div style="width:520px;max-height:88vh;background:white;border-radius:20px;overflow:hidden;box-shadow:0 30px 60px -15px rgba(15,23,42,0.4);display:flex;flex-direction:column;">'
+        // 头部：成功标志
+        + '<div class="px-6 py-5 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-b border-slate-100 text-center relative">'
+        + '  <button onclick="closeModal(\'successMask\')" class="absolute top-3 right-3 w-8 h-8 rounded-lg bg-white/70 hover:bg-white text-slate-500 flex items-center justify-center"><i class="fa fa-times"></i></button>'
+        + '  <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3"><i class="fa fa-check-circle text-green-500 text-3xl"></i></div>'
+        + '  <div class="text-base font-black text-slate-800">项目创建成功！</div>'
+        + '  <div class="text-[12px] text-slate-500 mt-1">'+wizName+'</div>'
+        + '</div>'
+        // 生成结果摘要
+        + '<div class="px-6 py-4 bg-white border-b border-slate-100">'
+        + '  <div class="grid grid-cols-3 gap-3 text-center">'
+        + '    <div class="p-2 bg-blue-50 rounded-lg"><div class="text-lg font-black text-blue-600">'+totalMat+'</div><div class="text-[9px] text-slate-500 mt-0.5">材料总数</div></div>'
+        + '    <div class="p-2 bg-green-50 rounded-lg"><div class="text-lg font-black text-green-600">'+done+'</div><div class="text-[9px] text-slate-500 mt-0.5">已上传</div></div>'
+        + '    <div class="p-2 bg-rose-50 rounded-lg"><div class="text-lg font-black text-rose-500">'+todo+'</div><div class="text-[9px] text-slate-500 mt-0.5">未上传</div></div>'
+        + '  </div>'
+        + '</div>'
+        // 下一步行动指引
+        + '<div class="flex-1 overflow-y-auto scroll-thin px-6 py-4">'
+        + '  <div class="text-[11px] font-black text-slate-700 mb-3 flex items-center"><i class="fa fa-compass text-blue-500 mr-1.5"></i>下一步建议操作</div>'
+        + '  <div class="space-y-2">'
+        // 行动1：填写材料
+        + '    <div onclick="goFillMaterials(\''+targetId+'\')" class="flex items-start space-x-3 p-3 border border-slate-100 rounded-xl cursor-pointer hover:border-blue-200 hover:bg-blue-50/30 transition-all">'
+        + '      <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-xs">1</span>'
+        + '      <div class="flex-1">'
+        + '        <div class="text-xs font-bold text-slate-700">开始填写申报材料</div>'
+        + '        <div class="text-[10.5px] text-slate-500 mt-0.5">还有 <b class="text-rose-500">'+todo+' 项</b>材料缺失，点击每项材料可查看智能提示与样例参考</div>'
+        + '      </div>'
+        + '      <i class="fa fa-arrow-right text-slate-300 mt-1"></i>'
+        + '    </div>'
+        // 行动2：查看进度看板
+        + '    <div onclick="goCheckProgress()" class="flex items-start space-x-3 p-3 border border-slate-100 rounded-xl cursor-pointer hover:border-purple-200 hover:bg-purple-50/30 transition-all">'
+        + '      <span class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center flex-shrink-0 font-bold text-xs">2</span>'
+        + '      <div class="flex-1">'
+        + '        <div class="text-xs font-bold text-slate-700">查看申报进度看板</div>'
+        + '        <div class="text-[10.5px] text-slate-500 mt-0.5">了解当前阶段、截止日期倒计时与关键节点提醒</div>'
+        + '      </div>'
+        + '      <i class="fa fa-arrow-right text-slate-300 mt-1"></i>'
+        + '    </div>'
+        // 行动4：下载模板
+        + '    <div onclick="goDownloadTemplate()" class="flex items-start space-x-3 p-3 border border-slate-100 rounded-xl cursor-pointer hover:border-indigo-200 hover:bg-indigo-50/30 transition-all">'
+        + '      <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0 font-bold text-xs">4</span>'
+        + '      <div class="flex-1">'
+        + '        <div class="text-xs font-bold text-slate-700">下载材料模板包</div>'
+        + '        <div class="text-[10.5px] text-slate-500 mt-0.5">一键下载全部样例模板与填写指南，离线准备材料</div>'
+        + '      </div>'
+        + '      <i class="fa fa-arrow-right text-slate-300 mt-1"></i>'
+        + '    </div>'
+        + '  </div>'
+        // 提示
+        + '  <div class="mt-4 p-3 bg-amber-50 rounded-xl border border-amber-100 text-[10.5px] text-amber-700 leading-relaxed">'
+        + '    <i class="fa fa-lightbulb-o mr-1"></i><b>温馨提示：</b>距申报截止仅剩 <b class="text-rose-500">'+(policy.deadline.match(/(\d+)/)?policy.deadline.match(/(\d+)/)[1]+'天':'请关注截止日期')+'</b>，建议优先准备标注"必填"的核心材料。'
+        + '  </div>'
+        + '</div>'
+        // 底部按钮
+        + '<div class="px-6 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">'
+        + '  <span class="text-[10.5px] text-slate-500"><i class="fa fa-info-circle mr-1"></i>项目已自动切换至左侧材料包视图</span>'
+        + '  <button onclick="closeModal(\'successMask\');showToast(\'已进入材料填写页面\',\'info\')" class="px-4 py-1.5 text-[11px] font-bold rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:opacity-90 shadow-lg shadow-green-200"><i class="fa fa-check mr-1"></i>开始填写材料</button>'
+        + '</div>'
+        + '</div>';
+        document.body.appendChild(mask);
+    }
+    // 下一步行动 - 跳转函数
+    function goFillMaterials(targetId) {
+        closeModal('successMask');
+        if (targetId) switchProject(targetId);
+        // 滚动到材料包区域
+        var el = document.getElementById('materialGroups');
+        if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+        showToast('已定位到材料清单，点击每项材料可查看智能提示', 'info');
+    }
+    function goCheckProgress() {
+        closeModal('successMask');
+        var el = document.getElementById('stageTimeline');
+        if (el) {
+            el.scrollIntoView({ behavior:'smooth', block:'center' });
+            // 闪烁高亮
+            el.style.transition = 'box-shadow 0.3s';
+            el.style.boxShadow = '0 0 0 4px rgba(59,130,246,0.3)';
+            setTimeout(function(){ el.style.boxShadow = ''; }, 1500);
+        }
+        showToast('已定位到进度跟踪看板', 'info');
+    }
+    function goDownloadTemplate() {
+        closeModal('successMask');
+        downloadPkg();
+    }
+
+</script>
+<!-- 材料附件上传用隐藏文件选择框 -->
+<input type="file" id="itemFileInput" class="hidden" style="display:none" onchange="handleItemFile(this)">
+<input type="file" id="groupFileInput" class="hidden" style="display:none" multiple onchange="handleGroupFiles(this)">
+    <script src="libs/js/topbar.js"></script>
+</body>
+</html>

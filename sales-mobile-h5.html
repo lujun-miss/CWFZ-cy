@@ -1,0 +1,2222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>销售赋能中心 H5 · 移动端工作台原型 - 策源易达政策销售平台</title>
+<link href="libs/css/font-awesome.min.css" rel="stylesheet">
+<link href="libs/css/vant.css" rel="stylesheet">
+<style>
+    /* ==========================================================================
+       一、桌面预览外壳（PM 在 PC 壳内查看时使用；真机/移动浏览器访问时会自动切换为全屏）
+       ========================================================================== */
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; }
+    body {
+        margin: 0;
+        display: flex; align-items: center; justify-content: center; gap: 56px;
+        background: radial-gradient(1200px 620px at 18% -10%, #eef2ff 0%, #e2e8f0 48%, #f1f5f9 100%);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        overflow: hidden;
+    }
+    /* 左侧说明面板（仅桌面预览显示） */
+    .intro { width: 300px; color: #334155; }
+    .intro h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -0.3px; color: #0f172a; }
+    .intro .sub { font-size: 12px; color: #64748b; line-height: 1.7; margin: 0 0 18px; }
+    .intro .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; box-shadow: 0 8px 24px rgba(15,23,42,.06); margin-bottom: 14px; }
+    .intro .card h3 { font-size: 12px; margin: 0 0 10px; color: #0f172a; display: flex; align-items: center; gap: 6px; }
+    .intro .card h3 i { color: #4f46e5; }
+    .intro .row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; padding: 5px 0; color: #475569; border-bottom: 1px dashed #e2e8f0; }
+    .intro .row:last-child { border-bottom: 0; }
+    .intro .row code { background: #f1f5f9; color: #4f46e5; padding: 1px 5px; border-radius: 5px; font-size: 10px; }
+    /* 手机壳 */
+    .phone {
+        width: 375px; height: 782px; flex-shrink: 0;
+        background: #0f172a; border-radius: 44px; padding: 10px;
+        box-shadow: 0 30px 60px -20px rgba(15,23,42,.45), 0 0 0 1px rgba(15,23,42,.9) inset;
+        position: relative;
+    }
+    .phone::before { /* 听筒 */
+        content: ''; position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+        width: 108px; height: 22px; background: #0b1220; border-radius: 0 0 14px 14px; z-index: 30;
+    }
+    .phone-screen {
+        width: 100%; height: 100%; background: #f5f6f8; border-radius: 34px; overflow: hidden;
+        position: relative; transform: translateZ(0); /* 关键：为 Vant 弹层提供 fixed 定位容器 */
+    }
+    /* ==========================================================================
+       二、H5 应用样式（模块内布局，全部自定义，避免依赖预编译 Tailwind 类）
+       ========================================================================== */
+    #app { position: relative; display: flex; flex-direction: column; height: 100%; }
+    .status-bar {
+        height: 30px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+        padding: 0 18px; font-size: 11px; font-weight: 700; color: #fff; background: #4f46e5;
+    }
+    .status-bar .right { display: flex; align-items: center; gap: 5px; font-size: 10px; }
+    .app-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; background: #f5f6f8; }
+    .app-body::-webkit-scrollbar { width: 0; }
+    .pad { padding: 12px; }
+    /* 通用卡片 */
+    .card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
+    .card-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 10px; }
+    .card-title i { color: #4f46e5; }
+    .card-title .extra { margin-left: auto; font-size: 11px; font-weight: 500; color: #94a3b8; }
+    .muted { color: #94a3b8; font-size: 11px; }
+    .tag { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
+    .t-blue { background: #eff6ff; color: #1d4ed8; }
+    .t-orange { background: #fff7ed; color: #c2410c; }
+    .t-green { background: #ecfdf5; color: #047857; }
+    .t-gray { background: #f1f5f9; color: #64748b; }
+    .t-red { background: #fef2f2; color: #b91c1c; }
+    .t-purple { background: #f5f3ff; color: #6d28d9; }
+    /* 客户 / 线索列表行 */
+    .list-row { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 12px; margin-bottom: 9px; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
+    .avatar { width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .row-main { flex: 1; min-width: 0; }
+    .row-main .name { font-size: 13.5px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-main .info { font-size: 11px; color: #94a3b8; margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+    .row-right { text-align: right; flex-shrink: 0; }
+    /* 左滑行（自研，兼容鼠标拖拽，桌面预览也可测） */
+    .swipe-row { position: relative; overflow: hidden; border-radius: 14px; margin-bottom: 9px; background: #0ea5e9; }
+    .swipe-content { position: relative; z-index: 2; transition: transform .18s ease; background: #fff; }
+    .swipe-row.dragging .swipe-content { transition: none; }
+    .swipe-actions { position: absolute; inset: 0 0 0 auto; width: 168px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-right: 12px; }
+    .swipe-btn { border: 0; border-radius: 10px; padding: 9px 12px; font-size: 12px; font-weight: 700; color: #fff; background: #4f46e5; white-space: nowrap; }
+    .swipe-btn.ghost { background: #64748b; }
+    .swipe-btn.warn { background: #f59e0b; }
+    /* 时间轴（沟通纪要） */
+    .tl { position: relative; padding-left: 20px; }
+    .tl::before { content: ''; position: absolute; left: 5px; top: 6px; bottom: 6px; width: 2px; background: #e2e8f0; }
+    .tl-item { position: relative; padding-bottom: 14px; }
+    .tl-item:last-child { padding-bottom: 0; }
+    .tl-item::before { content: ''; position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #4f46e5; border: 2px solid #fff; box-shadow: 0 0 0 2px #e0e7ff; }
+    .tl-item .h { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 700; color: #0f172a; }
+    .tl-item .d { font-size: 10px; color: #94a3b8; }
+    .tl-item .c { font-size: 11.5px; color: #475569; line-height: 1.6; margin-top: 4px; }
+    .tl-item .p { font-size: 10.5px; color: #c2410c; margin-top: 4px; }
+    /* 指标卡 */
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .metric { background: #fff; border-radius: 14px; padding: 11px 10px; text-align: center; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
+    .metric .v { font-size: 19px; font-weight: 800; color: #4f46e5; letter-spacing: -0.5px; }
+    .metric .l { font-size: 10.5px; color: #94a3b8; margin-top: 3px; }
+    /* 图表占位 */
+    .bars { display: flex; align-items: flex-end; gap: 10px; height: 120px; padding: 0 4px; }
+    .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
+    .bar { width: 100%; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #6366f1, #a5b4fc); }
+    .bar-label { font-size: 10px; color: #94a3b8; }
+    .donut { width: 108px; height: 108px; border-radius: 50%; flex-shrink: 0; position: relative; }
+    .donut::after { content: ''; position: absolute; inset: 26px; background: #fff; border-radius: 50%; }
+    .legend { flex: 1; font-size: 11px; color: #475569; }
+    .legend .li { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+    .legend .dot { width: 8px; height: 8px; border-radius: 3px; flex-shrink: 0; }
+    /* 底部固定操作条（报告页） */
+    .fixed-bar { flex-shrink: 0; display: flex; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,.96); border-top: 1px solid #e5e7eb; backdrop-filter: blur(8px); }
+    /* 手机内吐司（不依赖 van-toast，避免弹到桌面窗口上） */
+    .app-toast {
+        position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 999;
+        max-width: 260px; background: rgba(15,23,42,.9); color: #fff; font-size: 12.5px; line-height: 1.6;
+        padding: 10px 14px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(15,23,42,.35);
+    }
+    .app-toast .ok { color: #4ade80; }
+    /* 二维码占位 */
+    .qr { width: 132px; height: 132px; margin: 0 auto; border-radius: 10px; border: 1px solid #e2e8f0; padding: 8px; display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; background: #fff; }
+    .qr i { background: #0f172a; border-radius: 1px; }
+    .qr i.off { background: transparent; }
+    /* 红点角标 */
+    .dot-red { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+    /* 空态 */
+    .empty { text-align: center; padding: 34px 0; color: #94a3b8; font-size: 12px; }
+    .empty i { font-size: 26px; display: block; margin-bottom: 8px; color: #cbd5e1; }
+    /* 客户列表：状态筛选 chips */
+    .filter-row { display: flex; gap: 6px; overflow-x: auto; padding: 10px 2px 2px; }
+    .filter-row::-webkit-scrollbar { height: 0; }
+    .filter-chip { flex-shrink: 0; font-size: 11px; font-weight: 700; color: #64748b; background: #fff; border: 1px solid #e2e8f0; border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+    .filter-chip.on { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+    .filter-chip em { font-style: normal; opacity: .7; }
+    /* 报告存档列表行 */
+    .arc-row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px dashed #e2e8f0; cursor: pointer; }
+    .arc-row:last-child { border-bottom: 0; }
+    /* PDF 占位预览 */
+    .pdf-page { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; box-shadow: 0 6px 18px rgba(15,23,42,.08); }
+    .pdf-h { font-size: 13px; font-weight: 800; color: #0f172a; margin: 0 0 8px; text-align: center; }
+    .pdf-sub { font-size: 11px; color: #475569; line-height: 1.7; margin: 0 0 8px; }
+    .pdf-line { font-size: 11px; color: #475569; line-height: 1.8; margin: 0; }
+    /* 小屏（真机 / 窄屏 iframe）直接全屏展示，不显示手机壳与说明面板 */
+    @media (max-width: 900px) {
+        body { display: block; }
+        .intro { display: none; }
+        .phone { width: 100%; height: 100%; border-radius: 0; padding: 0; box-shadow: none; }
+        .phone::before { display: none; }
+        .phone-screen { border-radius: 0; }
+    }
+</style>
+</head>
+<body>
+    <!-- ============ 桌面预览说明面板 ============ -->
+    <div class="intro">
+        <h1>销售赋能中心 · 移动端 H5</h1>
+        <p class="sub">售前 / 售中 / 售后一体化销售工作台。原型内数据与 PC 端同源（客户、线索、报告分享、服务订单均读取同一份本地数据），便于演示时两端数据一致。</p>
+        <div class="card">
+            <h3><i class="fa fa-mobile"></i>底栏 TabBar 架构</h3>
+            <div class="row"><span>客户管理</span><code>/customers</code></div>
+            <div class="row"><span>智能报告</span><code>/report</code></div>
+            <div class="row"><span>分享管理</span><code>/shares</code></div>
+            <div class="row"><span>线索管理</span><code>/leads</code></div>
+            <div class="row"><span>业绩看板</span><code>/dashboard</code></div>
+        </div>
+        <div class="card">
+            <h3><i class="fa fa-link"></i>联动系统占位</h3>
+            <div class="row"><span>企业政策服务平台</span><span>H5 跳转</span></div>
+            <div class="row"><span>AI 智能引擎</span><span>接口调用</span></div>
+            <div class="row"><span>服务交易中心</span><span>订单 API</span></div>
+            <div class="row"><span>运营管理平台</span><span>数据回流</span></div>
+        </div>
+        <div class="card">
+            <h3><i class="fa fa-hand-o-up"></i>可预览的交互</h3>
+            <div class="row"><span>左滑线索</span><span>认领 / 跟进</span></div>
+            <div class="row"><span>AI 生成报告</span><span>骨架屏</span></div>
+            <div class="row"><span>下拉刷新</span><span>分享列表</span></div>
+            <div class="row"><span>动作面板</span><span>已转化 / 无效</span></div>
+        </div>
+    </div>
+
+    <!-- ============ 手机壳 + H5 应用 ============ -->
+    <div class="phone">
+        <div class="phone-screen" id="phoneScreen">
+            <div id="app">
+                <!-- 状态栏 -->
+                <div class="status-bar">
+                    <span>9:41</span>
+                    <span class="right"><i class="fa fa-wifi"></i><i class="fa fa-signal"></i><i class="fa fa-battery-three-quarters"></i></span>
+                </div>
+
+                <!-- 顶部导航（各模块共用，纯标题） -->
+                <van-nav-bar :title="navTitle">
+                    <template #right>
+                        <!-- 消息中心入口：未读角标（客户咨询消息） -->
+                        <span style="position:relative;display:inline-block;padding:4px 6px" @click="openMsgCenter">
+                            <i class="fa fa-commenting-o" style="font-size:17px;color:#4f46e5"></i>
+                            <span v-if="navBadgeCount>0" style="position:absolute;top:-2px;right:-4px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:#ef4444;color:#fff;font-size:9px;font-weight:800;line-height:15px;text-align:center">{{ navBadgeCount>99?'99+':navBadgeCount }}</span>
+                        </span>
+                    </template>
+                </van-nav-bar>
+
+                <div class="app-body">
+
+                    <!-- =========================================================
+                         H5-1 客户管理（首页 / 列表页 + 客户详情）
+                         ========================================================= -->
+                    <div v-show="activeTab === 0">
+                        <div class="pad">
+                            <van-search v-model="customerKeyword" placeholder="搜索企业名称 / 联系人 / 手机号" shape="round"></van-search>
+                            <div style="display:flex;gap:8px;margin-top:8px">
+                                    <van-button size="small" type="primary" round block icon="plus" @click="openNewCustomer">录入企业</van-button>
+                                    <van-button size="small" round block plain type="primary" icon="down" @click="openImportCustomers">导入名单</van-button>
+                                </div>
+                            <!-- 状态筛选：横向滚动 chips，带数量角标，纯文字标签 -->
+                            <div class="filter-row">
+                                <span v-for="f in statusFilters" :key="f" class="filter-chip" :class="{ on: customerStatusFilter === f }"
+                                      @click="customerStatusFilter = f">{{ f }} <em>{{ countByStatus(f) }}</em></span>
+                            </div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 2px 8px">
+                                <span style="font-size:12px;font-weight:700;color:#0f172a">我的客户（{{ filteredCustomers.length }}）</span>
+                                <span class="muted">双轨客户：平台注册 + 销售录入</span>
+                            </div>
+                            <div v-for="c in filteredCustomers" :key="c.id" class="list-row" @click="openCustomer(c)">
+                                <div class="avatar" :style="{ background: c._avatarBg, color: c._avatarColor }">{{ c._initial }}</div>
+                                <div class="row-main">
+                                    <p class="name">{{ c._displayName }}</p>
+                                    <div class="info">
+                                        <i class="fa fa-clock-o"></i><span>{{ c._lastContact }}</span>
+                                        <span v-if="c.industry || c.occupation">· {{ c.industry || c.occupation }}</span>
+                                    </div>
+                                    <div class="info" style="margin-top:3px">
+                                        <span class="tag" :class="c._sourceClass">{{ c._source }}</span>
+                                        <span v-if="!c._hasAccount" class="muted" style="font-size:10px">仅外链触达</span>
+                                    </div>
+                                </div>
+                                <div class="row-right">
+                                    <span class="tag" :class="c._statusClass">{{ c.status || '—' }}</span>
+                                    <p class="muted" style="margin-top:5px"><i class="fa fa-angle-right"></i></p>
+                                </div>
+                            </div>
+                            <div v-if="!filteredCustomers.length" class="empty"><i class="fa fa-inbox"></i>没有匹配的客户</div>
+                        </div>
+                    </div>
+
+                    <!-- =========================================================
+                         H5-2 智能报告（AI 生成页）
+                         ========================================================= -->
+                    <div v-show="activeTab === 1">
+                        <div class="pad">
+                            <!-- ======== Step 0：选择/输入企业 ======== -->
+                            <div class="card">
+                                <div class="card-title"><i class="fa fa-magic"></i>AI 智能报告 · 政策匹配多步骤</div>
+                                <van-field v-model="reportKeyword" placeholder="选一个客户，或输入企业名称" :border="false"
+                                           style="background:#f8fafc;border-radius:10px"></van-field>
+                                <div style="display:flex;gap:8px;margin-top:10px">
+                                    <van-button type="primary" size="small" round block plain icon="search" @click="showPicker = true">选客户</van-button>
+                                    <van-button size="small" round block @click="openConditions()" :disabled="!reportKeyword.trim()" icon="arrow-right">下一步 · 采集条件</van-button>
+                                </div>
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+                                    <span v-for="c in quickCompanies" :key="c" class="tag t-blue" style="cursor:pointer" @click="reportKeyword = c">+ {{ c }}</span>
+                                </div>
+                            </div>
+
+                            <!-- ======== Step 1-3：政策匹配条件采集（三步式） ======== -->
+                            <div class="card" v-if="condOpen">
+                                <van-steps :active="condStep" style="margin-bottom:14px">
+                                    <van-step>自动补齐</van-step>
+                                    <van-step>测评回填</van-step>
+                                    <van-step>销售补充</van-step>
+                                </van-steps>
+
+                                <!-- Step 1：自动补齐（客户档案） -->
+                                <div v-show="condStep === 0">
+                                    <div class="muted" style="font-size:10.5px;margin-bottom:8px"><i class="fa fa-check-circle" style="color:#10b981"></i> 以下条件已从客户档案自动读取，灰底只读</div>
+                                    <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:11.5px;color:#475569;background:#f0fdf4;border-radius:10px;padding:12px">
+                                        <div>所属行业：<b>{{ condAuto.industry || '—' }}</b></div>
+                                        <div>所在地区：<b>{{ condAuto.region || '—' }}</b></div>
+                                        <div>已有资质：<b>{{ (condAuto.quals || []).length ? condAuto.quals.join('、') : '—' }}</b></div>
+                                        <div>年营收：<b>{{ condAuto.revenue ? (condAuto.revenue / 100).toFixed(0) + ' 百万元' : '—' }}</b></div>
+                                        <div>员工人数：<b>{{ condAuto.employees ? condAuto.employees + ' 人' : '—' }}</b></div>
+                                        <div>客户来源：<b>{{ condAuto.source || '—' }}</b></div>
+                                    </div>
+                                </div>
+
+                                <!-- Step 2：测评回填（调科创测评引擎，原型 mock） -->
+                                <div v-show="condStep === 1">
+                                    <div class="muted" style="font-size:10.5px;margin-bottom:8px">
+                                        <i class="fa fa-flask" style="color:#8b5cf6"></i>
+                                        {{ condAssess.__measured ? '科创测评已跑，以下为最新回填数据' : '该客户未跑科创测评，以下条件为销售上次补充（建议点右侧按钮重新测评）' }}
+                                    </div>
+                                    <div v-if="condMeasuring" style="background:#faf5ff;border-radius:10px;padding:14px;margin-bottom:8px;text-align:center">
+                                        <i class="fa fa-spinner fa-spin" style="color:#8b5cf6;font-size:18px"></i>
+                                        <p class="muted" style="margin-top:6px;font-size:11px">正在调用科创测评引擎… 5 秒后回填</p>
+                                    </div>
+                                    <div v-else style="background:#faf5ff;border-radius:10px;padding:12px">
+                                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+                                            <span class="tag t-purple">科创得分 {{ condAssess.score || '—' }} · {{ condAssess.grade || '—' }} 级</span>
+                                            <span class="tag t-orange" v-for="w in (condAssess.weak || [])" :key="w">短板：{{ w }}</span>
+                                        </div>
+                                        <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11.5px;color:#475569">
+                                            <div>研发费用占比：<b>{{ condAssess.rdRatio != null ? condAssess.rdRatio + '%' : '—' }}</b></div>
+                                            <div>核心知识产权：<b>{{ condAssess.ipCount != null ? condAssess.ipCount + ' 项' : '—' }}</b></div>
+                                            <div>科技人员占比：<b>{{ condAssess.sciStaffRatio != null ? condAssess.sciStaffRatio + '%' : '—' }}</b></div>
+                                            <div>高品收入占比：<b>{{ condAssess.hiTechRatio != null ? condAssess.hiTechRatio + '%' : '—' }}</b></div>
+                                        </div>
+                                    </div>
+                                    <van-button size="mini" round plain type="primary" icon="replay" style="margin-top:10px" @click="rerunAssessment()">
+                                        {{ condMeasuring ? '测评中…' : '重新测评（调科创测评引擎）' }}
+                                    </van-button>
+                                </div>
+
+                                <!-- Step 3：销售补充（关键条件） -->
+                                <div v-show="condStep === 2">
+                                    <div class="muted" style="font-size:10.5px;margin-bottom:8px"><i class="fa fa-pencil" style="color:#f59e0b"></i> 销售可在此补充/覆盖关键条件，补充后匹配精度更高</div>
+                                    <van-cell-group inset>
+                                        <van-field v-model="condAssess.loss3yStr" label="近三年是否有亏损" readonly is-link
+                                                   placeholder="请选择" @click="showLossPicker = true"></van-field>
+                                        <van-field v-model="condAssess.rndProjectStr" label="是否有在研项目" readonly is-link
+                                                   placeholder="请选择" @click="showRndPicker = true"></van-field>
+                                        <van-field v-model="condAssess.industryUniStr" label="是否有产学研合作" readonly is-link
+                                                   placeholder="请选择" @click="showUniPicker = true"></van-field>
+                                        <van-field v-model="condAssess.fundPref" label="扶持方式偏好" readonly is-link
+                                                   placeholder="请选择" @click="showFundPicker = true"></van-field>
+                                        <van-field v-model="condAssess.windowPrefStr" label="预期申报窗口期" readonly is-link
+                                                   placeholder="请选择" @click="showWindowPicker = true"></van-field>
+                                    </van-cell-group>
+                                </div>
+
+                                <!-- 步骤底部操作 -->
+                                <div style="display:flex;gap:8px;margin-top:14px">
+                                    <van-button size="small" round block plain :disabled="condStep===0" @click="condStep--">上一步</van-button>
+                                    <van-button v-if="condStep < 2" size="small" round block type="primary" @click="goNextStep">下一步</van-button>
+                                    <van-button v-else size="small" round block type="primary" @click="doMatch()" :loading="reportLoading" loading-text="匹配中…">开始匹配 · 生成报告</van-button>
+                                </div>
+                            </div>
+
+                            <!-- ======== 报告存档（有报告详情在展示时隐藏，避免列表与详情同屏） ======== -->
+                            <div class="card" v-if="archiveReports.length && !condOpen && !report">
+                                <div class="card-title"><i class="fa fa-folder-open-o"></i>报告存档<span class="extra">共 {{ archiveReports.length }} 份 · 点击载入</span></div>
+                                <div v-for="r in archiveReports" :key="r.id" class="arc-row" @click="loadArchive(r)">
+                                    <div class="row-main">
+                                        <p class="name">{{ r.customerName }}</p>
+                                        <div class="info"><span class="tag t-blue">{{ r.type }}</span><span>{{ r.createdAt }}</span></div>
+                                    </div>
+                                    <span class="tag t-gray">{{ (r.policies || []).length }} 项政策</span>
+                                    <i class="fa fa-angle-right muted"></i>
+                                </div>
+                            </div>
+
+                            <!-- AI 加载骨架屏 -->
+                            <div v-if="reportLoading" class="card">
+                                <van-skeleton title :row="6" :loading="true"></van-skeleton>
+                            </div>
+
+                            <!-- 报告草稿 -->
+                            <div v-else-if="report">
+                                <!-- 返回存档列表 -->
+                                <div class="card" style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                                    <span @click="backToArchive()" style="font-size:12px;font-weight:700;color:#4f46e5;cursor:pointer"><i class="fa fa-angle-left"></i> 返回报告存档</span>
+                                    <span style="font-size:10.5px;color:#94a3b8">正在查看报告详情</span>
+                                </div>
+                                <div class="card">
+                                    <div class="card-title">
+                                        <i class="fa fa-file-text-o"></i>{{ report.title }}
+                                        <span class="extra">{{ report.type }} · {{ report.createdAt }}</span>
+                                    </div>
+                                    <div style="font-size:11.5px;color:#475569;line-height:1.7">{{ report.summary }}</div>
+                                </div>
+
+                                <!-- 报告引用的匹配条件（展示给销售/客户看"这份报告用了哪些条件算出来的"） -->
+                                <div class="card" v-if="report.matchConditions">
+                                    <div class="card-title"><i class="fa fa-sliders"></i>本次匹配条件<span class="extra">共 {{ Object.keys(report.matchConditions).length }} 项</span></div>
+                                    <div style="display:flex;flex-wrap:wrap;gap:6px">
+                                        <span v-for="(v, k) in report.matchConditions" :key="k" class="tag"
+                                              :class="String(k).indexOf('自动补齐') === 0 ? 't-green' : (String(k).indexOf('测评回填') === 0 ? 't-purple' : 't-orange')">
+                                            {{ k }}：{{ v }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-title"><i class="fa fa-building-o"></i>企业画像</div>
+                                    <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;font-size:11.5px;color:#475569">
+                                        <div>企业名称：{{ report.company.name }}</div>
+                                        <div>所属行业：{{ report.company.industry }}</div>
+                                        <div>联系人：{{ report.company.contact }}</div>
+                                        <div>所在地区：{{ report.company.region }}</div>
+                                        <div>员工人数：{{ report.company.employees }} 人</div>
+                                        <div>年营收：{{ (report.company.revenue / 100).toFixed(0) }} 百万元</div>
+                                    </div>
+                                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+                                        <span v-for="q in report.company.quals" :key="q" class="tag t-green"><i class="fa fa-check"></i>{{ q }}</span>
+                                        <span class="tag t-orange">科创得分 {{ report.diagnosis.avg }} · {{ report.diagnosis.grade }} 级</span>
+                                    </div>
+                                    <div style="font-size:11px;color:#64748b;line-height:1.7;margin-top:10px">{{ report.profile }}</div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-title"><i class="fa fa-lightbulb-o"></i>政策机会（{{ report.policies.length }}）</div>
+                                    <div v-for="p in report.policies" :key="p.title" style="padding:10px 0;border-bottom:1px dashed #e2e8f0">
+                                        <div style="display:flex;align-items:center;justify-content:space-between">
+                                            <span style="font-size:12.5px;font-weight:700;color:#0f172a">{{ p.title }}</span>
+                                            <span class="tag" :class="p.level === '高匹配' ? 't-green' : (p.level === '不可匹配' ? 't-gray' : 't-orange')"
+                                                  :style="p.level === '不可匹配' ? 'text-decoration:line-through;opacity:.6' : ''">{{ p.level }}</span>
+                                        </div>
+                                        <div v-if="p.reason" style="font-size:10.5px;color:#9ca3af;margin-top:4px">⚠ {{ p.reason }}</div>
+                                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+                                            <span style="font-size:11px;color:#64748b">预期权益：{{ p.benefit }}</span>
+                                            <span style="font-size:11px;color:#4f46e5;font-weight:700">{{ p.level === '不可匹配' ? '不适用' : ('匹配度 ' + p.match + '%') }}</span>
+                                        </div>
+                                        <van-progress v-if="p.level !== '不可匹配'" :percentage="p.match" :show-pivot="false" stroke-width="4" color="#6366f1" style="margin-top:6px"></van-progress>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-title"><i class="fa fa-bullhorn"></i>申报建议</div>
+                                    <p style="font-size:11.5px;color:#475569;line-height:1.8;white-space:pre-line;margin:0">{{ report.advice }}</p>
+                                </div>
+
+                                <!-- 补充数据表单（可重新生成） -->
+                                <div class="card">
+                                    <div class="card-title"><i class="fa fa-sliders"></i>补充条件后重新生成</div>
+                                    <van-button size="small" round block plain @click="condOpen = true; condStep = 2">打开条件采集面板</van-button>
+                                </div>
+
+                                <!-- 联动占位 -->
+                                <div class="card" style="margin-bottom:14px">
+                                    <div class="card-title"><i class="fa fa-exchange"></i>报告联动</div>
+                                    <div style="display:flex;gap:8px">
+                                        <van-button size="small" round block plain @click="todo('推送到客户账号：客户在「会员中心 · 站内消息」查看（占位）')">推送客户</van-button>
+                                        <van-button size="small" round block plain @click="todo('发起服务订单：服务交易中心（占位）')">转服务</van-button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 未生成时的引导态 -->
+                            <div v-else-if="!condOpen" class="card">
+                                <div class="empty" style="padding:26px 0"><i class="fa fa-magic"></i>选择客户 → 采集多维度条件 → AI 匹配政策<br />条件越准，匹配度越高（政策库覆盖 500+ 条）</div>
+                            </div>
+                        </div>
+
+                        <!-- 底部固定操作条 -->
+                        <div class="fixed-bar" v-if="report && !reportLoading">
+                            <van-button size="small" round block type="primary" icon="down" @click="exportPDF()">一键生成 PDF</van-button>
+                            <van-button size="small" round block plain type="primary" icon="share-o" @click="createShare()">生成分享链接</van-button>
+                        </div>
+                    </div>
+
+                    <!-- =========================================================
+                         H5-3 分享管理（追踪页）
+                         ========================================================= -->
+                    <div v-show="activeTab === 2">
+                        <van-tabs v-model:active="shareTab" sticky>
+                            <van-tab title="已分享报告"></van-tab>
+                            <van-tab title="已分享政策"></van-tab>
+                        </van-tabs>
+                        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+                            <div class="pad" style="min-height:420px">
+                                <!-- 发起分享入口：报告 / 政策统一入口（此前政策分享没有入口） -->
+                                <van-button block round type="primary" icon="share-o" style="margin-bottom:10px" @click="openShareCreate">发起分享（报告 / 政策）</van-button>
+                                <div v-if="shareTab === 0">
+                                    <div v-for="s in shareList" :key="s.shareId" class="list-row" @click="openTracking(s)">
+                                        <div class="avatar" style="background:#eef2ff;color:#4f46e5"><i class="fa fa-file-text-o"></i></div>
+                                        <div class="row-main">
+                                            <p class="name">{{ s.toName }} <span v-if="s.converted" class="tag t-green" style="margin-left:2px">已转化</span></p>
+                                            <div class="info">
+                                                <span class="tag" :class="s.channel === '站内推送' ? 't-purple' : 't-blue'">{{ s.channel }}</span>
+                                                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.reportTitle }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="row-right">
+                                            <p style="font-size:12.5px;font-weight:800;color:#0f172a">{{ s.viewCount }} 次</p>
+                                            <p class="muted">累计 {{ s.durText }}</p>
+                                        </div>
+                                    </div>
+                                    <div v-if="!shareList.length" class="empty"><i class="fa fa-share-alt"></i>暂无分享记录，点上方「发起分享」</div>
+                                </div>
+                                <div v-else>
+                                    <div v-for="s in policyShareList" :key="s.shareId" class="list-row" @click="openTracking(s)">
+                                        <div class="avatar" style="background:#f5f3ff;color:#6d28d9"><i class="fa fa-university"></i></div>
+                                        <div class="row-main">
+                                            <p class="name">{{ s.toName }} <span v-if="s.converted" class="tag t-green" style="margin-left:2px">已转化</span></p>
+                                            <div class="info">
+                                                <span class="tag" :class="s.channel === '站内推送' ? 't-purple' : 't-blue'">{{ s.channel }}</span>
+                                                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.reportTitle }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="row-right">
+                                            <p style="font-size:12.5px;font-weight:800;color:#0f172a">{{ s.viewCount }} 次</p>
+                                            <p class="muted">累计 {{ s.durText }}</p>
+                                        </div>
+                                    </div>
+                                    <div v-if="!policyShareList.length" class="empty"><i class="fa fa-university"></i>暂无政策分享，点上方「发起分享」选择政策</div>
+                                </div>
+                            </div>
+                        </van-pull-refresh>
+                    </div>
+
+                    <!-- =========================================================
+                         H5-4 线索管理（跟进页）
+                         ========================================================= -->
+                    <div v-show="activeTab === 3">
+                        <div class="pad">
+                            <div class="card" style="display:flex;align-items:center;gap:10px">
+                                <div class="avatar" style="background:#fef2f2;color:#ef4444"><i class="fa fa-bell-o"></i></div>
+                                <div class="row-main">
+                                    <p class="name">待处理线索 <span class="dot-red">{{ pendingCount }}</span></p>
+                                    <p class="info" style="font-size:11px;color:#94a3b8;margin-top:3px">左滑列表项可「认领 / 跟进」，认领后状态自动变为跟进中</p>
+                                </div>
+                            </div>
+                            <van-tabs v-model:active="leadTab" style="margin-bottom:10px">
+                                <van-tab title="全部"></van-tab>
+                                <van-tab title="待跟进"></van-tab>
+                                <van-tab title="跟进中"></van-tab>
+                                <van-tab title="已转化"></van-tab>
+                            </van-tabs>
+                            <div v-for="l in filteredLeads" :key="l.id" class="swipe-row" :class="{ dragging: l._drag }">
+                                <div class="swipe-actions">
+                                    <button v-if="l.stage === '待跟进'" class="swipe-btn" @click="claimLead(l)">认领 / 跟进</button>
+                                    <button v-else class="swipe-btn warn" @click="openMarkSheet(l)">标记结果</button>
+                                    <button class="swipe-btn ghost" @click="openLeadDetail(l)">详情</button>
+                                </div>
+                                <div class="swipe-content"
+                                     @mousedown="swipeStart($event, l)" @mousemove="swipeMove($event, l)" @mouseup="swipeEnd(l)" @mouseleave="swipeEnd(l)"
+                                     @touchstart.passive="swipeStart($event, l)" @touchmove="swipeMove($event, l)" @touchend="swipeEnd(l)">
+                                    <div class="list-row" style="margin:0;box-shadow:none;border-radius:0" @click="openLeadDetail(l)">
+                                        <div class="avatar" :style="{ background: l._iconBg, color: l._iconColor }"><i class="fa" :class="l._icon"></i></div>
+                                        <div class="row-main">
+                                            <p class="name">{{ l.company }}</p>
+                                            <div class="info"><span class="tag" :class="l._behaviorClass"><i class="fa fa-bolt"></i>{{ l._behavior }}</span></div>
+                                            <div class="info" style="margin-top:4px"><i class="fa fa-clock-o"></i><span>{{ l.pushTime }}</span> · 意向：{{ l.intent }}</div>
+                                        </div>
+                                        <div class="row-right">
+                                            <span class="tag" :class="stageClass(l.stage)">{{ l.stage }}</span>
+                                            <p class="muted" style="margin-top:5px">{{ l.sales || '未分配' }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-if="!filteredLeads.length" class="empty"><i class="fa fa-inbox"></i>该状态下暂无线索</div>
+                            <p class="muted" style="text-align:center;padding:6px 0 16px">线索来源：企业端问答 / 政策雷达 / 科创测评行为自动回流（与 PC 线索管理同一份数据）</p>
+                        </div>
+                    </div>
+
+                    <!-- =========================================================
+                         H5-5 业绩看板（数据页）
+                         ========================================================= -->
+                    <div v-show="activeTab === 4">
+                        <div class="pad">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                                <van-tabs v-model:active="boardScope" style="flex:1" @change="recalcBoard()">
+                                    <van-tab title="个人"></van-tab>
+                                    <van-tab title="团队"></van-tab>
+                                </van-tabs>
+                            </div>
+                            <div style="display:flex;gap:6px;margin-bottom:10px">
+                                <van-button v-for="p in periods" :key="p.key" size="mini" round
+                                            :type="boardPeriod === p.key ? 'primary' : 'default'"
+                                            @click="setPeriod(p.key)">{{ p.label }}</van-button>
+                            </div>
+                            <div class="metrics">
+                                <div class="metric"><p class="v">{{ board.leads }}</p><p class="l">线索数</p></div>
+                                <div class="metric"><p class="v">{{ board.rate }}%</p><p class="l">转化率</p></div>
+                                <div class="metric"><p class="v">{{ board.amountText }}</p><p class="l">成交额</p></div>
+                            </div>
+                            <div class="card" style="margin-top:10px">
+                                <div class="card-title"><i class="fa fa-flag-checkered"></i>目标差距<span class="extra">{{ board.periodLabel }}</span></div>
+                                <div style="display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:#475569;margin-bottom:8px">
+                                    <span>已达成 {{ board.amountText }} / 目标 {{ board.targetText }}</span>
+                                    <span style="color:#4f46e5;font-weight:700">还差 {{ board.gapText }}</span>
+                                </div>
+                                <van-progress :percentage="board.percent" :show-pivot="false" stroke-width="8" color="#6366f1"></van-progress>
+                            </div>
+                            <div class="card" @click="todo('调整跟进策略：建议优先跟进「频繁查看政策」且 7 天内未认领的高意向线索（占位）')">
+                                <div class="card-title"><i class="fa fa-bar-chart"></i>业绩构成（按线索来源）<span class="extra">点击图表获取建议</span></div>
+                                <div class="bars">
+                                    <div v-for="b in board.bars" :key="b.label" class="bar-wrap">
+                                        <span style="font-size:10px;color:#4f46e5;font-weight:700">{{ b.value }}</span>
+                                        <div class="bar" :style="{ height: b.height + '%' }"></div>
+                                        <span class="bar-label">{{ b.label }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card" @click="todo('调整跟进策略：已转化线索集中在政策查询渠道，建议加大政策雷达推送频次（占位）')">
+                                <div class="card-title"><i class="fa fa-pie-chart"></i>线索阶段分布<span class="extra">点击图表获取建议</span></div>
+                                <div style="display:flex;align-items:center;gap:14px">
+                                    <div class="donut" :style="{ background: board.donut }"></div>
+                                    <div class="legend">
+                                        <div v-for="d in board.stageDist" :key="d.label" class="li">
+                                            <span class="dot" :style="{ background: d.color }"></span>{{ d.label }}：{{ d.value }}（{{ d.percent }}%）
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="muted" style="text-align:center;padding:4px 0 16px">口径说明：线索与转化取 PC 端线索数据，成交额取服务商城已支付订单</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============ 底栏 TabBar（Vant，非 fixed，贴合手机壳内底部） ============ -->
+                <van-tabbar v-model="activeTab" :fixed="false" :safe-area-inset-bottom="false" active-color="#4f46e5" inactive-color="#94a3b8">
+                    <van-tabbar-item icon="friends-o">客户</van-tabbar-item>
+                    <van-tabbar-item icon="records-o">报告</van-tabbar-item>
+                    <van-tabbar-item icon="share-o">分享</van-tabbar-item>
+                    <van-tabbar-item icon="bulb-o">
+                        线索
+                        <template v-slot:icon>
+                            <i class="fa fa-lightbulb-o"></i>
+                        </template>
+                    </van-tabbar-item>
+                    <van-tabbar-item icon="bar-chart-o">业绩</van-tabbar-item>
+                </van-tabbar>
+
+                <!-- ============ 客户详情（底部弹层） ============ -->
+                <van-popup v-model:show="showCustomer" position="bottom" round :style="{ height: '92%' }" teleport="#phoneScreen">
+                    <div class="app-body" v-if="customer" style="height:100%">
+                        <div style="padding:14px 12px 0;display:flex;align-items:center;gap:10px">
+                            <div class="avatar" :style="{ background: customer._avatarBg, color: customer._avatarColor }">{{ customer._initial }}</div>
+                            <div class="row-main">
+                                <p class="name" style="font-size:15px">{{ customer._displayName }}</p>
+                                <div class="info"><span class="tag" :class="customer._statusClass">{{ customer.status }}</span><span>注册 {{ customer.registerTime }}</span></div>
+                            </div>
+                            <i class="fa fa-times" style="color:#94a3b8;padding:6px" @click="showCustomer = false"></i>
+                        </div>
+                        <div class="pad">
+                            <!-- 基本信息 -->
+                            <div class="card">
+                                <div class="card-title"><i class="fa fa-id-card-o"></i>{{ customer.type === 'personal' ? '个人基本信息' : '企业基本信息' }}</div>
+                                <div v-if="customer.type === 'personal'" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;font-size:11.5px;color:#475569">
+                                    <div>姓名：{{ customer._displayName }}</div>
+                                    <div>职业：{{ customer.occupation || '—' }}</div>
+                                    <div>手机号：{{ customer.phone || '—' }}</div>
+                                    <div>地区：{{ customer.region || '—' }}</div>
+                                    <div style="grid-column:span 2">注册时间：{{ customer.registerTime || (customer._hasAccount ? '—' : '未注册平台') }}</div>
+                                    <div style="grid-column:span 2">策能值余额：{{ customer.credits != null ? customer.credits : '—' }}</div>
+                                    <div>客户来源：{{ customer._source }}</div>
+                                    <div>触达方式：{{ customer._hasAccount ? '站内推送 + 外链' : '仅外链（微信/短信）' }}</div>
+                                </div>
+                                <div v-else style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;font-size:11.5px;color:#475569">
+                                    <div>名称：{{ customer._displayName }}</div>
+                                    <div>联系人：{{ customer.contact || customer.realName || '—' }}</div>
+                                    <div>手机号：{{ customer.phone || '—' }}</div>
+                                    <div>地区：{{ customer.region || '—' }}</div>
+                                    <div>员工人数：{{ customer.employees ? customer.employees + ' 人' : '—' }}</div>
+                                    <div>年营收：{{ customer.revenue ? (customer.revenue / 100).toFixed(0) + ' 百万元' : '—' }}</div>
+                                    <div style="grid-column:span 2">统一社会信用代码：{{ customer.code || '—' }}</div>
+                                    <div style="grid-column:span 2">已有资质：{{ (customer.quals && customer.quals.length) ? customer.quals.join('、') : '—' }}</div>
+                                    <div style="grid-column:span 2">策能值余额：{{ customer.credits != null ? customer.credits : '—' }}</div>
+                                    <div>客户来源：{{ customer._source }}</div>
+                                    <div>触达方式：{{ customer._hasAccount ? '站内推送 + 外链' : '仅外链（微信/短信）' }}</div>
+                                </div>
+                                <div style="display:flex;gap:8px;margin-top:10px">
+                                    <van-button size="mini" round plain @click="todo('拨打 ' + customer.phone + '（占位：对接云呼叫中心）')">打电话</van-button>
+                                    <van-button size="mini" round plain @click="todo('发送资料（占位：企业政策服务平台推送）')">发资料</van-button>
+                                    <van-button size="mini" round plain @click="todo('创建服务订单（占位：服务交易中心 API）')">转服务</van-button>
+                                </div>
+                            </div>
+                            <!-- 政策匹配与诊断报告 -->
+                            <div class="card">
+                                <div class="card-title"><i class="fa fa-file-text-o"></i>政策匹配与诊断报告<span class="extra">共 {{ customer._reports.length }} 份</span></div>
+                                <div v-for="r in customer._reports" :key="r.id" style="border:1px solid #e2e8f0;border-radius:12px;padding:10px;margin-bottom:8px">
+                                    <div style="display:flex;align-items:center;justify-content:space-between">
+                                        <span style="font-size:12.5px;font-weight:700;color:#0f172a">{{ r.title }}</span>
+                                        <span class="tag t-blue">{{ r.type }}</span>
+                                    </div>
+                                    <p style="font-size:11px;color:#64748b;line-height:1.6;margin:6px 0 0">{{ r.summary }}</p>
+
+                                    <!-- 科创得分与短板 -->
+                                    <div v-if="r.diagnosis" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+                                        <span class="tag t-purple">科创得分 {{ r.diagnosis.avg }} · {{ r.diagnosis.grade }} 级</span>
+                                        <span class="tag t-orange" v-for="w in (r.diagnosis.weak || [])" :key="w">短板：{{ w }}</span>
+                                    </div>
+
+                                    <!-- 本次匹配条件（自动补齐 / 测评回填 / 销售补充 三类来源） -->
+                                    <div v-if="r.matchConditions" style="margin-top:8px">
+                                        <p style="font-size:10.5px;color:#94a3b8;margin:0 0 4px">
+                                            <i class="fa fa-sliders"></i>本次匹配条件（{{ Object.keys(r.matchConditions).length }} 项）
+                                        </p>
+                                        <div style="display:flex;flex-wrap:wrap;gap:6px">
+                                            <span v-for="(v, k) in r.matchConditions" :key="k" class="tag"
+                                                  :class="String(k).indexOf('自动补齐') === 0 ? 't-green' : (String(k).indexOf('测评回填') === 0 ? 't-purple' : 't-orange')">{{ k }}：{{ v }}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- 政策机会（高匹配 / 中匹配 / 不可匹配） -->
+                                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+                                        <span v-for="p in r.policies" :key="p.title" class="tag"
+                                              :class="p.level === '高匹配' ? 't-green' : (p.level === '不可匹配' ? 't-gray' : 't-orange')"
+                                              :style="p.level === '不可匹配' ? 'text-decoration:line-through;opacity:.65' : ''">{{ p.title }} · {{ p.level === '不可匹配' ? '不适用' : p.match + '%' }}</span>
+                                    </div>
+                                    <p v-if="unmatchedText(r)" style="font-size:10.5px;color:#94a3b8;margin:6px 0 0;line-height:1.6">
+                                        <i class="fa fa-info-circle"></i>{{ unmatchedText(r) }}
+                                    </p>
+                                </div>
+                                <div v-if="!customer._reports.length" style="text-align:center;padding:8px 0 4px">
+                                    <p class="muted" style="margin:0 0 8px">暂无报告</p>
+                                    <van-button size="mini" round plain type="primary" icon="magic" @click="goGenerateReport(customer)">为该{{ customer.type === 'personal' ? '用户' : '企业' }}生成报告</van-button>
+                                </div>
+                                <div v-if="customer._reports.length" style="margin-top:2px;display:flex;gap:8px">
+                                    <van-button size="mini" round plain type="primary" style="flex:1" icon="replay" @click="reMatch(customer)">按最新条件重新匹配</van-button>
+                                    <van-button size="mini" round plain type="primary" style="flex:1" icon="share-o" @click="shareReportFromCard(customer._reports[0], customer)">分享报告</van-button>
+                                </div>
+                            </div>
+                            <!-- 沟通纪要时间轴 -->
+                            <div class="card">
+                                <div class="card-title"><i class="fa fa-comments-o"></i>沟通纪要<span class="extra">共 {{ customer._followups.length }} 条</span></div>
+                                <div class="tl" v-if="customer._followups.length">
+                                    <div v-for="(f, i) in customer._followups" :key="i" class="tl-item">
+                                        <div class="h"><span>{{ f.type }}</span><span class="d">{{ f.date }}</span></div>
+                                        <p class="c">{{ f.content }}</p>
+                                        <p class="p" v-if="f.plan"><i class="fa fa-calendar-check-o"></i> 计划：{{ f.plan }}</p>
+                                    </div>
+                                </div>
+                                <div v-else class="muted">暂无沟通纪要</div>
+                            </div>
+                            <!-- 跟进计划输入 -->
+                            <div class="card" style="margin-bottom:16px">
+                                <div class="card-title"><i class="fa fa-pencil-square-o"></i>新增跟进计划</div>
+                                <van-field v-model="planForm.content" type="textarea" rows="2" autosize placeholder="记录本次沟通要点…" style="background:#f8fafc;border-radius:10px"></van-field>
+                                <van-field v-model="planForm.plan" placeholder="下一步计划，如：本周五前发送高企申报材料清单" style="background:#f8fafc;border-radius:10px;margin-top:8px"></van-field>
+                                <div style="display:flex;gap:8px;margin-top:10px">
+                                    <van-button size="small" round block type="primary" @click="submitPlan()">保存跟进</van-button>
+                                    <van-button size="small" round block plain @click="todo('安排日程（占位：写入销售日历 / 企业微信日程）')">安排日程</van-button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </van-popup>
+
+                <!-- ============ 分享追踪弹窗（二维码 + 追踪链接） ============ -->
+                <van-popup v-model:show="showTracking" position="bottom" round teleport="#phoneScreen">
+                    <div style="padding:16px 14px 20px" v-if="tracking">
+                        <p style="text-align:center;font-size:14px;font-weight:800;color:#0f172a;margin:0 0 4px">追踪二维码 / 链接</p>
+                        <p class="muted" style="text-align:center;margin:0 0 14px">{{ tracking.reportTitle }} → {{ tracking.toName }} · {{ tracking.channel }}</p>
+                        <div class="qr">
+                            <i v-for="(cell, i) in qrCells" :key="i" :class="{ off: cell === 0 }"></i>
+                        </div>
+                        <p class="muted" style="text-align:center;margin:10px 0 14px">二维码为原型占位，对接时替换为真实二维码图</p>
+                        <div style="background:#f8fafc;border-radius:10px;padding:10px;font-size:11px;color:#475569;word-break:break-all">{{ tracking.url }}</div>
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;text-align:center">
+                            <div><p style="font-size:16px;font-weight:800;color:#4f46e5;margin:0">{{ tracking.viewCount }}</p><p class="muted" style="margin:2px 0 0">打开次数</p></div>
+                            <div><p style="font-size:16px;font-weight:800;color:#4f46e5;margin:0">{{ tracking.durText }}</p><p class="muted" style="margin:2px 0 0">浏览时长</p></div>
+                            <div><p style="font-size:16px;font-weight:800;color:#4f46e5;margin:0">{{ tracking.lastAt }}</p><p class="muted" style="margin:2px 0 0">最后浏览</p></div>
+                        </div>
+                        <div style="display:flex;gap:8px;margin-top:14px">
+                            <van-button size="small" round block type="primary" @click="copyLink(tracking.url)">复制追踪链接</van-button>
+                            <van-button size="small" round block plain type="primary" @click="openPreview(tracking)">打开客户视角</van-button>
+                        </div>
+                        <div style="margin-top:8px">
+                            <van-button size="small" round block plain @click="todo('重新生成链接（占位：旧链接将失效）')">刷新链接</van-button>
+                        </div>
+                    </div>
+                </van-popup>
+
+                <!-- ============ 线索详情弹窗 ============ -->
+                <van-popup v-model:show="showLead" position="bottom" round :style="{ height: '70%' }" teleport="#phoneScreen">
+                    <div class="app-body" v-if="lead">
+                        <div style="padding:14px 14px 0">
+                            <p style="font-size:15px;font-weight:800;color:#0f172a;margin:0">{{ lead.company }}</p>
+                            <p class="muted" style="margin:4px 0 0">{{ lead.pushTime }} · 来源 {{ lead.source }} · 意向 {{ lead.intent }}</p>
+                        </div>
+                        <div class="pad">
+                            <div class="card">
+                                <div class="card-title"><i class="fa fa-bolt"></i>行为轨迹</div>
+                                <div class="tl">
+                                    <div v-for="(t, i) in lead._track" :key="i" class="tl-item">
+                                        <div class="h"><span>{{ t.action }}</span><span class="d">{{ t.at }}</span></div>
+                                        <p class="c">{{ t.detail }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-title"><i class="fa fa-user-o"></i>归属与状态</div>
+                                <div style="font-size:11.5px;color:#475569">当前状态：<span class="tag" :class="stageClass(lead.stage)">{{ lead.stage }}</span> 归属销售：{{ lead.sales || '未分配' }}</div>
+                            </div>
+                            <div style="display:flex;gap:8px">
+                                <van-button size="small" round block type="primary" @click="claimLead(lead); showLead = false">认领并跟进</van-button>
+                                <van-button size="small" round block plain @click="openMarkSheet(lead)">标记结果</van-button>
+                            </div>
+                        </div>
+                    </div>
+                </van-popup>
+
+                <!-- ============ 线索结果动作面板 ============ -->
+                <van-action-sheet v-model:show="showMarkSheet" :actions="markActions" cancel-text="取消"
+                                  description="标记后将同步到 PC 线索管理" teleport="#phoneScreen"
+                                  @select="onMarkSelect"></van-action-sheet>
+
+                <!-- ============ 企业选择器（智能报告：选客户） ============ -->
+                <van-popup v-model:show="showPicker" position="bottom" round :style="{ height: '72%' }" teleport="#phoneScreen">
+                    <div class="app-body" style="height:100%">
+                        <div style="padding:14px 14px 0;display:flex;align-items:center;justify-content:space-between">
+                            <p style="font-size:14px;font-weight:800;color:#0f172a;margin:0">选择企业 / 用户</p>
+                            <i class="fa fa-times" style="color:#94a3b8;padding:6px" @click="showPicker = false"></i>
+                        </div>
+                        <div class="pad">
+                            <van-search v-model="pickerKeyword" placeholder="搜索企业名称 / 联系人" shape="round"></van-search>
+                            <div v-for="c in pickerList" :key="c.id" class="list-row" @click="pickCustomer(c)">
+                                <div class="avatar" :style="{ background: c._avatarBg, color: c._avatarColor }">{{ c._initial }}</div>
+                                <div class="row-main">
+                                    <p class="name">{{ c._displayName }}</p>
+                                    <div class="info"><span class="tag" :class="c._statusClass">{{ c.status }}</span><span>{{ c.industry || c.occupation || '—' }}</span></div>
+                                </div>
+                                <i class="fa fa-check-circle" style="color:#cbd5e1"></i>
+                            </div>
+                            <div v-if="!pickerList.length" class="empty"><i class="fa fa-inbox"></i>没有匹配的企业 / 用户</div>
+                        </div>
+                    </div>
+                </van-popup>
+
+                <!-- ============ PDF 预览（智能报告：一键生成 PDF） ============ -->
+                <van-popup v-model:show="showPdf" position="bottom" round teleport="#phoneScreen">
+                    <div style="padding:16px 14px 20px" v-if="report">
+                        <p style="text-align:center;font-size:14px;font-weight:800;color:#0f172a;margin:0 0 4px">PDF 预览</p>
+                        <p class="muted" style="text-align:center;margin:0 0 12px">{{ report.title }} · {{ report.createdAt }}</p>
+                        <div class="pdf-page">
+                            <p class="pdf-h">{{ report.title }}</p>
+                            <p class="pdf-sub">{{ report.summary }}</p>
+                            <p class="pdf-line" v-for="p in report.policies" :key="p.title">· {{ p.title }}（{{ p.level }} · 匹配 {{ p.match }}%）{{ p.benefit }}</p>
+                            <p class="pdf-line" style="margin-top:8px;white-space:pre-line">{{ report.advice }}</p>
+                        </div>
+                        <p class="muted" style="text-align:center;margin:10px 0 14px">PDF 为原型占位预览，对接后端渲染服务后替换为真实文件</p>
+                        <div style="display:flex;gap:8px">
+                            <van-button size="small" round block type="primary" icon="down" @click="tip('已开始下载 PDF（占位）')">下载 PDF</van-button>
+                            <van-button size="small" round block plain @click="showPdf = false">关闭</van-button>
+                        </div>
+                    </div>
+                </van-popup>
+
+                <!-- ============ 分享通道选择（站内推送 / 外链） ============ -->
+                <van-action-sheet v-model:show="showChannelSheet" :actions="channelActions" cancel-text="取消"
+                                  description="选择分享通道：平台客户可站内推送，外部客户走外链（微信发送，免登录打开）"
+                                  @select="onChannelSelect"></van-action-sheet>
+
+                <!-- ============ 发起分享（报告 / 政策 → 选客户 → 选通道） ============ -->
+                <van-popup v-model:show="showShareCreate" position="bottom" round :style="{ height: '80%' }" teleport="#phoneScreen">
+                    <div class="app-body" style="height:100%">
+                        <div style="padding:14px 14px 0;display:flex;align-items:center;justify-content:space-between">
+                            <p style="font-size:14px;font-weight:800;color:#0f172a;margin:0">
+                                <i v-if="scStep > 1" class="fa fa-chevron-left" style="color:#64748b;padding:4px 8px 4px 0" @click="scStep--"></i>
+                                发起分享 · {{ scStep === 1 ? '选择内容' : (scStep === 2 ? '选择客户' : '选择通道') }}
+                            </p>
+                            <i class="fa fa-times" style="color:#94a3b8;padding:6px" @click="showShareCreate = false"></i>
+                        </div>
+                        <div class="pad">
+                            <!-- 步骤 1：选内容（报告存档 / 政策库） -->
+                            <template v-if="scStep === 1">
+                                <div style="display:flex;gap:8px;margin-bottom:10px">
+                                    <van-button size="small" round :type="scType === 'report' ? 'primary' : 'default'" style="flex:1" icon="records-o" @click="scType = 'report'; scKeyword = ''">分享报告</van-button>
+                                    <van-button size="small" round :type="scType === 'policy' ? 'primary' : 'default'" style="flex:1" icon="description" @click="scType = 'policy'; scKeyword = ''">分享政策</van-button>
+                                </div>
+                                <van-search v-model="scKeyword" :placeholder="scType === 'report' ? '搜索报告标题 / 客户' : '搜索政策名称 / 部门'" shape="round"></van-search>
+                                <template v-if="scType === 'report'">
+                                    <div v-for="r in scContentList" :key="r.id" class="list-row" @click="scPickContent(r)">
+                                        <div class="avatar" style="background:#eef2ff;color:#4f46e5"><i class="fa fa-file-text-o"></i></div>
+                                        <div class="row-main">
+                                            <p class="name">{{ r.title }}</p>
+                                            <div class="info"><span class="tag t-blue">{{ r.type }}</span><span>{{ r.customerName }}</span><span>{{ r.createdAt }}</span></div>
+                                        </div>
+                                        <i class="fa fa-angle-right" style="color:#cbd5e1"></i>
+                                    </div>
+                                    <div v-if="!scContentList.length" class="empty"><i class="fa fa-inbox"></i>暂无报告存档，先到「智能报告」生成</div>
+                                </template>
+                                <template v-else>
+                                    <div v-for="p in scContentList" :key="p.id" class="list-row" @click="scPickContent(p)">
+                                        <div class="avatar" style="background:#f5f3ff;color:#6d28d9"><i class="fa fa-university"></i></div>
+                                        <div class="row-main">
+                                            <p class="name">{{ p.name }}</p>
+                                            <div class="info"><span class="tag t-purple">{{ p.level }}</span><span>{{ p.dept }}</span></div>
+                                        </div>
+                                        <i class="fa fa-angle-right" style="color:#cbd5e1"></i>
+                                    </div>
+                                    <div v-if="!scContentList.length" class="empty"><i class="fa fa-inbox"></i>政策库无匹配结果</div>
+                                </template>
+                            </template>
+
+                            <!-- 步骤 2：选客户 -->
+                            <template v-else-if="scStep === 2">
+                                <div class="card" style="padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+                                    <i class="fa" :class="scType === 'report' ? 'fa-file-text-o' : 'fa-university'" :style="{ color: scType === 'report' ? '#4f46e5' : '#6d28d9' }"></i>
+                                    <span style="font-size:12px;font-weight:700;color:#334155;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ scType === 'report' ? scContent.title : scContent.name }}</span>
+                                </div>
+                                <van-search v-model="scKeyword" placeholder="搜索客户名称 / 联系人" shape="round"></van-search>
+                                <div v-for="c in scCustomerList" :key="c.id" class="list-row" @click="scPickCustomer(c)">
+                                    <div class="avatar" :style="{ background: c._avatarBg, color: c._avatarColor }">{{ c._initial }}</div>
+                                    <div class="row-main">
+                                        <p class="name">{{ c._displayName }}</p>
+                                        <div class="info">
+                                            <span class="tag" :class="c._hasAccount ? 't-blue' : 't-orange'">{{ c._hasAccount ? '平台客户' : '外部客户' }}</span>
+                                            <span>{{ c.contact || '—' }}</span>
+                                        </div>
+                                    </div>
+                                    <i class="fa fa-angle-right" style="color:#cbd5e1"></i>
+                                </div>
+                                <div v-if="!scCustomerList.length" class="empty"><i class="fa fa-inbox"></i>没有匹配的客户</div>
+                            </template>
+
+                            <!-- 步骤 3：选通道 -->
+                            <template v-else>
+                                <div class="card" style="padding:12px;margin-bottom:12px">
+                                    <p style="font-size:12px;font-weight:800;color:#0f172a;margin:0 0 6px">分享确认</p>
+                                    <p class="muted" style="margin:0;line-height:1.7">
+                                        内容：{{ scType === 'report' ? scContent.title : scContent.name }}<br>
+                                        对象：{{ scCustomer._displayName }}（{{ scCustomer.contact || '—' }}）
+                                        <span class="tag" :class="scCustomer._hasAccount ? 't-blue' : 't-orange'" style="margin-left:4px">{{ scCustomer._hasAccount ? '平台客户' : '外部客户' }}</span>
+                                    </p>
+                                </div>
+                                <van-button v-if="scCustomer._hasAccount" block round type="primary" icon="send-o" style="margin-bottom:10px" @click="scConfirm('站内推送')">推送到客户账号<span style="font-size:10px;opacity:.75;margin-left:6px">客户在企业政策服务平台查看</span></van-button>
+                                <van-button block round :type="scCustomer._hasAccount ? 'default' : 'primary'" icon="link-o" @click="scConfirm('外链')">生成外链 / 二维码<span style="font-size:10px;opacity:.75;margin-left:6px">微信发送，免登录打开，浏览可追踪</span></van-button>
+                                <p v-if="!scCustomer._hasAccount" class="muted" style="text-align:center;margin-top:10px">外部客户未注册平台，仅支持外链分享；客户在落地页注册后自动标记「已转化」</p>
+                            </template>
+                        </div>
+                    </div>
+                </van-popup>
+
+                <!-- ============ 录入企业（完整版） ============ -->
+                <van-popup v-model:show="showNewCustomer" position="bottom" round :style="{ height: '92%' }" teleport="#phoneScreen">
+                    <div class="app-body" style="height:100%;display:flex;flex-direction:column">
+                        <div style="padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between">
+                            <p style="font-size:14px;font-weight:800;color:#0f172a;margin:0">录入企业</p>
+                            <p class="muted" style="margin:0;font-size:10.5px">来源：销售录入（无平台账号，仅外链触达）</p>
+                        </div>
+                        <div class="app-body" style="padding:0 12px 12px">
+                            <van-cell-group inset>
+                                <van-field v-model="newForm.name" label="企业名称" placeholder="如：瑞丰食品科技有限公司" required></van-field>
+                                <van-field v-model="newForm.code" label="信用代码" placeholder="18 位统一社会信用代码"></van-field>
+                                <van-field v-model="newForm.contact" label="联系人" placeholder="如：陈总"></van-field>
+                                <van-field v-model="newForm.phone" label="手机号" placeholder="11 位手机号" maxlength="11"></van-field>
+                                <van-field v-model="newForm.industry" label="所属行业" placeholder="如：食品加工 / 软件信息"></van-field>
+                                <van-field v-model="newForm.region" label="所在地区" placeholder="如：浙江省 杭州市 西湖区"></van-field>
+                                <van-field v-model="newForm.employees" label="员工人数" type="number" placeholder="单位：人"></van-field>
+                                <van-field v-model="newForm.revenue" label="年营收" type="number" placeholder="单位：万元"></van-field>
+                                <van-field v-model="newForm.quals" label="已有资质" placeholder="多个用顿号隔开，如：国家高新、专精特新"></van-field>
+                                <van-field v-model="newForm.status" is-link readonly label="意向状态" placeholder="请选择"
+                                           @click="showNewStatus = true">
+                                    <template #input>
+                                        <span v-if="!newForm.status" class="muted">请选择</span>
+                                        <span v-else>{{ newForm.status }}</span>
+                                    </template>
+                                </van-field>
+                            </van-cell-group>
+                            <p class="muted" style="font-size:10.5px;text-align:center;padding:10px 12px 0">录入后该客户默认来源为「销售录入」，需通过外链（微信）触达并引导注册成为平台客户</p>
+                        </div>
+                        <div style="padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;background:rgba(255,255,255,.96);border-top:1px solid #e5e7eb">
+                            <van-button size="small" round block plain @click="showNewCustomer = false">取消</van-button>
+                            <van-button size="small" round block type="primary" @click="submitNewCustomer">保存并录入</van-button>
+                        </div>
+                    </div>
+                </van-popup>
+                <!-- 意向状态选择 -->
+                <van-action-sheet v-model:show="showNewStatus" :actions="NEW_STATUS_ACTIONS" cancel-text="取消"
+                                  @select="onNewStatusSelect"></van-action-sheet>
+
+                <!-- ============ 政策匹配条件采集 · 销售补充 选择器 ============ -->
+                <van-action-sheet v-model:show="showLossPicker" :actions="BOOL_ACTIONS" cancel-text="取消"
+                                  description="近三年是否有亏损" @select="onLossSelect"></van-action-sheet>
+                <van-action-sheet v-model:show="showRndPicker" :actions="BOOL_ACTIONS" cancel-text="取消"
+                                  description="是否有在研项目" @select="onRndSelect"></van-action-sheet>
+                <van-action-sheet v-model:show="showUniPicker" :actions="BOOL_ACTIONS" cancel-text="取消"
+                                  description="是否有产学研合作" @select="onUniSelect"></van-action-sheet>
+                <van-action-sheet v-model:show="showFundPicker" :actions="FUND_ACTIONS" cancel-text="取消"
+                                  description="扶持方式偏好" @select="onFundSelect"></van-action-sheet>
+                <van-action-sheet v-model:show="showWindowPicker" :actions="WINDOW_ACTIONS" cancel-text="取消"
+                                  description="预期申报窗口期" @select="onWindowSelect"></van-action-sheet>
+
+                <!-- ============ 消息中心（客户在线咨询 · 会话列表 / 会话聊天 两视图） ============ -->
+                <van-popup v-model:show="showMsgCenter" position="bottom" round :style="{ height: '88%' }" teleport="#phoneScreen">
+                    <div style="height:100%;display:flex;flex-direction:column">
+                        <!-- 头部：列表视图 / 聊天视图 切换 -->
+                        <div style="padding:14px 14px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f1f5f9;flex-shrink:0">
+                            <van-icon v-if="msgView==='chat'" name="arrow-left" size="18" color="#64748b" @click="msgView='list'"></van-icon>
+                            <div style="flex:1;min-width:0">
+                                <p style="font-size:14px;font-weight:800;color:#0f172a;margin:0">{{ msgView==='list' ? '消息中心' : activeConvName }}</p>
+                                <p style="font-size:10px;color:#94a3b8;margin:2px 0 0">{{ msgView==='list' ? '未读消息 ' + unreadMsgCount + ' · 待办委托 ' + pendingEntrustCount : (activeConvPolicy ? '咨询政策：' + activeConvPolicy : '在线咨询') }}</p>
+                            </div>
+                            <span class="tag t-purple" style="font-size:10px">在线咨询</span>
+                        </div>
+
+                        <!-- 列表视图顶部页签：咨询消息 / 委托申报 -->
+                        <div v-if="msgView==='list'" style="display:flex;gap:8px;padding:10px 14px 0;flex-shrink:0">
+                            <button @click="msgTab='chat'" :style="'flex:1;padding:7px 0;border-radius:10px;font-size:11.5px;font-weight:800;border:0;'+(msgTab==='chat'?'background:#4f46e5;color:#fff':'background:#f1f5f9;color:#64748b')">咨询消息</button>
+                            <button @click="msgTab='entrust'" :style="'flex:1;padding:7px 0;border-radius:10px;font-size:11.5px;font-weight:800;border:0;position:relative;'+(msgTab==='entrust'?'background:#4f46e5;color:#fff':'background:#f1f5f9;color:#64748b')">委托申报<span v-if="pendingEntrustCount>0" :style="'display:inline-block;min-width:16px;height:16px;padding:0 4px;margin-left:4px;border-radius:8px;font-size:9px;line-height:16px;'+(msgTab==='entrust'?'background:rgba(255,255,255,.25);color:#fff':'background:#ef4444;color:#fff')">{{ pendingEntrustCount }}</span></button>
+                        </div>
+
+                        <!-- 视图一：会话列表（按客户聚合） -->
+                        <div v-if="msgView==='list' && msgTab==='chat'" class="app-body" style="padding:10px 12px">
+                            <div v-if="convList.length===0" class="empty" style="padding:30px 0">
+                                <i class="fa fa-commenting-o"></i>
+                                <p>暂无咨询消息</p>
+                                <p style="font-size:10px;color:#cbd5e1">客户在政策详情页发起咨询后会出现在这里</p>
+                            </div>
+                            <div v-for="c in convList" :key="c.customerName" class="list-row" @click="openConv(c)">
+                                <div class="avatar" :style="{background:c.unread>0?'#eef2ff':'#f1f5f9',color:c.unread>0?'#4f46e5':'#64748b'}">{{ c.customerName.slice(0,1) }}</div>
+                                <div class="row-main">
+                                    <div class="row-title">
+                                        <span>{{ c.customerName }}</span>
+                                        <span v-if="c.policyName" class="tag t-orange" style="font-size:9px">{{ c.policyName }}</span>
+                                    </div>
+                                    <div class="row-sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.lastFrom==='advisor'?'我：':'' }}{{ c.lastText }}</div>
+                                </div>
+                                <div class="row-right">
+                                    <span style="font-size:10px;color:#94a3b8">{{ c.lastAt.slice(5) }}</span>
+                                    <span v-if="c.unread>0" class="dot-red" style="position:static;display:inline-flex;align-items:center;justify-content:center;width:auto;min-width:16px;height:16px;padding:0 4px;border-radius:8px;font-size:9px;font-weight:800">{{ c.unread }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 视图一·B：委托申报单列表（客户在政策详情页提交） -->
+                        <div v-else-if="msgView==='list' && msgTab==='entrust'" class="app-body" style="padding:10px 12px">
+                            <div v-if="entrustList.length===0" class="empty" style="padding:30px 0">
+                                <i class="fa fa-briefcase"></i>
+                                <p>暂无委托申报</p>
+                                <p style="font-size:10px;color:#cbd5e1">客户在政策详情页提交「委托申报」后会出现在这里</p>
+                            </div>
+                            <div v-for="e in entrustList" :key="e.id" class="card" style="padding:12px;margin-bottom:10px">
+                                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                                    <span style="font-size:12.5px;font-weight:800;color:#0f172a;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ e.policyName }}</span>
+                                    <span :class="'tag '+(e.status==='待处理'?'t-red':e.status==='跟进中'?'t-blue':'t-gray')" style="flex-shrink:0">{{ e.status }}</span>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:10px;margin-top:7px;font-size:11px;color:#475569;flex-wrap:wrap">
+                                    <span><i class="fa fa-user-o" style="color:#94a3b8"></i> {{ e.contact }}</span>
+                                    <span><i class="fa fa-phone" style="color:#94a3b8"></i> {{ e.phone }}</span>
+                                    <span style="color:#94a3b8;font-size:10px">{{ e.at.slice(5) }}</span>
+                                </div>
+                                <p v-if="e.remark" style="font-size:11px;color:#64748b;background:#f8fafc;border-radius:8px;padding:7px 9px;margin:8px 0 0;line-height:1.6">{{ e.remark }}</p>
+                                <div style="display:flex;gap:6px;margin-top:9px">
+                                    <van-button v-if="e.status==='待处理'" size="mini" round type="primary" @click="advanceEntrust(e)">开始跟进</van-button>
+                                    <template v-else-if="e.status==='跟进中'">
+                                        <van-button size="mini" round type="success" @click="advanceEntrust(e)">办结</van-button>
+                                        <van-button size="mini" round plain type="primary" icon="chat-o" @click="msgCustomer(e)">发消息</van-button>
+                                    </template>
+                                    <span v-else style="font-size:10.5px;color:#10b981;font-weight:700"><i class="fa fa-check-circle"></i> 已办结归档</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 视图二：会话聊天（气泡 + 回复输入） -->
+                        <template v-else>
+                            <div ref="msgChatBody" class="app-body" style="padding:12px;background:#f8fafc">
+                                <div v-for="m in convMessages" :key="m.id" style="margin-bottom:10px;display:flex" :style="{justifyContent: m.from==='advisor'?'flex-end':'flex-start'}">
+                                    <div :style="m.from==='advisor'
+                                        ? 'max-width:80%;padding:8px 12px;border-radius:14px 14px 4px 14px;font-size:12px;line-height:1.6;color:#fff;background:linear-gradient(135deg,#4f46e5,#6366f1)'
+                                        : 'max-width:80%;padding:8px 12px;border-radius:14px 14px 14px 4px;font-size:12px;line-height:1.6;color:#334155;background:#fff;border:1px solid #e2e8f0'">
+                                        {{ m.text }}
+                                        <p :style="'margin:4px 0 0;font-size:9px;text-align:right;'+(m.from==='advisor'?'color:rgba(255,255,255,.6)':'color:#cbd5e1')">{{ m.at.slice(5) }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="padding:10px 12px;border-top:1px solid #f1f5f9;display:flex;gap:8px;flex-shrink:0;background:#fff">
+                                <input v-model="chatDraft" placeholder="回复客户…" @keyup.enter="sendAdvisorReply"
+                                       style="flex:1;padding:9px 12px;font-size:12px;border:1px solid #e2e8f0;border-radius:999px;outline:none">
+                                <van-button size="small" round type="primary" :disabled="!chatDraft.trim()" @click="sendAdvisorReply">发送</van-button>
+                            </div>
+                        </template>
+                    </div>
+                </van-popup>
+
+                <!-- ============ 导入名单（Excel 文件上传） ============ -->
+                <van-popup v-model:show="showImportCustomers" position="bottom" round :style="{ height: '92%' }" teleport="#phoneScreen">
+                    <div class="app-body" style="height:100%;display:flex;flex-direction:column">
+                        <div style="padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between">
+                            <p style="font-size:14px;font-weight:800;color:#0f172a;margin:0">批量导入名单</p>
+                            <span class="tag t-orange" style="font-size:10px">Excel · 原型演示</span>
+                        </div>
+                        <div class="app-body" style="padding:0 12px 12px">
+                            <div class="card" style="padding:12px">
+                                <div class="card-title" style="margin-bottom:6px"><i class="fa fa-file-excel-o"></i>Excel 导入说明</div>
+                                <p class="muted" style="font-size:10.5px;line-height:1.7;margin:0">上传 .xlsx / .xls / .csv 文件。<b>表头必须包含：企业名称、联系人、手机号、行业、意向状态</b>。<br>意向状态可选值：潜在客户 / 意向客户 / 成交客户 / 流失客户；留空默认为「潜在客户」。</p>
+                                <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+                                    <van-button size="mini" round plain type="primary" icon="down" @click="downloadTemplate()">下载 Excel 模板</van-button>
+                                    <van-button size="mini" round plain icon="search" @click="showFileInput()">选择文件</van-button>
+                                </div>
+                                <!-- 文件选择（隐藏的 input，用 van-button 触发） -->
+                                <input ref="fileInput" type="file" accept=".xlsx,.xls,.csv" @change="onFileChange" style="display:none">
+                                <p v-if="importFileName" class="muted" style="font-size:10.5px;margin-top:8px">已选文件：<b style="color:#0f172a">{{ importFileName }}</b></p>
+                                <p v-if="importError" style="font-size:10.5px;color:#dc2626;margin-top:8px"><i class="fa fa-exclamation-circle"></i> {{ importError }}</p>
+                            </div>
+                            <!-- 解析结果预览 -->
+                            <div v-if="parsedImported.length" class="card" style="padding:12px">
+                                <div class="card-title"><i class="fa fa-list"></i>解析预览 · 共 {{ parsedImported.length }} 条</div>
+                                <div v-for="(item, i) in parsedImported" :key="i" style="padding:6px 0;border-bottom:1px dashed #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:8px">
+                                    <div style="flex:1;min-width:0">
+                                        <p style="margin:0;font-size:12px;font-weight:700;color:#0f172a">{{ item.name }} <span class="tag" :class="item._statusClass">{{ item.status }}</span></p>
+                                        <p class="muted" style="margin:2px 0 0;font-size:10.5px">联系人 {{ item.contact || '—' }} · {{ item.phone || '—' }} · {{ item.industry || '—' }}</p>
+                                    </div>
+                                </div>
+                                <p v-if="importDup > 0" class="muted" style="font-size:10.5px;margin-top:6px;text-align:right">解析到 {{ importDup }} 条将因重名被跳过</p>
+                            </div>
+                        </div>
+                        <div style="padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;background:rgba(255,255,255,.96);border-top:1px solid #e5e7eb">
+                            <van-button size="small" round block plain @click="showImportCustomers = false">取消</van-button>
+                            <van-button size="small" round block type="primary" :disabled="!parsedImported.length" @click="confirmImportCustomers">确认导入（{{ parsedImported.length }}）</van-button>
+                        </div>
+                    </div>
+                </van-popup>
+
+                <!-- 手机内吐司 -->
+                <div class="app-toast" v-show="toast.show">{{ toast.text }}</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="libs/js/vue.global.prod.js"></script>
+    <script src="libs/js/vant.min.js"></script>
+    <script src="libs/js/xlsx.full.min.js"></script>
+    <script src="data-bridge.js?v=20261016g"></script>
+    <script>
+    /* ============================================================================
+       销售赋能中心 H5 —— 原型逻辑
+       · 数据同源：客户 / 线索 / 报告分享 / 服务订单 均通过 DataBridge 读取（与 PC 端同一份 localStorage）
+       · 交互：AI 骨架屏、下拉刷新、左滑认领（兼容鼠标拖拽）、动作面板标记、Toast 提示
+       · 真实对接：所有 todo() / 注释处标记 API 占位，替换为后端接口即可
+       ============================================================================ */
+    (function () {
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+        const DB = window.DataBridge || {};
+
+        // ---------- 工具函数 ----------
+        const pad2 = n => String(n).padStart(2, '0');
+        const today = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
+        const fmtDate = s => (s || '').slice(0, 10);
+        // 线索行为标签：由线索来源映射为销售可读的行为话术
+        const BEHAVIOR_MAP = {
+            '政策查询': ['频繁查看政策', 't-blue', 'fa-search'],
+            '问答触发': ['高频 AI 问答', 't-purple', 'fa-comments'],
+            '诊断触发': ['使用测评工具', 't-orange', 'fa-stethoscope'],
+            '计算器触发': ['使用收益计算器', 't-green', 'fa-calculator'],
+            '咨询触发': ['发起在线咨询', 't-purple', 'fa-headphones'],
+            '委托触发': ['提交委托申报', 't-green', 'fa-briefcase']
+        };
+        const SOURCE_ICON = { '政策查询': ['#eff6ff', '#1d4ed8'], '问答触发': ['#f5f3ff', '#6d28d9'], '诊断触发': ['#fff7ed', '#c2410c'], '计算器触发': ['#ecfdf5', '#047857'], '咨询触发': ['#f5f3ff', '#6d28d9'], '委托触发': ['#ecfdf5', '#047857'] };
+
+        createApp({
+            setup() {
+                // ================= 全局：TabBar / 导航 / 吐司 =================
+                const activeTab = ref(0);
+                const titles = ['客户管理', '智能报告', '分享管理', '线索管理', '业绩看板'];
+                const navTitle = computed(() => '销售赋能中心 · ' + titles[activeTab.value]);
+                const toast = reactive({ show: false, text: '' });
+                let toastTimer = null;
+                function tip(text) {
+                    toast.text = text; toast.show = true;
+                    clearTimeout(toastTimer);
+                    toastTimer = setTimeout(() => { toast.show = false; }, 2000);
+                }
+                // 统一 API 占位提示（对接真实接口时替换本函数）
+                function todo(text) { tip(text + '（原型占位）'); }
+
+                // ================= 客户管理 =================
+                const rawCustomers = Array.isArray(DB.loadCustomers ? DB.loadCustomers() : []) ? (DB.loadCustomers() || []) : [];
+                const customerKeyword = ref('');
+                const STATUS_CLASS = { '潜在客户': 't-blue', '意向客户': 't-orange', '成交客户': 't-green', '流失客户': 't-gray', '活跃用户': 't-green', '潜在用户': 't-blue', '意向用户': 't-orange' };
+                const SOURCE_CLASS = { '平台注册': 't-blue', '销售录入': 't-orange', '批量导入': 't-gray', '分享转化': 't-green' };
+                const AVATARS = [['#eef2ff', '#4f46e5'], ['#ecfdf5', '#047857'], ['#fff7ed', '#c2410c'], ['#f5f3ff', '#6d28d9'], ['#eff6ff', '#1d4ed8']];
+
+                const customers = ref(rawCustomers.map(function (c, i) {
+                    const displayName = c.type === 'personal' ? (c.realName || '个人用户') : (c.name || '未命名企业');
+                    const fus = (c.followups || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+                    const src = c.source || '平台注册';
+                    // 双轨客户：平台注册/分享转化 = 有平台账号（可站内推送）；销售录入/批量导入 = 无账号（仅外链触达）
+                    const hasAccount = src === '平台注册' || src === '分享转化';
+                    return Object.assign({}, c, {
+                        _displayName: displayName,
+                        _initial: displayName.slice(0, 1),
+                        _avatarBg: AVATARS[i % AVATARS.length][0],
+                        _avatarColor: AVATARS[i % AVATARS.length][1],
+                        _statusClass: STATUS_CLASS[c.status] || 't-gray',
+                        _source: src,
+                        _sourceClass: SOURCE_CLASS[src] || 't-gray',
+                        _hasAccount: hasAccount,
+                        _lastContact: fus.length ? fmtDate(fus[0].date) : '暂无沟通',
+                        _followups: fus,
+                        _reports: (DB.loadSalesReports ? DB.loadSalesReports() : []).filter(r => r.customerName === displayName)
+                    });
+                }));
+                // 状态筛选（纯文字标签 + 数量角标，横向滚动）
+                const customerStatusFilter = ref('全部');
+                const statusFilters = ['全部', '企业客户', '个人客户', '潜在客户', '意向客户', '成交客户'];
+                function matchStatus(c, f) {
+                    if (f === '全部') return true;
+                    if (f === '企业客户') return c.type !== 'personal';
+                    if (f === '个人客户') return c.type === 'personal';
+                    return c.status === f;
+                }
+                const countByStatus = f => customers.value.filter(c => matchStatus(c, f)).length;
+                const filteredCustomers = computed(() => {
+                    const k = (customerKeyword.value || '').trim();
+                    return customers.value.filter(c => {
+                        if (!matchStatus(c, customerStatusFilter.value)) return false;
+                        if (!k) return true;
+                        return (c._displayName + (c.contact || '') + (c.phone || '') + (c.occupation || '')).indexOf(k) >= 0;
+                    });
+                });
+
+                const showCustomer = ref(false);
+                const customer = ref(null);
+                function openCustomer(c) { customer.value = c; planForm.content = ''; planForm.plan = ''; showCustomer.value = true; }
+                /** 客户详情 → 智能报告：关弹层、切底栏、预填企业名并触发生成（二级跳转交互） */
+                function goGenerateReport(c) {
+                    showCustomer.value = false;
+                    activeTab.value = 1;
+                    reportKeyword.value = c._displayName;
+                    generateReport();
+                }
+
+                /** 列出「不可匹配」政策及原因，用于详情卡片灰显提示（无则返回空串） */
+                function unmatchedText(r) {
+                    return (r.policies || []).filter(function (p) { return p.level === '不可匹配'; })
+                        .map(function (p) { return p.title + '：' + (p.reason || '条件不满足'); }).join('；');
+                }
+
+                /** 按最新条件重新匹配：关闭详情抽屉，回到智能报告并展开多步骤条件采集 */
+                function reMatch(c) {
+                    showCustomer.value = false;
+                    activeTab.value = 1;
+                    reportKeyword.value = c._displayName;
+                    openConditions();
+                    tip('已载入「' + c._displayName + '」，核对条件后开始匹配');
+                }
+
+                /** 从客户详情卡片直接分享报告：跳分享管理并预填内容与客户，直达选通道 */
+                function shareReportFromCard(r, c) {
+                    showCustomer.value = false;
+                    activeTab.value = 2;
+                    openShareCreate();
+                    const item = archiveReports.value.filter(function (x) { return x.id === r.id; })[0];
+                    if (item) { scContent.value = item; scCustomer.value = c; scStep.value = 3; }
+                }
+
+                // ================= 录入企业（完整版） =================
+                const showNewCustomer = ref(false);
+                const showNewStatus = ref(false);
+                const newForm = reactive({ name: '', code: '', contact: '', phone: '', industry: '', region: '', employees: '', revenue: '', quals: '', status: '' });
+                const NEW_STATUS_MAP = { '潜在': '潜在客户', '意向': '意向客户', '成交': '成交客户' };
+                const NEW_STATUS_ACTIONS = [
+                    { name: '潜在客户', value: '潜在客户' },
+                    { name: '意向客户', value: '意向客户' },
+                    { name: '成交客户', value: '成交客户' },
+                    { name: '流失客户', value: '流失客户' }
+                ];
+                function onNewStatusSelect(a) { showNewStatus.value = false; newForm.status = a.name; }
+                function openNewCustomer() {
+                    // 重置表单
+                    Object.assign(newForm, { name: '', code: '', contact: '', phone: '', industry: '', region: '', employees: '', revenue: '', quals: '', status: '' });
+                    showNewCustomer.value = true;
+                }
+                function submitNewCustomer() {
+                    if (!newForm.name.trim()) { tip('请先填写企业名称'); return; }
+                    const list = DB.loadCustomers ? DB.loadCustomers() : [];
+                    list.push({
+                        id: 'U' + Date.now().toString().slice(-6), type: 'enterprise', registerTime: '',
+                        name: newForm.name.trim(),
+                        code: newForm.code.trim(),
+                        contact: newForm.contact.trim(),
+                        phone: newForm.phone.trim(),
+                        industry: newForm.industry.trim(),
+                        region: newForm.region.trim(),
+                        employees: Number(newForm.employees) || 0,
+                        revenue: Number(newForm.revenue) || 0,
+                        quals: (newForm.quals.trim() || '').split(/[、,，]/).filter(Boolean).map(function (s) { return s.trim(); }),
+                        status: newForm.status || '潜在客户',
+                        source: '销售录入',
+                        credits: 0, creditHistory: [], followups: []
+                    });
+                    if (DB.saveCustomers) DB.saveCustomers(list);
+                    refreshLocalCustomers();
+                    showNewCustomer.value = false;
+                    tip('已录入并加入客户列表（来源：销售录入）');
+                }
+                /** 客户列表重绘：数据层变动后从 DB 重新读入并补齐展示字段 */
+                function refreshLocalCustomers() {
+                    rawCustomers.length = 0;
+                    const latest = DB.loadCustomers ? DB.loadCustomers() : [];
+                    latest.forEach(function (u) { rawCustomers.push(u); });
+                    customers.value = latest.map(function (c, i) {
+                        const displayName = c.type === 'personal' ? (c.realName || '个人用户') : (c.name || '未命名企业');
+                        const fus = (c.followups || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+                        const src = c.source || '平台注册';
+                        const hasAccount = src === '平台注册' || src === '分享转化';
+                        return Object.assign({}, c, {
+                            _displayName: displayName,
+                            _initial: displayName.slice(0, 1),
+                            _avatarBg: AVATARS[i % AVATARS.length][0],
+                            _avatarColor: AVATARS[i % AVATARS.length][1],
+                            _statusClass: STATUS_CLASS[c.status] || 't-gray',
+                            _source: src,
+                            _sourceClass: SOURCE_CLASS[src] || 't-gray',
+                            _hasAccount: hasAccount,
+                            _lastContact: fus.length ? fmtDate(fus[0].date) : '暂无沟通',
+                            _followups: fus,
+                            _reports: (DB.loadSalesReports ? DB.loadSalesReports() : []).filter(function (r) { return r.customerName === displayName; })
+                        });
+                    });
+                }
+
+                // ================= 导入名单（Excel 文件上传） =================
+                const showImportCustomers = ref(false);
+                const importFileName = ref('');
+                const importError = ref('');
+                const importDup = ref(0);
+                const parsedImported = ref([]);
+                /** 隐藏文件选择器引用 */
+                const fileInputRef = ref(null);
+                function showFileInput() {
+                    var el = document.createElement('input');
+                    el.type = 'file';
+                    el.accept = '.xlsx,.xls,.csv';
+                    el.onchange = function (e) {
+                        var f = (e.target.files && e.target.files[0]) || null;
+                        if (f) parseExcel(f);
+                    };
+                    el.click();
+                }
+                /** 下载 Excel 模板（浏览器端生成 .xlsx） */
+                function downloadTemplate() {
+                    var XLSX = window.XLSX;
+                    if (!XLSX) { tip('模板下载失败：XLSX 库未加载'); return; }
+                    var headers = ['企业名称', '联系人', '手机号', '行业', '意向状态'];
+                    var samples = [
+                        ['天启信息技术有限公司', '周海燕', '138****5566', '软件信息', '意向客户'],
+                        ['瑞丰食品科技有限公司', '孙德旺', '137****9900', '食品加工', '潜在客户'],
+                        ['东方精密机械有限公司', '钱国强', '135****7788', '装备制造', '成交客户']
+                    ];
+                    var ws = XLSX.utils.aoa_to_sheet([headers].concat(samples));
+                    ws['!cols'] = [{ wch: 22 }, { wch: 10 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
+                    var wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, '客户名单');
+                    XLSX.writeFile(wb, '销售导入模板.xlsx');
+                }
+                /** 浏览器侧解析 Excel 文件（File → ArrayBuffer → XLSX） */
+                function parseExcel(file) {
+                    importFileName.value = file.name;
+                    importError.value = '';
+                    parsedImported.value = [];
+                    if (!window.XLSX) { importError.value = 'XLSX 库未加载'; return; }
+                    var valid = /\.(xlsx|xls|csv)$/i.test(file.name);
+                    if (!valid) { importError.value = '仅支持 .xlsx / .xls / .csv 文件'; return; }
+                    var reader = new FileReader();
+                    reader.onload = function (ev) {
+                        try {
+                            // 经验：用浏览器友好的 Uint8Array 读 ArrayBuffer，避免 Node Buffer 依赖
+                            var data = new Uint8Array(ev.target.result);
+                            var wb = XLSX.read(data, { type: 'array' });
+                            var firstSheet = wb.Sheets[wb.SheetNames[0]];
+                            if (!firstSheet) { importError.value = 'Excel 文件内没有工作表'; return; }
+                            var rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+                            if (!rows.length) { importError.value = 'Excel 内没有数据行'; return; }
+                            // 表头归一化：兼容中英文、简称、多空格
+                            var HEADER_MAP = {
+                                '企业名称': ['企业名称', '公司名称', '名称', 'name'],
+                                '联系人': ['联系人', '对接人', 'contact'],
+                                '手机号': ['手机号', '电话', '手机', 'phone', 'tel'],
+                                '行业': ['行业', '所属行业', 'industry'],
+                                '意向状态': ['意向状态', '状态', '客户状态', 'stage', 'status']
+                            };
+                            function findCell(row, key) {
+                                for (var k in row) {
+                                    var norm = String(k || '').trim();
+                                    var aliases = HEADER_MAP[key];
+                                    if (aliases.indexOf(norm) >= 0) return row[k];
+                                }
+                                return '';
+                            }
+                            var list = [], dup = 0;
+                            rows.forEach(function (row) {
+                                var name = String(findCell(row, '企业名称') || '').trim();
+                                if (!name) return;                 // 空名跳过
+                                var contact = String(findCell(row, '联系人') || '').trim();
+                                var phone = String(findCell(row, '手机号') || '').trim();
+                                var industry = String(findCell(row, '行业') || '').trim();
+                                var raw = String(findCell(row, '意向状态') || '').trim().replace(/客户$/, '');
+                                var status = NEW_STATUS_MAP[raw] || raw || '潜在客户';
+                                // 去重：同名客户在当前列表或已在数据层 → 跳过
+                                var DB = window.DataBridge || {};
+                                var existing = (DB.loadCustomers ? DB.loadCustomers() : []).some(function (u) { return u.name === name; });
+                                var inList = list.some(function (x) { return x.name === name; });
+                                if (existing || inList) { dup++; return; }
+                                list.push({
+                                    name: name, contact: contact, phone: phone, industry: industry, status: status,
+                                    _statusClass: STATUS_CLASS[status] || 't-gray'
+                                });
+                            });
+                            importDup.value = dup;
+                            parsedImported.value = list;
+                            if (!list.length) importError.value = dup ? '所有行均因重名被跳过' : '未能解析到有效数据，请检查表头是否正确';
+                        } catch (err) {
+                            importError.value = '解析失败：' + (err.message || err);
+                        }
+                    };
+                    reader.onerror = function () { importError.value = '文件读取失败'; };
+                    reader.readAsArrayBuffer(file);
+                }
+                function openImportCustomers() {
+                    importFileName.value = ''; importError.value = ''; importDup.value = 0; parsedImported.value = [];
+                    showImportCustomers.value = true;
+                }
+                function confirmImportCustomers() {
+                    if (!parsedImported.value.length) return;
+                    var DB = window.DataBridge || {};
+                    var list = (DB.loadCustomers ? DB.loadCustomers() : []);
+                    parsedImported.value.forEach(function (item) {
+                        list.push({
+                            id: 'U' + Date.now().toString().slice(-6) + String(Math.floor(Math.random() * 999)),
+                            type: 'enterprise', registerTime: '',
+                            name: item.name, code: '', contact: item.contact, phone: item.phone,
+                            industry: item.industry, region: '', employees: 0, revenue: 0, quals: [],
+                            status: item.status, source: '批量导入',
+                            credits: 0, creditHistory: [], followups: []
+                        });
+                    });
+                    if (DB.saveCustomers) DB.saveCustomers(list);
+                    refreshLocalCustomers();
+                    var added = parsedImported.value.length;
+                    showImportCustomers.value = false;
+                    tip('已导入 ' + added + ' 条' + (importDup.value ? '（跳过重名 ' + importDup.value + ' 条）' : ''));
+                    parsedImported.value = [];
+                }
+
+                // 跟进计划表单：保存后写回 DataBridge（与 PC 客户管理同一份数据）
+                const planForm = reactive({ content: '', plan: '' });
+                function submitPlan() {
+                    if (!planForm.content.trim()) { tip('请先填写沟通要点'); return; }
+                    const c = customer.value;
+                    const list = DB.loadCustomers ? DB.loadCustomers() : [];
+                    const target = list.filter(x => x.id === c.id)[0];
+                    if (target) {
+                        target.followups = target.followups || [];
+                        target.followups.unshift({ type: '电话沟通', date: today(), content: planForm.content.trim(), plan: planForm.plan.trim() });
+                        if (DB.saveCustomers) DB.saveCustomers(list);
+                        // 同步本地视图
+                        c._followups = target.followups.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+                        c._lastContact = today();
+                        planForm.content = ''; planForm.plan = '';
+                        tip('跟进已保存，并同步到 PC 客户管理');
+                    } else {
+                        tip('保存失败：未找到该客户');
+                    }
+                }
+
+                // ================= 智能报告（AI 生成） =================
+                const reportKeyword = ref('');
+                const reportLoading = ref(false);
+                const report = ref(null);
+                // 企业选择器（替代原先仅弹 Toast 的「选客户」）
+                const showPicker = ref(false);
+                const pickerKeyword = ref('');
+                const pickerList = computed(() => {
+                    const k = (pickerKeyword.value || '').trim();
+                    return customers.value.filter(c => !k || (c._displayName + (c.contact || '') + (c.occupation || '')).indexOf(k) >= 0);
+                });
+                function pickCustomer(c) {
+                    reportKeyword.value = c._displayName;
+                    showPicker.value = false;
+                    generateReport();
+                }
+                // 报告存档列表（读 PC 端同一份报告存档 ceyuan_sales_reports）
+                const archiveReports = ref([]);
+                function refreshArchive() {
+                    const list = (DB.loadSalesReports ? DB.loadSalesReports() : []) || [];
+                    archiveReports.value = list.map(r => ({ id: r.id, customerName: r.customerName, title: r.title, type: r.type, createdAt: r.createdAt, policies: r.policies || [] }));
+                }
+                function loadArchive(r) {
+                    const list = (DB.loadSalesReports ? DB.loadSalesReports() : []) || [];
+                    const target = list.filter(x => x.id === r.id)[0];
+                    if (!target) { tip('未找到该报告存档'); return; }
+                    reportKeyword.value = target.customerName;
+                    report.value = JSON.parse(JSON.stringify(target));
+                    tip('已载入存档报告：' + target.title);
+                }
+                function backToArchive() {
+                    report.value = null; // 返回存档列表视图
+                    window.scrollTo(0, 0);
+                }
+                // PDF 预览弹层
+                const showPdf = ref(false);
+                const quickCompanies = rawCustomers.slice(0, 3).map(c => c.type === 'personal' ? (c.realName || '') : c.name).filter(Boolean);
+
+                // ============================================================
+                // 政策匹配条件采集（多步骤）
+                // condStep: 0=自动补齐, 1=测评回填, 2=销售补充
+                // condAuto: Step1 自动补齐的客户档案字段（只读）
+                // condAssess: Step2+3 的测评回填 + 销售补充条件（与 data-bridge assessmentConditions 对齐）
+                // ============================================================
+                const condOpen = ref(false);
+                const condStep = ref(0);
+                const condMeasuring = ref(false);
+                const condAuto = ref({ industry: '', region: '', quals: [], revenue: 0, employees: 0, source: '' });
+                const condAssess = reactive({
+                    score: null, grade: '', weak: [],
+                    rdRatio: null, ipCount: null, sciStaffRatio: null, hiTechRatio: null,
+                    loss3y: null, rndProject: null, industryUni: null,
+                    fundPref: '', windowPref: '',
+                    __measured: false,
+                    // 选择器用的字符串值
+                    loss3yStr: '', rndProjectStr: '', industryUniStr: '', windowPrefStr: ''
+                });
+                // 五个选择器的状态与选项
+                const showLossPicker = ref(false);
+                const showRndPicker = ref(false);
+                const showUniPicker = ref(false);
+                const showFundPicker = ref(false);
+                const showWindowPicker = ref(false);
+                const BOOL_ACTIONS = [{ name: '是', value: true }, { name: '否', value: false }];
+                const FUND_ACTIONS = [{ name: '现金补贴' }, { name: '税收减免' }, { name: '资质认定' }, { name: '贷款贴息' }, { name: '补贴+减免' }, { name: '补贴+资质认定' }];
+                const WINDOW_ACTIONS = [{ name: 'Q1（1-3月）' }, { name: 'Q2（4-6月）' }, { name: 'Q3（7-9月）' }, { name: 'Q4（10-12月）' }, { name: '全年' }];
+
+                /** 根据企业名定位客户，加载条件 */
+                function locateCustomerByKeyword() {
+                    const key = (reportKeyword.value || '').trim();
+                    if (!key) return null;
+                    return customers.value.filter(x => x._displayName.indexOf(key) >= 0)[0];
+                }
+
+                /** 打开条件采集面板：自动补齐 + 测评回填（从客户档案/条件档案读取） */
+                function openConditions() {
+                    const c = locateCustomerByKeyword();
+                    // Step1：自动补齐（客户档案）
+                    if (c) {
+                        condAuto.value = {
+                            industry: c.industry || '',
+                            region: c.region || '',
+                            quals: c.quals || [],
+                            revenue: c.revenue || 0,
+                            employees: c.employees || 0,
+                            source: c._source || ''
+                        };
+                    } else {
+                        condAuto.value = { industry: '', region: '', quals: [], revenue: 0, employees: 0, source: '' };
+                    }
+                    // Step2：测评回填（客户 assessmentConditions + 科创测评得分/短板）
+                    const ac = (c && c.assessmentConditions) || {};
+                    Object.assign(condAssess, {
+                        rdRatio: ac.rdRatio != null ? ac.rdRatio : null,
+                        ipCount: ac.ipCount != null ? ac.ipCount : null,
+                        sciStaffRatio: ac.sciStaffRatio != null ? ac.sciStaffRatio : null,
+                        hiTechRatio: ac.hiTechRatio != null ? ac.hiTechRatio : null,
+                        loss3y: ac.loss3y != null ? ac.loss3y : null,
+                        rndProject: ac.rndProject != null ? ac.rndProject : null,
+                        industryUni: ac.industryUni != null ? ac.industryUni : null,
+                        fundPref: ac.fundPref || '',
+                        windowPref: ac.windowPref || '',
+                        __measured: !!ac.__measured
+                    });
+                    condAssess.loss3yStr = condAssess.loss3y === null ? '' : (condAssess.loss3y ? '是' : '否');
+                    condAssess.rndProjectStr = condAssess.rndProject === null ? '' : (condAssess.rndProject ? '是' : '否');
+                    condAssess.industryUniStr = condAssess.industryUni === null ? '' : (condAssess.industryUni ? '是' : '否');
+                    condAssess.windowPrefStr = condAssess.windowPref || '';
+                    // 科创测评得分/短板：根据 rdRatio+ipCount+sciStaffRatio+hiTechRatio 计算一个 mock 值
+                    condAssess.score = calcScore(ac);
+                    condAssess.grade = condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D'));
+                    condAssess.weak = calcWeak(ac);
+
+                    condStep.value = 0;
+                    condOpen.value = true;
+                    report.value = null;
+                }
+
+                /** 根据测评条件算科创得分（0-100） */
+                function calcScore(ac) {
+                    if (!ac || Object.keys(ac).length === 0 || ac.rdRatio == null) return 55;
+                    let s = 50;
+                    if (ac.rdRatio >= 5) s += 20; else if (ac.rdRatio >= 3) s += 10; else s -= 5;
+                    if (ac.ipCount >= 5) s += 15; else if (ac.ipCount >= 3) s += 8; else s -= 5;
+                    if (ac.sciStaffRatio >= 10) s += 10; else if (ac.sciStaffRatio >= 7) s += 5; else s -= 3;
+                    if (ac.hiTechRatio >= 60) s += 15; else if (ac.hiTechRatio >= 40) s += 5; else s -= 5;
+                    if (ac.loss3y === true) s -= 10;
+                    return Math.max(30, Math.min(95, s));
+                }
+
+                /** 根据条件算短板列表 */
+                function calcWeak(ac) {
+                    const w = [];
+                    if (!ac || ac.rdRatio == null) { w.push('研发费用占比未填'); return w; }
+                    if (ac.rdRatio < 5) w.push('研发费用占比不足 5%（高企门槛）');
+                    if (ac.ipCount != null && ac.ipCount < 3) w.push('核心知识产权数量偏少');
+                    if (ac.sciStaffRatio != null && ac.sciStaffRatio < 10) w.push('科技人员占比不足 10%');
+                    if (ac.hiTechRatio != null && ac.hiTechRatio < 60) w.push('高品收入占比不足 60%');
+                    if (w.length === 0) w.push('无明显短板');
+                    return w;
+                }
+
+                /** 重新跑科创测评：5 秒后回填一个稍微变化过的分数（模拟引擎重新计算） */
+                function rerunAssessment() {
+                    condMeasuring.value = true;
+                    setTimeout(function () {
+                        const ac = { rdRatio: condAssess.rdRatio, ipCount: condAssess.ipCount, sciStaffRatio: condAssess.sciStaffRatio, hiTechRatio: condAssess.hiTechRatio, loss3y: condAssess.loss3y };
+                        // 重新测评：分数 ±5 波动，短板可能少一条或多一条
+                        let base = calcScore(ac) + (Math.random() > 0.5 ? 3 : -3);
+                        condAssess.score = Math.max(30, Math.min(95, Math.round(base)));
+                        condAssess.grade = condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D'));
+                        condAssess.weak = calcWeak(ac);
+                        condAssess.__measured = true;
+                        condMeasuring.value = false;
+                        tip('科创测评完成，得分 ' + condAssess.score + ' · ' + condAssess.grade + ' 级');
+                    }, 1500);
+                }
+
+                function goNextStep() {
+                    if (condStep.value < 2) condStep.value++;
+                }
+
+                // --- 选择器回调 ---
+                function onLossSelect(a) { showLossPicker.value = false; condAssess.loss3y = a.value; condAssess.loss3yStr = a.name; }
+                function onRndSelect(a) { showRndPicker.value = false; condAssess.rndProject = a.value; condAssess.rndProjectStr = a.name; }
+                function onUniSelect(a) { showUniPicker.value = false; condAssess.industryUni = a.value; condAssess.industryUniStr = a.name; }
+                function onFundSelect(a) { showFundPicker.value = false; condAssess.fundPref = a.name; }
+                function onWindowSelect(a) { showWindowPicker.value = false; condAssess.windowPref = a.name.replace(/.*（/, '').replace('月）', ''); condAssess.windowPrefStr = a.name; }
+
+                // --- 真正的匹配引擎 ---
+                /** 根据企业档案 + 条件采集，计算每条政策的匹配度（硬条件过滤 × 软条件加权 × 窗口期判定） */
+                function doMatch() {
+                    const key = (reportKeyword.value || '').trim();
+                    if (!key) { tip('请先选择企业'); return; }
+                    reportLoading.value = true;
+
+                    // 把 Step3 的字符串值同步回布尔值
+                    const parseBool = function (s) { return s === '是' ? true : (s === '否' ? false : null); };
+                    const ac = {
+                        rdRatio: condAssess.rdRatio,
+                        ipCount: condAssess.ipCount,
+                        sciStaffRatio: condAssess.sciStaffRatio,
+                        hiTechRatio: condAssess.hiTechRatio,
+                        loss3y: parseBool(condAssess.loss3yStr),
+                        rndProject: parseBool(condAssess.rndProjectStr),
+                        industryUni: parseBool(condAssess.industryUniStr),
+                        fundPref: condAssess.fundPref,
+                        windowPref: condAssess.windowPref,
+                        __measured: condAssess.__measured
+                    };
+
+                    setTimeout(function () {
+                        const c = locateCustomerByKeyword();
+                        // ========== 政策匹配引擎（条件感知的 Mock） ==========
+                        // 基础政策库（演示用 4 条，每条带硬条件门槛 + 软条件加分项）
+                        const POLICY_RULES = [
+                            // 高企：rdRatio≥5, ipCount≥3, sciStaffRatio≥10, hiTechRatio≥60, loss3y=false
+                            { title: '国家高新技术企业认定', benefit: '补贴 30万 + 15% 所得税优惠', hard: [{k:'rdRatio',op:'>=',v:5},{k:'ipCount',op:'>=',v:3},{k:'sciStaffRatio',op:'>=',v:10},{k:'hiTechRatio',op:'>=',v:60},{k:'loss3y',op:'===',v:false}], soft: [{k:'quals',v:'国家高新',bonus:20}], baseMatch: 70 },
+                            // 专精特新小巨人：rdRatio≥3, ipCount≥2, loss3y=false, 建议先入库
+                            { title: '省级专精特新中小企业', benefit: '补贴 50万', hard: [{k:'rdRatio',op:'>=',v:3},{k:'ipCount',op:'>=',v:2},{k:'loss3y',op:'===',v:false}], soft: [{k:'industryUni',v:true,bonus:10}], baseMatch: 72 },
+                            // 研发加计扣除：rdRatio≥1（低门槛但收入占比要对）
+                            { title: '研发费用加计扣除', benefit: '100% 加计扣除', hard: [{k:'rdRatio',op:'>=',v:1}], soft: [{k:'rndProject',v:true,bonus:15}], baseMatch: 85 },
+                            // 省新能源专项：行业+资质匹配
+                            { title: '省新能源产业发展专项', benefit: '最高 300万', hard: [{k:'industry',op:'contains',v:'新能源'}], soft: [{k:'rndProject',v:true,bonus:15},{k:'industryUni',v:true,bonus:10}], baseMatch: 65 }
+                        ];
+
+                        function checkHard(rules, autoFilled) {
+                            const fails = [];
+                            rules.forEach(function (rule) {
+                                let val;
+                                if (rule.k === 'industry') val = autoFilled.industry;
+                                else val = ac[rule.k];
+                                if (val == null) { fails.push({rule: rule, reason: rule.k + ' 未填'}); return; }
+                                let pass = false;
+                                if (rule.op === '>=') pass = Number(val) >= Number(rule.v);
+                                else if (rule.op === '===') pass = val === rule.v;
+                                else if (rule.op === 'contains') pass = String(val).indexOf(rule.v) >= 0;
+                                if (!pass) fails.push({rule: rule, reason: rule.k + ' 不满足门槛（需 ' + rule.k + (rule.op === '>=' ? '≥' : '=') + rule.v + '，实际 ' + val + '）'});
+                            });
+                            return fails;
+                        }
+                        function addSoft(rules, autoFilled) {
+                            let bonus = 0;
+                            rules.forEach(function (rule) {
+                                let val;
+                                if (rule.k === 'quals') val = (autoFilled.quals || []).indexOf(rule.v) >= 0;
+                                else val = ac[rule.k];
+                                if (val === rule.v) bonus += rule.bonus;
+                            });
+                            return bonus;
+                        }
+
+                        const policies = POLICY_RULES.map(function (rule) {
+                            const fails = checkHard(rule.hard, condAuto.value);
+                            if (fails.length) {
+                                return {
+                                    title: rule.title, benefit: rule.benefit, level: '不可匹配', match: 0,
+                                    reason: fails.map(function (f) { return f.reason; }).join('；')
+                                };
+                            }
+                            const soft = addSoft(rule.soft, condAuto.value);
+                            // 基础分 + 软条件加分 + 测评得分影响
+                            const measuredBoost = condAssess.score ? Math.round((condAssess.score - 65) * 0.3) : 0;
+                            const rawMatch = Math.max(40, Math.min(100, rule.baseMatch + soft + measuredBoost));
+                            return {
+                                title: rule.title, benefit: rule.benefit, match: rawMatch,
+                                level: rawMatch >= 85 ? '高匹配' : '中匹配'
+                            };
+                        });
+
+                        // 按匹配度排序，过滤掉完全不可匹配的
+                        policies.sort(function (a, b) { return b.match - a.match; });
+
+                        // 组装 matchConditions 展示用
+                        const condDisplay = {};
+                        condAuto.value.quals.forEach(function (q) { condDisplay['自动补齐 · 资质'] = q; });
+                        condDisplay['自动补齐 · 行业'] = condAuto.value.industry || '—';
+                        condDisplay['测评回填 · 科创得分'] = (condAssess.score || '—') + ' · ' + (condAssess.grade || '—');
+                        condDisplay['测评回填 · 研发占比'] = (ac.rdRatio != null ? ac.rdRatio + '%' : '未填');
+                        condDisplay['测评回填 · 知识产权'] = (ac.ipCount != null ? ac.ipCount + ' 项' : '未填');
+                        if (ac.loss3y != null) condDisplay['销售补充 · 近三年亏损'] = ac.loss3y ? '是' : '否';
+                        if (ac.rndProject != null) condDisplay['销售补充 · 在研项目'] = ac.rndProject ? '有' : '无';
+                        if (condAssess.fundPref) condDisplay['销售补充 · 扶持偏好'] = condAssess.fundPref;
+                        if (condAssess.windowPref) condDisplay['销售补充 · 申报窗口'] = condAssess.windowPref;
+
+                        // 组装报告
+                        const summary = (c && c._displayName) + '（' + (condAuto.value.industry || '—') + '）经多维度政策匹配引擎分析：' +
+                            policies.filter(function (p) { return p.level !== '不可匹配'; }).length + ' 项可申报政策，' +
+                            '科创得分 ' + (condAssess.score || '—') + ' · ' + (condAssess.grade || '—') + ' 级，' +
+                            (condAssess.weak && condAssess.weak.length ? '短板：' + condAssess.weak.join('、') + '。' : '');
+
+                        const advice = policies.filter(function (p) { return p.level !== '不可匹配'; }).slice(0, 3).map(function (p, i) {
+                            var tip = '';
+                            if (p.title.indexOf('高企') >= 0) tip = '注意知识产权布局与研发费用辅助账口径一致性';
+                            else if (p.title.indexOf('专精特新') >= 0) tip = '建议先入库创新型中小企业再申报，同期整理产学研合作证明';
+                            else if (p.title.indexOf('加计扣除') >= 0) tip = '可与专项申报同步推进，注意留存项目立项书';
+                            else if (p.title.indexOf('新能源') >= 0) tip = '建议关注 Q' + (condAssess.windowPref ? condAssess.windowPref.charAt(1) : '3') + ' 申报窗口';
+                            return (i + 1) + '. 优先申报「' + p.title + '」（匹配度 ' + p.match + '%）：' + p.benefit + '。' + tip;
+                        }).join('\n');
+
+                        report.value = {
+                            id: 'R' + Date.now(), title: (c && c._displayName) + ' 政策匹配分析报告',
+                            type: '政策匹配', customerName: (c && c._displayName) || key,
+                            createdAt: today() + ' 10:40',
+                            matchConditions: condDisplay,
+                            company: {
+                                name: (c && c._displayName) || key,
+                                code: (c && c.code) || '—',
+                                industry: condAuto.value.industry || '未填',
+                                contact: (c && (c.contact || c.realName)) || '—',
+                                phone: (c && c.phone) || '—',
+                                employees: condAuto.value.employees || 0,
+                                revenue: condAuto.value.revenue || 0,
+                                region: condAuto.value.region || '未填',
+                                quals: condAuto.value.quals || []
+                            },
+                            diagnosis: { avg: condAssess.score || 0, grade: condAssess.grade || '—', weak: condAssess.weak || [] },
+                            summary: summary,
+                            profile: (c && c._displayName) + '：科创测评得分 ' + (condAssess.score || '—') + '，' +
+                                '研发费用占比 ' + (ac.rdRatio != null ? ac.rdRatio + '%' : '未填') + '，' +
+                                '核心知识产权 ' + (ac.ipCount != null ? ac.ipCount + ' 项' : '未填') + '。' +
+                                '本次匹配共采集 ' + Object.keys(condDisplay).length + ' 项条件。',
+                            policies: policies,
+                            advice: advice || '暂无可用建议。',
+                            shares: []
+                        };
+
+                        // 条件回填到客户档案（下次生成自动带出）
+                        if (c && DB.saveCustomers) {
+                            c.assessmentConditions = {
+                                rdRatio: ac.rdRatio, ipCount: ac.ipCount, sciStaffRatio: ac.sciStaffRatio, hiTechRatio: ac.hiTechRatio,
+                                loss3y: ac.loss3y, rndProject: ac.rndProject, industryUni: ac.industryUni,
+                                fundPref: ac.fundPref, windowPref: ac.windowPref, __measured: true
+                            };
+                            const list = DB.loadCustomers();
+                            const idx = list.findIndex(function (u) { return u.id === c.id; });
+                            if (idx >= 0) { list[idx] = c; DB.saveCustomers(list); }
+                        }
+                        // 报告存档（PC 端也能看到）
+                        if (DB.saveSalesReports) {
+                            const list = DB.loadSalesReports();
+                            list.unshift(report.value);
+                            DB.saveSalesReports(list);
+                            archiveReports.value = list;
+                        }
+
+                        reportLoading.value = false;
+                        condOpen.value = false;
+                        tip('匹配完成：' + policies.filter(function (p) { return p.level !== '不可匹配'; }).length + ' 项政策命中');
+                    }, 1600);
+                }
+
+                // 兼容：保留 generateReport 别名（企业详情里"为该企业生成报告"按钮还在调用它）
+                function generateReport(isSupplement) { openConditions(); }
+
+                function exportPDF() {
+                    if (!report.value) { tip('请先生成报告'); return; }
+                    // 真实场景：POST /api/report/pdf 渲染后返回 PDF 地址，再在此弹层中预览 / 下载
+                    showPdf.value = true;
+                }
+                // ---- 分享双通道：平台客户可「站内推送」到其平台账号；外部客户仅「外链」（微信发送、免登录打开） ----
+                const showChannelSheet = ref(false);
+                const channelActions = computed(function () {
+                    const r = report.value;
+                    if (!r) return [];
+                    const c = customers.value.filter(x => x._displayName === r.customerName || (r.customerName || '').indexOf(x._displayName) >= 0)[0];
+                    const hasAccount = !c || c._hasAccount;   // 无客户档案时按平台客户处理（草稿兜底）
+                    const acts = [];
+                    if (hasAccount) acts.push({ name: '推送到客户账号', subname: '客户在企业政策服务平台「我的报告」中查看', channel: '站内推送' });
+                    acts.push({ name: '生成外链 / 二维码', subname: '微信发送，客户免登录打开，浏览数据可追踪', channel: '外链' });
+                    return acts;
+                });
+                function createShare() {
+                    if (!report.value) { tip('请先生成报告'); return; }
+                    showChannelSheet.value = true;
+                }
+                function onChannelSelect(action) {
+                    showChannelSheet.value = false;
+                    doCreateShare(action.channel);
+                }
+                function doCreateShare(channel) {
+                    // 生成分享记录并写回报告存档（PC 分享管理立即可见）
+                    const r = report.value;
+                    if (!r) return;
+                    const sid = 'S' + Date.now().toString().slice(-6);
+                    const url = 'report-viewer.html?id=' + r.id + '&shareId=' + sid;
+                    const list = DB.loadSalesReports ? DB.loadSalesReports() : [];
+                    const target = list.filter(x => x.id === r.id)[0];
+                    const rec = {
+                        shareId: sid, toName: (r.company.contact || '客户') + '（本次分享）', toPhone: r.company.phone,
+                        channel: channel, createdAt: today() + ' 10:20', expireAt: '', views: []
+                    };
+                    if (target) {
+                        target.shares = target.shares || [];
+                        target.shares.unshift(rec);
+                        if (DB.saveSalesReports) DB.saveSalesReports(list);
+                    } else {
+                        r.shares.unshift(rec);   // 草稿未存档时仅存于内存演示
+                    }
+                    loadingShares();
+                    refreshArchive();
+                    tip(channel === '站内推送' ? '已推送到客户账号（客户在「会员中心 · 站内消息」查看）' : '分享链接已生成：' + url.slice(0, 26) + '…');
+                }
+
+                // ================= 分享管理（追踪） =================
+                const shareTab = ref(0);
+                const refreshing = ref(false);
+                const shareList = ref([]);
+                const policyShareList = ref([]);
+                /** 计算分享浏览汇总（打开次数 / 累计时长 / 最后时间） */
+                function sumViews(views) {
+                    views = views || [];
+                    const dur = views.reduce(function (t, v) { return t + (Number(v.durSec) || 0); }, 0);
+                    const last = views.length ? views[views.length - 1].at : '—';
+                    return {
+                        viewCount: views.length,
+                        durText: dur >= 60 ? Math.floor(dur / 60) + ' 分 ' + (dur % 60) + ' 秒' : dur + ' 秒',
+                        lastAt: fmtDate(last) || '—'
+                    };
+                }
+                function loadingShares() {
+                    // 报告分享：展开各报告的 shares → 列表
+                    const flat = [];
+                    (DB.loadSalesReports ? DB.loadSalesReports() : []).forEach(function (r) {
+                        (r.shares || []).forEach(function (s) {
+                            flat.push(Object.assign({
+                                shareId: s.shareId, toName: s.toName || '（匿名访问）', reportTitle: r.title, reportId: r.id,
+                                channel: s.channel || '外链', converted: !!s.converted,
+                                url: 'report-viewer.html?id=' + r.id + '&shareId=' + s.shareId + '&src=wechat&track=1'
+                            }, sumViews(s.views)));
+                        });
+                    });
+                    shareList.value = flat.sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+                    // 政策分享：读 ceyuan_policy_shares（与报告分享同构，落地页 policy-viewer.html 上报）
+                    const pflat = (DB.loadPolicyShares ? DB.loadPolicyShares() : []).map(function (s) {
+                        return Object.assign({
+                            shareId: s.shareId, toName: s.toName || '（匿名访问）',
+                            reportTitle: s.policyName + '（政策）', policyId: s.policyId,
+                            channel: s.channel || '外链', converted: !!s.converted,
+                            url: 'policy-viewer.html?id=' + encodeURIComponent(s.policyId) + '&shareId=' + s.shareId
+                        }, sumViews(s.views));
+                    });
+                    policyShareList.value = pflat.sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+                }
+                function onRefresh() {
+                    setTimeout(function () { loadingShares(); refreshing.value = false; tip('追踪数据已刷新'); }, 800);
+                }
+
+                // ---- 发起分享：报告 / 政策 → 选客户 → 选通道（政策分享入口补全） ----
+                const showShareCreate = ref(false);
+                const scType = ref('report');        // report 分享报告 / policy 分享政策
+                const scStep = ref(1);               // 1 选内容 2 选客户 3 选通道
+                const scKeyword = ref('');
+                const scContent = ref(null);
+                const scCustomer = ref(null);
+                const policyLibrary = ref([]);
+                function openShareCreate() {
+                    scType.value = 'report'; scStep.value = 1; scKeyword.value = '';
+                    scContent.value = null; scCustomer.value = null;
+                    policyLibrary.value = DB.loadPolicyLibrary ? DB.loadPolicyLibrary() : [];
+                    showShareCreate.value = true;
+                }
+                const scContentList = computed(function () {
+                    const kw = scKeyword.value.trim();
+                    if (scType.value === 'report') {
+                        return archiveReports.value.filter(function (r) {
+                            return !kw || (r.title || '').indexOf(kw) >= 0 || (r.customerName || '').indexOf(kw) >= 0;
+                        });
+                    }
+                    return policyLibrary.value.filter(function (p) {
+                        return !kw || (p.name || '').indexOf(kw) >= 0 || (p.dept || '').indexOf(kw) >= 0;
+                    });
+                });
+                const scCustomerList = computed(function () {
+                    const kw = scKeyword.value.trim();
+                    return customers.value.filter(function (c) {
+                        return !kw || (c._displayName || '').indexOf(kw) >= 0 || (c.contact || '').indexOf(kw) >= 0;
+                    });
+                });
+                function scPickContent(item) { scContent.value = item; scKeyword.value = ''; scStep.value = 2; }
+                function scPickCustomer(c) { scCustomer.value = c; scStep.value = 3; }
+                /** 确认分享：按内容类型写入对应数据层，列表即时刷新 */
+                function scConfirm(channel) {
+                    const c = scCustomer.value;
+                    if (!scContent.value || !c) { tip('请先选择内容和客户'); return; }
+                    const toName = c.contact || c._displayName;
+                    const timeStr = today() + ' ' + pad2(new Date().getHours()) + ':' + pad2(new Date().getMinutes());
+                    const sid = (scType.value === 'report' ? 'S' : 'P') + Date.now().toString().slice(-6);
+                    if (scType.value === 'report') {
+                        // 报告分享：写回报告存档的 shares[]（与智能报告底部「生成分享链接」同结构）
+                        const list = DB.loadSalesReports ? DB.loadSalesReports() : [];
+                        const target = list.filter(function (x) { return x.id === scContent.value.id; })[0];
+                        if (target) {
+                            target.shares = target.shares || [];
+                            target.shares.unshift({ shareId: sid, toName: toName, toPhone: c.phone || '', channel: channel, createdAt: timeStr, expireAt: '', views: [] });
+                            if (DB.saveSalesReports) DB.saveSalesReports(list);
+                        }
+                        shareTab.value = 0;
+                    } else {
+                        // 政策分享：写入 ceyuan_policy_shares
+                        const p = scContent.value;
+                        if (DB.addPolicyShare) {
+                            DB.addPolicyShare({
+                                shareId: sid, policyId: p.id, policyName: p.name,
+                                batchName: (p.batches && p.batches.length ? p.batches[p.batches.length - 1].name : ''),
+                                toName: toName, toPhone: c.phone || '', channel: channel, createdAt: timeStr
+                            });
+                        }
+                        shareTab.value = 1;
+                    }
+                    showShareCreate.value = false;
+                    loadingShares();
+                    tip(channel === '站内推送' ? '已推送到客户账号（客户在「会员中心 · 站内消息」查看）' : '分享链接已生成，点击列表项可查看追踪链接与数据');
+                }
+                const showTracking = ref(false);
+                const tracking = ref(null);
+                // 二维码占位：固定图案（对接后替换为后端返回的二维码图片）
+                const qrCells = (function () {
+                    const seed = [1,1,1,1,1,1,1,0,0,1,0,0,0,0,1,0,0,1,0,1,1,0,1,0,1,1,1,0,1,1,1,1,1,0,1,1,0,0,1,0,0,0,0,1,0,0,1,1,1,1,1,1,1,0,1,1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,1,0,0,0,1,1,0,0,1,1];
+                    return seed.slice(0, 81);
+                })();
+                function openTracking(s) { tracking.value = s; showTracking.value = true; }
+                /** 打开客户视角：客户在微信里点开外链实际看到的落地页（报告 / 政策均支持） */
+                function openPreview(s) {
+                    if (!s.url) { tip('该分享暂无落地页链接'); return; }
+                    window.open(s.url, '_blank');
+                }
+                function copyLink(url) {
+                    // 复制到剪贴板（移动端兜底 textarea 方案）
+                    try {
+                        const ta = document.createElement('textarea');
+                        ta.value = window.location.origin + '/' + url;
+                        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+                        tip('追踪链接已复制');
+                    } catch (e) { tip('复制失败，请长按链接手动复制'); }
+                }
+
+                // ================= 线索管理 =================
+                const leadTab = ref(0);
+                const showMarkSheet = ref(false);
+                const showLead = ref(false);
+                const lead = ref(null);
+                const currentLead = ref(null);
+                const markActions = [
+                    { name: '标记为已转化', subname: '进入成交客户池' },
+                    { name: '标记为无效', subname: '关闭该线索并记录原因' }
+                ];
+                // 线索行映射：数据层记录 → 视图模型（行为标签/图标/左滑状态/动态轨迹）
+                function mapClue(c) {
+                    const b = BEHAVIOR_MAP[c.source] || ['查看政策', 't-gray', 'fa-search'];
+                    const icon = SOURCE_ICON[c.source] || ['#f1f5f9', '#64748b'];
+                    return Object.assign({}, c, {
+                        _behavior: b[0], _behaviorClass: b[1], _icon: b[2], _iconBg: icon[0], _iconColor: icon[1],
+                        _x: 0, _drag: false,
+                        pushTime: c.enterTime || c.createTime || '',
+                        _track: [
+                            { action: c.source, at: c.createTime || '', detail: '触发「' + c.intent + '」相关行为，系统自动回流为线索' },
+                            { action: '政策雷达浏览', at: c.createTime || '', detail: '连续查看同领域政策 3 次以上，判定为高意向' },
+                            { action: '线索入库', at: c.createTime || '', detail: '已分配给' + (c.sales || '待认领') }
+                        ]
+                    });
+                }
+                const leads = ref((DB.loadClues ? DB.loadClues() : []).map(mapClue));
+                // 增量刷新线索（客户端咨询/委托实时回流的线索，避免整表重绘打扰左滑操作）
+                function syncLeads() {
+                    if (!DB.loadClues) return;
+                    const raw = DB.loadClues() || [];
+                    if (raw.length === leads.value.length) return;
+                    const stageById = {};
+                    leads.value.forEach(function (l) { stageById[l.id] = { stage: l.stage, sales: l.sales }; });
+                    leads.value = raw.map(function (c) {
+                        const keep = stageById[c.id];
+                        if (keep) { c.stage = keep.stage; c.sales = keep.sales; }
+                        return mapClue(c);
+                    });
+                }
+                const pendingCount = computed(() => leads.value.filter(l => l.stage === '待跟进').length);
+                const STAGE_CLASS = { '待跟进': 't-gray', '跟进中': 't-blue', '已转化': 't-green', '已流失': 't-red' };
+                const stageClass = s => STAGE_CLASS[s] || 't-gray';
+                const leadTabName = computed(() => ['', '待跟进', '跟进中', '已转化'][leadTab.value]);
+                const filteredLeads = computed(() => leadTabName.value ? leads.value.filter(l => l.stage === leadTabName.value) : leads.value);
+
+                function openLeadDetail(l) { lead.value = l; showLead.value = true; }
+                function claimLead(l) {
+                    if (l.stage === '已转化' || l.stage === '已流失') { tip('该线索已结束，无需认领'); return; }
+                    l.stage = '跟进中'; l.sales = l.sales || '张销售';
+                    l._x = 0;
+                    persistLeads();
+                    tip('已认领，状态更新为「跟进中」');
+                }
+                function openMarkSheet(l) { currentLead.value = l; showMarkSheet.value = true; }
+                function onMarkSelect(a) {
+                    showMarkSheet.value = false;
+                    const l = currentLead.value;
+                    if (!l) return;
+                    const isWin = a.name.indexOf('已转化') >= 0;
+                    l.stage = isWin ? '已转化' : '已流失';
+                    l._x = 0;
+                    persistLeads();
+                    tip(a.name + '，已同步到 PC 线索管理');
+                }
+                function persistLeads() {
+                    // 状态写回 DataBridge，PC 线索管理 / 业绩看板同步变化
+                    const list = DB.loadClues ? DB.loadClues() : [];
+                    leads.value.forEach(function (l) {
+                        const t = list.filter(x => x.id === l.id)[0];
+                        if (t) { t.stage = l.stage; t.sales = l.sales || t.sales; }
+                    });
+                    if (DB.saveClues) DB.saveClues(list);
+                }
+                // 左滑：兼容触摸与鼠标拖拽（桌面预览可测）
+                let swipe = { x: 0, base: 0, row: null };
+                const OPEN_X = -150;
+                function swipeStart(e, l) {
+                    if (!e.touches && e.button !== 0) return;
+                    swipe.row = l; swipe.base = l._x || 0; swipe.x = e.touches ? e.touches[0].clientX : e.clientX;
+                    l._drag = true;
+                    leads.value.forEach(o => { if (o !== l) o._x = 0; });
+                }
+                function swipeMove(e, l) {
+                    if (swipe.row !== l) return;
+                    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                    l._x = Math.max(OPEN_X, Math.min(0, swipe.base + (cx - swipe.x)));
+                }
+                function swipeEnd(l) {
+                    if (swipe.row !== l) return;
+                    l._drag = false;
+                    l._x = (l._x || 0) < OPEN_X / 2 ? OPEN_X : 0;
+                    swipe.row = null;
+                }
+
+                // ================= 业绩看板 =================
+                const boardScope = ref(0);        // 0=个人 1=团队
+                const boardPeriod = ref('month'); // week / month / year
+                const periods = [{ key: 'week', label: '本周' }, { key: 'month', label: '本月' }, { key: 'year', label: '本年' }];
+                const PERIOD_SCALE = { week: 0.25, month: 1, year: 3.2 };
+                const PERIOD_LABEL = { week: '本周', month: '本月', year: '本年' };
+                const board = reactive({ leads: 0, rate: 0, amountText: '0 万', targetText: '0 万', gapText: '0 万', percent: 0, bars: [], donut: '', stageDist: [], periodLabel: '本月' });
+
+                function setPeriod(k) { boardPeriod.value = k; recalcBoard(); }
+                function recalcBoard() {
+                    const scale = PERIOD_SCALE[boardPeriod.value];
+                    const mine = boardScope.value === 0;
+                    const scoped = leads.value.filter(l => !mine || l.sales === '张销售');
+                    const converted = scoped.filter(l => l.stage === '已转化').length;
+                    const orders = DB.loadServiceOrders ? (DB.loadServiceOrders() || []) : [];
+                    const paid = orders.filter(o => o.status !== 'unpaid').reduce((s, o) => s + (Number(o.amount) || 0), 0);
+                    const amount = Math.round(paid * scale * (mine ? 0.55 : 1) / 100) / 10; // 万元
+                    const target = mine ? 30 : 80; // 万元（原型目标值，对接后可后台配置）
+                    board.leads = Math.max(1, Math.round(scoped.length * (scale < 1 ? 0.6 : scale === 1 ? 1 : 2.6)));
+                    board.rate = scoped.length ? Math.round(converted / scoped.length * 100) : 0;
+                    board.amountText = amount.toFixed(1) + ' 万';
+                    board.targetText = target + ' 万';
+                    board.gapText = Math.max(0, target - amount).toFixed(1) + ' 万';
+                    board.percent = Math.min(100, Math.round(amount / target * 100));
+                    board.periodLabel = PERIOD_LABEL[boardPeriod.value];
+                    // 业绩构成柱状图（按线索来源）
+                    const sources = ['政策查询', '问答触发', '诊断触发', '计算器触发'];
+                    const counts = sources.map(s => scoped.filter(l => l.source === s).length);
+                    const max = Math.max.apply(null, counts.concat([1]));
+                    board.bars = sources.map((s, i) => ({ label: s.slice(0, 2), value: counts[i], height: Math.round(counts[i] / max * 100) }));
+                    // 线索阶段分布环形图（conic-gradient 占位，可替换为 ECharts / chart.js）
+                    const stages = ['待跟进', '跟进中', '已转化', '已流失'];
+                    const colors = ['#94a3b8', '#6366f1', '#10b981', '#ef4444'];
+                    const total = scoped.length || 1;
+                    let acc = 0;
+                    const stops = [];
+                    board.stageDist = stages.map((s, i) => {
+                        const v = scoped.filter(l => l.stage === s).length;
+                        const pct = Math.round(v / total * 100);
+                        stops.push(colors[i] + ' ' + acc + '% ' + (acc + v / total * 100) + '%');
+                        acc += v / total * 100;
+                        return { label: s, value: v, percent: pct, color: colors[i] };
+                    });
+                    board.donut = 'conic-gradient(' + stops.join(', ') + ')';
+                }
+
+                // ================= 消息中心（客户在线咨询；客户在政策详情页发起，本端接收并回复） =================
+                const showMsgCenter = ref(false);
+                const msgView = ref('list');          // list 会话列表 / chat 会话聊天
+                const msgTab = ref('chat');           // chat 咨询消息 / entrust 委托申报
+                const msgList = ref([]);              // 全部咨询消息（DataBridge）
+                const entrustList = ref([]);          // 全部委托申报单（DataBridge）
+                const activeConv = ref(null);         // 当前打开的会话（按客户名聚合）
+                const chatDraft = ref('');
+                const msgChatBody = ref(null);
+
+                function loadMsgs() { if (DB.loadConsultMessages) msgList.value = DB.loadConsultMessages() || []; }
+                function loadEntrusts() { if (DB.loadEntrusts) entrustList.value = DB.loadEntrusts() || []; }
+                // 未读数 = 客户发的、顾问未读的消息
+                const unreadMsgCount = computed(function () {
+                    return msgList.value.filter(function (m) { return m.from === 'customer' && !m.read; }).length;
+                });
+                // 待办委托 = 状态为"待处理"的委托单
+                const pendingEntrustCount = computed(function () {
+                    return entrustList.value.filter(function (e) { return e.status === '待处理'; }).length;
+                });
+                // 导航角标 = 未读消息 + 待办委托
+                const navBadgeCount = computed(function () { return unreadMsgCount.value + pendingEntrustCount.value; });
+                // 委托单状态流转：待处理 → 跟进中 → 已办结
+                function advanceEntrust(e) {
+                    var next = e.status === '待处理' ? '跟进中' : e.status === '跟进中' ? '已办结' : '';
+                    if (!next) return;
+                    e.status = next;
+                    if (DB.saveEntrusts) DB.saveEntrusts(entrustList.value);
+                    tip(next === '跟进中' ? '已开始跟进 ' + e.contact + ' 的委托' : '委托已办结');
+                }
+                // 从委托单跳到该客户的咨询会话（无会话则提示）
+                function msgCustomer(e) {
+                    var conv = convList.value.find(function (c) { return c.customerName === e.customerName; });
+                    if (!conv) { tip('该客户暂无咨询会话，可直接电话 ' + e.phone); return; }
+                    msgTab.value = 'chat';
+                    openConv(conv);
+                }
+                // 会话列表：按客户名聚合，取最后一条消息与未读数，按最后时间倒序
+                const convList = computed(function () {
+                    var map = {};
+                    msgList.value.forEach(function (m) {
+                        var k = m.customerName || '访客';
+                        if (!map[k]) map[k] = { customerName: k, policyName: m.policyName || '', lastText: '', lastFrom: '', lastAt: '', unread: 0 };
+                        if (m.at >= map[k].lastAt) { map[k].lastAt = m.at; map[k].lastText = m.text; map[k].lastFrom = m.from; if (m.policyName) map[k].policyName = m.policyName; }
+                        if (m.from === 'customer' && !m.read) map[k].unread++;
+                    });
+                    return Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return a.lastAt < b.lastAt ? 1 : -1; });
+                });
+                const activeConvName = computed(function () { return activeConv.value ? activeConv.value.customerName : ''; });
+                const activeConvPolicy = computed(function () { return activeConv.value ? activeConv.value.policyName : ''; });
+                // 当前会话消息（按时间正序）
+                const convMessages = computed(function () {
+                    if (!activeConv.value) return [];
+                    var name = activeConv.value.customerName;
+                    return msgList.value.filter(function (m) { return (m.customerName || '访客') === name; })
+                        .sort(function (a, b) { return a.at < b.at ? -1 : 1; });
+                });
+                function openMsgCenter() { loadMsgs(); msgView.value = 'list'; showMsgCenter.value = true; }
+                // 打开会话：标记该客户消息为已读并写回数据层
+                function openConv(c) {
+                    activeConv.value = c;
+                    var changed = false;
+                    msgList.value.forEach(function (m) { if ((m.customerName || '访客') === c.customerName && m.from === 'customer' && !m.read) { m.read = true; changed = true; } });
+                    if (changed && DB.saveConsultMessages) DB.saveConsultMessages(msgList.value);
+                    msgView.value = 'chat';
+                    setTimeout(scrollChatBottom, 80);
+                }
+                function scrollChatBottom() { var el = msgChatBody.value; if (el) el.scrollTop = el.scrollHeight; }
+                // 顾问回复：入库（客户端聊天窗轮询取回展示）
+                function sendAdvisorReply() {
+                    var v = chatDraft.value.trim();
+                    if (!v || !activeConv.value) return;
+                    var m = activeConv.value;
+                    if (DB.addConsultMessage) {
+                        DB.addConsultMessage({ customerName: m.customerName, policyId: '', policyName: m.policyName, shareId: shareIdOf(m.customerName), from: 'advisor', text: v });
+                    }
+                    chatDraft.value = '';
+                    loadMsgs();
+                    setTimeout(scrollChatBottom, 80);
+                    tip('已回复 ' + m.customerName);
+                }
+                // 取该客户最近一次会话的 shareId（保证客户端轮询按 shareId 能匹配到回复）
+                function shareIdOf(customerName) {
+                    var sid = '';
+                    msgList.value.forEach(function (m) { if ((m.customerName || '访客') === customerName && m.shareId) sid = m.shareId; });
+                    return sid;
+                }
+
+                onMounted(function () {
+                    loadingShares(); refreshArchive(); recalcBoard(); loadMsgs(); loadEntrusts();
+                    setInterval(function () { loadMsgs(); loadEntrusts(); syncLeads(); }, 5000); // 轮询新消息/新委托/新线索，刷新角标（正式版替换为 WebSocket/IM SDK）
+                });
+
+                // ================= 暴露给模板 =================
+                return {
+                    activeTab, navTitle, toast, tip, todo,
+                    showMsgCenter, msgView, msgTab, msgList, convList, unreadMsgCount, pendingEntrustCount, navBadgeCount, entrustList, advanceEntrust, msgCustomer, activeConvName, activeConvPolicy, convMessages, chatDraft, msgChatBody, openMsgCenter, openConv, sendAdvisorReply,
+                    customerKeyword, customers, filteredCustomers, showCustomer, customer, openCustomer, planForm, submitPlan, goGenerateReport, unmatchedText, reMatch, shareReportFromCard,
+                    customerStatusFilter, statusFilters, countByStatus,
+                    showNewCustomer, showNewStatus, newForm, NEW_STATUS_ACTIONS, openNewCustomer, onNewStatusSelect, submitNewCustomer, refreshLocalCustomers,
+                    showImportCustomers, openImportCustomers, importFileName, importError, importDup,
+                    showFileInput, downloadTemplate, parsedImported, confirmImportCustomers,
+                    reportKeyword, reportLoading, report, quickCompanies, generateReport, exportPDF, createShare,
+                    // 政策匹配条件采集
+                    condOpen, condStep, condMeasuring, condAuto, condAssess,
+                    openConditions, goNextStep, rerunAssessment, doMatch, calcScore, calcWeak,
+                    showLossPicker, showRndPicker, showUniPicker, showFundPicker, showWindowPicker,
+                    BOOL_ACTIONS, FUND_ACTIONS, WINDOW_ACTIONS,
+                    onLossSelect, onRndSelect, onUniSelect, onFundSelect, onWindowSelect,
+                    showChannelSheet, channelActions, onChannelSelect,
+                    showPicker, pickerKeyword, pickerList, pickCustomer, archiveReports, loadArchive, backToArchive, showPdf,
+                    shareTab, refreshing, shareList, policyShareList, onRefresh, showTracking, tracking, qrCells, openTracking, openPreview, copyLink,
+                    showShareCreate, scType, scStep, scKeyword, scContent, scCustomer, scContentList, scCustomerList,
+                    openShareCreate, scPickContent, scPickCustomer, scConfirm,
+                    leadTab, leads, filteredLeads, pendingCount, stageClass, showLead, lead, openLeadDetail,
+                    claimLead, showMarkSheet, markActions, openMarkSheet, onMarkSelect, swipeStart, swipeMove, swipeEnd,
+                    boardScope, boardPeriod, periods, board, setPeriod, recalcBoard
+                };
+            }
+        }).use(vant).mount('#app');
+    })();
+    </script>
+</body>
+</html>

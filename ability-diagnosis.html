@@ -1,0 +1,3218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科创测评 - 策源易答</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+        }
+        .left-sidebar {
+            background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%);
+            border-right: 1px solid rgba(255,255,255,0.4);
+        }
+        .history-item {
+            transition: all 0.2s ease;
+        }
+        .history-item:hover {
+            background: rgba(255,255,255,0.55);
+            transform: translateX(2px);
+        }
+        .history-item.active {
+            background: rgba(255,255,255,0.85);
+            box-shadow: 0 4px 12px -4px rgba(59, 130, 246, 0.3);
+        }
+        .scroll-thin::-webkit-scrollbar { width: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 3px; }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1);
+        }
+        .radar-bg {
+            background: conic-gradient(from 0deg, #2563eb 0deg, #2563eb 60deg, #10b981 60deg, #10b981 120deg, #f59e0b 120deg, #f59e0b 180deg, #8b5cf6 180deg, #8b5cf6 240deg, #ec4899 240deg, #ec4899 300deg, #06b6d4 300deg, #06b6d4 360deg);
+        }
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .dimension-card {
+            transition: all 0.3s;
+        }
+        .dimension-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(0,0,0,0.12);
+        }
+        /* Tab 按钮 */
+        .tab-btn {
+            color: #64748b;
+        }
+        .tab-btn.tab-on {
+            background: linear-gradient(90deg,#2563eb,#4f46e5);
+            color: #fff;
+            box-shadow: 0 6px 14px -6px rgba(37,99,235,0.5);
+        }
+        .tab-btn:hover {
+            background: rgba(241,245,249,0.9);
+        }
+        .tab-btn.tab-on:hover {
+            background: linear-gradient(90deg,#1d4ed8,#4338ca);
+        }
+        /* 打印样式：仅显示报告区，铺满 A4，黑字白底，分页友好 */
+        @media print {
+            body { background: #fff !important; overflow: visible !important; }
+            .left-sidebar, .sticky, .report-hide-print, #resultGuide { display: none !important; }
+            main { overflow: visible !important; background: #fff !important; }
+            .max-w-\[1400px\] { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+            #resultArea { display: block !important; }
+            .report-root { padding: 0 !important; margin: 0 !important; }
+            .report-section, .report-header, table { page-break-inside: avoid; }
+            .report-root, .report-root * { color: #000 !important; }
+            .report-root .bg-white, .report-root .bg-slate-50, .report-root .bg-blue-50,
+            .report-root .bg-green-50, .report-root .bg-red-50, .report-root .bg-amber-50,
+            .report-root .bg-yellow-50, .report-root .bg-indigo-50, .report-root .bg-purple-50,
+            .report-root .bg-gradient-to-r, .report-root .bg-gradient-to-br { background: #fff !important; }
+            .report-root .shadow-sm, .report-root .shadow-lg { box-shadow: none !important; }
+        }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="flex h-screen">
+        <aside class="left-sidebar w-20 flex-shrink-0 flex flex-col items-center" style="background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4);">
+            <!-- Logo -->
+            <div class="w-full pt-4 pb-3 border-b border-white/30 flex flex-col items-center">
+                <div style="position:relative;width:62px;height:28px;"><svg style="position:absolute;top:0;left:0;" width="62" height="14" viewBox="0 0 62 14"><path d="M3 13 C 18 1, 44 -1, 59 7" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round"/></svg><div style="position:absolute;top:5px;left:0;width:62px;text-align:center;font-size:17px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#1d4ed8;font-family:Arial,sans-serif;">ELHP</div></div><div class="text-[10px] font-black text-slate-800" style="margin-top:2px;">策源易答</div>
+            </div>
+
+            <!-- 智能功能导航 -->
+            <div class="w-full pt-3 pb-3 flex flex-col items-center gap-1.5">
+                <button onclick="goPage('dashboard.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="智能政策问答">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-comments text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策问答</span>
+                </button>
+                <button onclick="goPage('policy-radar.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策雷达</span>
+                </button>
+                <button onclick="goPage('ability-diagnosis.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="科创能力评估">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center" style="background:#6366f1;"><i class="fa fa-stethoscope text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold" style="color:#4f46e5;">科创测评</span>
+                </button>
+                <button onclick="goPage('declaration-butler.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="申报材料自查">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-file-text-o text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">申报管家</span>
+                </button>
+                <button onclick="goPage('policy-center.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
+                <button onclick="goPage('service-market.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold text-orange-600">服务商城</span>
+                </button>
+            </div>
+
+            <!-- 底部：充值中心 / 会员中心 -->
+            <div class="mt-auto w-full pt-2 pb-3 border-t border-white/30 flex flex-col items-center gap-1.5">
+                <button onclick="goPage('member-center.html?action=plan')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="策能值充值">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-amber-400 to-orange-500"><i class="fa fa-bolt text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold">充值中心</span>
+                </button>
+                <button onclick="goPage('member-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="会员中心">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-user text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">会员中心</span>
+                </button>
+            </div>
+        </aside>
+        <main class="flex-1 overflow-y-auto" style="background: linear-gradient(135deg, #eef2ff 0%, #e0f2fe 50%, #f5f3ff 100%);">
+            <div class="sticky top-0 z-10 flex items-center justify-between px-6 py-3 bg-white/60 backdrop-blur-md border-b border-white/50">
+                <div class="flex items-center space-x-3">
+                    <div class="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full text-xs font-bold tracking-wider">策源智答 2.0</div>
+                    <span class="text-xs text-slate-500">当前页面：科创测评</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="tbOpenCity()" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all" title="切换城市，查看当地政策">
+                        <i class="fa fa-map-marker mr-1"></i><span id="tbCity">成都市</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
+                    </button>
+                    <div class="relative group">
+                        <button onclick="goPage('member-center.html')" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all flex items-center gap-1.5">
+                            <i class="fa fa-user-circle mr-1"></i><span id="tbUser">未登录</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
+                        </button>
+                        <div class="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                            <div class="px-4 py-3 border-b border-slate-100">
+                                <div id="tbUserName" class="text-xs font-bold text-slate-700">未登录</div>
+                                <div id="tbUserPhone" class="text-[10px] text-slate-400 mt-0.5">—</div>
+                            </div>
+                            <button onclick="goPage('member-center.html')" class="w-full px-4 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50 flex items-center gap-2">
+                                <i class="fa fa-user w-3.5"></i>会员中心
+                            </button>
+                            <button onclick="tbLogout()" class="w-full px-4 py-2.5 text-left text-xs text-red-500 hover:bg-red-50 flex items-center gap-2">
+                                <i class="fa fa-sign-out w-3.5"></i>退出登录
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    <div class="max-w-[1400px] mx-auto p-6">
+        <!-- 页面标题 -->
+        <div class="mb-6 flex items-center justify-between report-hide-print">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 mb-1">科创测评</h1>
+                <p class="text-sm text-slate-500" id="pageSubtitle">综合测评企业科创能力，定位当前梯度阶段与培育进阶路径</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="exportReport()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
+                    <i class="fa fa-file-pdf-o mr-2"></i>导出报告
+                </button>
+            </div>
+        </div>
+
+        <!-- 步骤指示器 -->
+        <div class="mb-5 flex items-center justify-center report-hide-print">
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center">
+                    <div id="step1" class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</div>
+                    <span class="ml-2 text-xs font-bold text-slate-700">填写企业信息</span>
+                </div>
+                <div class="w-16 h-px bg-slate-300"></div>
+                <div class="flex items-center">
+                    <div id="step2" class="w-8 h-8 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold">2</div>
+                    <span class="ml-2 text-xs font-bold text-slate-400">开始测评</span>
+                </div>
+                <div class="w-16 h-px bg-slate-300"></div>
+                <div class="flex items-center">
+                    <div id="step3" class="w-8 h-8 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold">3</div>
+                    <span class="ml-2 text-xs font-bold text-slate-400">查看报告</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4 个测评 Tab -->
+        <div class="mb-5 flex items-center justify-center report-hide-print">
+            <div class="inline-flex bg-white rounded-xl border border-slate-200 p-1 shadow-sm gap-1 flex-wrap justify-center" id="tabBar">
+                <button onclick="switchTab('hightech')" id="tab-hightech" class="tab-btn px-5 py-2 rounded-lg text-xs font-bold transition-all">高企测评</button>
+                <button onclick="switchTab('specialized')" id="tab-specialized" class="tab-btn px-5 py-2 rounded-lg text-xs font-bold transition-all">专精特新测评</button>
+                <button onclick="switchTab('giant')" id="tab-giant" class="tab-btn px-5 py-2 rounded-lg text-xs font-bold transition-all">小巨人测评</button>
+                <button onclick="switchTab('gradient')" id="tab-gradient" class="tab-btn px-5 py-2 rounded-lg text-xs font-bold transition-all">梯度培育方案</button>
+            </div>
+        </div>
+
+        <!-- ===== 上段：表单区 ===== -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-100 mb-6 report-hide-print">
+            <!-- 企业信息头部（动态统计槽） -->
+            <div class="flex items-center justify-between mb-5 pb-5 border-b border-slate-100">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+                        <i class="fa fa-building text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800" id="entName">—</h2>
+                        <p class="text-xs text-slate-500" id="entTag">请输入企业信息进行测评</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="text-center">
+                        <p class="text-xl font-black text-slate-800" id="entStatValue1">—</p>
+                        <p class="text-[10px] text-slate-400" id="entStatLabel1">统计1</p>
+                    </div>
+                    <div class="w-px h-8 bg-slate-200"></div>
+                    <div class="text-center">
+                        <p class="text-xl font-black text-slate-800" id="entStatValue2">—</p>
+                        <p class="text-[10px] text-slate-400" id="entStatLabel2">统计2</p>
+                    </div>
+                    <div class="w-px h-8 bg-slate-200"></div>
+                    <div class="text-center">
+                        <p class="text-xl font-black text-slate-800" id="entStatValue3">—</p>
+                        <p class="text-[10px] text-slate-400" id="entStatLabel3">统计3</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据完整度 -->
+            <div class="mb-5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-600"><i class="fa fa-check-circle text-blue-500 mr-1"></i>数据完整度</span>
+                    <span id="completenessPct" class="text-xs font-black text-blue-600">0%</span>
+                </div>
+                <div class="h-2 bg-white rounded-full overflow-hidden mb-2">
+                    <div id="completenessBar" class="h-full rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(90deg,#3b82f6,#22c55e);"></div>
+                </div>
+                <div id="completenessMsg" class="text-[10px] text-slate-500 leading-relaxed"></div>
+            </div>
+
+            <!-- 动态表单容器（按当前 Tab 渲染不同字段） -->
+            <div id="formContainer"></div>
+
+            <!-- 开始测评按钮 -->
+            <div class="mt-6 flex justify-center">
+                <button onclick="startDiagnosis()" class="px-12 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300">
+                    <i class="fa fa-stethoscope mr-2"></i> 开始测评
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== 下段：测评结果区 ===== -->
+        <!-- 未测评引导卡片 -->
+        <div id="resultGuide" class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-12 border border-dashed border-slate-300 text-center">
+            <div class="w-20 h-20 mx-auto bg-white rounded-full shadow-lg flex items-center justify-center mb-5">
+                <i class="fa fa-stethoscope text-3xl text-blue-500"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-700 mb-2">等待测评</h3>
+            <p class="text-sm text-slate-500 mb-5">请在上方填写企业信息，点击开始测评按钮<br>系统将生成测评报告</p>
+            <div class="flex items-center justify-center flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-400">
+                <span><i class="fa fa-sitemap text-blue-400 mr-1"></i>能力雷达图</span>
+                <span><i class="fa fa-bar-chart text-green-400 mr-1"></i>同业对比</span>
+                <span><i class="fa fa-exclamation-triangle text-orange-400 mr-1"></i>短板分析</span>
+                <span><i class="fa fa-lightbulb-o text-yellow-400 mr-1"></i>提升建议</span>
+                <span><i class="fa fa-road text-purple-400 mr-1"></i>发展路径</span>
+                <span><i class="fa fa-magic text-pink-400 mr-1"></i>政策推荐</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-5"><i class="fa fa-info-circle text-purple-400 mr-1"></i>报告中的分析与改进建议优先由 AI 生成，AI 服务不可用时自动回退规则引擎，结果仅供参考</p>
+        </div>
+
+        <!-- 测评结果（默认隐藏，测评后显示） -->
+        <div id="resultArea" class="report-root" style="display:none;">
+    <!-- 报告主体卡 -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="reportCard">
+        <!-- 报告头部 -->
+        <div class="report-header px-8 py-6 border-b border-slate-200" style="background:linear-gradient(135deg,#f8fafc,#eff6ff);">
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                    <h2 id="reportTitle" class="text-2xl font-black text-slate-800 mb-2">—</h2>
+                    <div class="flex items-center gap-4 text-xs text-slate-500">
+                        <span><i class="fa fa-calendar mr-1"></i>生成日期：<span id="reportDate">—</span></span>
+                        <span><i class="fa fa-file-text-o mr-1"></i>报告编号：<span id="reportNo">—</span></span>
+                        <span id="reportGenBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-[10px] font-bold">
+                            <i class="fa fa-magic"></i>AI 辅助生成
+                        </span>
+                    </div>
+                </div>
+                <button onclick="downloadReport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 flex-shrink-0">
+                    <i class="fa fa-download"></i> 下载PDF报告
+                </button>
+            </div>
+            <div class="mt-5 flex items-center gap-6">
+                <div class="text-center">
+                    <p class="text-[10px] text-slate-500 mb-1">综合得分</p>
+                    <p id="reportScore" class="text-5xl font-black text-blue-600 leading-none">—</p>
+                </div>
+                <div class="w-px h-16 bg-slate-200"></div>
+                <div class="text-center">
+                    <p class="text-[10px] text-slate-500 mb-1">评级</p>
+                    <p id="reportRating" class="text-3xl font-black text-slate-700">—</p>
+                </div>
+                <div class="w-px h-16 bg-slate-200"></div>
+                <div class="text-center">
+                    <p class="text-[10px] text-slate-500 mb-1">达标判定</p>
+                    <span id="reportBadge" class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500">—</span>
+                </div>
+                <div class="ml-auto">
+                    <div class="relative w-40 h-40">
+                        <svg viewBox="0 0 300 300" class="w-full h-full">
+                            <polygon points="150,30 254,90 254,210 150,270 46,210 46,90" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                            <polygon points="150,70 224,112 224,188 150,230 76,188 76,112" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                            <polygon points="150,110 194,134 194,166 150,190 106,166 106,134" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                            <line x1="150" y1="150" x2="150" y2="30" stroke="#e2e8f0" stroke-width="1"/>
+                            <line x1="150" y1="150" x2="254" y2="90" stroke="#e2e8f0" stroke-width="1"/>
+                            <line x1="150" y1="150" x2="254" y2="210" stroke="#e2e8f0" stroke-width="1"/>
+                            <line x1="150" y1="150" x2="150" y2="270" stroke="#e2e8f0" stroke-width="1"/>
+                            <line x1="150" y1="150" x2="46" y2="210" stroke="#e2e8f0" stroke-width="1"/>
+                            <line x1="150" y1="150" x2="46" y2="90" stroke="#e2e8f0" stroke-width="1"/>
+                            <polygon id="reportRadarPolygon" points="150,150 150,150 150,150 150,150 150,150 150,150" fill="rgba(37, 99, 235, 0.2)" stroke="#2563eb" stroke-width="2"/>
+                            <g id="reportRadarPoints"></g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第一部分：基本门槛与硬性指标核验 -->
+        <div class="report-section px-8 py-6 border-b border-slate-100">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+                <h3 class="text-base font-black text-slate-800">基本门槛与硬性指标核验</h3>
+            </div>
+            <div id="reportHardship" class="space-y-2"></div>
+        </div>
+
+        <!-- 第二部分：企业创新能力量化评分 -->
+        <div class="report-section px-8 py-6 border-b border-slate-100">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">2</span>
+                <h3 class="text-base font-black text-slate-800">企业创新能力量化评分</h3>
+                <span class="text-xs text-slate-400 ml-2">满分100 · 及格线 <span id="reportPassLine">—</span></span>
+            </div>
+            <div id="reportScoreTable" class="space-y-2"></div>
+            <div id="reportRiskWarn" class="mt-3"></div>
+        </div>
+
+        <!-- 第三部分：测评分析报告 -->
+        <div class="report-section px-8 py-6 border-b border-slate-100">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">3</span>
+                <h3 class="text-base font-black text-slate-800">测评分析报告</h3>
+            </div>
+            <div class="mb-4 flex items-start gap-2 px-3 py-2 rounded-lg bg-purple-50/60 border border-purple-100 text-[11px] text-slate-600 leading-relaxed">
+                <i class="fa fa-info-circle text-purple-500 mt-0.5"></i>
+                <span>本节分析与下方「改进建议」优先由 AI 生成；AI 服务不可用时自动回退至后台测评规则引擎生成。评分与达标判定始终以规则引擎计算结果为准，内容仅供参考，请结合企业实际情况核实后使用。</span>
+            </div>
+            <div class="mb-4">
+                <h4 class="text-sm font-bold text-slate-700 mb-2">3.1 测评综述</h4>
+                <p id="reportSummary" class="text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-lg p-3">—</p>
+            </div>
+            <div class="mb-4">
+                <h4 class="text-sm font-bold text-slate-700 mb-2">3.2 得分明细表</h4>
+                <div class="overflow-x-auto rounded-lg border border-slate-200">
+                    <table class="w-full text-xs">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-bold text-slate-600 border-b border-slate-200">评价指标</th>
+                                <th class="px-3 py-2 text-center font-bold text-slate-600 border-b border-slate-200">满分</th>
+                                <th class="px-3 py-2 text-center font-bold text-slate-600 border-b border-slate-200">得分</th>
+                                <th class="px-3 py-2 text-left font-bold text-slate-600 border-b border-slate-200">关键依据</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportDetailTable"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-slate-700 mb-2">3.3 核心指标深度解读</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-green-50 rounded-lg p-3 border border-green-100">
+                        <p class="text-xs font-bold text-green-700 mb-2"><i class="fa fa-arrow-up mr-1"></i>优势分析</p>
+                        <ul id="reportAdvantages" class="space-y-1 text-xs text-slate-600"></ul>
+                    </div>
+                    <div class="bg-red-50 rounded-lg p-3 border border-red-100">
+                        <p class="text-xs font-bold text-red-700 mb-2"><i class="fa fa-arrow-down mr-1"></i>风险与短板</p>
+                        <ul id="reportRisks" class="space-y-1 text-xs text-slate-600"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第四部分：改进建议 -->
+        <div class="report-section px-8 py-6">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">4</span>
+                <h3 class="text-base font-black text-slate-800">改进建议</h3>
+            </div>
+            <div id="reportSuggestions" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- 相关政策推荐（独立区块，数据来自政策雷达同源匹配引擎） -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-100 mt-6">
+        <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center">
+            <i class="fa fa-magic text-blue-600 mr-2"></i> 相关政策推荐
+            <span class="text-[10px] text-slate-400 ml-2 font-normal">（数据来自政策库，按企业画像实时匹配，与政策雷达同源）</span>
+        </h3>
+        <div id="policyRecommendList"></div>
+    </div>
+</div>
+        </div>
+    </div>
+
+        </main>
+    </div>
+
+<script src="data-bridge.js?v=20250929f"></script>
+<script>
+    // ============ 规则引擎：DSL 表达式解析器 + RuleInterpreter ============
+    // 表达式语法：字段引用 formXxx；数组索引 formRev[2]；聚合 sum(arr)/count(arr)；
+    //   时间 yearsSince(dateStr)；算术 + - * /；比较 >= <= > < == !=；
+    //   逻辑 && || !；三元 c ? a : b；字面量数字与 "是"/"否" 字符串
+    // 禁用 eval/Function，全部手写递归下降解析
+    var RuleInterpreter = (function() {
+        // Token 类型
+        var TK = { NUM:1, STR:2, ID:3, OP:4, LP:5, RP:6, LB:7, RB:8, COMMA:9, END:10, QMARK:11, COLON:12 };
+
+        function tokenize(s) {
+            var tokens = [];
+            var i = 0, n = s.length;
+            while (i < n) {
+                var c = s.charAt(i);
+                if (c === ' ' || c === '\t' || c === '\n' || c === '\r') { i++; continue; }
+                // 数字
+                if (c >= '0' && c <= '9' || (c === '.' && i+1 < n && s.charAt(i+1) >= '0' && s.charAt(i+1) <= '9')) {
+                    var j = i;
+                    while (j < n && ((s.charAt(j) >= '0' && s.charAt(j) <= '9') || s.charAt(j) === '.')) j++;
+                    tokens.push({ type: TK.NUM, val: parseFloat(s.slice(i, j)) });
+                    i = j; continue;
+                }
+                // 字符串
+                if (c === '"' || c === "'") {
+                    var quote = c; j = i + 1; var buf = '';
+                    while (j < n && s.charAt(j) !== quote) {
+                        if (s.charAt(j) === '\\' && j+1 < n) { buf += s.charAt(j+1); j += 2; }
+                        else { buf += s.charAt(j); j++; }
+                    }
+                    tokens.push({ type: TK.STR, val: buf });
+                    i = j + 1; continue;
+                }
+                // 标识符
+                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c === '_') {
+                    j = i;
+                    while (j < n && ((s.charAt(j) >= 'a' && s.charAt(j) <= 'z') || (s.charAt(j) >= 'A' && s.charAt(j) <= 'Z') || s.charAt(j) === '_' || (s.charAt(j) >= '0' && s.charAt(j) <= '9'))) j++;
+                    tokens.push({ type: TK.ID, val: s.slice(i, j) });
+                    i = j; continue;
+                }
+                // 多字符运算符
+                var two = s.slice(i, i+2);
+                if (two === '>=' || two === '<=' || two === '==' || two === '!=' || two === '&&' || two === '||') {
+                    tokens.push({ type: TK.OP, val: two });
+                    i += 2; continue;
+                }
+                // 单字符
+                if (c === '(') { tokens.push({ type: TK.LP }); i++; continue; }
+                if (c === ')') { tokens.push({ type: TK.RP }); i++; continue; }
+                if (c === '[') { tokens.push({ type: TK.LB }); i++; continue; }
+                if (c === ']') { tokens.push({ type: TK.RB }); i++; continue; }
+                if (c === ',') { tokens.push({ type: TK.COMMA }); i++; continue; }
+                if (c === '?') { tokens.push({ type: TK.QMARK }); i++; continue; }
+                if (c === ':') { tokens.push({ type: TK.COLON }); i++; continue; }
+                if (c === '+' || c === '-' || c === '*' || c === '/' || c === '>' || c === '<' || c === '!') {
+                    tokens.push({ type: TK.OP, val: c }); i++; continue;
+                }
+                throw new Error('无法识别字符: ' + c + ' (位置 ' + i + ')');
+            }
+            tokens.push({ type: TK.END });
+            return tokens;
+        }
+
+        function Parser(tokens, inputs) {
+            this.toks = tokens; this.pos = 0; this.inputs = inputs;
+        }
+        Parser.prototype.peek = function() { return this.toks[this.pos]; };
+        Parser.prototype.next = function() { return this.toks[this.pos++]; };
+        Parser.prototype.expect = function(type) {
+            var t = this.next();
+            if (t.type !== type) throw new Error('期望 token 类型 ' + type + '，实际 ' + t.type);
+            return t;
+        };
+
+        // 入口：三元表达式 cond ? a : b
+        Parser.prototype.parseTernary = function() {
+            var cond = this.parseOr();
+            if (this.peek().type === TK.QMARK) {
+                this.next();
+                var yes = this.parseTernary();
+                this.expect(TK.COLON);
+                var no = this.parseTernary();
+                return cond ? yes : no;
+            }
+            return cond;
+        };
+        // 逻辑或 ||
+        Parser.prototype.parseOr = function() {
+            var left = this.parseAnd();
+            while (this.peek().type === TK.OP && this.peek().val === '||') {
+                this.next();
+                var right = this.parseAnd();
+                left = left || right;
+            }
+            return left;
+        };
+        // 逻辑与 &&
+        Parser.prototype.parseAnd = function() {
+            var left = this.parseNot();
+            while (this.peek().type === TK.OP && this.peek().val === '&&') {
+                this.next();
+                var right = this.parseNot();
+                left = left && right;
+            }
+            return left;
+        };
+        // 逻辑非 !
+        Parser.prototype.parseNot = function() {
+            if (this.peek().type === TK.OP && this.peek().val === '!') {
+                this.next();
+                return !this.parseNot();
+            }
+            return this.parseCompare();
+        };
+        // 比较 >= <= > < == !=
+        Parser.prototype.parseCompare = function() {
+            var left = this.parseAdd();
+            while (this.peek().type === TK.OP && (this.peek().val === '>=' || this.peek().val === '<=' || this.peek().val === '>' || this.peek().val === '<' || this.peek().val === '==' || this.peek().val === '!=')) {
+                var op = this.next().val;
+                var right = this.parseAdd();
+                if (op === '>=') left = left >= right;
+                else if (op === '<=') left = left <= right;
+                else if (op === '>') left = left > right;
+                else if (op === '<') left = left < right;
+                else if (op === '==') left = left == right;
+                else if (op === '!=') left = left != right;
+            }
+            return left;
+        };
+        // 加减
+        Parser.prototype.parseAdd = function() {
+            var left = this.parseMul();
+            while (this.peek().type === TK.OP && (this.peek().val === '+' || this.peek().val === '-')) {
+                var op = this.next().val;
+                var right = this.parseMul();
+                if (op === '+') { // 字符串拼接或数字加
+                    left = (typeof left === 'string' || typeof right === 'string') ? ('' + left + '' + right) : (left + right);
+                } else { left = left - right; }
+            }
+            return left;
+        };
+        // 乘除
+        Parser.prototype.parseMul = function() {
+            var left = this.parseUnary();
+            while (this.peek().type === TK.OP && (this.peek().val === '*' || this.peek().val === '/')) {
+                var op = this.next().val;
+                var right = this.parseUnary();
+                if (op === '*') left = left * right;
+                else { left = right === 0 ? 0 : left / right; }
+            }
+            return left;
+        };
+        // 一元负号
+        Parser.prototype.parseUnary = function() {
+            if (this.peek().type === TK.OP && this.peek().val === '-') {
+                this.next();
+                return -this.parseUnary();
+            }
+            return this.parsePrimary();
+        };
+        // 基本元素：数字/字符串/标识符/函数/数组索引/括号
+        Parser.prototype.parsePrimary = function() {
+            var t = this.peek();
+            if (t.type === TK.NUM) { this.next(); return t.val; }
+            if (t.type === TK.STR) { this.next(); return t.val; }
+            if (t.type === TK.LP) {
+                this.next();
+                var v = this.parseTernary();
+                this.expect(TK.RP);
+                return v;
+            }
+            if (t.type === TK.ID) {
+                this.next();
+                var name = t.val;
+                // 函数调用 name(args)
+                if (this.peek().type === TK.LP) {
+                    this.next();
+                    var args = [];
+                    if (this.peek().type !== TK.RP) {
+                        args.push(this.parseTernary());
+                        while (this.peek().type === TK.COMMA) { this.next(); args.push(this.parseTernary()); }
+                    }
+                    this.expect(TK.RP);
+                    return this.callFunc(name, args);
+                }
+                // 字段引用 + 可能数组索引 field[0]
+                var val = this.getField(name);
+                while (this.peek().type === TK.LB) {
+                    this.next();
+                    var idx = this.parseTernary();
+                    this.expect(TK.RB);
+                    val = Array.isArray(val) ? (val[Math.floor(idx)] || 0) : 0;
+                }
+                return val;
+            }
+            throw new Error('意外 token: ' + JSON.stringify(t));
+        };
+        // 字段取值：从 inputs 中取，缺失返回 0/空串
+        Parser.prototype.getField = function(name) {
+            if (Object.prototype.hasOwnProperty.call(this.inputs, name)) {
+                return this.inputs[name];
+            }
+            return 0;
+        };
+        // 内置函数
+        Parser.prototype.callFunc = function(name, args) {
+            if (name === 'sum') {
+                var a = args[0]; if (!Array.isArray(a)) return 0;
+                return a.reduce(function(s, x) { return s + (parseFloat(x) || 0); }, 0);
+            }
+            if (name === 'count') {
+                var b = args[0]; return Array.isArray(b) ? b.length : 0;
+            }
+            if (name === 'yearsSince') {
+                var d = args[0];
+                if (!d || typeof d !== 'string' || !d.length) return 0;
+                var dt = new Date(d);
+                if (isNaN(dt.getTime())) return 0;
+                return (Date.now() - dt.getTime()) / (365.25 * 24 * 3600 * 1000);
+            }
+            if (name === 'min') { return Math.min.apply(null, args); }
+            if (name === 'max') { return Math.max.apply(null, args); }
+            throw new Error('未知函数: ' + name);
+        };
+
+        function evalExpr(expr, inputs) {
+            try {
+                var tokens = tokenize(expr);
+                var p = new Parser(tokens, inputs || {});
+                return p.parseTernary();
+            } catch (e) {
+                console.warn('[规则引擎] 表达式解析失败: ' + expr + ' -> ' + e.message);
+                return 0;
+            }
+        }
+
+        function RuleInterpreter(cfg) { this.rules = cfg.rules; }
+        RuleInterpreter.prototype._guard = function(g, i) { return !g || !!evalExpr(g, i); };
+        RuleInterpreter.prototype.check = function(m, i) {
+            if (!this._guard(m.check.guard, i)) return false;
+            if (m.check.boolExpr != null) return !!evalExpr(m.check.boolExpr, i);
+            var v = evalExpr(m.check.expr, i), t = m.check.value;
+            if (typeof v !== 'number' || isNaN(v)) return false;
+            if (m.check.op === '>=') return v >= t;
+            if (m.check.op === '<=') return v <= t;
+            if (m.check.op === '>') return v > t;
+            if (m.check.op === '<') return v < t;
+            if (m.check.op === '==') return v == t;
+            if (m.check.op === '!=') return v != t;
+            return false;
+        };
+        RuleInterpreter.prototype.value = function(m, i) {
+            var c = m.value;
+            if (!this._guard(c.guard, i)) return c.fallback || '未填';
+            var v = evalExpr(c.expr, i);
+            if (typeof v === 'number' && !isNaN(v)) {
+                return v.toFixed(c.decimals != null ? c.decimals : 0) + (c.unit || '');
+            }
+            return (c.fallback || '未填');
+        };
+        RuleInterpreter.prototype.calc = function(s, i) {
+            var v = evalExpr(s.calc.expr, i);
+            if (typeof v !== 'number' || isNaN(v)) v = 0;
+            var cap = (s.calc.cap != null) ? s.calc.cap : s.max;
+            var floor = (s.calc.floor != null) ? s.calc.floor : 0;
+            return Math.min(cap, Math.max(floor, v));
+        };
+        RuleInterpreter.prototype.basis = function(s, i) {
+            return (s.basis && s.basis.template || '').replace(/\{(\w+)\}/g, function(_, f) {
+                return (i[f] != null ? i[f] : '');
+            });
+        };
+        // 整体执行：返回 { scores, pass, hardMetrics, scoreItems }
+        RuleInterpreter.prototype.evaluate = function(type, i) {
+            var cfg = this.rules[type];
+            if (!cfg) return { scores: {}, pass: {}, hardMetrics: [], scoreItems: [] };
+            var scores = {}, pass = {};
+            (cfg.hardMetrics || []).forEach(function(m) { pass[m.key] = this.check(m, i); }, this);
+            (cfg.scoreItems || []).forEach(function(s) {
+                var k = s.key || s.name;
+                scores[k] = this.calc(s, i);
+            }, this);
+            return { scores: scores, pass: pass, hardMetrics: cfg.hardMetrics || [], scoreItems: cfg.scoreItems || [] };
+        };
+        RuleInterpreter.prototype.evalExpr = evalExpr; // 暴露给试算区
+        return RuleInterpreter;
+    })();
+
+    // 启动时加载规则配置与解释器实例
+    var RULES_CFG = (window.DataBridge && DataBridge.loadDiagnosisRules) ? DataBridge.loadDiagnosisRules() : null;
+    var interp = RULES_CFG ? new RuleInterpreter(RULES_CFG) : null;
+
+    // ============ 基础：页面跳转（保留 try-catch 兜底） ============
+    function goPage(url) {
+        try {
+            if (parent && parent.window && typeof parent.window.switchPage === 'function') {
+                parent.window.switchPage(url, null);
+            } else {
+                window.location.href = url;
+            }
+        } catch (e) {
+            window.location.href = url;
+        }
+    }
+
+    // ============ 4 个测评 Tab 配置（维度 / 字段 / 统计槽 / 结论模式 / 副标题） ============
+    // 维度配色（前端 UI 固定值），各 Tab 复用同一套图标-配色池，按顺序映射
+    var DIM_STYLE = [
+        {icon:'fa-lightbulb-o', bg:'#eff6ff', text:'#2563eb', grad:'linear-gradient(90deg,#3b82f6,#2563eb)'},
+        {icon:'fa-flask',       bg:'#ecfdf5', text:'#059669', grad:'linear-gradient(90deg,#10b981,#059669)'},
+        {icon:'fa-shield',      bg:'#fff7ed', text:'#f97316', grad:'linear-gradient(90deg,#fb923c,#f97316)'},
+        {icon:'fa-rocket',      bg:'#faf5ff', text:'#9333ea', grad:'linear-gradient(90deg,#a855f7,#9333ea)'},
+        {icon:'fa-users',       bg:'#fdf2f8', text:'#ec4899', grad:'linear-gradient(90deg,#ec4899,#db2777)'},
+        {icon:'fa-line-chart',  bg:'#ecfeff', text:'#0891b2', grad:'linear-gradient(90deg,#06b6d4,#0891b2)'}
+    ];
+
+    var TABS = {
+        // ① 梯度培育方案（综合测评）—— 字段对照官方《优质中小企业梯度培育数据采集表》5 大区块
+        gradient: {
+            title: '梯度培育方案',
+            subtitle: '对照官方梯度培育数据采集表，综合测评企业科创能力与进阶路径',
+            radarTitle: '科创能力雷达图',
+            resultMode: 'gradient',
+            tagFields: ['formIndustry', 'scale'],
+            stats: [
+                {label: '年营收',   calc: 'revLatest', fmt: 'yi'},
+                {label: '研发占比', calc: 'feePct', suffix: '%'},
+                {label: '知识产权', sum: ['formPatent', 'formSoftware', 'formUtility']}
+            ],
+            dims: [
+                {key:'tech',      name:'技术创新', desc:'研发与创新动能', avg:62, best:88, suggestions:['加大研发投入强度','深化产学研合作','布局核心发明专利']},
+                {key:'rd',        name:'研发投入', desc:'研发经费强度', avg:55, best:85, suggestions:['提升研发费用占比','建立研发辅助账','争取研发税前加计扣除']},
+                {key:'ip',        name:'知识产权', desc:'专利布局质量', avg:58, best:90, suggestions:['增加发明专利占比','核心专利快速预审','构建专利保护池']},
+                {key:'transform', name:'成果转化', desc:'成果转化能力', avg:60, best:88, suggestions:['建设中试基地','推动成果产业化','提升高新收入占比']},
+                {key:'talent',    name:'人才结构', desc:'研发人员占比', avg:54, best:82, suggestions:['引进高层次研发人才','完善人才激励机制','组建核心研发团队']},
+                {key:'market',    name:'市场表现', desc:'营收规模能力', avg:58, best:86, suggestions:['拓展高附加值产品线','深耕细分市场','提升主营收入增速']}
+            ],
+            fields: [
+                // —— 一、基本情况 ——
+                {type:'section', title:'基本情况', num:'一', icon:'fa-building'},
+                {type:'text',   id:'formName',        label:'企业全称', required:true, placeholder:'请输入企业全称', col:'half', icon:'fa-building'},
+                {type:'text',   id:'formCreditCode',  label:'统一社会信用代码', col:'half', placeholder:'请输入18位统一社会信用代码', maxlength:18},
+                {type:'date',   id:'formFoundDate',   label:'成立日期', col:'half'},
+                {type:'text',   id:'formRegPlace',    label:'注册地', col:'half', placeholder:'请输入省/市/区'},
+                {type:'number', id:'formEmployees',   label:'职工总数（人）', col:'half', placeholder:'请输入'},
+                {type:'radio',  name:'scale',         label:'企业规模', cols:4, col:'half', options:['微型','小型','中型','大型'], hint:'按工信部中小企业划型标准'},
+                {type:'text',   id:'formIndustry',    label:'所属行业', required:true, col:'half', placeholder:'如：人工智能、微电子技术'},
+                {type:'text',   id:'formProduct',     label:'主导产品/服务名称', required:true, col:'half', placeholder:'如：人工智能软件、半导体器件'},
+                {type:'text',   id:'formApplyField',  label:'主导产品应用领域', col:'half', placeholder:'如：政务、航空、农业'},
+                {type:'number', id:'formMarketYears', label:'从事该细分市场年限（年）', col:'half', placeholder:'如 5', hint:'小巨人要求≥3年'},
+                {type:'checkbox', id:'formProductField', label:'主导产品所属领域', col:'full',
+                    options:['制造业"六基"','战略性新兴产业','未来产业','其他']},
+                {type:'checkbox', id:'formMarketPosChk', label:'市场占有率情况', col:'full',
+                    options:['国内前三','国际前三','国内≥10%','其他']},
+                {type:'radio',  name:'formChainSupply', label:'是否为产业链配套企业', cols:2, col:'half', options:['是','否']},
+                {type:'text',   id:'formChainLeader',  label:'配套龙头企业名称', col:'half', showIf:{field:'formChainSupply', value:'是'}, placeholder:'请输入配套龙头企业名称'},
+                {type:'checkbox', id:'formClients',    label:'主要客户群体', col:'full',
+                    options:['To B（企业）','To C（个人）','政府/事业单位','其他']},
+                {type:'text',   id:'formClientsOther', label:'其他客户群体说明', col:'full', placeholder:'选"其他"时请注明具体客户群体'},
+                {type:'number', id:'formRdStaff',      label:'科技人员数量（人）', col:'half', placeholder:'请输入', hint:'直接从事研发和相关技术创新活动的人员'},
+                {type:'number', id:'formRdFullTime',   label:'其中：专职研发人员（人）', col:'half', placeholder:'请输入', hint:'专职从事研发活动的人员'},
+
+                // —— 二、财务情况 ——
+                {type:'section', title:'财务情况', num:'二', icon:'fa-chart-bar'},
+                {type:'table', id:'formRev', label:'近三年财务数据', col:'full',
+                    years:['2023年','2024年','2025年'],
+                    rows:[
+                        {id:'formRev',       label:'营业收入（万元）'},
+                        {id:'formMainRevPct',label:'其中：主营业务收入占比（%）'},
+                        {id:'formProfit',    label:'净利润（万元）'},
+                        {id:'formAsset',     label:'资产总额（万元）'},
+                        {id:'formDebtRate',  label:'资产负债率（%）'},
+                        {id:'formRdFee',     label:'研发费用总额（万元）'},
+                        {id:'formDomRdPct',  label:'其中：中国境内研发费用占比（%）'}
+                    ]},
+                {type:'number', id:'formHtPctRecent', label:'近一年高新技术产品收入占比（%）', col:'half', placeholder:'如 65'},
+
+                // —— 三、出口与融资 ——
+                {type:'section', title:'出口与融资', num:'三', icon:'fa-globe'},
+                {type:'radio',  name:'formExport',    label:'出口情况', cols:2, col:'half', options:['无出口','有出口']},
+                {type:'number', id:'formExportPct',   label:'出口额占比（%）', col:'half', showIf:{field:'formExport', value:'有出口'}, placeholder:'如 15'},
+                {type:'number', id:'formEquity',      label:'近两年股权融资总额（万元）', col:'half', placeholder:'无则填 0', hint:'仅统计合格机构缴款'},
+
+                // —— 四、创新资质与成果 ——
+                {type:'section', title:'创新资质与成果', num:'四', icon:'fa-trophy'},
+                {type:'radio',  name:'formRdOrgLevel', label:'研发机构级别', cols:5, col:'full',
+                    options:['无研发机构','企业自建','市级平台','省级平台','国家级平台']},
+                {type:'multinumber', id:'ipGroup', label:'近三年授权知识产权数量（与主营业务相关，不含转入）', col:'full', items:[
+                    {id:'formPatent',  label:'Ⅰ类·发明专利'},
+                    {id:'formUtility', label:'Ⅱ类·实用新型/外观'},
+                    {id:'formSoftware',label:'Ⅱ类·软著'}]},
+                {type:'number', id:'formTransform',   label:'近三年成功转化成果数量（项）', col:'half', placeholder:'如 12', hint:'通过研发创新活动取得并成功实施转化'},
+                {type:'tags',   id:'formQuals',       label:'已获得的有效资质（当前年度在有效期内）', col:'full',
+                    options:['科技型中小企业','创新型中小企业','高新技术企业','专精特新中小企业','专精特新"小巨人"企业','知识产权优势/示范企业','其他省级以上荣誉']},
+                {type:'radio',  name:'formNationalAward', label:'近3年获国家级科技奖励', cols:2, col:'half', options:['无','有']},
+                {type:'text',   id:'formAwardName',   label:'奖项名称', col:'half', showIf:{field:'formNationalAward', value:'有'}, placeholder:'请输入奖项名称'},
+                {type:'radio',  name:'formStdLead',   label:'近5年主导制定标准', cols:2, col:'half', options:['无','有']},
+                {type:'text',   id:'formStdName',     label:'标准名称', col:'half', showIf:{field:'formStdLead', value:'有'}, placeholder:'请输入标准名称'},
+
+                // —— 五、合规与信用情况 ——
+                {type:'section', title:'合规与信用情况', num:'五', icon:'fa-shield'},
+                {type:'radio',  name:'formSafeIncident',   label:'近3年是否存在重大安全、质量事故', cols:2, col:'half', options:['是','否'], failValue:'是'},
+                {type:'radio',  name:'formEnvViolation',   label:'近3年是否存在严重环境违法行为', cols:2, col:'half', options:['是','否'], failValue:'是'},
+                {type:'radio',  name:'formAbnormalList',   label:'是否被列入经营异常名录', cols:2, col:'half', options:['是','否'], failValue:'是'},
+                {type:'radio',  name:'formDishonorList',   label:'是否被列入严重违法失信名单', cols:2, col:'half', options:['是','否'], failValue:'是'},
+                {type:'radio',  name:'formSciTaxDishonor', label:'是否存在科研失信或税务严重失信', cols:2, col:'half', options:['是','否'], failValue:'是'}
+            ]
+        },
+
+        // ② 高企测评（高新技术企业认定）—— 字段对照「高企认定测评信息采集表」
+        hightech: {
+            title: '高企测评',
+            subtitle: '对照高新技术企业认定条件，逐条评估达标差距',
+            radarTitle: '高企认定条件雷达图',
+            resultMode: 'checklist',
+            tagFields: ['formProduct'],
+            stats: [
+                {label: '科技人员占比', calc: 'rdPct', suffix: '%'},
+                {label: '研发费用占比', calc: 'feePct', suffix: '%'},
+                {label: '高新收入占比', calc: 'htPct', suffix: '%'}
+            ],
+            dims: [
+                {key:'years',    name:'注册年限',   desc:'成立满1年', avg:80, best:100, passline:1, suggestions:['需注册成立满1年方可申报','成立不足1年建议先入库科技型中小企业','培育期满后再行申报']},
+                {key:'personnel',name:'科技人员',   desc:'占比≥10%', avg:60, best:90, passline:10, suggestions:['科技人员占比需达10%','引进核心研发骨干','规范科技人员归集']},
+                {key:'rdFee',    name:'研发费用',   desc:'占比≥3%', avg:60, best:90, passline:3, suggestions:['近三年研发费用占比达标','建立研发费用辅助账','归集研发费用明细']},
+                {key:'htIncome', name:'高新收入',   desc:'占比≥60%', avg:60, best:90, passline:60, suggestions:['高新技术产品收入占比≥60%','提升核心产品收入贡献','完善高新收入归集']},
+                {key:'ip',       name:'知识产权',   desc:'Ⅰ类≥1项', avg:55, best:90, passline:1, suggestions:['至少1项Ⅰ类知识产权','加强发明专利布局','知识产权与主营技术关联']},
+                {key:'mgmt',     name:'研发管理',   desc:'产学研+标准', avg:50, best:90, passline:1, suggestions:['签订产学研合作协议','参与国家/行业标准制订','完善研发组织管理制度']}
+            ],
+            fields: [
+                // 一、企业基本情况
+                {type:'text',  id:'formName', label:'企业名称', required:true, placeholder:'请输入企业名称', col:'half', icon:'fa-building'},
+                {type:'date',  id:'formFoundDate', label:'企业的成立时间', required:true, placeholder:'请选择成立时间', col:'half', icon:'fa-calendar'},
+                {type:'text',  id:'formProduct', label:'主导产品/服务名称', placeholder:'请输入主导产品/服务名称', col:'half', icon:'fa-cube'},
+                {type:'number', id:'formEmployees', label:'企业员工总数', placeholder:'请输入', col:'half', icon:'fa-users'},
+                {type:'number', id:'formRdStaff', label:'研发人员数量', placeholder:'请输入', col:'half', icon:'fa-user-md'},
+                // 二、知识产权与研发概况
+                {type:'number', id:'formIP1', label:'近三年获得Ⅰ类知识产权数量', placeholder:'请输入', col:'half', hint:'含发明专利、集成电路布图设计、植物新品种'},
+                {type:'number', id:'formIP2', label:'近三年获得Ⅱ类知识产权数量', placeholder:'请输入', col:'half', hint:'含实用新型、软著、外观，不含商标'},
+                {type:'number', id:'formTransform', label:'近三年平均每年成果转化数量', placeholder:'请输入', col:'half', hint:'含产品销售、样品样机'},
+                {type:'radio', name:'formIUR', label:'近三年是否签订产学研合作协议', cols:2, col:'half', options:['是','否']},
+                {type:'radio', name:'formStd', label:'近三年是否参与制订国家/行业标准', cols:2, col:'half', options:['是','否']},
+                // 三、财务指标（单位：万元，近三年）
+                {type:'table', id:'formFinance', label:'财务指标（单位：万元）', col:'full',
+                 years:['2023年','2024年','2025年'],
+                 rows:[{id:'formRev',label:'营业收入'},{id:'formHtInc',label:'高新技术产品/服务收入'},{id:'formRdFee',label:'研发费用'},{id:'formNetAsset',label:'净资产'}]}
+            ]
+        },
+
+        // ③ 专精特新测评
+        specialized: {
+            title: '专精特新测评',
+            subtitle: '专精特新四性评估（专业化/精细化/特色化/新颖化）+ 成长性与质量管控',
+            radarTitle: '专精特新四性雷达图',
+            resultMode: 'checklist',
+            tagFields: ['formMarketPos', 'formProduct'],
+            stats: [
+                {label: '主导产品占比', from: 'formProdPct', suffix: '%'},
+                {label: '研发人员占比', from: 'formRdStaff', suffix: '%'},
+                {label: '专利总数',     from: 'formPatentTotal'}
+            ],
+            dims: [
+                {key:'profe',   name:'专业化', desc:'主导产品收入占比≥60%', avg:60, best:90, passline:60, suggestions:['主导产品收入占比需≥60%','聚焦主业深耕细分领域','提升主导产品贡献']},
+                {key:'refine',  name:'精细化', desc:'质量管理体系', avg:60, best:90, passline:1, suggestions:['建立质量管理体系认证','推行精细化管理','通过ISO/IATF认证']},
+                {key:'special', name:'特色化', desc:'细分市场地位', avg:60, best:90, passline:1, suggestions:['提升细分市场地位','培育差异化竞争优势','深耕区域或全国前列']},
+                {key:'novel',   name:'新颖化', desc:'研发与专利', avg:55, best:90, passline:1, suggestions:['研发人员占比≥10%','加大专利布局','保持持续创新能力']},
+                {key:'growth',  name:'成长性', desc:'主营收入增速', avg:55, best:85, passline:10, suggestions:['主营收入平均增长率不低于同行业','拓展市场提升增速','优化产品结构']},
+                {key:'quality', name:'质量管控', desc:'资产负债率≤70%', avg:60, best:90, passline:70, passlineMode:'le', suggestions:['资产负债率控制在70%以内','优化资本结构','加强财务风险管控']}
+            ],
+            fields: [
+                // —— 一、企业基本情况 ——
+                {type:'section', title:'企业基本情况', num:'一', icon:'fa-building'},
+                {type:'text',  id:'formName',    label:'企业名称', required:true, placeholder:'请输入企业全称', col:'full', icon:'fa-building'},
+                {type:'select', id:'formYears',   label:'从事本行业的年限数', col:'half',
+                    options:[{v:'',t:'请选择'},{v:'0',t:'1年以下'},{v:'1',t:'1-3年'},{v:'3',t:'3-5年'},{v:'5',t:'5年以上'}]},
+                {type:'text',  id:'formProduct', label:'主导产品/服务名称', required:true, placeholder:'请输入主导产品/服务名称', col:'half'},
+
+                // —— 二、获得荣誉 ——
+                {type:'section', title:'获得荣誉（近三年，可多选）', num:'二', icon:'fa-award', hint:'勾选近三年已获得的荣誉称号或奖励项目'},
+                {type:'checkbox', id:'formHonors', label:'已获得荣誉', col:'full',
+                    options:[
+                        '获得高新技术企业认定（有效期内）',
+                        '近三年牵头承担市级以上科技计划项目',
+                        '获得国家技术创新示范企业/知识产权优势企业等荣誉',
+                        '近三年被认定为市级以上首台（套）/首批（次）/首版（次）',
+                        '近三年获得"创客中国"创新创业大赛或中国创新创业大赛行业决赛奖项',
+                        '近三年拥有国家/省级/市级人才项目人员',
+                        '以上都不符合'
+                    ]},
+
+                // —— 三、人员情况（以社保为准）——
+                {type:'section', title:'人员情况（以社保为准）', num:'三', icon:'fa-users'},
+                {type:'number',id:'formEmployees', label:'企业员工总数', placeholder:'请输入', col:'half', hint:'截止当前社保人数'},
+                {type:'number',id:'formRdStaff',   label:'研发人员数',   placeholder:'请输入', col:'half', hint:'截止当前社保中研发岗位人数'},
+
+                // —— 四、获得资质 ——
+                {type:'section', title:'获得资质（可多选）', num:'四', icon:'fa-certificate'},
+                {type:'checkbox', id:'formQuals', label:'已获得资质', col:'full',
+                    options:[
+                        '获得省级以上质量荣誉',
+                        '通过 ISO9001/IATF16949 等体系认证',
+                        '参与制订国家标准或行业标准',
+                        '拥有自主品牌/商标'
+                    ]},
+
+                // —— 五、企业数字化水平 ——
+                {type:'section', title:'企业数字化水平', num:'五', icon:'fa-microchip'},
+                {type:'radio', name:'formDigitalLevel', label:'数字化水平等级', cols:3, col:'full', required:true,
+                    options:['一级','二级','三级']},
+
+                // —— 六、企业研发机构级别 ——
+                {type:'section', title:'企业研发机构的级别', num:'六', icon:'fa-flask'},
+                {type:'radio', name:'formRdOrgLevel', label:'研发机构级别', cols:5, col:'full', required:true,
+                    options:['国家级','省级','市级','市级以下','未建研发部门']},
+
+                // —— 七、知识产权 ——
+                {type:'section', title:'近三年获得授权的知识产权', num:'七', icon:'fa-lightbulb'},
+                {type:'number',id:'formIP1', label:'Ⅰ类知识产权数量', placeholder:'如 2', col:'half', hint:'含发明专利、集成电路布图、植物新品种等'},
+                {type:'number',id:'formIP2', label:'Ⅱ类知识产权数量', placeholder:'如 15', col:'half', hint:'含实用新型专利、软件著作权、外观专利等'},
+
+                // —— 八、近三年财务状况 ——
+                {type:'section', title:'近三年财务状况（单位：万元）', num:'八', icon:'fa-chart-line'},
+                {type:'table', id:'formFinance', label:'财务数据', col:'full',
+                    years:['2023年','2024年','2025年'],
+                    rows:[
+                        {id:'formRev',      label:'营业收入'},
+                        {id:'formMainRev',  label:'——其中主营业务收入'},
+                        {id:'formAsset',    label:'总资产'},
+                        {id:'formNet',      label:'净资产'},
+                        {id:'formProfit',   label:'净利润'},
+                        {id:'formRdFee',    label:'研发费用'}
+                    ],
+                    hint:'请填写近三年年报数据，单位：万元'}
+            ]
+        },
+
+        // ④ 小巨人测评
+        giant: {
+            title: '小巨人测评',
+            subtitle: '专精特新"小巨人"企业资质测评（基础资格 + 核心指标 + 专项指标）',
+            radarTitle: '小巨人专项指标雷达图',
+            resultMode: 'checklist',
+            tagFields: ['formProvincial', 'formProduct'],
+            stats: [
+                {label: 'Ⅰ类知识产权', from: 'formIP1'},
+                {label: '省级专精特新', from: 'formProvincial'},
+                {label: '研发机构', from: 'formRdOrg'}
+            ],
+            dims: [
+                {key:'share',   name:'市场占有率',   desc:'细分市占率≥10%', avg:55, best:90, passline:1, suggestions:['主导产品细分市场占有率≥10%','提升市场份额排名','深耕核心细分市场']},
+                {key:'chain',   name:'产业链补短板', desc:'补短板/国产替代/突破卡脖子', avg:60, best:100, passline:1, suggestions:['主导产品在产业链补短板','实现国产替代并有明确成效','突破行业卡脖子核心技术']},
+                {key:'rdFee',   name:'研发费用', desc:'近三年研发费用占比≥3%', avg:60, best:90, passline:3, suggestions:['近三年研发费用占比≥3%','建立研发费用辅助账','持续加大研发投入']},
+                {key:'rdStaff', name:'研发机构', desc:'自建/联建研发机构', avg:60, best:90, passline:1, suggestions:['自建或联合建设研发机构','申请企业技术中心/博士后工作站','强化研发组织能力']},
+                {key:'ip1',     name:'Ⅰ类知识产权', desc:'≥2项', avg:55, best:90, passline:2, suggestions:['Ⅰ类知识产权数量≥2项','加强发明专利布局','提升核心专利质量']},
+                {key:'debt',    name:'资产负债率',   desc:'≤70%', avg:60, best:90, passline:70, passlineMode:'le', suggestions:['资产负债率≤70%','优化资本结构','加强财务风险管控']}
+            ],
+            fields: [
+                // —— 模块一：基础资格测评 ——
+                {type:'section', title:'基础资格测评', num:'一', icon:'fa-shield'},
+                {type:'text',  id:'formName',      label:'企业名称', required:true, placeholder:'请输入企业全称', col:'full', icon:'fa-building'},
+                {type:'text',  id:'formRegPlace',  label:'企业注册地（省/市/区）', placeholder:'如 广东省深圳市南山区', col:'half'},
+                {type:'date',  id:'formFoundDate', label:'企业成立时间', col:'half'},
+                {type:'radio', name:'formProvincial', label:'当前是否为有效期内的省级专精特新中小企业', required:true, cols:2, col:'full',
+                    options:['是','否'], failValue:'否', passline:1},
+                // === 条件字段：仅当 formProvincial=否 时显示 ===
+                {type:'select', id:'formCultivateStage', label:'当前培育阶段', col:'half', showIf:{field:'formProvincial', value:'否'},
+                    options:['科技型中小企业','高新技术企业培育库','专精特新培育库','市级专精特新','暂未进入培育库'],
+                    placeholder:'请选择当前培育阶段'},
+                {type:'month',  id:'formPlanApplyMonth', label:'计划申报省级专精特新时间', col:'half', showIf:{field:'formProvincial', value:'否'}, placeholder:'如 2026-06'},
+                {type:'textarea', id:'formNotProvincialReason', label:'尚未获得省级专精特新的主要原因', col:'full', showIf:{field:'formProvincial', value:'否'},
+                    placeholder:'请简要说明当前存在的差距或困难', rows:2},
+                // === 条件字段结束 ===
+                {type:'radio', name:'formMajorIncident', label:'近3年是否存在重大安全/质量/环境污染事故或偷漏税行为', required:true, cols:2, col:'full',
+                    options:['无','有'], failValue:'有', passline:1, hint:'选"无"才符合资质要求'},
+
+                // —— 模块二：核心量化指标测评 ——
+                {type:'section', title:'核心量化指标测评', num:'二', icon:'fa-chart-bar'},
+                {type:'table', id:'formRev', label:'近3年营业收入（万元）', col:'full',
+                    years:['2023年','2024年','2025年'],
+                    rows:[{id:'formRev', label:'营业收入'}]},
+                {type:'number', id:'formMarketYears', label:'从事当前主导产品所属细分市场的年限（年）', col:'half', required:true, placeholder:'如 5', hint:'小巨人要求从事特定细分市场≥3年'},
+                {type:'radio', name:'formMainRevRatio', label:'近3年主营业务收入占营收比例是否≥90%', required:true, cols:2, col:'half',
+                    options:['是','否'], failValue:'否', passline:1, hint:'2026 新版小巨人门槛'},
+                {type:'table', id:'formRdFeeTbl', label:'近3年研发费用总额（万元）', col:'full',
+                    years:['2023年','2024年','2025年'],
+                    rows:[{id:'formRdFee', label:'研发费用'}]},
+                {type:'radio', name:'formRdOrg', label:'是否自建/联合建设研发机构', required:true, cols:2, col:'full',
+                    options:['是','否'], failValue:'否', passline:1, hint:'含企业技术中心、工程技术研究中心、博士后工作站等'},
+
+                // —— 模块三：专项评价指标测评 ——
+                {type:'section', title:'专项评价指标测评（专业化 / 精细化 / 特色化）', num:'三', icon:'fa-cubes'},
+                // 专业化维度
+                {type:'text',  id:'formProduct',    label:'企业主导产品名称', required:true, placeholder:'请输入主导产品名称', col:'full'},
+                {type:'radio', name:'formChainCase', label:'主导产品在产业链中是否有"补短板、锻长板"等应用案例', cols:2, col:'full',
+                    options:['是','否'], failValue:'否', passline:1},
+                // 精细化维度
+                {type:'radio', name:'formDebtPass',  label:'资产负债率是否≤75%（近1年末）', cols:2, col:'half',
+                    options:['是','否'], failValue:'否', passline:1, hint:'2026 新版小巨人门槛'},
+                {type:'radio', name:'formErpMes',     label:'核心业务是否已应用 ERP、MES 等信息化系统', cols:2, col:'half',
+                    options:['是','否'], failValue:'否', passline:1},
+                {type:'radio', name:'formIsoCert',    label:'是否拥有 ISO 体系认证或 CE、UL 等国际产品认证', cols:2, col:'full',
+                    options:['是','否'], failValue:'否', passline:1},
+                // 特色化维度
+                {type:'radio', name:'formSharePass', label:'近1年主导产品在全国细分市场销售占有率是否≥10%', cols:2, col:'half',
+                    options:['是','否'], failValue:'否', passline:1},
+                {type:'radio', name:'formOwnBrand',   label:'是否具有与核心知识产权关联的自主品牌', cols:2, col:'half',
+                    options:['是','否'], failValue:'否', passline:1},
+
+                // —— 模块四：专项指标（新颖化 / 产业链 / 品牌化）——
+                {type:'section', title:'专项指标测评（新颖化 / 产业链 / 品牌化）', num:'四', icon:'fa-trophy'},
+                // 新颖化维度
+                {type:'number',id:'formIP1',           label:'与主导产品相关的Ⅰ类知识产权（发明专利）数量', required:true, placeholder:'如 5', col:'half', passline:4, passHint:'2026 新版小巨人门槛 ≥4 项（发明专利、PCT 国际申请、集成电路布图等）'},
+                {type:'radio', name:'formNationalAward', label:'近3年是否获得国家级科技奖励或"创客中国"全国50强', cols:2, col:'half',
+                    options:['是','否'], failValue:'否', passline:1},
+                // 产业链维度
+                {type:'radio', name:'formDomesticSub', label:'主导产品是否实现国产替代并有明确替代成效', cols:2, col:'half',
+                    options:['是','否'], failValue:'否', passline:1},
+                {type:'radio', name:'formBreakChoke',  label:'是否突破行业卡脖子核心技术', cols:2, col:'half',
+                    options:['是','否'], failValue:'否', passline:1},
+                // 品牌化维度
+                {type:'radio', name:'formRepeatBuy',   label:'近3年各年度主导产品客户重复购买率是否≥60%', cols:2, col:'half',
+                    options:['是','否'], failValue:'否', passline:1},
+                {type:'radio', name:'formBrandHonor',   label:'是否拥有行业权威机构颁发的品牌荣誉', cols:2, col:'half',
+                    options:['是','否'], failValue:'否', passline:1},
+                {type:'radio', name:'formClientReview', label:'是否具备1-2个核心客户正面评价', cols:2, col:'full',
+                    options:['是','否'], failValue:'否', passline:1}
+            ]
+        }
+    };
+
+    // ============ 演示测试数据（各页签首次渲染时自动填充，便于直接演示完整测评流程） ============
+    var DEMO_DATA = {
+        gradient: {
+            values: {
+                formName: '杭州智算科技有限公司',
+                formCreditCode: '91330108MA2B3K7X9Q',
+                formFoundDate: '2018-03-15',
+                formRegPlace: '浙江省杭州市滨江区',
+                formEmployees: 186,
+                formIndustry: '人工智能',
+                formProduct: '智能算力调度平台',
+                formApplyField: '政务、金融、制造',
+                formMarketYears: 6,
+                formChainLeader: '阿里云计算有限公司',
+                formRdStaff: 42,
+                formRdFullTime: 28,
+                formHtPctRecent: 68,
+                formEquity: 1200,
+                formTransform: 6,
+                formStdName: '《信息技术 云计算 参考架构》'
+            },
+            radios: {
+                scale: '中型',
+                formChainSupply: '是',
+                formExport: '无出口',
+                formRdOrgLevel: '省级平台',
+                formNationalAward: '无',
+                formStdLead: '有',
+                formSafeIncident: '否',
+                formEnvViolation: '否',
+                formAbnormalList: '否',
+                formDishonorList: '否',
+                formSciTaxDishonor: '否'
+            },
+            checks: {
+                formProductField: ['战略性新兴产业'],
+                formMarketPosChk: ['国内≥10%'],
+                formClients: ['To B（企业）']
+            },
+            tags: { formQuals: ['高新技术企业', '专精特新中小企业'] },
+            multi: { formPatent: 8, formUtility: 22, formSoftware: 12 },
+            tables: {
+                formRev: [5200, 6800, 8600],
+                formMainRevPct: [92, 93, 94],
+                formProfit: [620, 850, 1180],
+                formAsset: [6200, 7400, 9100],
+                formDebtRate: [52, 49, 45],
+                formRdFee: [520, 760, 1030],
+                formDomRdPct: [100, 100, 100]
+            }
+        },
+        hightech: {
+            values: {
+                formName: '杭州智算科技有限公司',
+                formFoundDate: '2018-03-15',
+                formProduct: '智能算力调度平台',
+                formEmployees: 186,
+                formRdStaff: 42,
+                formIP1: 8,
+                formIP2: 15,
+                formTransform: 6
+            },
+            radios: { formIUR: '是', formStd: '是' },
+            tables: {
+                formRev: [5200, 6800, 8600],
+                formHtInc: [3400, 4600, 6100],
+                formRdFee: [520, 760, 1030],
+                formNetAsset: [2600, 3400, 4600]
+            }
+        },
+        specialized: {
+            values: {
+                formName: '杭州智算科技有限公司',
+                formYears: '5',
+                formProduct: '智能算力调度平台',
+                formEmployees: 186,
+                formRdStaff: 42,
+                formIP1: 8,
+                formIP2: 15
+            },
+            radios: { formDigitalLevel: '二级', formRdOrgLevel: '省级' },
+            checks: {
+                formHonors: ['获得高新技术企业认定（有效期内）', '近三年牵头承担市级以上科技计划项目'],
+                formQuals: ['通过 ISO9001/IATF16949 等体系认证', '参与制订国家标准或行业标准']
+            },
+            tables: {
+                formRev: [5200, 6800, 8600],
+                formMainRev: [4800, 6300, 8100],
+                formAsset: [6200, 7400, 9100],
+                formNet: [2600, 3400, 4600],
+                formProfit: [620, 850, 1180],
+                formRdFee: [520, 760, 1030]
+            }
+        },
+        giant: {
+            values: {
+                formName: '杭州智算科技有限公司',
+                formRegPlace: '浙江省杭州市滨江区',
+                formFoundDate: '2018-03-15',
+                formMarketYears: 6,
+                formProduct: '智能算力调度平台',
+                formIP1: 8
+            },
+            radios: {
+                formProvincial: '是',
+                formMajorIncident: '无',
+                formMainRevRatio: '是',
+                formRdOrg: '是',
+                formChainCase: '是',
+                formDebtPass: '是',
+                formErpMes: '是',
+                formIsoCert: '是',
+                formSharePass: '是',
+                formOwnBrand: '是',
+                formNationalAward: '是',
+                formDomesticSub: '是',
+                formBreakChoke: '是',
+                formRepeatBuy: '是',
+                formBrandHonor: '是',
+                formClientReview: '是'
+            },
+            tables: {
+                formRev: [5200, 6800, 8600],
+                formRdFee: [520, 760, 1030]
+            }
+        }
+    };
+
+    // 把演示数据写入当前已渲染的表单（不触发校验，仅赋值）
+    function applyDemoData(tabKey) {
+        var demo = DEMO_DATA[tabKey];
+        if (!demo) return;
+        Object.keys(demo.values || {}).forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.value = demo.values[id];
+        });
+        Object.keys(demo.radios || {}).forEach(function (name) {
+            var el = document.querySelector('input[name="' + name + '"][value="' + demo.radios[name] + '"]');
+            if (el) el.checked = true;
+        });
+        Object.keys(demo.checks || {}).forEach(function (id) {
+            var box = document.getElementById(id);
+            if (!box || !box.querySelectorAll) return;
+            var want = demo.checks[id] || [];
+            box.querySelectorAll('input[type=checkbox]').forEach(function (el) {
+                el.checked = want.indexOf(el.value) > -1;
+            });
+        });
+        Object.keys(demo.tags || {}).forEach(function (id) {
+            var box = document.getElementById(id);
+            if (!box || !box.querySelectorAll) return;
+            var want = demo.tags[id] || [];
+            box.querySelectorAll('.qual-tag').forEach(function (el) {
+                var txt = el.innerText.replace('✓ ', '').replace('+ ', '').trim();
+                if (want.indexOf(txt) > -1 && !el.classList.contains('qual-on')) toggleQual(el);
+            });
+        });
+        Object.keys(demo.multi || {}).forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.value = demo.multi[id];
+        });
+        Object.keys(demo.tables || {}).forEach(function (rowId) {
+            (demo.tables[rowId] || []).forEach(function (v, yi) {
+                var el = document.getElementById(rowId + '_' + yi);
+                if (el) el.value = v;
+            });
+        });
+    }
+
+
+    // ============ 评级与发展路径阶段（原后台「诊断维度配置」已下线，改为内置默认） ============
+    var RATINGS = [
+        {grade:'A+', min:90, rank:'TOP 5%'}, {grade:'A', min:80, rank:'TOP 15%'},
+        {grade:'B', min:70, rank:'TOP 35%'}, {grade:'C', min:60, rank:'TOP 60%'},
+        {grade:'D', min:0, rank:'TOP 85%'}
+    ];
+    var DEV_STAGES = [
+        {title:'短期提升', range:'1-3个月', inc:10},
+        {title:'中期攻坚', range:'3-6个月', inc:20},
+        {title:'长期突破', range:'6-12个月', inc:30}
+    ];
+
+    // ============ 当前 Tab 状态 ============
+    var currentTab = 'gradient';
+    var DIM_META = [];     // 当前 Tab 的 6 维元数据（含 style/suggestions/avg/best/passline）
+    var IND_AVG = {}, IND_BEST = {};
+    var FIELD_BY_ID = {};  // id → 字段配置（用于滑块回调）
+    var window_IS_DIAGNOSED = false;
+    window.IS_DIAGNOSED = false;
+
+    // 用当前 Tab 维度初始化 DIM_META（合并固定配色 + 维度配置）
+    function rebuildDims(tabKey) {
+        var tab = TABS[tabKey];
+        DIM_META = tab.dims.map(function(d, i) {
+            var st = DIM_STYLE[i % DIM_STYLE.length];
+            return {
+                key: d.key, name: d.name, desc: d.desc,
+                icon: st.icon, bg: st.bg, text: st.text, grad: st.grad,
+                avg: d.avg, best: d.best,
+                passline: (d.passline != null ? d.passline : null),
+                passlineMode: d.passlineMode || 'ge',
+                suggestions: (d.suggestions || []).slice()
+            };
+        });
+        IND_AVG = {}; IND_BEST = {};
+        DIM_META.forEach(function(d) { IND_AVG[d.key] = d.avg; IND_BEST[d.key] = d.best; });
+    }
+
+    // ============ 表单渲染 ============
+    function renderForm(tabKey) {
+        var fields = TABS[tabKey].fields;
+        FIELD_BY_ID = {};
+        var html = '';
+        var gridOpen = false;
+
+        function openGrid() {
+            if (!gridOpen) { html += '<div class="grid grid-cols-2 gap-4">'; gridOpen = true; }
+        }
+        function closeGrid() {
+            if (gridOpen) { html += '</div>'; gridOpen = false; }
+        }
+
+        var showIfFields = [];  // 记录需要条件显示的字段
+        fields.forEach(function(f) {
+            // 分区分隔：type='section'
+            if (f.type === 'section') {
+                closeGrid();
+                html += '<div class="mt-5 mb-3">' +
+                    '<h3 class="text-sm font-black text-slate-700 flex items-center">' +
+                        (f.icon ? '<i class="fa ' + f.icon + ' text-indigo-500 mr-2"></i>' : '') +
+                        '<span class="inline-block bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-3 py-1 rounded-lg text-xs font-black mr-2">' + (f.num || '') + '</span>' +
+                        f.title +
+                    '</h3>' +
+                    (f.hint ? '<div class="text-[10px] text-slate-400 mt-0.5">' + f.hint + '</div>' : '') +
+                '</div>';
+                return;
+            }
+            openGrid();
+            indexField(f);
+            var colCls = f.col === 'full' ? 'col-span-2' : '';
+            // 条件显隐：showIf:{field:'formXxx', value:'是'}
+            var outerDiv = '<div class="' + colCls + '">';
+            if (f.showIf) {
+                showIfFields.push(f);
+                outerDiv = '<div id="showIf_' + f.id + '" class="' + colCls + '" style="display:none">';
+            }
+            html += outerDiv + renderField(f) + '</div>';
+        });
+        closeGrid();
+        document.getElementById('formContainer').innerHTML = html;
+        // 初始化所有滑块显示
+        fields.forEach(function(f) {
+            if (f.type === 'range') updateRangeDisplay(f);
+        });
+        // 注册条件显隐监听
+        if (showIfFields.length) {
+            window.__showIfFields = showIfFields;
+            showIfFields.forEach(function(f) {
+                var dep = f.showIf.field;
+                // 找到同名的依赖字段元素（可能是 radio group）
+                var radios = document.getElementsByName(dep);
+                if (radios && radios.length) {
+                    radios.forEach(function(r) {
+                        r.addEventListener('change', checkShowIf);
+                    });
+                } else {
+                    var depEl = document.getElementById(dep);
+                    if (depEl) depEl.addEventListener('change', checkShowIf);
+                }
+            });
+            checkShowIf();  // 初始检查
+        } else {
+            window.__showIfFields = [];
+        }
+        // 自动填充演示测试数据（每个页签渲染后即带值，便于直接演示）
+        applyDemoData(tabKey);
+        checkShowIf();
+    }
+    // showIf 条件检查函数
+    function checkShowIf() {
+        (window.__showIfFields || []).forEach(function(f) {
+            var dep = f.showIf.field;
+            var target = f.showIf.value;
+            var radios = document.getElementsByName(dep);
+            var val = '';
+            if (radios && radios.length) {
+                var checked = document.querySelector('input[name="' + dep + '"]:checked');
+                val = checked ? checked.value : '';
+            } else {
+                var el = document.getElementById(dep);
+                val = el ? el.value : '';
+            }
+            var container = document.getElementById('showIf_' + f.id);
+            if (container) {
+                container.style.display = (val === target) ? '' : 'none';
+            }
+        });
+    }
+    // 把字段（含 multinumber 子项）登记到 FIELD_BY_ID
+    function indexField(f) {
+        if (f.id) FIELD_BY_ID[f.id] = f;
+        if (f.type === 'multinumber' && f.items) {
+            f.items.forEach(function(it) { FIELD_BY_ID[it.id] = it; });
+        }
+    }
+
+    function renderField(f) {
+        var req = f.required ? '<span class="text-red-500">*</span> ' : '';
+        var icon = f.icon ? '<i class="fa ' + f.icon + ' text-blue-500 mr-1"></i>' : '';
+        var label = '<label class="text-[11px] font-bold text-slate-500 mb-1 block">' + icon + req + f.label + '</label>';
+        var inputCls = 'w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+        var hintHtml = f.hint ? '<div class="text-[10px] text-slate-400 mt-1 leading-relaxed"><i class="fa fa-info-circle mr-0.5"></i>' + f.hint + '</div>' : '';
+
+        if (f.type === 'text' || f.type === 'number') {
+            if (f.unit) {
+                return label + '<div class="relative">' +
+                    '<input type="' + f.type + '" id="' + f.id + '" oninput="syncCard()" placeholder="' + (f.placeholder || '') + '" class="' + inputCls + '">' +
+                    '<span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">' + f.unit + '</span></div>' + hintHtml;
+            }
+            return label + '<input type="' + f.type + '" id="' + f.id + '" oninput="syncCard()" placeholder="' + (f.placeholder || '') + '" class="' + inputCls + '">' + hintHtml;
+        }
+        if (f.type === 'select') {
+            var opts = '<option value="">请选择</option>';
+            f.options.forEach(function(o) {
+                // 兼容两种格式：{v:'值', t:'显示'} 或纯字符串
+                var v = (typeof o === 'string') ? o : (o.v != null ? o.v : o.value);
+                var t = (typeof o === 'string') ? o : (o.t != null ? o.t : o.label || o.v);
+                opts += '<option value="' + v + '">' + t + '</option>';
+            });
+            return label + '<select id="' + f.id + '" onchange="syncCard()" class="' + inputCls + '">' + opts + '</select>' + hintHtml;
+        }
+        // 月份选择（如 2026-06）
+        if (f.type === 'month') {
+            return label + '<div class="relative">' +
+                '<input type="month" id="' + f.id + '" oninput="syncCard()" placeholder="' + (f.placeholder || '') + '" class="' + inputCls + ' pr-9">' +
+                '<i class="fa fa-calendar absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i></div>' + hintHtml;
+        }
+        // 多行文本
+        if (f.type === 'textarea') {
+            var rows = f.rows || 3;
+            return label + '<textarea id="' + f.id + '" rows="' + rows + '" oninput="syncCard()" placeholder="' + (f.placeholder || '') + '" class="' + inputCls + ' resize-none"></textarea>' + hintHtml;
+        }
+        if (f.type === 'radio') {
+            var r = '<div class="grid grid-cols-' + f.cols + ' gap-1.5">';
+            f.options.forEach(function(v) {
+                r += '<label class="relative cursor-pointer">' +
+                    '<input type="radio" name="' + f.name + '" class="sr-only peer" value="' + v + '" onchange="syncCard()">' +
+                    '<div class="px-1 py-1.5 bg-white border border-slate-200 rounded-lg text-center text-[11px] font-bold text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">' + v + '</div>' +
+                '</label>';
+            });
+            r += '</div>';
+            return label + r + hintHtml;
+        }
+        if (f.type === 'range') {
+            var ticks = '';
+            var steps = 5;
+            for (var i = 0; i <= steps; i++) {
+                var tv = (f.min + (f.max - f.min) * i / steps);
+                tv = (tv % 1 === 0) ? tv : tv.toFixed(1);
+                ticks += '<span>' + tv + (f.unit || '') + '</span>';
+            }
+            return label + '<div class="flex items-center justify-between">' +
+                '<span id="' + f.id + '_val" class="text-xs font-black text-blue-600">0' + (f.unit || '') + '</span>' +
+                (f.passline != null ? '<span class="text-[9px] text-slate-400">达标线 ' + (f.passlineMode === 'le' ? '≤' : '') + f.passline + (f.unit || '') + '</span>' : '') +
+                '</div>' +
+                '<input type="range" id="' + f.id + '" min="' + f.min + '" max="' + f.max + '" step="' + f.step + '" value="0" oninput="onRangeInput(this)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">' +
+                '<div class="flex justify-between text-[9px] text-slate-400 mt-0.5">' + ticks + '</div>' +
+                '<div id="' + f.id + '_hint" class="text-[10px] mt-0.5"></div>' + hintHtml;
+        }
+        if (f.type === 'tags') {
+            var t = '<div class="flex flex-wrap gap-1.5" id="' + f.id + '">';
+            f.options.forEach(function(v) {
+                t += '<span class="px-2 py-1 bg-white text-slate-500 text-[11px] rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100 qual-tag" onclick="toggleQual(this)">+ ' + v + '</span>';
+            });
+            t += '</div>';
+            return label + t + hintHtml;
+        }
+        if (f.type === 'checkbox') {
+            var c = '<div class="grid grid-cols-' + (f.options.length > 2 ? '2' : '1') + ' gap-1.5" id="' + f.id + '">';
+            f.options.forEach(function(v) {
+                c += '<label class="flex items-center space-x-1.5 px-2 py-1.5 bg-white border border-slate-200 rounded-lg cursor-pointer text-[11px]">' +
+                    '<input type="checkbox" value="' + v + '" class="accent-blue-600" onchange="syncCard()">' +
+                    '<span class="text-slate-600">' + v + '</span></label>';
+            });
+            c += '</div>';
+            return label + c + hintHtml;
+        }
+        if (f.type === 'multinumber') {
+            var cols = f.items.length;
+            var m = '<div class="grid grid-cols-' + cols + ' gap-2 bg-white rounded-lg p-2.5 border border-slate-200">';
+            f.items.forEach(function(it) {
+                m += '<div class="flex flex-col items-center">' +
+                    '<span class="text-[10px] text-slate-500 mb-1">' + it.label + '</span>' +
+                    '<input type="number" id="' + it.id + '" oninput="syncCard()" placeholder="0" class="w-full text-center text-base font-black text-slate-800 bg-transparent focus:outline-none">' +
+                    '</div>';
+            });
+            m += '</div>';
+            var ph = f.passHint ? '<div class="text-[10px] mt-1 ' + (f.passline ? '' : 'text-slate-400') + '">' + f.passHint + '</div>' : '';
+            return label + m + ph + hintHtml;
+        }
+        // 日期选择（如企业成立时间）
+        if (f.type === 'date') {
+            return label + '<div class="relative">' +
+                '<input type="date" id="' + f.id + '" oninput="syncCard()" placeholder="' + (f.placeholder || '') + '" class="' + inputCls + ' pr-9">' +
+                '<i class="fa fa-calendar absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i></div>' + hintHtml;
+        }
+        // 财务指标表格（行 × 年份）
+        if (f.type === 'table') {
+            // === 财务数据表格：视觉优化版（解决"看花眼"痛点）===
+            // 1. 斑马纹交替行色 2. hover 整行高亮 3. 输入框 focus 整行发光
+            // 4. 已填完的行显示 ✓ 标记 5. 表头更醒目 6. 字体/间距加大
+            var t = '<div class="rounded-xl border-2 border-slate-200 overflow-hidden shadow-sm">';
+            t += '<table class="w-full border-collapse">';
+            // 表头：渐变底 + 粗字
+            t += '<thead><tr style="background:linear-gradient(135deg,#f1f5f9,#e2e8f0)">';
+            t += '<th class="px-4 py-3 text-left font-bold text-slate-700 text-sm border-b-2 border-slate-300 w-36">指标名称</th>';
+            var yearKeys = f.years || [];
+            yearKeys.forEach(function(y) {
+                t += '<th class="px-4 py-3 text-center font-bold text-slate-700 text-sm border-b-2 border-slate-300">' +
+                    '<span class="inline-flex items-center gap-1.5"><i class="fa fa-calendar text-blue-500 text-xs"></i>' + y + '</span></th>';
+            });
+            t += '</tr></thead>';
+            t += '<tbody>';
+            f.rows.forEach(function(r, ri) {
+                // 斑马纹：偶数行淡灰底
+                var rowBg = ri % 2 === 0 ? 'bg-white' : 'bg-slate-50/70';
+                // 指标图标映射（根据 row id 猜）
+                var icons = {
+                    formRev: 'fa-dollar-sign text-emerald-500',
+                    formMainRev: 'fa-chart-pie text-emerald-600',
+                    formHtInc: 'fa-rocket text-violet-500',
+                    formRdFee: 'fa-flask text-orange-500',
+                    formAsset: 'fa-building text-blue-500',
+                    formNet: 'fa-coins text-amber-500',
+                    formProfit: 'fa-arrow-trend-up text-green-500'
+                };
+                var iconCls = icons[r.id] || 'fa-circle text-slate-400';
+                t += '<tr class="fin-row transition-colors duration-150 ' + rowBg + ' hover:bg-blue-50/80" data-rowid="' + r.id + '">';
+                // 指标名 + 图标
+                t += '<td class="px-4 py-3.5 border-b border-slate-100">';
+                t += '<div class="flex items-center gap-2.5">';
+                t += '<span class="w-7 h-7 rounded-lg bg-white shadow-sm border border-slate-200 flex items-center justify-center"><i class="fa ' + iconCls + ' text-xs"></i></span>';
+                t += '<span class="font-bold text-slate-700 text-sm">' + r.label + '</span>';
+                // 自动计算提示槽（后续 syncCard 会往里填同比增长率等）
+                t += '<span class="fin-row-hint ml-auto text-[10px] text-slate-400"></span>';
+                t += '</div></td>';
+                // 年份输入框
+                yearKeys.forEach(function(y, yi) {
+                    var inputId = r.id + '_' + yi;
+                    t += '<td class="px-4 py-3.5 border-b border-slate-100 text-center">';
+                    t += '<div class="relative">';
+                    t += '<input type="number" id="' + inputId + '" data-finrow="' + r.id + '" data-fincol="' + yi + '" ';
+                    t += 'oninput="syncCard(); updateFinRowHint(\'' + r.id + '\')" ';
+                    t += 'placeholder="—" ';
+                    t += 'class="fin-input w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-center text-base font-semibold text-slate-800 transition-all duration-150 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:shadow-md hover:border-slate-300" ';
+                    t += 'style="min-width:100px">';
+                    // 单位后缀
+                    if (r.unit) t += '<span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none">' + r.unit + '</span>';
+                    // 已填完勾标记
+                    t += '<span class="fin-check absolute -right-1 -top-1 w-4 h-4 bg-green-500 text-white rounded-full flex items-center justify-center text-[9px] opacity-0 transition-opacity duration-200 shadow"><i class="fa fa-check"></i></span>';
+                    t += '</div></td>';
+                });
+                t += '</tr>';
+            });
+            t += '</tbody></table></div>' + hintHtml;
+            return label + t;
+        }
+        return '';
+    }
+
+    // 给财务表格注入样式（只注入一次）
+    if (!window.__finTableStyled) {
+        window.__finTableStyled = true;
+        var style = document.createElement('style');
+        style.textContent = `
+            /* 财务表格：整行 focus 发光 */
+            tr.fin-row:focus-within { background: linear-gradient(90deg,#eff6ff,#fff) !important; box-shadow: inset 3px 0 0 #3b82f6; }
+            tr.fin-row:focus-within td { color: #1e40af; }
+            /* 输入框有值时显示勾 */
+            input.fin-input:not(:placeholder-shown) ~ span.fin-check { opacity: 1; }
+            /* 负数输入框红色边框预警 */
+            input.fin-input[data-negative="true"] { border-color:#dc2626; background:#fef2f2; }
+            /* 斑马纹行 hover 更亮 */
+            tr.fin-row:hover input.fin-input { border-color:#60a5fa; }
+            /* 行完成态 */
+            tr.fin-row.done { background:#f0fdf4 !important; }
+            tr.fin-row.done td:first-child span.text-slate-700 { color:#16a34a; }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // 财务行提示：自动算同比变化
+    function updateFinRowHint(rowId) {
+        var hint = document.querySelector('tr.fin-row[data-rowid="' + rowId + '"] .fin-row-hint');
+        if (!hint) return;
+        var cells = [];
+        for (var i = 0; i < 3; i++) {
+            var el = document.getElementById(rowId + '_' + i);
+            cells.push(parseFloat(el && el.value) || null);
+            // 负数红色预警
+            if (el) el.dataset.negative = cells[i] !== null && cells[i] < 0;
+        }
+        // 填完判断：3 格都有值 → 打勾
+        var allFilled = cells.every(function(v){ return v !== null; });
+        var row = document.querySelector('tr.fin-row[data-rowid="' + rowId + '"]');
+        if (row) row.classList.toggle('done', allFilled);
+        // 填了 2 格以上才算增长率
+        if (allFilled && cells[0] !== 0) {
+            var g1 = ((cells[1] - cells[0]) / Math.abs(cells[0]) * 100).toFixed(1);
+            var g2 = ((cells[2] - cells[1]) / Math.abs(cells[1]) * 100).toFixed(1);
+            var cls1 = g1 >= 0 ? 'text-emerald-600' : 'text-red-500';
+            var cls2 = g2 >= 0 ? 'text-emerald-600' : 'text-red-500';
+            hint.innerHTML = '<span class="' + cls1 + '">23→24: ' + (g1 >= 0 ? '+' : '') + g1 + '%</span> &nbsp; <span class="' + cls2 + '">24→25: ' + (g2 >= 0 ? '+' : '') + g2 + '%</span>';
+        } else if (cells[2] !== null && cells[1] !== null && cells[1] !== 0) {
+            var g = ((cells[2] - cells[1]) / Math.abs(cells[1]) * 100).toFixed(1);
+            hint.innerHTML = '<span class="' + (g >= 0 ? 'text-emerald-600' : 'text-red-500') + '">24→25: ' + (g >= 0 ? '+' : '') + g + '%</span>';
+        } else {
+            hint.textContent = '';
+        }
+    }
+
+    // 滑块输入：更新数值/达标色/达标提示 + 同步企业卡
+    function onRangeInput(el) {
+        var f = FIELD_BY_ID[el.id];
+        if (f) updateRangeDisplay(f);
+        syncCard();
+    }
+    function updateRangeDisplay(f) {
+        var el = document.getElementById(f.id);
+        if (!el) return;
+        var val = parseFloat(el.value) || 0;
+        var valEl = document.getElementById(f.id + '_val');
+        if (valEl) {
+            valEl.textContent = (val % 1 === 0 ? val : val.toFixed(1)) + (f.unit || '');
+        }
+        if (f.passline != null) {
+            var ok = f.passlineMode === 'le' ? (val <= f.passline) : (val >= f.passline);
+            var color = ok ? '#16a34a' : '#dc2626';
+            if (valEl) valEl.style.color = color;
+            var hint = document.getElementById(f.id + '_hint');
+            if (hint) {
+                var lineTxt = (f.passlineMode === 'le' ? '达标线 ≤' : '达标线 ') + f.passline + (f.unit || '');
+                hint.innerHTML = (ok ? '<i class="fa fa-check-circle"></i> ' : '<i class="fa fa-times-circle"></i> ') + lineTxt + (ok ? ' · 已达标' : ' · 未达标');
+                hint.style.color = color;
+            }
+        }
+    }
+
+    // 资质/标签切换（保留原逻辑，作用于 .qual-tag）
+    function toggleQual(el) {
+        if (el.classList.contains('qual-on')) {
+            el.classList.remove('qual-on', 'bg-blue-50', 'text-blue-600', 'border-blue-100');
+            el.classList.add('bg-white', 'text-slate-500', 'border-slate-200');
+            el.innerText = el.innerText.replace('✓ ', '+ ');
+        } else {
+            el.classList.add('qual-on');
+            el.classList.remove('bg-white', 'text-slate-500', 'border-slate-200');
+            el.classList.add('bg-blue-50', 'text-blue-600', 'border-blue-100');
+            el.innerText = el.innerText.replace('+ ', '✓ ');
+        }
+        syncCard();
+    }
+
+    // ============ 派生字段补齐（供规则引擎和 UI 展示统一使用） ============
+    // 注意：只新增派生字段，不覆盖原始表单字段（尤其不要覆盖 table 类型的数组）
+    function enrichInputs(inputs, tab) {
+        inputs = Object.assign({}, inputs);
+        if (tab === 'specialized') {
+            // formProdPct: 主导产品收入占比 = 主营业务收入合计 / 营业收入合计
+            var revSum = (inputs.formRev || []).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+            var mainRevSum = (inputs.formMainRev || []).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+            inputs.formProdPct = revSum > 0 ? Math.round(mainRevSum / revSum * 100) : 0;
+            // formRdStaffPct: 研发人员占比（绝对数 → 百分比）
+            var emp = parseFloat(inputs.formEmployees) || 0, rdsAbs = parseFloat(inputs.formRdStaff) || 0;
+            inputs.formRdStaffPct = emp > 0 ? Math.round(rdsAbs / emp * 100) : 0;
+            // formPatentTotal = Ⅰ + Ⅱ
+            inputs.formPatentTotal = (parseFloat(inputs.formIP1) || 0) + (parseFloat(inputs.formIP2) || 0);
+            // formGrowth: 近两年营收增长率 = (rev[2] - rev[0]) / rev[0] * 100
+            var rev = inputs.formRev || [0,0,0];
+            inputs.formGrowth = rev[0] > 0 ? Math.round((rev[2] - rev[0]) / rev[0] * 100) : 0;
+            // formDebt: 资产负债率 = (总资产 - 净资产) / 总资产 * 100
+            var assetSum = (inputs.formAsset || []).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+            var netSum = (inputs.formNet || []).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+            inputs.formDebt = assetSum > 0 ? Math.round((assetSum - netSum) / assetSum * 100) : 0;
+            // formMarketPos: 从数字化水平 / 研发机构级别映射
+            inputs.formMarketPos = inputs.formDigitalLevel === '一级' ? '全国前列' : (inputs.formDigitalLevel === '二级' ? '区域前列' : '一般');
+            // 注意：formRdFee 保持原始数组，不要覆盖（scoreSpecialized 内部会处理）
+        } else if (tab === 'gradient') {
+            // 官方梯度培育采集表为三年财务表 → 派生 scoreGradient 所需的单值字段
+            var dRev = inputs.formRev || [0,0,0];
+            var dFee = inputs.formRdFee || [0,0,0];
+            var dRevSum = dRev.reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+            var dFeeSum = dFee.reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+            inputs.formRevenue = parseFloat(dRev[2]) || 0;   // 年营收（近一年）
+            inputs.formRdAmount = parseFloat(dFee[2]) || 0;  // 年研发投入金额（近一年）
+            inputs.formRdPct = dRevSum > 0 ? Math.round(dFeeSum / dRevSum * 1000) / 10 : 0; // 研发投入占比（三年平均）
+            var dEmp = parseFloat(inputs.formEmployees) || 0, dRds = parseFloat(inputs.formRdStaff) || 0;
+            inputs.formRdStaffPct = dEmp > 0 ? Math.round(dRds / dEmp * 100) : 0; // 科技人员占比
+        } else if (tab === 'giant') {
+            // formRdFeeTotal2yr: 近两年研发费用合计（2024+2025）——2026 新版小巨人门槛 ≥1200 万
+            var gRd = inputs.formRdFee || [];
+            inputs.formRdFeeTotal2yr = (parseFloat(gRd[1]) || 0) + (parseFloat(gRd[2]) || 0);
+            // formRdFeePct: 近三年研发费用占比（每年都要 ≥3%，取平均）
+            var gRevSum = (inputs.formRev || []).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+            var gRdSum = gRd.reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+            inputs.formRdFeePct = gRevSum > 0 ? Math.round(gRdSum / gRevSum * 100 * 10) / 10 : 0;
+            // formShare: 从是/否单选映射为数值（是=10，否=0）供旧规则兼容
+            inputs.formShare = inputs.formSharePass === '是' ? 10 : 0;
+            // formDebt: 从是/否单选映射（是≤75% → 50，否 → 90）2026 新版门槛
+            inputs.formDebt = inputs.formDebtPass === '是' ? 50 : 90;
+            // formSixBase / formChain: 旧规则用，从新字段映射（补短板案例 = chain）
+            inputs.formSixBase = inputs.formChainCase === '是' ? '是' : '否';
+            inputs.formChain = inputs.formDomesticSub === '是' ? '是' : '否';
+            // formRdStaff: 从研发机构是/否映射（是=15，否=0）供旧规则兼容
+            inputs.formRdStaff = inputs.formRdOrg === '是' ? 15 : 0;
+            // formRevScale: 上年度营收（用最近一年 2025）
+            inputs.formRevScale = parseFloat(gRevSum > 0 ? (inputs.formRev || [])[2] : 0) || 0;
+        }
+        return inputs;
+    }
+
+    // ============ 收集当前 Tab 表单数据 ============
+    function collectInputs() {
+        var inputs = {};
+        TABS[currentTab].fields.forEach(function(f) {
+            if (f.type === 'text' || f.type === 'number' || f.type === 'select' || f.type === 'month' || f.type === 'textarea') {
+                var el = document.getElementById(f.id);
+                inputs[f.id] = el ? el.value : '';
+            } else if (f.type === 'range') {
+                var el2 = document.getElementById(f.id);
+                inputs[f.id] = el2 ? (parseFloat(el2.value) || 0) : 0;
+            } else if (f.type === 'radio') {
+                var ck = document.querySelector('input[name="' + f.name + '"]:checked');
+                inputs[f.name] = ck ? ck.value : '';
+            } else if (f.type === 'tags') {
+                var arr = [];
+                document.querySelectorAll('#' + f.id + ' .qual-tag.qual-on').forEach(function(el) {
+                    arr.push(el.innerText.replace('✓ ', '').replace('+ ', '').trim());
+                });
+                inputs[f.id] = arr;
+            } else if (f.type === 'checkbox') {
+                var cArr = [];
+                document.querySelectorAll('#' + f.id + ' input[type=checkbox]:checked').forEach(function(el) { cArr.push(el.value); });
+                inputs[f.id] = cArr;
+            } else if (f.type === 'multinumber') {
+                f.items.forEach(function(it) {
+                    var el3 = document.getElementById(it.id);
+                    inputs[it.id] = el3 ? (parseInt(el3.value) || 0) : 0;
+                });
+            } else if (f.type === 'date') {
+                var elD = document.getElementById(f.id);
+                inputs[f.id] = elD ? elD.value : '';
+            } else if (f.type === 'table') {
+                // 每行收集为年份数组，如 formRev = [v2023, v2024, v2025]
+                f.rows.forEach(function(r) {
+                    var arr = [];
+                    f.years.forEach(function(y, yi) {
+                        var elT = document.getElementById(r.id + '_' + yi);
+                        arr.push(elT ? (parseFloat(elT.value) || 0) : 0);
+                    });
+                    inputs[r.id] = arr;
+                });
+            }
+        });
+        return inputs;
+    }
+
+    // ============ 企业信息头部 + 数据完整度（按当前 Tab） ============
+    function syncCard() {
+        checkShowIf();  // 任何输入变化都触发条件字段显隐检查
+        var tab = TABS[currentTab];
+        var inputs = collectInputs();
+
+        // 企业名称
+        var name = (inputs.formName || '').trim();
+        document.getElementById('entName').innerText = name || '—';
+
+        // 标签：按 tagFields 拼接
+        var parts = [];
+        (tab.tagFields || []).forEach(function(k) {
+            var v = inputs[k];
+            if (Array.isArray(v)) v = v.join(' · ');
+            if (v) parts.push(v);
+        });
+        document.getElementById('entTag').innerText = parts.length ? parts.join(' · ') : '请填写表单进行测评';
+
+        // 3 个统计槽
+        tab.stats.forEach(function(s, i) {
+            var val = resolveStat(s, inputs);
+            var labEl = document.getElementById('entStatLabel' + (i + 1));
+            var vEl = document.getElementById('entStatValue' + (i + 1));
+            if (labEl) labEl.innerText = s.label;
+            if (vEl) vEl.innerHTML = val;
+        });
+
+        checkCompleteness();
+    }
+
+    function resolveStat(s, inputs) {
+        var v;
+        if (s.calc) {
+            // 高企等测评的计算型统计（占比由原始字段算出）
+            if (s.calc === 'rdPct') {
+                var emp = parseFloat(inputs.formEmployees) || 0, rds = parseFloat(inputs.formRdStaff) || 0;
+                v = (emp > 0 ? (rds / emp * 100) : 0);
+            } else if (s.calc === 'revLatest') {
+                // 近一年营收（三年表的最后一列）
+                v = (inputs.formRev || [0,0,0])[2] || 0;
+            } else if (s.calc === 'feePct') {
+                var revS = (inputs.formRev || [0,0,0]).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+                var feeS = (inputs.formRdFee || [0,0,0]).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+                v = (revS > 0 ? (feeS / revS * 100) : 0);
+            } else if (s.calc === 'htPct') {
+                var revH = (inputs.formRev || [0,0,0]).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+                var htS = (inputs.formHtInc || [0,0,0]).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+                v = (revH > 0 ? (htS / revH * 100) : 0);
+            } else v = '';
+        } else if (s.from) v = inputs[s.from];
+        else if (s.sum) {
+            var tot = 0;
+            s.sum.forEach(function(id) { tot += (parseFloat(inputs[id]) || 0); });
+            v = tot;
+        } else v = '';
+        if (v === '' || v === null || v === undefined) return '—';
+        var num = parseFloat(v);
+        if (isNaN(num)) return '—';
+        if (s.fmt === 'yi') {
+            if (num <= 0) return '—';
+            return '¥' + (num / 10000).toFixed(1) + '<span class="text-sm">亿</span>';
+        }
+        if (s.suffix) return (num % 1 === 0 ? num : num.toFixed(1)) + s.suffix;
+        return num;
+    }
+
+    function checkCompleteness() {
+        var fields = TABS[currentTab].fields;
+        var required = [];
+        var total = 0;
+        var missing = [];
+        fields.forEach(function(f) {
+            if (f.required) {
+                total++;
+                var ok = false;
+                if (f.type === 'text' || f.type === 'number' || f.type === 'select') {
+                    ok = !!(document.getElementById(f.id) && document.getElementById(f.id).value.trim());
+                } else if (f.type === 'radio') {
+                    ok = !!document.querySelector('input[name="' + f.name + '"]:checked');
+                } else if (f.type === 'multinumber') {
+                    // 至少一项有值即视为填了
+                    ok = f.items.some(function(it) { return (parseInt(document.getElementById(it.id).value) || 0) > 0; });
+                } else if (f.type === 'date') {
+                    ok = !!(document.getElementById(f.id) && document.getElementById(f.id).value);
+                } else if (f.type === 'table') {
+                    // 所有单元格均有值才视为完整
+                    ok = f.rows.every(function(r) {
+                        return f.years.every(function(y, yi) {
+                            var el = document.getElementById(r.id + '_' + yi);
+                            return el && el.value.trim() !== '';
+                        });
+                    });
+                }
+                if (!ok) missing.push(f);
+            }
+        });
+        var pct = total ? Math.round((total - missing.length) / total * 100) : 100;
+        document.getElementById('completenessPct').textContent = pct + '%';
+        document.getElementById('completenessBar').style.width = pct + '%';
+        var msgEl = document.getElementById('completenessMsg');
+        if (pct === 100) {
+            document.getElementById('completenessBar').style.background = 'linear-gradient(90deg,#16a34a,#22c55e)';
+            msgEl.innerHTML = '<span class="text-green-600 font-bold"><i class="fa fa-check-circle"></i> 必填项完整</span>';
+        } else {
+            document.getElementById('completenessBar').style.background = 'linear-gradient(90deg,#3b82f6,#22c55e)';
+            msgEl.innerHTML = missing.map(function(f) {
+                return '<span class="text-red-500 mr-2 cursor-pointer hover:underline inline-block" onclick="focusField(\'' + (f.id || f.name) + '\')"><i class="fa fa-exclamation-triangle"></i> ' + f.label + '</span>';
+            }).join('');
+        }
+    }
+
+    function focusField(id) {
+        var el = document.getElementById(id);
+        if (!el) {
+            // 可能是 radio name
+            var r = document.querySelector('input[name="' + id + '"]');
+            if (r) { r.focus(); r.scrollIntoView({block:'center', behavior:'smooth'}); }
+            return;
+        }
+        el.focus();
+        el.scrollIntoView({block:'center', behavior:'smooth'});
+    }
+
+    // ============ 切换 Tab ============
+    function switchTab(tabKey) {
+        if (!TABS[tabKey]) return;
+        currentTab = tabKey;
+        // Tab 按钮高亮
+        Object.keys(TABS).forEach(function(k) {
+            var btn = document.getElementById('tab-' + k);
+            if (btn) {
+                if (k === tabKey) btn.classList.add('tab-on');
+                else btn.classList.remove('tab-on');
+            }
+        });
+        // 副标题
+        document.getElementById('pageSubtitle').innerText = TABS[tabKey].subtitle;
+        // 雷达标题
+        var rt = document.getElementById('radarTitle');
+        if (rt) rt.innerText = TABS[tabKey].radarTitle;
+        // 重建维度
+        rebuildDims(tabKey);
+        // 渲染表单
+        renderForm(tabKey);
+        // 清空结果区，回到引导态
+        resetResults();
+        updateRadarLabels();
+        syncCard();
+        updateStepIndicator(1);
+    }
+
+    function resetResults() {
+        window.IS_DIAGNOSED = false;
+        var guide = document.getElementById('resultGuide');
+        var area = document.getElementById('resultArea');
+        if (guide) { guide.style.display = ''; guide.style.opacity = '1'; guide.style.transform = 'none'; }
+        if (area) area.style.display = 'none';
+        ['reportTitle','reportDate','reportNo','reportSummary'].forEach(function(id){ var e=document.getElementById(id); if(e) e.innerText='—'; });
+        ['reportScore','reportRating','reportPassLine'].forEach(function(id){ var e=document.getElementById(id); if(e) e.innerText='—'; });
+        var badge = document.getElementById('reportBadge'); if (badge) { badge.innerText='—'; badge.style.background='#f1f5f9'; badge.style.color='#64748b'; }
+        ['reportHardship','reportScoreTable','reportRiskWarn','reportDetailTable','reportAdvantages','reportRisks','reportSuggestions','policyRecommendList'].forEach(function(id){ var e=document.getElementById(id); if(e) e.innerHTML=''; });
+        var poly = document.getElementById('reportRadarPolygon'); if (poly) poly.setAttribute('points','150,150 150,150 150,150 150,150 150,150 150,150');
+        var pts = document.getElementById('reportRadarPoints'); if (pts) pts.innerHTML='';
+    }
+
+    // ============ 评分：按当前 Tab 分支 ============
+    function calculateScores() {
+        var inputs = enrichInputs(collectInputs(), currentTab);
+        var scores = {}, passInfo = {};
+        if (currentTab === 'gradient') {
+            var sc = scoreGradient(inputs);
+            scores = sc.scores; passInfo = sc.pass;
+        } else if (currentTab === 'hightech') {
+            var sh = scoreHightech(inputs);
+            scores = sh.scores; passInfo = sh.pass;
+        } else if (currentTab === 'specialized') {
+            var ss = scoreSpecialized(inputs);
+            scores = ss.scores; passInfo = ss.pass;
+        } else if (currentTab === 'giant') {
+            var sg = scoreGiant(inputs);
+            scores = sg.scores; passInfo = sg.pass;
+        }
+        // 综合得分
+        var sum = 0;
+        DIM_META.forEach(function(d) { sum += (scores[d.key] || 0); });
+        scores.avg = Math.round(sum / DIM_META.length);
+        scores.passInfo = passInfo;
+
+        renderReport(scores, inputs, passInfo);
+        return scores;
+    }
+
+    // ① 梯度培育方案 计分（6 维）
+    function scoreGradient(i) {
+        var patent = i.formPatent || 0, sw = i.formSoftware || 0, ut = i.formUtility || 0;
+        var rdPct = i.formRdPct || 0, rdAmt = i.formRdAmount || 0, rdStaff = i.formRdStaffPct || 0;
+        var rev = i.formRevenue || 0, quals = i.formQuals || [];
+        var scaleB = {微型:10, 小型:20, 中型:30, 大型:40}[i.scale] || 0;
+        var scores = {
+            tech:      Math.min(100, Math.round(rdPct * 7 + patent * 8 + sw * 2)),
+            rd:        Math.min(100, Math.round(rdPct * 10 + Math.min(30, rdAmt / 100))),
+            ip:        Math.min(100, Math.round((patent + sw + ut) * 5 + patent * 4)),
+            transform: Math.min(100, Math.round(rdStaff * 2 + (quals.indexOf('高新技术企业') >= 0 ? 40 : 0) + Math.min(30, patent * 3))),
+            talent:    Math.min(100, Math.round(rdStaff * 3 + scaleB)),
+            market:    Math.min(100, Math.round(rev / 500 + scaleB))
+        };
+        return {scores: scores, pass: {}};
+    }
+
+    // ② 高企测评 计分（6 维 + 达标判定）—— 通过规则引擎 interp 解释执行
+    function scoreHightech(i) {
+        if (!interp) return {scores:{}, pass:{}};
+        var r = interp.evaluate('hightech', i);
+        // 兼容维度卡片/雷达图所需的 6 维得分：从 hardMetrics 的 pass 派生 + scoreItems 已算
+        var scores = {};
+        // 年限得分按达标程度映射
+        var yearsPass = r.pass.years;
+        var yearsScore = 0;
+        if (i.formFoundDate) {
+            var d = new Date(i.formFoundDate);
+            if (!isNaN(d.getTime())) {
+                var diffYears = (Date.now() - d.getTime()) / (365.25 * 24 * 3600 * 1000);
+                yearsScore = diffYears >= 3 ? 100 : (diffYears >= 1 ? 70 : 0);
+            }
+        }
+        scores.years = yearsScore;
+        // personnel / rdFee / htIncome / ip / mgmt 维度得分
+        var emp = parseFloat(i.formEmployees) || 0, rds = parseFloat(i.formRdStaff) || 0;
+        var rdPct = emp > 0 ? (rds / emp * 100) : 0;
+        scores.personnel = Math.min(100, Math.round(rdPct * 4 + (r.pass.personnel ? 20 : 0)));
+        var revSum = (i.formRev||[]).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+        var feeSum = (i.formRdFee||[]).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+        var feePct = revSum > 0 ? (feeSum / revSum * 100) : 0;
+        scores.rdFee = Math.min(100, Math.round(feePct * 15 + (r.pass.rdFee ? 20 : 0)));
+        var htSum = (i.formHtInc||[]).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+        var htPct = revSum > 0 ? (htSum / revSum * 100) : 0;
+        scores.htIncome = Math.round(htPct);
+        var ip1 = parseInt(i.formIP1) || 0, ip2 = parseInt(i.formIP2) || 0;
+        scores.ip = Math.min(100, Math.round(ip1 * 20 + ip2 * 5));
+        var iur = i.formIUR === '是', std = i.formStd === '是';
+        scores.mgmt = (iur && std) ? 100 : (iur || std ? 60 : 20);
+        return {scores: scores, pass: r.pass};
+    }
+
+    // ③ 专精特新测评 计分（四性 + 成长性 + 质量管控）—— 通过规则引擎 interp 解释执行
+    // 注意：派生字段（formProdPct/formRdStaffPct/formDebt/formGrowth/formPatentTotal/formMarketPos）
+    // 已由 enrichInputs() 在 calculateScores 入口统一补齐，此处直接使用。
+    function scoreSpecialized(i) {
+        if (!interp) return {scores:{}, pass:{}};
+        // formRdFee 这里临时计算为三年平均（不覆盖原始数组，避免影响其他地方）
+        var rdFeeAvg = (i.formRdFee || []).reduce(function(a,b){return a+(parseFloat(b)||0);},0) / 3;
+
+        var r = interp.evaluate('specialized', i);
+        // 维度卡片 6 维得分
+        var scores = {};
+        scores.profe = Math.round(i.formProdPct || 0);
+        var certs = i.formQuals || [];
+        var hasDebtPass = (i.formDebt || 0) <= 70;
+        scores.refine = Math.min(100, Math.round(certs.length * 25 + (hasDebtPass ? 25 : Math.max(0, 25 - ((i.formDebt||0) - 70)))));
+        var marketScore = i.formMarketPos === '全国前列' ? 100 : (i.formMarketPos === '区域前列' ? 80 : (i.formMarketPos === '省内前列' ? 60 : 30));
+        scores.special = marketScore;
+        scores.novel = Math.min(100, Math.round((i.formRdStaffPct || 0) * 2 + (parseFloat(i.formPatentTotal) || 0) * 5 + Math.min(20, rdFeeAvg / 50)));
+        scores.growth = Math.min(100, Math.round((i.formGrowth || 0) * 2));
+        scores.quality = Math.min(100, Math.round((hasDebtPass ? 50 : Math.max(0, 70 - (i.formDebt||0))) + certs.length * 15));
+        return {scores: scores, pass: r.pass};
+    }
+
+    // ④ 小巨人测评 计分（6 项指标）—— 通过规则引擎 interp 解释执行
+    // 注意：派生字段（formRdFeePct/formShare/formDebt/formSixBase/formChain/formRdStaff）
+    // 已由 enrichInputs() 在 calculateScores 入口统一补齐，此处直接使用。
+    function scoreGiant(i) {
+        if (!interp) return {scores:{}, pass:{}};
+        var r = interp.evaluate('giant', i);
+        // 维度卡片 6 维得分（与 data-bridge.js scoreItems 一致）
+        var scores = {};
+        // share: 市场占有率
+        scores.share = i.formSharePass === '是' ? 100 : 30;
+        // chain: 产业链补短板（三条件加权）
+        scores.chain = Math.min(100,
+            (i.formChainCase === '是' ? 40 : 0) +
+            (i.formDomesticSub === '是' ? 30 : 0) +
+            (i.formBreakChoke === '是' ? 30 : 0));
+        // rdFee: 研发费用（双条件：近两年合计≥1200万 + 每年占比≥3%）
+        var rdAmt = parseFloat(i.formRdFeeTotal2yr) || 0;
+        var rdPct = parseFloat(i.formRdFeePct) || 0;
+        scores.rdFee = Math.min(100, Math.round(
+            (rdAmt >= 1200 ? 50 : rdAmt / 1200 * 50) +
+            (rdPct >= 3 ? 50 : rdPct / 3 * 50)
+        ));
+        // rdStaff: 研发机构
+        scores.rdStaff = Math.min(100,
+            (i.formRdOrg === '是' ? 60 : 0) +
+            (i.formErpMes === '是' ? 20 : 0) +
+            (i.formIsoCert === '是' ? 20 : 0));
+        // ip1: Ⅰ类知识产权（新版门槛≥4项）
+        var ip1 = parseFloat(i.formIP1) || 0;
+        scores.ip1 = Math.min(100, Math.round(ip1 * 25));
+        // debt: 资产负债率（新版≤75%）
+        scores.debt = i.formDebtPass === '是' ? 100 : 30;
+        return {scores: scores, pass: r.pass};
+    }
+
+    // ============ 雷达图绘制（保留原逻辑，维度来自 DIM_META） ============
+    function updateRadar(scores) {
+        var dims = DIM_META.slice(0, 6).map(function(d) { return scores[d.key] || 0; });
+        var cx = 150, cy = 150, maxR = 120;
+        var colors = ['#2563eb','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
+        var pts = [], circles = [];
+        for (var i = 0; i < dims.length; i++) {
+            var angle = i * 60;
+            var r = (dims[i] / 100) * maxR;
+            var rad = angle * Math.PI / 180;
+            var x = cx + r * Math.sin(rad);
+            var y = cy - r * Math.cos(rad);
+            pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+            circles.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="5" fill="' + colors[i] + '"/>');
+        }
+        document.getElementById('radarPolygon').setAttribute('points', pts.join(' '));
+        document.getElementById('radarPoints').innerHTML = circles.join('');
+        // 维度标签 + 分数
+        for (var j = 0; j < dims.length; j++) {
+            var lbl = document.getElementById('radarLabel' + j);
+            if (lbl) lbl.textContent = DIM_META[j].name;
+            var se = document.getElementById('radarScore' + j);
+            if (se) se.textContent = Math.round(dims[j]);
+        }
+        // 中心综合得分
+        document.getElementById('radarScore').textContent = scores.avg;
+        // 评级
+        var ratingColorMap = {'A+':'#2563eb','A':'#2563eb','B':'#16a34a','C':'#ea580c','D':'#dc2626'};
+        var rating = 'D', ratingColor = '#dc2626';
+        for (var ri = 0; ri < RATINGS.length; ri++) {
+            if (scores.avg >= RATINGS[ri].min) { rating = RATINGS[ri].grade; ratingColor = ratingColorMap[rating] || '#475569'; break; }
+        }
+        var ratingEl = document.getElementById('radarRating');
+        ratingEl.textContent = rating; ratingEl.style.color = ratingColor;
+        // 行业排名
+        var ranking = 'TOP 85%';
+        for (var rj = 0; rj < RATINGS.length; rj++) {
+            if (scores.avg >= RATINGS[rj].min) { ranking = RATINGS[rj].rank; break; }
+        }
+        document.getElementById('radarRanking').textContent = ranking;
+        document.getElementById('radarYoy').textContent = '—';
+    }
+
+    function updateRadarLabels() {
+        DIM_META.slice(0, 6).forEach(function(d, i) {
+            var lbl = document.getElementById('radarLabel' + i);
+            if (lbl) lbl.textContent = d.name;
+            var se = document.getElementById('radarScore' + i);
+            if (se) se.textContent = '—';
+        });
+    }
+
+    // ============ 维度卡片（按当前 Tab 维度 + 达标标注） ============
+    function dimInfo(d, score, inputs, pass) {
+        var avg = IND_AVG[d.key];
+        var fact = d.name + ' · ' + d.desc;
+        var tip = score >= avg ? '高于行业均值，保持优势' : '低于行业均值，重点提升';
+        var passStr = '';
+        if (pass != null) {
+            passStr = pass ? '<span class="text-[10px] text-green-600 font-bold ml-1"><i class="fa fa-check-circle"></i> 达标</span>'
+                           : '<span class="text-[10px] text-red-600 font-bold ml-1"><i class="fa fa-times-circle"></i> 差距</span>';
+        }
+        if (d.passline != null) {
+            var lineTxt = '达标线 ' + (d.passlineMode === 'le' ? '≤' : '') + d.passline;
+            fact = d.name + ' · ' + lineTxt;
+        }
+        var tipIcon = score >= avg ? '<i class="fa fa-check text-green-500 mr-1"></i>' : '<i class="fa fa-exclamation-triangle text-orange-500 mr-1"></i>';
+        return { line1: '<i class="fa fa-check text-green-500 mr-1"></i>' + fact + passStr, line2: tipIcon + tip };
+    }
+
+    function updateDimensions(scores, inputs, passInfo) {
+        var html = '';
+        DIM_META.forEach(function(d) {
+            var score = Math.round(scores[d.key]);
+            var info = dimInfo(d, score, inputs, (passInfo ? passInfo[d.key] : null));
+            html += '<div class="dimension-card bg-white rounded-2xl p-5 border border-slate-100">' +
+                '<div class="flex items-center justify-between mb-3">' +
+                    '<div class="flex items-center space-x-3">' +
+                        '<div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:' + d.bg + ';color:' + d.text + '">' +
+                            '<i class="fa ' + d.icon + '"></i>' +
+                        '</div>' +
+                        '<div>' +
+                            '<h4 class="text-sm font-bold text-slate-800">' + d.name + '</h4>' +
+                            '<p class="text-[10px] text-slate-400">' + d.desc + '</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<span class="text-xl font-black" style="color:' + d.text + '">' + score + '</span>' +
+                '</div>' +
+                '<div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">' +
+                    '<div class="h-full rounded-full transition-all duration-500" style="width:' + score + '%;background:' + d.grad + '"></div>' +
+                '</div>' +
+                '<div class="text-xs text-slate-500">' +
+                    '<p class="mb-1">' + info.line1 + '</p>' +
+                    '<p>' + info.line2 + '</p>' +
+                '</div>' +
+            '</div>';
+        });
+        document.getElementById('dimensionCards').innerHTML = html;
+    }
+
+    // ============ 同业对比（保留原逻辑，维度来自 DIM_META） ============
+    function updatePeerComparison(scores) {
+        var mine = DIM_META.map(function(d) { return scores[d.key] || 0; });
+        var avg = DIM_META.map(function(d) { return IND_AVG[d.key]; });
+        var best = DIM_META.map(function(d) { return IND_BEST[d.key]; });
+        var rows = [{label:'本企业', color:'#2563eb'}, {label:'行业均值', color:'#94a3b8'}, {label:'行业标杆', color:'#eab308'}];
+        var html = '';
+        for (var i = 0; i < DIM_META.length; i++) {
+            var vals = [mine[i], avg[i], best[i]];
+            html += '<div><div class="text-xs font-bold text-slate-700 mb-1">' + DIM_META[i].name + '</div><div class="space-y-1">';
+            for (var k = 0; k < 3; k++) {
+                html += '<div class="flex items-center space-x-2">' +
+                    '<span class="text-[10px] text-slate-500 w-12 text-right">' + rows[k].label + '</span>' +
+                    '<div class="flex-1 h-4 bg-slate-50 rounded overflow-hidden">' +
+                        '<div class="h-full rounded transition-all duration-500" style="width:' + Math.min(vals[k], 100) + '%;background:' + rows[k].color + '"></div>' +
+                    '</div>' +
+                    '<span class="text-[10px] font-bold text-slate-700 w-6 text-center">' + Math.round(vals[k]) + '</span>' +
+                '</div>';
+            }
+            html += '</div></div>';
+        }
+        document.getElementById('peerComparison').innerHTML = html;
+    }
+
+    // ============ 短板分析（与行业均值差距） ============
+    function updateShortboard(scores) {
+        var arr = DIM_META.map(function(d) {
+            return {name: d.name, score: scores[d.key], avg: IND_AVG[d.key], gap: scores[d.key] - IND_AVG[d.key]};
+        });
+        arr.sort(function(a, b) { return a.gap - b.gap; });
+        var tierColorMap = {'严重短板':'#dc2626', '偏弱':'#ea580c', '持平':'#64748b', '优势':'#16a34a', '领先':'#15803d'};
+        var tierBgMap = {'严重短板':'#fef2f2', '偏弱':'#fff7ed', '持平':'#f8fafc', '优势':'#f0fdf4', '领先':'#dcfce7'};
+        var SB_TIERS = [{max:-15,label:'严重短板'},{max:-5,label:'偏弱'},{max:5,label:'持平'},{max:15,label:'优势'},{max:9999,label:'领先'}];
+        var html = '';
+        arr.forEach(function(item) {
+            var status = SB_TIERS[SB_TIERS.length - 1].label;
+            for (var ti = 0; ti < SB_TIERS.length; ti++) { if (item.gap <= SB_TIERS[ti].max) { status = SB_TIERS[ti].label; break; } }
+            var color = tierColorMap[status] || '#475569';
+            var bg = tierBgMap[status] || '#f8fafc';
+            var gapStr = (item.gap >= 0 ? '+' : '') + Math.round(item.gap);
+            var gapColor = item.gap < 0 ? '#dc2626' : '#16a34a';
+            html += '<div class="flex items-center justify-between p-2 rounded-lg" style="background:' + bg + '">' +
+                '<div class="flex items-center space-x-2">' +
+                    '<span class="text-xs font-bold text-slate-700">' + item.name + '</span>' +
+                    '<span class="text-[10px] px-1.5 py-0.5 rounded" style="color:' + color + ';background:white">' + status + '</span>' +
+                '</div>' +
+                '<div class="flex items-center space-x-3 text-[10px]">' +
+                    '<span class="text-slate-500">本企业 <b class="text-slate-700">' + Math.round(item.score) + '</b></span>' +
+                    '<span class="text-slate-400">均值 <b class="text-slate-500">' + item.avg + '</b></span>' +
+                    '<span class="font-bold" style="color:' + gapColor + '">' + gapStr + '</span>' +
+                '</div>' +
+            '</div>';
+        });
+        document.getElementById('shortboardList').innerHTML = html;
+    }
+
+    // ============ 发展路径（短期/中期/长期，基于最弱 2 维度） ============
+    function updateDevPath(scores) {
+        var stages = DEV_STAGES.map(function(s, i) {
+            var styleMap = [{color:'#2563eb', bg:'#eff6ff'},{color:'#9333ea', bg:'#faf5ff'},{color:'#16a34a', bg:'#f0fdf4'}];
+            var st = styleMap[i % styleMap.length];
+            return {title:s.title, range:s.range, inc:(s.inc||10), color:st.color, bg:st.bg};
+        });
+        var arr = DIM_META.map(function(d) { return {key: d.key, name: d.name, score: scores[d.key]}; });
+        arr.sort(function(a, b) { return a.score - b.score; });
+        var weakest2 = arr.slice(0, 2);
+        var dimNames = weakest2.map(function(d) { return d.name; }).join('、');
+        var SUGG = {};
+        DIM_META.forEach(function(d) { SUGG[d.key] = (d.suggestions && d.suggestions.length) ? d.suggestions.slice() : ['持续关注该维度能力建设']; });
+        var html = '';
+        stages.forEach(function(s, idx) {
+            var targetScore = Math.min(100, weakest2[0].score + s.inc);
+            var acts = weakest2.map(function(d) { var al = SUGG[d.key]; return al[idx % al.length]; });
+            var connector = idx < stages.length - 1 ? '<div class="absolute" style="left:6px;top:14px;bottom:-14px;width:2px;background:' + s.color + '40"></div>' : '';
+            html += '<div class="relative pl-6">' +
+                '<div class="absolute left-0 top-1 w-3 h-3 rounded-full" style="background:' + s.color + '"></div>' +
+                connector +
+                '<div class="rounded-xl p-3" style="background:' + s.bg + '">' +
+                    '<div class="flex items-center justify-between mb-1">' +
+                        '<span class="text-xs font-bold" style="color:' + s.color + '">' + s.title + ' · ' + s.range + '</span>' +
+                        '<span class="text-[10px] text-slate-500">目标分 <b style="color:' + s.color + '">' + Math.round(targetScore) + '</b></span>' +
+                    '</div>' +
+                    '<p class="text-[10px] text-slate-500 mb-1">重点维度：' + dimNames + '</p>' +
+                    '<div class="space-y-1">' +
+                        acts.map(function(a) { return '<p class="text-[10px] text-slate-600"><i class="fa fa-check-circle mr-1" style="color:' + s.color + '"></i>' + a + '</p>'; }).join('') +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        });
+        document.getElementById('devPath').innerHTML = html;
+    }
+
+    // ============ 提升建议（按得分最低 4 维度） ============
+    function updateSuggestions(scores) {
+        var arr = DIM_META.map(function(d) { return {key: d.key, name: d.name, score: scores[d.key]}; });
+        arr.sort(function(a, b) { return a.score - b.score; });
+        var top4 = arr.slice(0, 4);
+        var SUGG = {};
+        DIM_META.forEach(function(d) { SUGG[d.key] = (d.suggestions && d.suggestions.length) ? d.suggestions.slice() : ['持续关注该维度能力建设']; });
+        var palette = [
+            {bg:'#fff7ed', border:'#fed7aa', num:'#ea580c'},
+            {bg:'#eff6ff', border:'#bfdbfe', num:'#2563eb'},
+            {bg:'#f0fdf4', border:'#bbf7d0', num:'#16a34a'},
+            {bg:'#faf5ff', border:'#e9d5ff', num:'#9333ea'}
+        ];
+        var html = '';
+        top4.forEach(function(item, i) {
+            var p = palette[i];
+            var gap = item.score - IND_AVG[item.key];
+            var gapStr = (gap >= 0 ? '+' : '') + Math.round(gap);
+            var gapColor = gap < 0 ? '#dc2626' : '#16a34a';
+            html += '<div class="rounded-xl p-4 border" style="background:' + p.bg + ';border-color:' + p.border + '">' +
+                '<div class="flex items-center space-x-2 mb-2">' +
+                    '<span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background:' + p.num + '">' + (i + 1) + '</span>' +
+                    '<h4 class="text-xs font-bold text-slate-800 flex-1">' + item.name + ' · 当前 ' + Math.round(item.score) + '分</h4>' +
+                    '<span class="text-[10px] font-bold" style="color:' + gapColor + '">' + gapStr + '</span>' +
+                '</div>' +
+                '<p class="text-[10px] text-slate-600 leading-relaxed pl-8">' + SUGG[item.key].join('，') + '</p>' +
+                '<p class="text-[10px] pl-8 mt-1"><a href="javascript:void(0)" onclick="goPage(\'policy-radar.html\')" class="font-bold" style="color:' + p.num + '">查看相关政策 <i class="fa fa-arrow-right"></i></a></p>' +
+            '</div>';
+        });
+        document.getElementById('suggestionList').innerHTML = html;
+    }
+
+    // ============ 结论横幅（按 resultMode 分支渲染） ============
+    function renderConclusion(scores, inputs, passInfo) {
+        var mode = TABS[currentTab].resultMode;
+        var html = '';
+        if (mode === 'gradient') {
+            var quals = inputs.formQuals || [];
+            var stage, next;
+            if (quals.indexOf('瞪羚企业') >= 0 || scores.avg >= 85) { stage = '瞪羚 / 小巨人梯队'; next = '冲刺国家级专精特新"小巨人"'; }
+            else if (quals.indexOf('专精特新') >= 0 || scores.avg >= 75) { stage = '专精特新企业'; next = '申报专精特新"小巨人"'; }
+            else if (quals.indexOf('高新技术企业') >= 0 || scores.avg >= 65) { stage = '高新技术企业'; next = '进入专精特新培育库'; }
+            else if (quals.indexOf('科技型中小企业') >= 0 || scores.avg >= 50) { stage = '科技型中小企业'; next = '进入高新技术企业培育库'; }
+            else { stage = '科技型中小企业培育期'; next = '入库科技型中小企业'; }
+            html = '<div class="rounded-2xl p-5 border" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe">' +
+                '<div class="flex items-center justify-between">' +
+                    '<div><h3 class="text-base font-black text-slate-800">当前梯度：<span class="text-blue-600">' + stage + '</span></h3>' +
+                    '<p class="text-xs text-slate-500 mt-1">综合得分 <b>' + scores.avg + '</b> 分 · 下一阶段：<b class="text-indigo-600">' + next + '</b></p></div>' +
+                    '<i class="fa fa-sitemap text-3xl text-blue-500"></i>' +
+                '</div>' +
+                '<div class="mt-3 text-[10px] text-slate-500 leading-relaxed">培育路径：沿「科技型中小企业 → 高企培育库 → 高新技术企业 → 专精特新 → 小巨人」梯度逐级进阶，重点补齐下方短板维度。</div>' +
+            '</div>';
+        } else {
+            // checklist：高企/专精特新/小巨人
+            var dims = DIM_META;
+            var passCount = 0;
+            var items = dims.map(function(d) {
+                var p = passInfo ? passInfo[d.key] : null;
+                var ok = !!p;
+                if (ok) passCount++;
+                var score = Math.round(scores[d.key]);
+                var lineTxt = d.passline != null ? ' · 达标线 ' + (d.passlineMode === 'le' ? '≤' : '') + d.passline : '';
+                return '<div class="flex items-center justify-between p-2 rounded-lg" style="background:' + (ok ? '#f0fdf4' : '#fef2f2') + '">' +
+                    '<div class="flex items-center space-x-2"><i class="fa ' + (ok ? 'fa-check-circle text-green-600' : 'fa-times-circle text-red-600') + '"></i>' +
+                    '<span class="text-xs font-bold text-slate-700">' + d.name + lineTxt + '</span></div>' +
+                    '<span class="text-[10px] ' + (ok ? 'text-green-700' : 'text-red-600') + ' font-bold">' + (ok ? '达标' : '差距') + ' · ' + score + '分</span></div>';
+            }).join('');
+            var rate = Math.round(passCount / dims.length * 100);
+            var feasible = rate >= 100 ? '完全达标，建议立即申报' : (rate >= 66 ? '大部分达标，补齐短板后可申报' : (rate >= 40 ? '部分达标，需重点整改' : '多项差距，需系统培育'));
+            var rateColor = rate >= 66 ? '#16a34a' : (rate >= 40 ? '#ea580c' : '#dc2626');
+            html = '<div class="rounded-2xl p-5 border" style="background:linear-gradient(135deg,#eff6ff,#f5f3ff);border-color:#c7d2fe">' +
+                '<div class="flex items-center justify-between mb-3">' +
+                    '<div><h3 class="text-base font-black text-slate-800">' + TABS[currentTab].title + '结论</h3>' +
+                    '<p class="text-xs text-slate-500 mt-0.5">' + feasible + '</p></div>' +
+                    '<div class="text-center"><p class="text-3xl font-black" style="color:' + rateColor + '">' + rate + '%</p><p class="text-[10px] text-slate-400">达标率</p></div>' +
+                '</div>' +
+                '<div class="grid grid-cols-2 gap-2">' + items + '</div>' +
+                '<div class="mt-3 text-[10px] text-slate-500">综合得分 <b>' + scores.avg + '</b> 分 · 达标 ' + passCount + '/' + dims.length + ' 项' + (rate < 100 ? ' · 未达标项见改进建议' : '') + '</div>' +
+            '</div>';
+        }
+        document.getElementById('conclusionBanner').innerHTML = html;
+    }
+
+    // ============ 报告配置：各测评的元数据外壳 ============
+    // 注：硬指标与评分项的判定逻辑（check/value/calc/basis）已迁移到规则引擎 RULES_CFG
+    //     这里仅保留 key/name/desc/max 元数据供渲染层使用，实际判定由 interp 解释执行
+    var TAB_REPORTS = {
+        gradient: {
+            type: '梯度培育',
+            passLine: 60,
+            hardMetrics: [],
+            scoreItems: [
+                {key:'tech',      name:'技术创新', max:20},
+                {key:'rd',        name:'研发投入', max:15},
+                {key:'ip',        name:'知识产权', max:20},
+                {key:'transform', name:'成果转化', max:15},
+                {key:'talent',    name:'人才结构', max:15},
+                {key:'market',    name:'市场表现', max:15}
+            ]
+        },
+        hightech: {
+            type: '高企',
+            passLine: 70.1,
+            hardMetrics: [
+                {key:'years',     name:'注册成立时间',         desc:'满1年'},
+                {key:'personnel', name:'研发人员占比',         desc:'≥10%'},
+                {key:'htIncome',  name:'高新技术产品收入占比', desc:'≥60%'},
+                {key:'rdFee',     name:'研发费用占比',         desc:'≥3%'},
+                {key:'field',     name:'核心技术领域归属',     desc:'属于国家支持的高新技术领域'}
+            ],
+            scoreItems: [
+                {key:'ip',   name:'知识产权',         max:30},
+                {name:'成果转化能力', max:30},
+                {key:'mgmt', name:'研发组织管理水平', max:20},
+                {name:'企业成长性', max:20}
+            ]
+        },
+        specialized: {
+            type: '专精特新',
+            passLine: 70,
+            hardMetrics: [
+                {key:'profe',  name:'主导产品收入占比', desc:'≥60%'},
+                {key:'novel',  name:'研发人员占比',     desc:'≥10%'},
+                {key:'growth', name:'营收正增长',     desc:'增长率≥0%'},
+                {key:'quality',name:'资产负债率',     desc:'≤70%'}
+            ],
+            scoreItems: [
+                {key:'profe',  name:'专业化', max:25},
+                {key:'refine', name:'精细化', max:25},
+                {key:'special',name:'特色化', max:25},
+                {key:'novel',  name:'新颖化', max:25}
+            ]
+        },
+        giant: {
+            type: '小巨人',
+            passLine: 75,
+            hardMetrics: [
+                {key:'share',  name:'市场占有率',       desc:'≥10%'},
+                {key:'chain',  name:'工业六基/补短板', desc:'属于工业"六基"且补短板'},
+                {key:'rdFee',  name:'研发费用占比',     desc:'≥3%'},
+                {key:'rdStaff',name:'研发人员占比',     desc:'≥15%'},
+                {key:'ip1',    name:'Ⅰ类知识产权',     desc:'≥2项'},
+                {key:'debt',   name:'资产负债率',       desc:'≤70%'}
+            ],
+            scoreItems: [
+                {key:'share',  name:'市场占有率',   max:25},
+                {key:'chain',  name:'产业链补短板', max:15},
+                {key:'rdFee',  name:'研发费用占比', max:20},
+                {key:'rdStaff',name:'研发人员占比', max:15},
+                {key:'ip1',    name:'Ⅰ类知识产权', max:15},
+                {key:'debt',   name:'资产负债率',   max:10}
+            ]
+        }
+    };
+
+    // 获取当前 Tab 的活动规则（来自 RULES_CFG，含 hardMetrics/scoreItems 完整 DSL）
+    // 同时合并 TAB_REPORTS 的元数据外壳（key/name/desc/max 用于渲染层兼容）
+    function getActiveRules(tab) {
+        var meta = TAB_REPORTS[tab] || { type: tab, passLine: 0, hardMetrics: [], scoreItems: [] };
+        if (!RULES_CFG || !RULES_CFG.rules || !RULES_CFG.rules[tab] || !interp) {
+            return meta; // 无规则引擎时回退到元数据外壳（无判定逻辑，但保证渲染不崩）
+        }
+        var r = RULES_CFG.rules[tab];
+        return {
+            type: r.type || meta.type,
+            passLine: (typeof r.passLine === 'number') ? r.passLine : meta.passLine,
+            hardMetrics: r.hardMetrics || meta.hardMetrics,
+            scoreItems: r.scoreItems || meta.scoreItems
+        };
+    }
+
+    // ============ 报告渲染（统一按当前 Tab 的 report 配置生成） ============
+    function renderReport(scores, inputs, passInfo) {
+        var tab = TABS[currentTab];
+        var cfg = getActiveRules(currentTab);
+        if (!cfg) return;
+        var entName = (inputs.formName || '匿名企业').trim();
+        var today = new Date();
+        var dateStr = today.getFullYear()+'年'+(today.getMonth()+1)+'月'+today.getDate()+'日';
+        var reportNo = 'AD' + today.getFullYear() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0') + '-' + String(Math.floor(Math.random()*900+100));
+
+        // 报告头部
+        setText('reportTitle', entName + cfg.type + '测评报告');
+        setText('reportDate', dateStr);
+        setText('reportNo', reportNo);
+        setText('reportScore', scores.avg);
+        var rating = 'D';
+        for (var ri = 0; ri < RATINGS.length; ri++) { if (scores.avg >= RATINGS[ri].min) { rating = RATINGS[ri].grade; break; } }
+        setText('reportRating', rating);
+        var pass = checkOverallPass(scores, inputs, passInfo, cfg);
+        var badge = document.getElementById('reportBadge');
+        if (badge) {
+            badge.innerText = pass ? '达标' : '未达标';
+            badge.style.background = pass ? '#dcfce7' : '#fef2f2';
+            badge.style.color = pass ? '#15803d' : '#dc2626';
+        }
+
+        // 头部雷达图（缩小版）
+        drawReportRadar(scores);
+
+        // 四部分内容
+        renderHardship(cfg, inputs, passInfo);
+        renderScoreTable(cfg, scores, inputs);
+        renderAnalysis(cfg, scores, inputs, passInfo, entName);
+        renderReportSuggestions(scores, inputs);
+        renderGenBadge();
+    }
+
+    function setText(id, txt) { var e = document.getElementById(id); if (e) e.innerText = txt; }
+
+    // 报告生成来源：分析报告与改进建议优先 AI 生成，AI 不可用时回退后台规则引擎
+    // 演示开关：地址加 ?ai=off 或 localStorage 设置 ceyuan_ai_report=off 可模拟 AI 不可用
+    function getReportGenSource() {
+        try {
+            if (new URLSearchParams(location.search).get('ai') === 'off') return 'engine';
+            if (localStorage.getItem('ceyuan_ai_report') === 'off') return 'engine';
+        } catch (e) {}
+        return 'ai';
+    }
+
+    function renderGenBadge() {
+        var el = document.getElementById('reportGenBadge');
+        if (!el) return;
+        if (getReportGenSource() === 'ai') {
+            el.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-[10px] font-bold';
+            el.innerHTML = '<i class="fa fa-magic"></i>AI 辅助生成';
+            el.title = '测评分析与改进建议由 AI 生成，评分与达标判定由规则引擎计算';
+        } else {
+            el.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold';
+            el.innerHTML = '<i class="fa fa-cogs"></i>规则引擎生成';
+            el.title = 'AI 服务不可用，已回退至后台测评规则引擎生成';
+        }
+    }
+
+    // 整体达标判定：硬性指标全部达标（调 interp.check） + 总分≥及格线
+    function checkOverallPass(scores, inputs, passInfo, cfg) {
+        if (cfg.hardMetrics && cfg.hardMetrics.length && interp) {
+            for (var i = 0; i < cfg.hardMetrics.length; i++) {
+                try { if (!interp.check(cfg.hardMetrics[i], inputs)) return false; }
+                catch(e) { return false; }
+            }
+        }
+        var total = sumScoreItems(cfg, scores, inputs);
+        return total >= cfg.passLine;
+    }
+
+    // 计算评分项总分（interp.calc 优先，否则按维度分映射）
+    function sumScoreItems(cfg, scores, inputs) {
+        return cfg.scoreItems.reduce(function(sum, item) {
+            var pts = (interp && item.calc) ? interp.calc(item, inputs)
+                : Math.round((scores[item.key]||0) / 100 * item.max);
+            return sum + pts;
+        }, 0);
+    }
+
+    // 头部雷达图绘制（复用 6 维得分，6 边形）
+    function drawReportRadar(scores) {
+        var poly = document.getElementById('reportRadarPolygon');
+        var ptsG = document.getElementById('reportRadarPoints');
+        if (!poly || !ptsG) return;
+        var dims = DIM_META.slice(0, 6).map(function(d) { return scores[d.key] || 0; });
+        var cx = 150, cy = 150, maxR = 120;
+        var colors = ['#2563eb','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
+        var pts = [], circles = [];
+        for (var i = 0; i < dims.length; i++) {
+            var angle = i * 60;
+            var r = (dims[i] / 100) * maxR;
+            var rad = angle * Math.PI / 180;
+            var x = cx + r * Math.sin(rad);
+            var y = cy - r * Math.cos(rad);
+            pts.push(x.toFixed(1) + ',' + y.toFixed(1));
+            circles.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" fill="' + colors[i] + '"/>');
+        }
+        poly.setAttribute('points', pts.join(' '));
+        ptsG.innerHTML = circles.join('');
+    }
+
+    // 第一部分：硬性指标核验
+    function renderHardship(cfg, inputs, passInfo) {
+        var container = document.getElementById('reportHardship');
+        if (!container) return;
+        if (!cfg.hardMetrics || !cfg.hardMetrics.length) {
+            container.innerHTML = '<div class="text-xs text-slate-500 bg-slate-50 rounded-lg p-3 leading-relaxed"><i class="fa fa-info-circle mr-1 text-blue-500"></i>本测评为综合测评型，无强制硬性门槛，请参考下方量化评分与改进建议进行能力提升。</div>';
+            return;
+        }
+        var fails = 0;
+        var rows = cfg.hardMetrics.map(function(m) {
+            var ok = false, val = '—';
+            try { ok = interp ? interp.check(m, inputs) : false; val = interp ? interp.value(m, inputs) : '—'; } catch(e) { ok = false; }
+            if (!ok) fails++;
+            return '<div class="flex items-center justify-between p-2.5 rounded-lg ' + (ok ? 'bg-green-50' : 'bg-red-50') + '">' +
+                '<div class="flex items-center gap-2 min-w-0">' +
+                    '<i class="fa ' + (ok ? 'fa-check-circle text-green-600' : 'fa-times-circle text-red-600') + '"></i>' +
+                    '<span class="text-xs font-bold text-slate-700">' + m.name + '</span>' +
+                    '<span class="text-[10px] text-slate-400">(' + (m.desc||'') + ')</span>' +
+                '</div>' +
+                '<div class="flex items-center gap-3 flex-shrink-0">' +
+                    '<span class="text-xs text-slate-600">' + val + '</span>' +
+                    '<span class="text-[10px] font-bold ' + (ok ? 'text-green-700' : 'text-red-700') + '">' + (ok ? '达标 ✓' : '不达标 ✗') + '</span>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+        var warn = fails > 0 ? '<div class="mb-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800"><i class="fa fa-exclamation-triangle mr-1"></i>存在 <b>' + fails + '</b> 项硬性指标未达标，可能影响认定</div>' : '';
+        container.innerHTML = warn + '<div class="space-y-2">' + rows + '</div>';
+    }
+
+    // 第二部分：评分表 + 重大风险提示
+    function renderScoreTable(cfg, scores, inputs) {
+        setText('reportPassLine', cfg.passLine);
+        var container = document.getElementById('reportScoreTable');
+        if (!container) return;
+        var rows = cfg.scoreItems.map(function(item) {
+            var pts = (interp && item.calc) ? interp.calc(item, inputs) : Math.round((scores[item.key]||0) / 100 * item.max);
+            var pct = Math.max(0, Math.min(100, Math.round(pts / item.max * 100)));
+            return '<div class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50">' +
+                '<span class="text-xs font-bold text-slate-700 w-28 flex-shrink-0">' + item.name + '</span>' +
+                '<span class="text-[10px] text-slate-400 w-14 flex-shrink-0">满分' + item.max + '</span>' +
+                '<div class="flex-1 h-3 bg-slate-200 rounded-full overflow-hidden">' +
+                    '<div class="h-full rounded-full transition-all duration-500" style="width:' + pct + '%;background:linear-gradient(90deg,#3b82f6,#2563eb)"></div>' +
+                '</div>' +
+                '<span class="text-xs font-bold text-blue-700 w-14 text-right">' + pts + '/' + item.max + '</span>' +
+            '</div>';
+        }).join('');
+        var total = sumScoreItems(cfg, scores, inputs);
+        var passTotal = total >= cfg.passLine;
+        var totalRow = '<div class="flex items-center justify-between p-2.5 rounded-lg ' + (passTotal ? 'bg-green-50' : 'bg-red-50') + ' mt-2 border ' + (passTotal ? 'border-green-200' : 'border-red-200') + '">' +
+            '<span class="text-xs font-black text-slate-800">合计</span>' +
+            '<div class="flex items-center gap-3">' +
+                '<span class="text-sm font-black ' + (passTotal ? 'text-green-700' : 'text-red-700') + '">' + total + '/100</span>' +
+                '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full ' + (passTotal ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700') + '">' + (passTotal ? '达标' : '未达标') + '</span>' +
+            '</div>' +
+        '</div>';
+        container.innerHTML = rows + totalRow;
+
+        // 重大风险提示
+        var risks = [];
+        if ((currentTab === 'hightech' || currentTab === 'giant') && (parseInt(inputs.formIP1) || 0) === 0) {
+            risks.push('Ⅰ类知识产权为 0 项，严重影响' + cfg.type + '认定');
+        }
+        if (!passTotal) {
+            risks.push('综合得分 ' + total + ' 分低于及格线 ' + cfg.passLine + '，建议系统提升');
+        }
+        if (cfg.hardMetrics && cfg.hardMetrics.length) {
+            var hardFails = cfg.hardMetrics.filter(function(m) { try { return interp ? !interp.check(m, inputs) : true; } catch(e) { return true; } }).length;
+            if (hardFails > 0) risks.push('有 ' + hardFails + ' 项硬性门槛未达标');
+        }
+        var warnEl = document.getElementById('reportRiskWarn');
+        if (warnEl) {
+            warnEl.innerHTML = risks.length ? '<div class="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700"><i class="fa fa-exclamation-triangle mr-1"></i><b>重大风险：</b>' + risks.join('；') + '</div>' : '';
+        }
+    }
+
+    // 第三部分：测评综述 + 得分明细表 + 优势/风险
+    function renderAnalysis(cfg, scores, inputs, passInfo, entName) {
+        var total = sumScoreItems(cfg, scores, inputs);
+        var passTotal = total >= cfg.passLine;
+        var arr = DIM_META.map(function(d) { return {name:d.name, score:scores[d.key]||0, suggestions:d.suggestions||[]}; });
+        var sortedDesc = arr.slice().sort(function(a,b){return b.score-a.score;});
+        var sortedAsc = arr.slice().sort(function(a,b){return a.score-b.score;});
+        var advantages = sortedDesc.slice(0, 3).filter(function(x){return x.score >= 60;});
+        var weaks = sortedAsc.slice(0, 3).filter(function(x){return x.score < 60;});
+        if (!advantages.length) advantages = sortedDesc.slice(0, 2);
+        if (!weaks.length) weaks = sortedAsc.slice(0, 2);
+        var advText = advantages.map(function(x){return x.name+'('+Math.round(x.score)+'分)';}).join('、');
+        var weakText = weaks.map(function(x){return x.name+'('+Math.round(x.score)+'分)';}).join('、');
+        var summary = entName + ' 经' + cfg.type + '测评，综合得分 ' + total + ' 分（及格线 ' + cfg.passLine + '），' + (passTotal ? '整体达标，具备申报基础。' : '尚未达标，需重点补强。') + '核心优势：' + advText + '；主要风险：' + weakText + '。';
+        setText('reportSummary', summary);
+
+        // 得分明细表
+        var tbody = document.getElementById('reportDetailTable');
+        if (tbody) {
+            tbody.innerHTML = cfg.scoreItems.map(function(item) {
+                var pts = (interp && item.calc) ? interp.calc(item, inputs) : Math.round((scores[item.key]||0) / 100 * item.max);
+                var basis = (interp && item.basis) ? (function(){ try { return interp.basis(item, inputs); } catch(e) { return '—'; } })() : '—';
+                return '<tr class="border-b border-slate-100 last:border-b-0">' +
+                    '<td class="px-3 py-2 text-slate-700 font-bold">' + item.name + '</td>' +
+                    '<td class="px-3 py-2 text-center text-slate-500">' + item.max + '</td>' +
+                    '<td class="px-3 py-2 text-center font-bold text-blue-700">' + pts + '</td>' +
+                    '<td class="px-3 py-2 text-slate-600 text-[11px]">' + basis + '</td>' +
+                '</tr>';
+            }).join('');
+        }
+
+        // 优势 + 风险
+        var advEl = document.getElementById('reportAdvantages');
+        var riskEl = document.getElementById('reportRisks');
+        if (advEl) {
+            advEl.innerHTML = advantages.map(function(x) {
+                return '<li class="flex items-start gap-1"><i class="fa fa-check-circle text-green-500 mt-0.5 flex-shrink-0"></i><span><b>' + x.name + '</b>（' + Math.round(x.score) + '分）：' + (x.suggestions[0] || '保持当前水平，持续巩固优势') + '</span></li>';
+            }).join('');
+        }
+        if (riskEl) {
+            riskEl.innerHTML = weaks.map(function(x) {
+                return '<li class="flex items-start gap-1"><i class="fa fa-exclamation-circle text-red-500 mt-0.5 flex-shrink-0"></i><span><b>' + x.name + '</b>（' + Math.round(x.score) + '分）：' + (x.suggestions[0] || '需重点提升') + '</span></li>';
+            }).join('');
+        }
+    }
+
+    // 第四部分：改进建议（按维度得分升序取4条，每条标题+详细说明）
+    // ============ 建议文案模板渲染（运营后台「测评规则引擎 → 建议文案」可配置） ============
+    // 变量集：{value}=当前值 {passline}=达标线 {gap}=差距 {unit}=单位 {needInvest}=需再投入金额(万元)
+    function buildSuggestionVars(tabKey, dimKey, inputs) {
+        var i = inputs;
+        var num = function(v) { return parseFloat(v) || 0; };
+        var round1 = function(v) { return Math.round(v * 10) / 10; };
+        var revSum = (i.formRev || []).reduce(function(a, b) { return a + num(b); }, 0);
+        // 默认从规则引擎 hardMetrics 取达标线
+        var passline = '';
+        try {
+            var hm = (RULES_CFG.rules[tabKey] && RULES_CFG.rules[tabKey].hardMetrics) || [];
+            for (var k = 0; k < hm.length; k++) {
+                if (hm[k].key === dimKey && hm[k].check && typeof hm[k].check.value === 'number') { passline = hm[k].check.value; break; }
+            }
+        } catch (e) {}
+        var vars = { value: '', passline: passline, gap: '', unit: '', needInvest: '' };
+        if (tabKey === 'giant') {
+            if (dimKey === 'rdFee') {
+                var gpct = round1(num(i.formRdFeePct));
+                vars.value = gpct; vars.unit = '%'; vars.passline = vars.passline || 3;
+                vars.gap = round1(Math.max(0, vars.passline - gpct));
+                vars.needInvest = revSum > 0 ? Math.round(revSum * vars.gap / 100) : '';
+            } else if (dimKey === 'ip1') {
+                var ip1 = num(i.formIP1);
+                vars.value = ip1; vars.unit = '项'; vars.passline = vars.passline || 4;
+                vars.gap = Math.max(0, vars.passline - ip1);
+            } else if (dimKey === 'share') {
+                vars.value = i.formSharePass === '是' ? '已达标' : '未达标';
+            } else if (dimKey === 'chain') {
+                vars.value = (i.formChainCase === '是' ? 1 : 0) + (i.formDomesticSub === '是' ? 1 : 0) + (i.formBreakChoke === '是' ? 1 : 0);
+            } else if (dimKey === 'rdStaff') {
+                vars.value = i.formRdOrg === '是' ? '已建' : '未建';
+            } else if (dimKey === 'debt') {
+                vars.value = i.formDebtPass === '是' ? '≤75%' : '>75%';
+            }
+        } else if (tabKey === 'specialized') {
+            if (dimKey === 'profe') {
+                var pp = num(i.formProdPct);
+                vars.value = pp; vars.unit = '%'; vars.passline = vars.passline || 60;
+                vars.gap = round1(Math.max(0, vars.passline - pp));
+            } else if (dimKey === 'refine') {
+                var qc = (i.formQuals || []).length;
+                vars.value = qc; vars.unit = '项'; vars.passline = 2;
+                vars.gap = Math.max(0, 2 - qc);
+            } else if (dimKey === 'special') {
+                vars.value = i.formDigitalLevel || '未填';
+            } else if (dimKey === 'novel') {
+                var rp = num(i.formRdStaffPct);
+                vars.value = rp; vars.unit = '%'; vars.passline = vars.passline || 10;
+                vars.gap = round1(Math.max(0, vars.passline - rp));
+            } else if (dimKey === 'growth') {
+                var gr = num(i.formGrowth);
+                vars.value = gr; vars.unit = '%'; vars.passline = 10;
+                vars.gap = round1(Math.max(0, 10 - gr));
+            } else if (dimKey === 'quality') {
+                var db = num(i.formDebt);
+                vars.value = db; vars.unit = '%'; vars.passline = 70;
+                vars.gap = round1(Math.max(0, db - 70));
+            }
+        } else if (tabKey === 'hightech') {
+            if (dimKey === 'years') {
+                var yrs = 0;
+                if (i.formFoundDate) {
+                    var d = new Date(i.formFoundDate);
+                    if (!isNaN(d.getTime())) yrs = round1((Date.now() - d.getTime()) / (365.25 * 24 * 3600 * 1000));
+                }
+                vars.value = yrs; vars.unit = '年'; vars.passline = 3;
+            } else if (dimKey === 'personnel') {
+                var emp = num(i.formEmployees), rds = num(i.formRdStaff);
+                var rpct = emp > 0 ? round1(rds / emp * 100) : 0;
+                vars.value = rpct; vars.unit = '%'; vars.passline = vars.passline || 10;
+                vars.gap = round1(Math.max(0, vars.passline - rpct));
+            } else if (dimKey === 'rdFee') {
+                var feeSum = (i.formRdFee || []).reduce(function(a, b) { return a + num(b); }, 0);
+                var fpct = revSum > 0 ? round1(feeSum / revSum * 100) : 0;
+                vars.value = fpct; vars.unit = '%'; vars.passline = vars.passline || 3;
+                vars.gap = round1(Math.max(0, vars.passline - fpct));
+                vars.needInvest = revSum > 0 ? Math.round(revSum * vars.gap / 100) : '';
+            } else if (dimKey === 'htIncome') {
+                var htSum = (i.formHtInc || []).reduce(function(a, b) { return a + num(b); }, 0);
+                var hpct = revSum > 0 ? round1(htSum / revSum * 100) : 0;
+                vars.value = hpct; vars.unit = '%'; vars.passline = vars.passline || 60;
+                vars.gap = round1(Math.max(0, vars.passline - hpct));
+            } else if (dimKey === 'ip') {
+                var tot = num(i.formIP1) + num(i.formIP2);
+                vars.value = tot; vars.unit = '项'; vars.passline = 6;
+                vars.gap = Math.max(0, 6 - tot);
+            } else if (dimKey === 'mgmt') {
+                var iur = i.formIUR === '是', std = i.formStd === '是';
+                vars.value = (iur && std) ? '完善' : (iur || std ? '部分具备' : '待建立');
+            }
+        }
+        return vars;
+    }
+
+    function renderSuggestionTemplate(tpl, vars) {
+        return String(tpl).replace(/\{(\w+)\}/g, function(m, key) {
+            var v = vars[key];
+            return (v === undefined || v === null || v === '') ? '' : v;
+        });
+    }
+
+    // 优先从运营配置（RULES_CFG.rules[tab].suggestionTexts[dim]）读三档模板，未配置返回空走内置逻辑
+    function pickConfiguredSuggestion(tabKey, dimKey, score, inputs) {
+        try {
+            var rule = RULES_CFG && RULES_CFG.rules && RULES_CFG.rules[tabKey];
+            var set = rule && rule.suggestionTexts && rule.suggestionTexts[dimKey];
+            if (!set) return '';
+            var tier = score < 60 ? 'fail' : (score <= 80 ? 'pass' : 'excel');
+            var tpl = set[tier];
+            if (!tpl || !String(tpl).trim()) return '';
+            var vars = buildSuggestionVars(tabKey, dimKey, inputs);
+            return String(tpl).split('\n').map(function(ln) { return ln.trim(); }).filter(Boolean)
+                .map(function(ln) { return renderSuggestionTemplate(ln, vars); }).join('；');
+        } catch (e) { return ''; }
+    }
+
+    // ============ 动态改进建议生成 ============
+    // 根据实际输入值与达标线的差距，为每个维度生成三档动态文案
+    function generateDynamicSuggestion(tabKey, dimKey, score, inputs) {
+        inputs = inputs || {};
+        var i = inputs; // 简写
+        // ① 优先用运营后台配置的建议文案模板（未配置或为空则走 ② 内置逻辑）
+        var configured = pickConfiguredSuggestion(tabKey, dimKey, score, inputs);
+        if (configured) return configured;
+        // ② 内置动态逻辑：未达标 → 给差距和补救；刚达标（≤80）→ 巩固建议；优秀（>80）→ 进阶建议
+        var tier = score < 60 ? 'fail' : (score <= 80 ? 'pass' : 'excel');
+        var lines = [];
+
+        // —— 小巨人 ——
+        if (tabKey === 'giant') {
+            switch (dimKey) {
+                case 'share': {
+                    var shareOk = i.formSharePass === '是';
+                    if (!shareOk) {
+                        lines.push('当前细分市场占有率未达 10% 门槛');
+                        lines.push('建议通过差异化产品定位 + 精准营销提升头部客户占比');
+                    } else {
+                        lines.push('已达标，细分市场占有率 ≥10%');
+                        if (score > 90) lines.push('可申请工信部单项冠军产品/省级隐形冠军认定');
+                    }
+                    break;
+                }
+                case 'chain': {
+                    var chainHit = (i.formChainCase==='是') + (i.formDomesticSub==='是') + (i.formBreakChoke==='是');
+                    if (!chainHit) {
+                        lines.push('未在"补短板/国产替代/卡脖子"三方面形成案例');
+                        lines.push('建议梳理主导产品在产业链中的不可替代性，申请产业链协同项目');
+                    } else {
+                        if (i.formChainCase==='是') lines.push('已有补短板/锻长板应用案例，建议补充案例的客户验证数据');
+                        if (i.formDomesticSub==='是') lines.push('已实现国产替代，建议补充替代前后对比数据');
+                        if (i.formBreakChoke==='是') lines.push('已突破卡脖子技术，建议申请省级/国家级技术发明奖');
+                    }
+                    break;
+                }
+                case 'rdFee': {
+                    var pct = i.formRdFeePct || 0;
+                    if (pct < 3) {
+                        var gap = (3 - pct).toFixed(1);
+                        var revSum = (i.formRev||[]).reduce(function(a,b){return a+(parseFloat(b)||0);},0);
+                        var needInvest = Math.round(revSum * gap / 100);
+                        lines.push('研发费用占比 ' + pct.toFixed(1) + '%，距 3% 门槛差 ' + gap + '%');
+                        lines.push('按当前营收规模需再投入约 ' + needInvest + ' 万元达标');
+                        lines.push('建议建立研发费用辅助账，归集加计扣除');
+                    } else if (pct < 5) {
+                        lines.push('研发费用占比 ' + pct.toFixed(1) + '%，刚过 3% 门槛');
+                        lines.push('建议稳定在 5% 以上以支撑小巨人培育');
+                    } else {
+                        lines.push('研发费用占比 ' + pct.toFixed(1) + '%，投入强度优秀');
+                    }
+                    break;
+                }
+                case 'rdStaff': {
+                    if (i.formRdOrg !== '是') {
+                        lines.push('尚未建立自建/联合研发机构');
+                        lines.push('建议依托高校/院所共建工程技术中心，或申请企业技术中心认定');
+                    } else {
+                        lines.push('已建研发机构，建议申请省级/国家级企业技术中心资质');
+                        if (i.formErpMes !== '是') lines.push('核心业务未上 ERP/MES，建议信息化升级以支撑精细化管理');
+                    }
+                    break;
+                }
+                case 'ip1': {
+                    var ip1 = parseFloat(i.formIP1) || 0;
+                    if (ip1 < 2) {
+                        lines.push('Ⅰ类知识产权 ' + ip1 + ' 项，距 ≥2 项门槛差 ' + (2 - ip1) + ' 项');
+                        lines.push('建议加快发明专利/PCT 国际申请布局');
+                    } else if (ip1 < 5) {
+                        lines.push('Ⅰ类知识产权 ' + ip1 + ' 项，刚过门槛');
+                        lines.push('建议围绕主导产品密集布局，形成专利池');
+                    } else {
+                        lines.push('Ⅰ类知识产权 ' + ip1 + ' 项，专利布局扎实');
+                        lines.push('建议梳理核心专利，参与国家标准/行业标准制订');
+                    }
+                    break;
+                }
+                case 'debt': {
+                    if (i.formDebtPass !== '是') {
+                        lines.push('资产负债率 >70%，超出安全线');
+                        lines.push('建议通过股权融资/应收账款保理/控制库存来降低负债');
+                    } else {
+                        lines.push('资产负债率 ≤70%，财务结构健康');
+                    }
+                    break;
+                }
+            }
+        }
+
+        // —— 专精特新 ——
+        if (tabKey === 'specialized') {
+            switch (dimKey) {
+                case 'profe': {
+                    var pp = i.formProdPct || 0;
+                    if (pp < 60) {
+                        lines.push('主营业务收入占比 ' + pp + '%，距 60% 门槛差 ' + (60 - pp) + '%');
+                        lines.push('建议聚焦主导产品，收缩非核心业务');
+                    } else lines.push('主营业务收入占比 ' + pp + '%，专业化程度达标');
+                    break;
+                }
+                case 'novel': {
+                    var rdPct = i.formRdStaffPct || 0;
+                    var pt = i.formPatentTotal || 0;
+                    if (rdPct < 10) {
+                        lines.push('研发人员占比 ' + rdPct + '%，距 10% 门槛差 ' + (10 - rdPct) + '%');
+                        lines.push('建议引进核心技术人才，申报博士后工作站');
+                    }
+                    if (pt < 5) {
+                        lines.push('专利总数 ' + pt + ' 项，建议加强知识产权布局');
+                    }
+                    if (!rdPct && pt) lines.push('新颖化维度综合表现良好，持续巩固研发投入');
+                    break;
+                }
+                case 'special': {
+                    var dl = i.formDigitalLevel || '';
+                    if (dl === '三级' || !dl) {
+                        lines.push('数字化水平为 ' + (dl || '未填') + '，建议推进两化融合贯标');
+                    } else lines.push('数字化水平 ' + dl + '，特色化建设良好');
+                    break;
+                }
+                case 'growth': {
+                    var gr = i.formGrowth || 0;
+                    if (gr < 10) {
+                        lines.push('营收增长率 ' + gr + '%，成长动力不足');
+                        lines.push('建议开拓细分市场新客户 + 产品迭代升级');
+                    } else lines.push('营收增长率 ' + gr + '%，成长性良好');
+                    break;
+                }
+                case 'refine': {
+                    var qc = (i.formQuals || []).length;
+                    if (qc < 2) {
+                        lines.push('当前仅获 ' + qc + ' 项质量认证，建议补充 ISO 体系/省级质量奖');
+                    } else lines.push('质量认证数量 ' + qc + '，精细化管理达标');
+                    break;
+                }
+                case 'quality': {
+                    var debt = i.formDebt || 0;
+                    if (debt > 70) {
+                        lines.push('资产负债率 ' + debt + '%，建议优化资本结构');
+                    } else lines.push('财务结构健康，继续保持');
+                    break;
+                }
+            }
+        }
+
+        // —— 高企 ——
+        if (tabKey === 'hightech') {
+            switch (dimKey) {
+                case 'ip1': case 'ip2': {
+                    var ipKey = dimKey === 'ip1' ? 'Ⅰ类' : 'Ⅱ类';
+                    var ipCnt = parseFloat(i['form' + (dimKey === 'ip1' ? 'IP1' : 'IP2')]) || 0;
+                    lines.push(ipKey + '知识产权 ' + ipCnt + ' 项');
+                    if (ipCnt < 5) lines.push('数量偏少，建议加快申报/受让');
+                    else lines.push('数量达标，建议持续补充');
+                    break;
+                }
+                case 'rdFee': {
+                    var htRdPct = i.formRdFeePct || 0;
+                    lines.push('研发费用占比 ' + htRdPct.toFixed(1) + '%');
+                    if (htRdPct < 3) lines.push('距高企门槛差较大，建议加大投入');
+                    break;
+                }
+                case 'rdStaff': {
+                    var htRdStaffPct = i.formRdStaffPct || 0;
+                    lines.push('科技人员占比 ' + htRdStaffPct + '%');
+                    if (htRdStaffPct < 10) lines.push('未达 10% 门槛，建议补强研发团队');
+                    break;
+                }
+                case 'transform': {
+                    var tf = parseFloat(i.formTransform) || 0;
+                    lines.push('近三年年均成果转化 ' + tf + ' 项');
+                    if (tf < 5) lines.push('建议加强产学研合作，促进成果落地');
+                    break;
+                }
+                case 'quality': {
+                    lines.push('财务与成长性指标需综合评估');
+                    break;
+                }
+            }
+        }
+
+        // fallback
+        if (!lines.length) lines.push('持续关注该维度能力建设，稳步提升综合实力');
+        return lines.slice(0, 3).join('；');
+    }
+
+    function renderReportSuggestions(scores, inputs) {
+        var container = document.getElementById('reportSuggestions');
+        if (!container) return;
+        var tabKey = currentTab;
+        var arr = DIM_META.map(function(d) { return {key:d.key, name:d.name, score:scores[d.key]||0}; });
+        arr.sort(function(a, b) { return a.score - b.score; });
+        var top4 = arr.slice(0, 4);
+        var palette = [
+            {bg:'#fff7ed', border:'#fed7aa', num:'#ea580c'},
+            {bg:'#eff6ff', border:'#bfdbfe', num:'#2563eb'},
+            {bg:'#f0fdf4', border:'#bbf7d0', num:'#16a34a'},
+            {bg:'#faf5ff', border:'#e9d5ff', num:'#9333ea'}
+        ];
+        var html = top4.map(function(item, i) {
+            var p = palette[i];
+            var suggText = generateDynamicSuggestion(tabKey, item.key, item.score, inputs);
+            return '<div class="rounded-xl p-4 border" style="background:' + p.bg + ';border-color:' + p.border + '">' +
+                '<div class="flex items-start gap-3">' +
+                    '<span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style="background:' + p.num + '">' + (i+1) + '</span>' +
+                    '<div class="flex-1">' +
+                        '<h4 class="text-sm font-bold text-slate-800 mb-1">' + item.name + '（当前 ' + Math.round(item.score) + ' 分）</h4>' +
+                        '<p class="text-xs text-slate-600 leading-relaxed">' + suggText + '</p>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+        container.innerHTML = html;
+    }
+
+    // 下载PDF报告（浏览器打印对话框可选「另存为PDF」）
+    // @media print 样式只显示报告区，临时设置 document.title 为报告标题
+    function downloadReport() {
+        var oldTitle = document.title;
+        var entName = (document.getElementById('formName') ? document.getElementById('formName').value : '').trim();
+        var tab = TABS[currentTab];
+        document.title = (entName || '企业') + tab.title + '测评报告';
+        window.print();
+        setTimeout(function() { document.title = oldTitle; }, 1000);
+    }
+
+    // ============ 结果展开 / 步骤指示器 ============
+    function revealResults() {
+        window.IS_DIAGNOSED = true;
+        var guide = document.getElementById('resultGuide');
+        if (guide) {
+            guide.style.transition = 'opacity .3s ease, transform .3s ease';
+            guide.style.opacity = '0';
+            guide.style.transform = 'translateY(-8px)';
+            setTimeout(function() { guide.style.display = 'none'; }, 300);
+        }
+        var area = document.getElementById('resultArea');
+        if (area) {
+            area.style.display = '';
+            area.style.opacity = '0';
+            area.style.transform = 'translateY(12px)';
+            area.style.transition = 'opacity .5s ease, transform .5s ease';
+            requestAnimationFrame(function() { area.style.opacity = '1'; area.style.transform = 'translateY(0)'; });
+        }
+        updateStepIndicator(3);
+        setTimeout(function() { if (area) area.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 350);
+    }
+
+    function updateStepIndicator(step) {
+        var styles = {
+            active: 'w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold',
+            done: 'w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold',
+            pending: 'w-8 h-8 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs font-bold'
+        };
+        var labelStyles = { active: 'ml-2 text-xs font-bold text-slate-700', done: 'ml-2 text-xs font-bold text-green-600', pending: 'ml-2 text-xs font-bold text-slate-400' };
+        var icons = { done: '<i class="fa fa-check"></i>' };
+        for (var i = 1; i <= 3; i++) {
+            var el = document.getElementById('step' + i);
+            var lbl = el ? el.nextElementSibling : null;
+            if (!el) continue;
+            if (i < step) { el.className = styles.done; el.innerHTML = icons.done; if (lbl) lbl.className = labelStyles.done; }
+            else if (i === step) { el.className = styles.active; el.innerHTML = i; if (lbl) lbl.className = labelStyles.active; }
+            else { el.className = styles.pending; el.innerHTML = i; if (lbl) lbl.className = labelStyles.pending; }
+        }
+    }
+
+    // ============ Toast ============
+    function showToast(msg, type) {
+        type = type || 'success';
+        var colors = {success:'bg-green-500', info:'bg-blue-500', warn:'bg-orange-500', error:'bg-red-500'};
+        var icons = {success:'check-circle', info:'info-circle', warn:'exclamation-triangle', error:'times-circle'};
+        var div = document.createElement('div');
+        div.className = colors[type] + ' text-white px-5 py-3 rounded-xl shadow-xl fixed top-6 right-6 z-[9999] text-sm font-bold flex items-center space-x-2';
+        div.style.opacity = '0'; div.style.transform = 'translateX(20px)'; div.style.transition = 'all .3s ease';
+        div.innerHTML = '<i class="fa fa-' + icons[type] + '"></i><span>' + msg + '</span>';
+        document.body.appendChild(div);
+        requestAnimationFrame(function() { div.style.opacity = '1'; div.style.transform = 'translateX(0)'; });
+        setTimeout(function() { div.style.opacity = '0'; div.style.transform = 'translateX(20px)'; setTimeout(function() { div.remove(); }, 400); }, 2600);
+    }
+
+    // ============ 政策推荐（复用政策雷达匹配引擎 DataBridge.matchPoliciesForEnterprise） ============
+    function renderPolicyRecommend(scores, inputs) {
+        var container = document.getElementById('policyRecommendList');
+        if (!container) return;
+        var stylePool = [
+            {cls:'from-blue-50 to-indigo-50 border-blue-100', levelColor:'text-blue-600'},
+            {cls:'from-green-50 to-teal-50 border-teal-100', levelColor:'text-teal-600'},
+            {cls:'from-orange-50 to-yellow-50 border-orange-100', levelColor:'text-orange-600'},
+            {cls:'from-purple-50 to-pink-50 border-purple-100', levelColor:'text-purple-600'},
+            {cls:'from-indigo-50 to-violet-50 border-indigo-100', levelColor:'text-indigo-600'}
+        ];
+        // 将当前 Tab 表单数据映射为匹配引擎所需的企业画像格式
+        var ent = {};
+        if (inputs.formName) ent.name = inputs.formName;
+        // 行业
+        var industry = inputs.formIndustry;
+        if (industry) ent.industry = industry;
+        // 规模
+        if (inputs.scale) ent.scale = inputs.scale;
+        // 研发占比
+        var rdPct = inputs.formRdPct || inputs.formRdFeePct;
+        if (rdPct) ent.rdRatio = rdPct;
+        // 高新收入占比
+        if (inputs.formHtPct) ent.hiTechRatio = inputs.formHtPct;
+        // 营收
+        if (inputs.formRevenue) ent.revenue = inputs.formRevenue;
+        // 研发投入金额
+        var rdAmt = inputs.formRdAmount || inputs.formRdFee;
+        if (rdAmt) ent.rdInvest = rdAmt;
+        // 知识产权
+        var ipTotal = 0;
+        ['formPatent','formSoftware','formUtility','formIP1Invent','formIP1Plant','formIP1Crop','formIP1Drug','formIP1IC','formIP2Util','formIP2Soft','formPatentTotal','formIP1'].forEach(function(k){
+            ipTotal += (parseFloat(inputs[k]) || 0);
+        });
+        if (ipTotal > 0) ent.ipOwned = '是';
+        // 资质映射（梯度培育 tab 的 tags）
+        var quals = inputs.formQuals || [];
+        if (quals.indexOf('高新技术企业') >= 0) ent.hiTechCert = '是';
+        if (quals.indexOf('科技型中小企业') >= 0) ent.smeCert = '是';
+        if (quals.indexOf('专精特新') >= 0) ent.gazelleCert = '是';
+        // 高企/专精特新/小巨人 tab：若达标率高，标记相应资质意向
+        if (currentTab === 'hightech' && scores.passInfo) { /* 可作为高企培育画像 */ }
+        if (inputs.formField) ent.field = inputs.formField;
+
+        var policies = [];
+        try {
+            var results = DataBridge.matchPoliciesForEnterprise(ent);
+            policies = results.map(function(r) {
+                return { level: r.policy.level || '国家级', match: r.score, title: r.policy.name, amount: r.policy.amount || '详见政策' };
+            });
+        } catch(e) { console.warn('[诊断] 匹配引擎调用失败：', e); }
+
+        if (!policies.length) {
+            container.innerHTML = '<div class="text-center py-6 text-xs text-slate-400">' +
+                '<i class="fa fa-info-circle text-slate-300 text-2xl mb-2 block"></i>' +
+                '暂无匹配政策，请先在政策库中维护政策条件，或在上方表单填写更完整的企业信息</div>' +
+                '<div class="flex justify-center mt-3"><button onclick="goServiceMarket()" class="px-6 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all flex items-center"><i class="fa fa-shopping-cart mr-1"></i>找服务补短板</button></div>';
+            return;
+        }
+
+        var cards = policies.slice(0, 4).map(function(p, i) {
+            var st = stylePool[i % stylePool.length];
+            return '<div class="p-3 bg-gradient-to-r ' + st.cls + ' rounded-xl border cursor-pointer hover:shadow-md transition-all">' +
+                '<div class="flex items-center justify-between mb-2">' +
+                '<span class="text-[10px] font-bold ' + st.levelColor + ' bg-white px-2 py-0.5 rounded">' + p.level + '</span>' +
+                '<span class="text-xs font-bold ' + st.levelColor + '">匹配 ' + p.match + '%</span>' +
+                '</div>' +
+                '<h4 class="text-xs font-bold text-slate-800 mb-1">' + p.title + '</h4>' +
+                '<p class="text-[10px] text-slate-500">' + p.amount + '</p>' +
+                '</div>';
+        }).join('');
+        var html = '<div class="grid grid-cols-4 gap-3">' + cards + '</div>' +
+            '<div class="flex justify-end gap-2 mt-4">' +
+            '<button class="px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all">查看全部匹配政策 <i class="fa fa-arrow-right ml-1"></i></button>' +
+            '<button onclick="goServiceMarket()" class="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all flex items-center"><i class="fa fa-shopping-cart mr-1"></i>找服务补短板</button>' +
+            '</div>';
+        container.innerHTML = html;
+    }
+
+    function goServiceMarket() {
+        try {
+            var nameEl = document.getElementById('formName');
+            if (nameEl && nameEl.value) localStorage.setItem('mall_prefilter_keyword', nameEl.value);
+        } catch (e) {}
+        goPage('service-market.html');
+    }
+
+    // ============ 企业档案字段快照（按当前页签生成可读字段，供运营后台「企业档案」展示） ============
+    function buildProfileFields(inputs) {
+        var groups = [], cur = { group: '基本信息', items: [] };
+        TABS[currentTab].fields.forEach(function(f) {
+            if (f.type === 'section') {
+                if (cur.items.length) groups.push(cur);
+                cur = { group: f.title || '其他', items: [] };
+                return;
+            }
+            var label = f.label || '';
+            if (!label) return;
+            var val;
+            if (f.type === 'multinumber') {
+                val = (f.items || []).map(function(it) {
+                    return it.label + '：' + (inputs[it.id] || 0);
+                }).join('；');
+            } else if (f.type === 'table') {
+                val = (f.rows || []).map(function(r) {
+                    var vals = inputs[r.id] || [];
+                    return r.label + '：' + (f.years || []).map(function(y, i) {
+                        return y + ' ' + (vals[i] === undefined ? '-' : vals[i]);
+                    }).join('、');
+                }).join('；');
+            } else if (f.type === 'radio') {
+                val = inputs[f.name];
+            } else {
+                val = inputs[f.id];
+            }
+            if (Array.isArray(val)) val = val.join('、');
+            if (val === undefined || val === null) return;
+            if (typeof val === 'string' && !val.trim()) return;
+            cur.items.push({ label: label, value: String(val) });
+        });
+        if (cur.items.length) groups.push(cur);
+        return groups;
+    }
+
+    // ============ 开始测评（按当前 Tab 校验 + 计分 + 展开） ============
+    function startDiagnosis() {
+        var inputs = enrichInputs(collectInputs(), currentTab);
+        // 必填校验
+        var missing = [];
+        TABS[currentTab].fields.forEach(function(f) {
+            if (!f.required) return;
+            var ok = false;
+            if (f.type === 'text' || f.type === 'number' || f.type === 'select') ok = !!(document.getElementById(f.id) && document.getElementById(f.id).value.trim());
+            else if (f.type === 'date') ok = !!(document.getElementById(f.id) && document.getElementById(f.id).value);
+            else if (f.type === 'radio') ok = !!document.querySelector('input[name="' + f.name + '"]:checked');
+            else if (f.type === 'multinumber') ok = f.items.some(function(it) { return (parseInt(document.getElementById(it.id).value) || 0) > 0; });
+            else if (f.type === 'table') ok = f.rows.every(function(r) { return f.years.every(function(y, yi) { var el = document.getElementById(r.id + '_' + yi); return el && el.value.trim() !== ''; }); });
+            if (!ok) missing.push(f);
+        });
+        if (missing.length) {
+            showToast('请填写必填项：' + missing[0].label, 'warn');
+            focusField(missing[0].id || missing[0].name);
+            return;
+        }
+
+        updateStepIndicator(2);
+        console.log('[诊断] 当前 Tab：' + currentTab + '，提交数据：', inputs);
+
+        // 企业信息落库：供其他模块（政策雷达/申报管家等）调取
+        try {
+            if (window.DataBridge && DataBridge.saveEnterpriseProfile) {
+                DataBridge.saveEnterpriseProfile({
+                    inputs: inputs,
+                    fields: buildProfileFields(inputs),
+                    name: inputs.formName || ''
+                });
+            }
+        } catch (e) {}
+
+        syncCard();
+        var scores = calculateScores();
+        renderPolicyRecommend(scores, inputs);
+        revealResults();
+
+        var rating = 'D';
+        for (var r0 = 0; r0 < RATINGS.length; r0++) { if (scores.avg >= RATINGS[r0].min) { rating = RATINGS[r0].grade; break; } }
+        showToast('测评完成！综合得分 ' + scores.avg + ' 分（评级 ' + rating + '）', 'success');
+
+        // 触发销售线索回流（保留 addClue 逻辑）
+        try {
+            if (window.DataBridge && DataBridge.addClue) {
+                var intent = TABS[currentTab].title + ' · ' + (inputs.formName || '匿名企业');
+                if (inputs.formIndustry) intent = inputs.formIndustry + ' - ' + intent;
+                DataBridge.addClue({ source: '诊断触发', company: inputs.formName || '匿名企业', intent: intent });
+            }
+        } catch (e) {}
+    }
+
+    // 导出报告（触发打印下载）
+    function exportReport() {
+        var name = (document.getElementById('formName') ? document.getElementById('formName').value : '').trim();
+        if (!name) { showToast('请先填写企业信息并开始测评', 'warn'); return; }
+        downloadReport();
+    }
+
+    // ============ 初始化 ============
+    switchTab('hightech');
+</script>
+    <script src="libs/js/topbar.js"></script>
+</body>
+</html>

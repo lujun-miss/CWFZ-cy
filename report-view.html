@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>政策报告 - 策源易答</title>
+    <!--
+      ============================================================================
+      报告详情 · PC 网页版（站内消息跳转）：会员中心「站内消息」点击报告后打开
+      URL：report-view.html?id={报告ID}&shareId={分享ID}
+      与 report-viewer.html（H5 落地页）的区别：
+        · 面向已登录的站内客户 → 无内容锁定 / 无注册 CTA，直接展示完整报告
+        · 桌面端横向布局（左正文 + 右侧栏），适配 Web 宽屏
+      相同点：同一份 localStorage 数据；打开计时，离开时把 {at, durSec} 写回
+      该报告 shares[] 对应 shareId 的 views[]，销售端分享管理可见浏览数据
+      ============================================================================
+    -->
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f1f5f9; }
+        .sec-card { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 20px 22px; }
+        .sec-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 14px; }
+        .sec-title::before { content: ''; width: 4px; height: 15px; border-radius: 2px; background: #4f46e5; }
+        .prose { font-size: 12.5px; color: #475569; line-height: 1.9; white-space: pre-line; }
+        .cond-tag { display: inline-flex; font-size: 10.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; margin: 0 6px 6px 0; }
+        .scroll-thin::-webkit-scrollbar { width: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <!-- 顶栏 -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="goBack()">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-sm" style="background:linear-gradient(135deg,#6d28d9,#4f46e5);">策</div>
+                <div>
+                    <div class="text-sm font-black text-slate-800">策源易答 · 政策报告</div>
+                    <div class="text-[10px] text-slate-400" id="shareMeta">来自专属顾问的推送</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="window.print()" class="px-3.5 py-2 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-500 transition-all"><i class="fa fa-print mr-1"></i>打印 / 存 PDF</button>
+                <button onclick="goBack()" class="px-3.5 py-2 rounded-lg text-[11px] font-bold text-white transition-all" style="background:linear-gradient(135deg,#6d28d9,#4f46e5);"><i class="fa fa-arrow-left mr-1"></i>返回会员中心</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 链接失效 -->
+    <div id="invalidBox" class="hidden max-w-6xl mx-auto px-6 py-24 text-center">
+        <i class="fa fa-link text-4xl text-slate-200 block mb-4"></i>
+        <p class="text-sm font-black text-slate-600">链接已失效或报告不存在</p>
+        <p class="text-[11px] text-slate-400 mt-1">请联系您的专属顾问重新推送</p>
+    </div>
+
+    <!-- 报告主体：左正文 + 右侧栏 -->
+    <main id="reportBox" class="hidden max-w-6xl mx-auto px-6 py-6 grid grid-cols-3 gap-5 items-start">
+        <div class="col-span-2 space-y-5">
+            <!-- 标题卡 -->
+            <section class="sec-card">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <h1 id="rTitle" class="text-xl font-black text-slate-800 leading-snug"></h1>
+                        <p class="text-[11px] text-slate-400 mt-2" id="rMeta"></p>
+                    </div>
+                    <span id="rType" class="text-[10px] px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 font-black flex-shrink-0"></span>
+                </div>
+                <div class="mt-4 pt-4 border-t border-dashed border-slate-100 prose" id="rSummary"></div>
+            </section>
+
+            <!-- 企业画像 -->
+            <section class="sec-card">
+                <div class="sec-title"><i class="fa fa-building-o text-indigo-400"></i>企业画像</div>
+                <div class="prose" id="rProfile"></div>
+            </section>
+
+            <!-- 政策机会（客户视角仅展示可申报项） -->
+            <section class="sec-card">
+                <div class="sec-title"><i class="fa fa-bullseye text-indigo-400"></i>政策机会<span class="text-[10px] text-slate-400 font-medium" id="rPolicyCnt"></span></div>
+                <div id="rPolicies" class="space-y-3"></div>
+            </section>
+
+            <!-- 申报建议 -->
+            <section class="sec-card">
+                <div class="sec-title"><i class="fa fa-lightbulb-o text-indigo-400"></i>申报建议</div>
+                <div class="prose" id="rAdvice"></div>
+            </section>
+        </div>
+
+        <!-- 右侧栏 -->
+        <aside class="space-y-5 sticky top-[72px]">
+            <!-- 科创诊断 -->
+            <section class="sec-card">
+                <div class="sec-title"><i class="fa fa-stethoscope text-indigo-400"></i>科创诊断</div>
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-2xl flex flex-col items-center justify-center text-white flex-shrink-0" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);">
+                        <span class="text-2xl font-black leading-none" id="rScore">—</span>
+                        <span class="text-[9px] opacity-80 mt-0.5" id="rGrade"></span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-[10px] text-slate-400 font-bold mb-1.5">待补齐短板</p>
+                        <div id="rWeak" class="space-y-1"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 本次匹配条件 -->
+            <section class="sec-card" id="condCard" style="display:none">
+                <div class="sec-title"><i class="fa fa-sliders text-indigo-400"></i>本次匹配条件</div>
+                <div id="rConds"></div>
+            </section>
+
+            <!-- 顾问卡 -->
+            <section class="sec-card" style="background:linear-gradient(160deg,#4f46e5,#7c3aed);border:0;color:#fff;">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center font-black">张</div>
+                    <div>
+                        <p class="text-sm font-black">张销售 · 专属顾问</p>
+                        <p class="text-[10px] opacity-75">对本报告有疑问？随时联系</p>
+                    </div>
+                </div>
+                <button onclick="toast('已为您转接专属顾问（在线客服占位）')" class="w-full mt-3.5 py-2.5 rounded-xl bg-white text-indigo-600 text-xs font-black hover:bg-indigo-50 transition-all"><i class="fa fa-comments mr-1"></i>咨询顾问</button>
+                <p class="text-[9px] opacity-60 mt-2 text-center">工作时间 9:00 - 18:00 · 报告编号 <span id="rShareId"></span></p>
+            </section>
+        </aside>
+    </main>
+
+    <div id="toast" class="fixed left-1/2 -translate-x-1/2 top-16 z-50 px-4 py-2.5 rounded-full text-xs font-bold text-white opacity-0 transition-opacity pointer-events-none" style="background:rgba(15,23,42,.88);"></div>
+
+    <script src="data-bridge.js?v=20261016g"></script>
+    <script>
+    (function () {
+        'use strict';
+        var DB = window.DataBridge || {};
+        function $(id) { return document.getElementById(id); }
+        function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+        function fmtTime(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+        function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+        var toastTimer = null;
+        window.toast = function (text) {
+            var t = $('toast'); t.textContent = text; t.style.opacity = 1;
+            clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.style.opacity = 0; }, 2400);
+        };
+        window.goBack = function () {
+            // iframe 壳内打开时回会员中心；独立窗口打开时关闭
+            try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage('member-center.html?sec=reports', null); return; } } catch (e) {}
+            window.location.href = 'member-center.html';
+        };
+
+        // ---------- 定位报告与分享记录 ----------
+        var params = new URLSearchParams(location.search);
+        var reports = (DB.loadSalesReports ? DB.loadSalesReports() : []) || [];
+        var report = null, share = null;
+        reports.forEach(function (r) {
+            if (r.id !== params.get('id')) return;
+            report = r;
+            (r.shares || []).forEach(function (s) { if (s.shareId === params.get('shareId')) share = s; });
+        });
+        if (!report) { $('invalidBox').classList.remove('hidden'); return; }
+
+        // ---------- 浏览追踪：打开计时，离开时写回（与 H5 落地页同一逻辑） ----------
+        var startAt = new Date(), flushed = false;
+        function flushView() {
+            if (flushed || !share) return;
+            flushed = true;
+            var dur = Math.round((Date.now() - startAt.getTime()) / 1000);
+            if (dur < 2) return;
+            if (dur > 1800) dur = 1800;
+            share.views = share.views || [];
+            share.views.push({ at: fmtTime(startAt), durSec: dur });
+            if (DB.saveSalesReports) DB.saveSalesReports(reports);
+        }
+        document.addEventListener('visibilitychange', function () { if (document.hidden) flushView(); });
+        window.addEventListener('beforeunload', flushView);
+        window.addEventListener('pagehide', flushView);
+
+        // ---------- 渲染 ----------
+        document.title = report.title + ' - 策源易答';
+        if (share) {
+            $('shareMeta').textContent = '张销售推送于 ' + (share.createdAt || '—');
+            $('rShareId').textContent = share.shareId;
+        }
+        $('rTitle').textContent = report.title;
+        $('rMeta').textContent = report.customerName + ' · 生成于 ' + report.createdAt + ' · 报告编号 ' + report.id;
+        $('rType').textContent = report.type || '政策匹配';
+        $('rSummary').textContent = report.summary || '——';
+        $('rProfile').textContent = report.profile || '——';
+        // 科创诊断
+        var dg = report.diagnosis || {};
+        $('rScore').textContent = dg.avg != null ? dg.avg : '—';
+        $('rGrade').textContent = dg.grade ? dg.grade + ' 级' : '';
+        $('rWeak').innerHTML = (dg.weak && dg.weak.length)
+            ? dg.weak.map(function (w) { return '<p class="text-[11px] text-slate-600 leading-snug"><i class="fa fa-exclamation-circle text-amber-400 mr-1"></i>' + esc(w) + '</p>'; }).join('')
+            : '<p class="text-[11px] text-emerald-600 font-bold"><i class="fa fa-check-circle mr-1"></i>无明显短板</p>';
+        // 匹配条件（按来源三色）
+        var mc = report.matchConditions;
+        if (mc && Object.keys(mc).length) {
+            $('condCard').style.display = 'block';
+            $('rConds').innerHTML = Object.keys(mc).map(function (k) {
+                var cls = k.indexOf('自动补齐') === 0 ? 'background:#ecfdf5;color:#047857;'
+                        : k.indexOf('测评回填') === 0 ? 'background:#f5f3ff;color:#6d28d9;'
+                        : 'background:#fff7ed;color:#c2410c;';
+                return '<span class="cond-tag" style="' + cls + '">' + esc(k) + '：' + esc(mc[k]) + '</span>';
+            }).join('');
+        }
+        // 政策机会：客户视角仅展示可申报项（不展示"不可匹配"）
+        var list = (report.policies || []).filter(function (p) { return p.level !== '不可匹配'; });
+        $('rPolicyCnt').textContent = '（可申报 ' + list.length + ' 项）';
+        $('rPolicies').innerHTML = list.map(function (p) {
+            var lv = p.level === '高匹配' ? 'background:#ecfdf5;color:#047857;' : 'background:#fff7ed;color:#c2410c;';
+            return '<div class="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 hover:border-indigo-200 hover:shadow-sm transition-all">' +
+                '<div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#eef2ff;color:#4f46e5;"><i class="fa fa-university"></i></div>' +
+                '<div class="flex-1" style="min-width:0;">' +
+                    '<div class="text-[13px] font-black text-slate-800 truncate">' + esc(p.title) + '</div>' +
+                    '<div class="text-[10.5px] text-slate-400 mt-0.5">预计可获权益：<b class="text-emerald-600">' + esc(p.benefit || '—') + '</b></div>' +
+                '</div>' +
+                '<span class="text-[10px] font-black px-2.5 py-1 rounded-full flex-shrink-0" style="' + lv + '">' + esc(p.level) + ' ' + (p.match != null ? p.match + '%' : '') + '</span>' +
+            '</div>';
+        }).join('') || '<p class="prose">暂无可申报政策</p>';
+        $('rAdvice').textContent = report.advice || '——';
+
+        $('reportBox').classList.remove('hidden');
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>政策速递 - 策源易答</title>
+    <!--
+      ============================================================================
+      政策分享落地页（客户视角）：销售把政策链接发给客户，客户免登录打开此页
+      URL：policy-viewer.html?id={政策ID}&shareId={分享ID}
+      闭环逻辑：
+        1. 浏览追踪 —— 打开计时，离开/切后台时把 {at, durSec} 写回 ceyuan_policy_shares
+           对应 shareId 的 views[]，销售端「分享管理」刷新即可看到打开次数与时长
+        2. 注册转化 —— 未注册客户只能看精简版（政策要点 + 申报窗口），全文与申报
+           条件锁定；点击 CTA 注册后：分享记录标记 converted、客户来源升级/建档、
+           本页即时解锁全文
+      数据：与 PC / 移动端同源（data-bridge.js → localStorage）
+      ============================================================================
+    -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f1f5f9; color: #0f172a; }
+        .page { max-width: 480px; margin: 0 auto; min-height: 100vh; background: #f1f5f9; padding-bottom: 96px; }
+
+        .brand { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: linear-gradient(135deg, #6d28d9, #4f46e5); color: #fff; }
+        .brand .logo { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 900; }
+        .brand-name { font-size: 15px; font-weight: 800; }
+        .brand-sub { font-size: 10px; opacity: .75; letter-spacing: 2px; }
+
+        .body-pad { padding: 12px 12px 0; }
+        .share-banner { display: flex; align-items: center; gap: 8px; background: #f5f3ff; border: 1px solid #ddd6fe; color: #5b21b6; font-size: 12px; font-weight: 700; padding: 10px 12px; border-radius: 12px; margin-bottom: 10px; }
+        .share-banner .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+
+        h1 { font-size: 19px; font-weight: 900; line-height: 1.4; padding: 2px 2px 4px; }
+        .meta { font-size: 11px; color: #94a3b8; padding: 0 2px 10px; }
+
+        .card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
+        .card h2 { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 800; margin-bottom: 10px; }
+        .card h2::before { content: ''; width: 4px; height: 14px; border-radius: 2px; background: #6d28d9; }
+        .text { font-size: 12.5px; color: #475569; line-height: 1.85; white-space: pre-line; }
+        .tag { display: inline-flex; align-items: center; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+        .t-purple { background: #f5f3ff; color: #6d28d9; }
+        .t-blue { background: #eff6ff; color: #1d4ed8; }
+        .t-green { background: #ecfdf5; color: #047857; }
+        .t-orange { background: #fff7ed; color: #c2410c; }
+        .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+        /* 申报窗口条目 */
+        .batch { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
+        .batch:last-child { border-bottom: 0; }
+        .batch .ic { width: 34px; height: 34px; border-radius: 10px; background: #f5f3ff; color: #6d28d9; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+        .batch-main { flex: 1; min-width: 0; }
+        .batch-name { font-size: 12.5px; font-weight: 800; }
+        .batch-range { font-size: 10.5px; color: #94a3b8; margin-top: 2px; }
+        .batch-state { font-size: 10.5px; font-weight: 800; flex-shrink: 0; }
+
+        /* 锁定区 */
+        .locked-wrap { position: relative; }
+        .locked-blur { filter: blur(5px); pointer-events: none; user-select: none; }
+        .lock-mask { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: rgba(255,255,255,.35); border-radius: 10px; }
+        .lock-mask .lock-ic { width: 40px; height: 40px; border-radius: 50%; background: #6d28d9; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 17px; box-shadow: 0 8px 18px rgba(109,40,217,.35); }
+        .lock-mask p { font-size: 12px; font-weight: 800; color: #0f172a; }
+        .lock-mask .sub { font-size: 10.5px; font-weight: 500; color: #64748b; }
+
+        /* 底部 CTA */
+        .cta-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; }
+        .cta-inner { max-width: 480px; margin: 0 auto; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.96); backdrop-filter: blur(8px); border-top: 1px solid #e5e7eb; }
+        .cta-btn { width: 100%; border: 0; border-radius: 999px; padding: 13px; font-size: 14.5px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #6d28d9, #4f46e5); box-shadow: 0 8px 18px rgba(109,40,217,.35); cursor: pointer; }
+        .cta-btn.done { background: #ecfdf5; color: #047857; box-shadow: none; border: 1px solid #a7f3d0; }
+        .cta-note { text-align: center; font-size: 10px; color: #94a3b8; margin-top: 6px; }
+
+        /* 注册弹层 */
+        .sheet-mask { position: fixed; inset: 0; z-index: 40; background: rgba(15,23,42,.45); display: flex; align-items: flex-end; justify-content: center; }
+        .sheet { width: 100%; max-width: 480px; background: #fff; border-radius: 18px 18px 0 0; padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); }
+        .sheet h3 { font-size: 16px; font-weight: 900; text-align: center; }
+        .sheet-sub { text-align: center; font-size: 11.5px; color: #64748b; margin: 6px 0 14px; }
+        .sheet input { width: 100%; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; font-size: 14px; margin-bottom: 12px; outline: none; }
+        .sheet input:focus { border-color: #6d28d9; box-shadow: 0 0 0 3px rgba(109,40,217,.12); }
+        .sheet-note { text-align: center; font-size: 10px; color: #94a3b8; margin-top: 10px; }
+        .sheet-close { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 12px; padding: 6px; cursor: pointer; }
+
+        .toast { position: fixed; left: 50%; top: 18%; transform: translateX(-50%); z-index: 60; background: rgba(15,23,42,.88); color: #fff; font-size: 12.5px; font-weight: 700; padding: 10px 16px; border-radius: 999px; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: 80%; text-align: center; }
+        .toast.show { opacity: 1; }
+        .unlock-banner { display: flex; align-items: center; gap: 8px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; font-size: 12px; font-weight: 700; padding: 10px 12px; border-radius: 12px; margin-bottom: 10px; }
+        .invalid { text-align: center; padding: 90px 30px; }
+        .invalid .ic { font-size: 42px; margin-bottom: 14px; }
+        .invalid p { font-size: 14px; font-weight: 800; }
+        .invalid .sub { font-size: 11.5px; color: #94a3b8; font-weight: 500; margin-top: 6px; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <header class="brand">
+        <div class="logo">策</div>
+        <div>
+            <p class="brand-name">策源易答</p>
+            <p class="brand-sub">AI + 政策服务</p>
+        </div>
+    </header>
+
+    <!-- 链接失效 -->
+    <div id="invalidBox" class="invalid" style="display:none">
+        <div class="ic">🔗</div>
+        <p>链接已失效或不存在</p>
+        <p class="sub">请联系您的专属顾问重新获取政策链接</p>
+    </div>
+
+    <!-- 政策主体 -->
+    <div id="policyBox" style="display:none">
+        <div class="body-pad">
+            <div id="unlockBanner" class="unlock-banner" style="display:none">✅ 您已注册，政策全文已解锁 · 张销售已收到提醒</div>
+            <div class="share-banner"><span class="dot"></span><span id="shareFrom"></span></div>
+            <h1 id="pTitle"></h1>
+            <p class="meta" id="pMeta"></p>
+
+            <!-- 政策要点（免费可见） -->
+            <section class="card">
+                <h2>政策要点</h2>
+                <div class="tags" id="pTags" style="margin-bottom:10px"></div>
+                <p class="text" id="pDigest"></p>
+            </section>
+
+            <!-- 申报窗口（免费可见，含倒计时） -->
+            <section class="card">
+                <h2>申报窗口</h2>
+                <div id="pBatches"></div>
+            </section>
+
+            <!-- 政策全文（锁定） -->
+            <section class="card locked-wrap" id="contentCard">
+                <h2>政策全文</h2>
+                <div id="contentBlur" class="locked-blur"><p class="text" id="pContentShort"></p></div>
+                <div class="lock-mask" id="lockMask">
+                    <div class="lock-ic">🔒</div>
+                    <p>政策全文与申报条件已锁定</p>
+                    <p class="sub">免费注册即可查看</p>
+                </div>
+                <p class="text" id="pContentFull" style="display:none"></p>
+            </section>
+
+            <p style="text-align:center;font-size:10px;color:#94a3b8;padding:6px 0 4px">政策内容来源于公开发文 · 策源易答政策库收录</p>
+        </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div class="cta-bar" id="ctaBar" style="display:none">
+        <div class="cta-inner">
+            <button class="cta-btn" id="ctaBtn" onclick="openRegister()">免费注册 · 解锁政策全文</button>
+            <p class="cta-note">注册即送 100 策能值 · 可在线测评政策匹配度</p>
+        </div>
+    </div>
+
+    <!-- 注册弹层 -->
+    <div class="sheet-mask" id="regMask" style="display:none">
+        <div class="sheet">
+            <h3>免费注册</h3>
+            <p class="sheet-sub">注册即送 100 策能值，解锁政策全文与 AI 匹配测评</p>
+            <input id="regPhone" type="tel" placeholder="请输入 11 位手机号" maxlength="11">
+            <button class="cta-btn" onclick="doRegister()">立即注册解锁</button>
+            <p class="sheet-note">演示环境：输入手机号点击即完成注册，数据写入本地数据层</p>
+            <p class="sheet-close" onclick="closeRegister()">暂不注册，先看看</p>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+</div>
+
+<script src="data-bridge.js?v=20261016g"></script>
+<script>
+(function () {
+    'use strict';
+    var DB = window.DataBridge || {};
+
+    // ---------- 工具 ----------
+    function $(id) { return document.getElementById(id); }
+    function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+    function fmtTime(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+    function fmtDate(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    var toastTimer = null;
+    function showToast(text) {
+        var t = $('toast'); t.textContent = text; t.classList.add('show');
+        clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2400);
+    }
+
+    // ---------- 解析 URL 参数，定位政策与分享记录 ----------
+    var params = new URLSearchParams(location.search);
+    var policyId = params.get('id');
+    var shareId = params.get('shareId');
+    var policies = (DB.loadPolicyLibrary ? DB.loadPolicyLibrary() : []) || [];
+    var shares = (DB.loadPolicyShares ? DB.loadPolicyShares() : []) || [];
+    var policy = null, share = null;
+    policies.forEach(function (p) { if (p.id === policyId) policy = p; });
+    shares.forEach(function (s) { if (s.shareId === shareId) share = s; });
+
+    if (!policy || !share) { $('invalidBox').style.display = 'block'; return; }
+
+    // ---------- 浏览追踪：打开计时，离开/切后台时写回一条 view ----------
+    var startAt = new Date();
+    var flushed = false;
+    function flushView() {
+        if (flushed) return;
+        flushed = true;
+        var dur = Math.round((Date.now() - startAt.getTime()) / 1000);
+        if (dur < 2) return;
+        if (dur > 1800) dur = 1800;
+        share.views = share.views || [];
+        share.views.push({ at: fmtTime(startAt), durSec: dur });
+        if (DB.savePolicyShares) DB.savePolicyShares(shares);
+    }
+    document.addEventListener('visibilitychange', function () { if (document.hidden) flushView(); });
+    window.addEventListener('beforeunload', flushView);
+    window.addEventListener('pagehide', flushView);
+
+    // ---------- 渲染政策 ----------
+    document.title = policy.name + ' - 策源易答';
+    $('shareFrom').textContent = '张销售 分享给' + (share.toName && share.toName !== '（匿名访问）' ? '「' + share.toName + '」' : '您') + '的政策速递';
+    $('pTitle').textContent = policy.name;
+    $('pMeta').textContent = (policy.level || '') + ' · ' + (policy.dept || '') + (share.batchName ? ' · ' + share.batchName : '') + ' · 分享编号 ' + share.shareId;
+    $('pTags').innerHTML =
+        (policy.level ? '<span class="tag t-purple">' + esc(policy.level) + '</span>' : '') +
+        (policy.industry ? '<span class="tag t-blue">' + esc(policy.industry) + '</span>' : '') +
+        (policy.region && policy.region.province && policy.region.province !== '全国'
+            ? '<span class="tag t-orange">' + esc([policy.region.province, policy.region.city, policy.region.district].filter(Boolean).join(' ')) + '</span>'
+            : '<span class="tag t-green">全国适用</span>');
+    // 要点摘要：取正文前两段
+    var paras = String(policy.content || '').split(/\n+/).filter(function (s) { return s.trim(); });
+    $('pDigest').textContent = paras.slice(0, 2).join('\n') || '——';
+
+    // 申报窗口（含倒计时）
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    $('pBatches').innerHTML = (policy.batches || []).map(function (b) {
+        var stTxt = '', stColor = '#64748b';
+        if (b.end) {
+            var left = Math.round((new Date(b.end) - today) / 86400000);
+            if (left < 0) { stTxt = '已截止'; stColor = '#94a3b8'; }
+            else if (left === 0) { stTxt = '今天截止'; stColor = '#dc2626'; }
+            else if (left <= 7) { stTxt = '剩 ' + left + ' 天'; stColor = '#dc2626'; }
+            else { stTxt = '剩 ' + left + ' 天'; stColor = '#f97316'; }
+        }
+        return '<div class="batch">' +
+            '<div class="ic">📅</div>' +
+            '<div class="batch-main">' +
+                '<div class="batch-name">' + esc(b.name || '常年申报') + '</div>' +
+                '<div class="batch-range">' + esc(b.start || '—') + ' 至 ' + esc(b.end || '—') + '</div>' +
+            '</div>' +
+            '<span class="batch-state" style="color:' + stColor + '">' + stTxt + '</span>' +
+        '</div>';
+    }).join('') || '<p class="text">暂无申报窗口信息</p>';
+
+    // 全文：锁定态先放一段模糊内容撑高度
+    $('pContentShort').textContent = paras.slice(0, 4).join('\n') || '——';
+    $('pContentFull').textContent = policy.content || '——';
+
+    $('policyBox').style.display = 'block';
+    $('ctaBar').style.display = 'block';
+
+    // ---------- 已转化：直接解锁 ----------
+    if (share.converted) unlock(false);
+
+    // ---------- 注册转化 ----------
+    window.openRegister = function () { $('regMask').style.display = 'flex'; };
+    window.closeRegister = function () { $('regMask').style.display = 'none'; };
+    $('regMask').addEventListener('click', function (e) { if (e.target === $('regMask')) closeRegister(); });
+
+    window.doRegister = function () {
+        var phone = $('regPhone').value.trim();
+        if (!/^1\d{10}$/.test(phone)) { showToast('请输入正确的 11 位手机号'); return; }
+        // 1) 标记该次分享已促成转化（销售端分享管理显示「已转化」）
+        share.converted = true;
+        share.convertedAt = fmtTime(new Date());
+        if (DB.savePolicyShares) DB.savePolicyShares(shares);
+        // 2) 客户档案：已有（如销售录入的外部客户）→ 来源升级为「分享转化」；无档案 → 自动建档
+        var customers = (DB.loadCustomers ? DB.loadCustomers() : []) || [];
+        var target = null;
+        customers.forEach(function (u) {
+            if ((u.contact && u.contact === share.toName) || (u.phone && u.phone === phone)) target = u;
+        });
+        if (target) {
+            target.source = '分享转化';
+            if (!target.registerTime) target.registerTime = fmtDate(new Date());
+        } else {
+            customers.push({
+                id: 'U' + Date.now().toString().slice(-6), type: 'personal', registerTime: fmtDate(new Date()),
+                name: share.toName || '新政策客户', contact: share.toName || '', phone: phone,
+                status: '潜在客户', source: '分享转化', credits: 100,
+                creditHistory: [{ date: fmtDate(new Date()), item: '注册赠送', amount: 100 }],
+                followups: []
+            });
+        }
+        if (DB.saveCustomers) DB.saveCustomers(customers);
+        closeRegister();
+        unlock(true);
+    };
+
+    /** 解锁政策全文：去掉模糊与锁定遮罩，CTA 变为已解锁态 */
+    function unlock(withToast) {
+        $('contentBlur').style.display = 'none';
+        $('lockMask').style.display = 'none';
+        $('pContentFull').style.display = 'block';
+        $('unlockBanner').style.display = 'flex';
+        var btn = $('ctaBtn');
+        btn.textContent = '✓ 已解锁 · 去平台测评政策匹配度';
+        btn.classList.add('done');
+        btn.onclick = function () { showToast('即将跳转策源易答平台（占位：引导下载 App / 打开小程序）'); };
+        if (withToast) showToast('注册成功！政策全文已解锁，张销售已收到查阅提醒');
+    }
+})();
+</script>
+</body>
+</html>
