@@ -273,7 +273,7 @@
 
                                 <!-- Step 1：自动补齐（客户档案） -->
                                 <div v-show="condStep === 0">
-                                    <div class="muted" style="font-size:10.5px;margin-bottom:8px"><i class="fa fa-check-circle" style="color:#10b981"></i> 以下条件已从客户档案自动读取，灰底只读</div>
+                                    <div class="muted" style="font-size:10.5px;margin-bottom:8px"><i class="fa fa-check-circle" style="color:#10b981"></i> 以下条件已从{{ condAssess.__entHit ? '企业档案（科创测评/政策雷达沉淀）' : '客户档案' }}自动读取，灰底只读</div>
                                     <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:11.5px;color:#475569;background:#f0fdf4;border-radius:10px;padding:12px">
                                         <div>所属行业：<b>{{ condAuto.industry || '—' }}</b></div>
                                         <div>所在地区：<b>{{ condAuto.region || '—' }}</b></div>
@@ -288,7 +288,7 @@
                                 <div v-show="condStep === 1">
                                     <div class="muted" style="font-size:10.5px;margin-bottom:8px">
                                         <i class="fa fa-flask" style="color:#8b5cf6"></i>
-                                        {{ condAssess.__measured ? '科创测评已跑，以下为最新回填数据' : '该客户未跑科创测评，以下条件为销售上次补充（建议点右侧按钮重新测评）' }}
+                                        {{ condAssess.__entHit ? '已读取企业档案数据，以下为最新回填' : (condAssess.__measured ? '科创测评已跑，以下为最新回填数据' : '该客户未跑科创测评，以下条件为销售上次补充（建议点右侧按钮重新测评）') }}
                                     </div>
                                     <div v-if="condMeasuring" style="background:#faf5ff;border-radius:10px;padding:14px;margin-bottom:8px;text-align:center">
                                         <i class="fa fa-spinner fa-spin" style="color:#8b5cf6;font-size:18px"></i>
@@ -1539,25 +1539,37 @@
                     return customers.value.filter(x => x._displayName.indexOf(key) >= 0)[0];
                 }
 
-                /** 打开条件采集面板：自动补齐 + 测评回填（从客户档案/条件档案读取） */
+                /** 打开条件采集面板：优先读取企业档案（科创测评/政策雷达沉淀的权威数据），回退客户档案/销售补充 */
                 function openConditions() {
                     const c = locateCustomerByKeyword();
-                    // Step1：自动补齐（客户档案）
-                    if (c) {
-                        condAuto.value = {
-                            industry: c.industry || '',
-                            region: c.region || '',
-                            quals: c.quals || [],
-                            revenue: c.revenue || 0,
-                            employees: c.employees || 0,
-                            source: c._source || ''
-                        };
-                    } else {
-                        condAuto.value = { industry: '', region: '', quals: [], revenue: 0, employees: 0, source: '' };
-                    }
-                    // Step2：测评回填（客户 assessmentConditions + 科创测评得分/短板）
-                    const ac = (c && c.assessmentConditions) || {};
+                    // ===== 企业档案优先：按企业名称匹配，取分组字段拍平后按标签取值 =====
+                    const entName = (c && (c.company || c._displayName)) || (reportKeyword.value || '').trim();
+                    const ent = (DB.loadEnterpriseProfile && entName) ? DB.loadEnterpriseProfile(entName) : null;
+                    const entHit = !!(ent && ent.id);
+                    const entItems = [];
+                    if (entHit) (ent.fields || []).forEach(function (g) { (g.items || []).forEach(function (it) { entItems.push(it); }); });
+                    const fv = function (label) { const it = entItems.filter(function (x) { return (x.label || '').indexOf(label) >= 0; })[0]; return it ? String(it.value || '').trim() : ''; };
+                    const fvNum = function (label) { const n = parseFloat(fv(label).replace(/[^\d.]/g, '')); return isNaN(n) ? null : n; };
+                    // Step1：自动补齐（企业档案 > 客户档案）
+                    const entQuals = fv('已获资质') ? fv('已获资质').split(/[、,，\/\s]+/).filter(Boolean) : null;
+                    const entRevenue = fvNum('近一年营业收入');
+                    condAuto.value = {
+                        industry: fv('所属行业') || (c && c.industry) || '',
+                        region: fv('注册地') || (c && c.region) || '',
+                        quals: entQuals || (c && c.quals) || [],
+                        revenue: entRevenue != null ? Math.round(entRevenue / 100 * 10) / 10 : ((c && c.revenue) || 0),
+                        employees: fvNum('职工总数') || (c && c.employees) || 0,
+                        source: entHit ? '企业档案' : ((c && c._source) || '')
+                    };
+                    // Step2：测评回填（企业档案字段优先覆盖客户 assessmentConditions）
+                    const ac = Object.assign({}, (c && c.assessmentConditions) || {});
+                    const entRd = fvNum('研发费用占比'), entIp = fvNum('有效知识产权'), entUni = fv('产学研');
+                    if (entRd != null) ac.rdRatio = entRd;
+                    if (entIp != null) ac.ipCount = entIp;
+                    if (entUni === '是') ac.industryUni = true; else if (entUni === '否') ac.industryUni = false;
+                    if (entHit) ac.__measured = true;
                     Object.assign(condAssess, {
+                        __entHit: entHit,
                         rdRatio: ac.rdRatio != null ? ac.rdRatio : null,
                         ipCount: ac.ipCount != null ? ac.ipCount : null,
                         sciStaffRatio: ac.sciStaffRatio != null ? ac.sciStaffRatio : null,
