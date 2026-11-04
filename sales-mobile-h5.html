@@ -338,15 +338,29 @@
 
                             <!-- ======== 报告存档（有报告详情在展示时隐藏，避免列表与详情同屏） ======== -->
                             <div class="card" v-if="archiveReports.length && !condOpen && !report">
-                                <div class="card-title"><i class="fa fa-folder-open-o"></i>报告存档<span class="extra">共 {{ archiveReports.length }} 份 · 点击载入</span></div>
-                                <div v-for="r in archiveReports" :key="r.id" class="arc-row" @click="loadArchive(r)">
-                                    <div class="row-main">
-                                        <p class="name">{{ r.customerName }}</p>
-                                        <div class="info"><span class="tag t-blue">{{ r.type }}</span><span>{{ r.createdAt }}</span></div>
+                                <div class="card-title"><i class="fa fa-folder-open-o"></i>报告存档<span class="extra">共 {{ archiveReports.length }} 份 · 点击客户展开</span></div>
+                                <!-- 按客户名称搜索存档 -->
+                                <van-field v-model="arcKeyword" placeholder="搜索客户名称" clearable style="background:#f8fafc;border-radius:10px;margin-bottom:6px" />
+                                <!-- 按客户分组：每个客户一行，展开后显示该客户的历史报告 -->
+                                <div v-for="g in archiveGroups" :key="g.name">
+                                    <div class="arc-row" @click="toggleArcGroup(g.name)">
+                                        <div class="row-main">
+                                            <p class="name">{{ g.name }}</p>
+                                            <div class="info"><span class="tag t-blue">{{ g.list.length }} 份报告</span><span>最新 {{ g.latest }}</span></div>
+                                        </div>
+                                        <i class="fa muted" :class="arcExpanded[g.name] ? 'fa-angle-down' : 'fa-angle-right'"></i>
                                     </div>
-                                    <span class="tag t-gray">{{ (r.policies || []).length }} 项政策</span>
-                                    <i class="fa fa-angle-right muted"></i>
+                                    <div v-if="arcExpanded[g.name]">
+                                        <div v-for="r in g.list" :key="r.id" class="arc-row" style="padding-left:14px" @click="loadArchive(r)">
+                                            <div class="row-main">
+                                                <div class="info"><span class="tag t-blue">{{ r.type }}</span><span>{{ r.createdAt }}</span></div>
+                                            </div>
+                                            <span class="tag t-gray">{{ (r.policies || []).length }} 项政策</span>
+                                            <i class="fa fa-angle-right muted"></i>
+                                        </div>
+                                    </div>
                                 </div>
+                                <div v-if="!archiveGroups.length" class="empty">无匹配「{{ arcKeyword }}」的存档</div>
                             </div>
 
                             <!-- AI 加载骨架屏 -->
@@ -1452,6 +1466,23 @@
                 }
                 // 报告存档列表（读 PC 端同一份报告存档 ceyuan_sales_reports）
                 const archiveReports = ref([]);
+                // 存档搜索关键词 + 分组展开状态
+                const arcKeyword = ref('');
+                const arcExpanded = reactive({});
+                // 按客户分组 + 关键词过滤（每组内保持时间倒序）
+                const archiveGroups = computed(function () {
+                    const kw = (arcKeyword.value || '').trim();
+                    const map = {};
+                    archiveReports.value.forEach(function (r) {
+                        if (kw && (r.customerName || '').indexOf(kw) < 0) return;
+                        (map[r.customerName] = map[r.customerName] || []).push(r);
+                    });
+                    return Object.keys(map).map(function (name) {
+                        const list = map[name];
+                        return { name: name, list: list, latest: (list[0] && list[0].createdAt) || '' };
+                    });
+                });
+                function toggleArcGroup(name) { arcExpanded[name] = !arcExpanded[name]; }
                 function refreshArchive() {
                     const list = (DB.loadSalesReports ? DB.loadSalesReports() : []) || [];
                     archiveReports.value = list.map(r => ({ id: r.id, customerName: r.customerName, title: r.title, type: r.type, createdAt: r.createdAt, policies: r.policies || [] }));
@@ -2204,7 +2235,7 @@
                     BOOL_ACTIONS, FUND_ACTIONS, WINDOW_ACTIONS,
                     onLossSelect, onRndSelect, onUniSelect, onFundSelect, onWindowSelect,
                     showChannelSheet, channelActions, onChannelSelect,
-                    showPicker, pickerKeyword, pickerList, pickCustomer, archiveReports, loadArchive, backToArchive, showPdf,
+                    showPicker, pickerKeyword, pickerList, pickCustomer, archiveReports, loadArchive, backToArchive, showPdf, arcKeyword, arcExpanded, archiveGroups, toggleArcGroup,
                     shareTab, refreshing, shareList, policyShareList, onRefresh, showTracking, tracking, qrCells, openTracking, openPreview, copyLink,
                     showShareCreate, scType, scStep, scKeyword, scContent, scCustomer, scContentList, scCustomerList,
                     openShareCreate, scPickContent, scPickCustomer, scConfirm,
