@@ -291,15 +291,19 @@
                                 <div v-show="condStep === 1">
                                     <div class="muted" style="font-size:10.5px;margin-bottom:8px">
                                         <i class="fa fa-flask" style="color:#8b5cf6"></i>
-                                        {{ condAssess.__entHit ? '已读取企业档案数据，以下为最新回填' : (condAssess.__measured ? '科创测评已跑，以下为最新回填数据' : '该客户未跑科创测评，以下条件为销售上次补充（建议点右侧按钮重新测评）') }}
+                                        <template v-if="condAssess.__entHit">已读取企业档案数据，以下为科创测评/雷达沉淀的最新回填</template>
+                                        <template v-else-if="condAssess.score != null && !condAssess.__measured">以下条件由销售上次补充推算，建议点右侧按钮调科创测评引擎重新计算</template>
+                                        <template v-else-if="condAssess.score != null">科创测评已跑，以下为最新回填数据</template>
+                                        <template v-else><b style="color:#dc2626">该客户未采集测评数据</b>：四个核心指标均为空，建议先让客户跑一次科创测评，或在 Step3 手动补充后再调引擎</template>
                                     </div>
                                     <div v-if="condMeasuring" style="background:#faf5ff;border-radius:10px;padding:14px;margin-bottom:8px;text-align:center">
                                         <i class="fa fa-spinner fa-spin" style="color:#8b5cf6;font-size:18px"></i>
                                         <p class="muted" style="margin-top:6px;font-size:11px">正在调用科创测评引擎… 5 秒后回填</p>
                                     </div>
-                                    <div v-else style="background:#faf5ff;border-radius:10px;padding:12px">
+                                    <!-- 有测评数据：正常展示 -->
+                                    <div v-else-if="condAssess.score != null" style="background:#faf5ff;border-radius:10px;padding:12px">
                                         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-                                            <span class="tag t-purple">科创得分 {{ condAssess.score || '—' }} · {{ condAssess.grade || '—' }} 级</span>
+                                            <span class="tag t-purple">科创得分 {{ condAssess.score }} · {{ condAssess.grade || '—' }} 级</span>
                                             <span class="tag t-orange" v-for="w in (condAssess.weak || [])" :key="w">短板：{{ w }}</span>
                                         </div>
                                         <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11.5px;color:#475569">
@@ -309,8 +313,14 @@
                                             <div>高品收入占比：<b>{{ condAssess.hiTechRatio != null ? condAssess.hiTechRatio + '%' : '—' }}</b></div>
                                         </div>
                                     </div>
+                                    <!-- 无测评数据：空态引导 -->
+                                    <div v-else style="background:#fef9c3;border-radius:10px;padding:16px;text-align:center">
+                                        <i class="fa fa-flask" style="color:#ca8a04;font-size:28px"></i>
+                                        <p style="font-size:11.5px;color:#854d0e;margin:8px 0 4px 0">暂无可展示的科创测评数据</p>
+                                        <p style="font-size:10.5px;color:#a16207;margin:0">三个解决路径：① 让客户去"科创测评"模块先跑一次<br>② 在 Step3 销售补充里手动填入关键指标后点下方按钮调引擎<br>③ 跳过此步直接生成报告（条件不足时政策匹配准确度会受影响）</p>
+                                    </div>
                                     <van-button size="mini" round plain type="primary" icon="replay" style="margin-top:10px" @click="rerunAssessment()">
-                                        {{ condMeasuring ? '测评中…' : '重新测评（调科创测评引擎）' }}
+                                        {{ condMeasuring ? '测评中…' : (condAssess.score != null ? '重新测评（调科创测评引擎）' : '手动填完条件后调引擎') }}
                                     </van-button>
                                 </div>
 
@@ -1644,23 +1654,27 @@
                     report.value = null;
                 }
 
-                /** 根据测评条件算科创得分（0-100） */
+                /** 根据测评条件算科创得分（0-100）；四个核心指标全空时返回 null 表示"未采集" */
                 function calcScore(ac) {
-                    if (!ac || Object.keys(ac).length === 0 || ac.rdRatio == null) return 55;
+                    if (!ac) return null;
+                    const hasAny = ac.rdRatio != null || ac.ipCount != null || ac.sciStaffRatio != null || ac.hiTechRatio != null;
+                    if (!hasAny) return null; // 四个核心指标全空 → 不算分
                     let s = 50;
-                    if (ac.rdRatio >= 5) s += 20; else if (ac.rdRatio >= 3) s += 10; else s -= 5;
-                    if (ac.ipCount >= 5) s += 15; else if (ac.ipCount >= 3) s += 8; else s -= 5;
-                    if (ac.sciStaffRatio >= 10) s += 10; else if (ac.sciStaffRatio >= 7) s += 5; else s -= 3;
-                    if (ac.hiTechRatio >= 60) s += 15; else if (ac.hiTechRatio >= 40) s += 5; else s -= 5;
+                    if (ac.rdRatio >= 5) s += 20; else if (ac.rdRatio >= 3) s += 10; else if (ac.rdRatio != null) s -= 5;
+                    if (ac.ipCount >= 5) s += 15; else if (ac.ipCount >= 3) s += 8; else if (ac.ipCount != null) s -= 5;
+                    if (ac.sciStaffRatio >= 10) s += 10; else if (ac.sciStaffRatio >= 7) s += 5; else if (ac.sciStaffRatio != null) s -= 3;
+                    if (ac.hiTechRatio >= 60) s += 15; else if (ac.hiTechRatio >= 40) s += 5; else if (ac.hiTechRatio != null) s -= 5;
                     if (ac.loss3y === true) s -= 10;
                     return Math.max(30, Math.min(95, s));
                 }
 
-                /** 根据条件算短板列表 */
+                /** 根据条件算短板列表；四个指标全空时返回空数组 */
                 function calcWeak(ac) {
+                    if (!ac) return [];
+                    const hasAny = ac.rdRatio != null || ac.ipCount != null || ac.sciStaffRatio != null || ac.hiTechRatio != null;
+                    if (!hasAny) return []; // 没数据就不算短板
                     const w = [];
-                    if (!ac || ac.rdRatio == null) { w.push('研发费用占比未填'); return w; }
-                    if (ac.rdRatio < 5) w.push('研发费用占比不足 5%（高企门槛）');
+                    if (ac.rdRatio != null && ac.rdRatio < 5) w.push('研发费用占比不足 5%（高企门槛）');
                     if (ac.ipCount != null && ac.ipCount < 3) w.push('核心知识产权数量偏少');
                     if (ac.sciStaffRatio != null && ac.sciStaffRatio < 10) w.push('科技人员占比不足 10%');
                     if (ac.hiTechRatio != null && ac.hiTechRatio < 60) w.push('高品收入占比不足 60%');
@@ -1668,19 +1682,25 @@
                     return w;
                 }
 
-                /** 重新跑科创测评：5 秒后回填一个稍微变化过的分数（模拟引擎重新计算） */
+                /** 重新跑科创测评：基于当前面板值重算；全空则保持 null 空态 */
                 function rerunAssessment() {
                     condMeasuring.value = true;
                     setTimeout(function () {
                         const ac = { rdRatio: condAssess.rdRatio, ipCount: condAssess.ipCount, sciStaffRatio: condAssess.sciStaffRatio, hiTechRatio: condAssess.hiTechRatio, loss3y: condAssess.loss3y };
-                        // 重新测评：分数 ±5 波动，短板可能少一条或多一条
-                        let base = calcScore(ac) + (Math.random() > 0.5 ? 3 : -3);
-                        condAssess.score = Math.max(30, Math.min(95, Math.round(base)));
-                        condAssess.grade = condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D'));
-                        condAssess.weak = calcWeak(ac);
+                        let base = calcScore(ac);
+                        if (base == null) {
+                            condAssess.score = null;
+                            condAssess.grade = '';
+                            condAssess.weak = [];
+                            tip('未采集到核心指标，无法测评，请先补数据');
+                        } else {
+                            base += (Math.random() > 0.5 ? 3 : -3);
+                            condAssess.score = Math.max(30, Math.min(95, Math.round(base)));
+                            condAssess.grade = condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D'));
+                            condAssess.weak = calcWeak(ac);
+                        }
                         condAssess.__measured = true;
                         condMeasuring.value = false;
-                        tip('科创测评完成，得分 ' + condAssess.score + ' · ' + condAssess.grade + ' 级');
                     }, 1500);
                 }
 
