@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        .radar-bg {
+            background: radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
+        }
+        .animate-scan {
+            animation: scan 2s linear infinite;
+        }
+        @keyframes scan {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: #f1f5f9;
+            overflow: hidden;
+        }
+        .progress-value {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 pb-20">
+    <!-- 顶部导航 -->
+    <nav class="bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+        <h2 class="text-lg font-bold">智能匹配诊断</h2>
+        <i class="fa fa-question-circle-o text-slate-400"></i>
+    </nav>
+
+    <!-- 扫描诊断区 -->
+    <div class="px-6 py-10 text-center radar-bg relative">
+        <div class="w-48 h-48 border-2 border-blue-100 rounded-full mx-auto relative flex items-center justify-center">
+            <div class="absolute inset-0 border-t-2 border-blue-500 rounded-full animate-scan"></div>
+            <div class="w-40 h-40 bg-white rounded-full shadow-lg flex flex-col items-center justify-center relative z-10">
+                <span class="text-4xl font-black text-blue-600">85</span>
+                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">综合分值</span>
+            </div>
+        </div>
+        <h3 class="mt-6 text-xl font-bold">高新技术企业</h3>
+        <p class="text-slate-500 text-sm mt-1">当前匹配度极高，建议立即申报</p>
+        <button class="mt-6 bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all">
+            开始全面体检
+        </button>
+    </div>
+
+    <!-- 维度拆解 -->
+    <div class="px-6 space-y-4">
+        <h3 class="text-slate-800 font-bold">诊断维度详情</h3>
+        
+        <!-- 研发投入 -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50">
+            <div class="flex justify-between items-center mb-2">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fa fa-money"></i>
+                    </div>
+                    <span class="font-bold text-sm">研发投入占比</span>
+                </div>
+                <span class="text-xs text-blue-600 font-bold">已达标 (6.5%)</span>
+            </div>
+            <div class="progress-bar mb-2">
+                <div class="progress-value" style="width: 85%"></div>
+            </div>
+            <p class="text-[10px] text-slate-400">近三年平均研发投入占比需 > 5%，您当前表现优秀</p>
+        </div>
+
+        <!-- 知识产权 -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50">
+            <div class="flex justify-between items-center mb-2">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-orange-50 text-orange-500 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fa fa-lightbulb-o"></i>
+                    </div>
+                    <span class="font-bold text-sm">知识产权数量</span>
+                </div>
+                <span class="text-xs text-orange-500 font-bold">待优化 (3/5)</span>
+            </div>
+            <div class="progress-bar mb-2">
+                <div class="progress-value bg-orange-400" style="width: 60%"></div>
+            </div>
+            <p class="text-[10px] text-slate-400">建议增加 2 项发明专利以获取最高评分</p>
+        </div>
+
+        <!-- 创新人员 -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50">
+            <div class="flex justify-between items-center mb-2">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-green-50 text-green-500 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fa fa-users"></i>
+                    </div>
+                    <span class="font-bold text-sm">研发人员比例</span>
+                </div>
+                <span class="text-xs text-green-500 font-bold">已达标 (15%)</span>
+            </div>
+            <div class="progress-bar mb-2">
+                <div class="progress-value bg-green-500" style="width: 90%"></div>
+            </div>
+            <p class="text-[10px] text-slate-400">研发人员占企业总人数比例需 > 10%</p>
+        </div>
+    </div>
+
+    <!-- 提升建议 -->
+    <div class="px-6 mt-8">
+        <div class="bg-slate-900 rounded-[32px] p-6 text-white relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            <h4 class="font-bold text-lg mb-4">专家建议路线</h4>
+            <div class="space-y-4">
+                <div class="flex items-start">
+                    <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-[10px] font-bold mr-3 mt-0.5">1</div>
+                    <div>
+                        <p class="text-sm font-medium">补齐知识产权短板</p>
+                        <p class="text-xs text-white/60">预计在 Q3 前完成 2 项软著登记</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-[10px] font-bold mr-3 mt-0.5">2</div>
+                    <div>
+                        <p class="text-sm font-medium">整理研发立项材料</p>
+                        <p class="text-xs text-white/60">通过“研知π”自动导出项目全套底稿</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

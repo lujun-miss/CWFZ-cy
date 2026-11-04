@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        .profile-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 pb-20">
+    <!-- 个人信息头部 -->
+    <header class="profile-gradient px-6 pt-12 pb-16 relative overflow-hidden">
+        <div class="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full -ml-20 -mb-20 blur-3xl"></div>
+        <div class="relative z-10 flex items-center">
+            <div class="w-16 h-16 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=200&h=200&fit=crop" class="w-full h-full object-cover">
+            </div>
+            <div class="ml-4">
+                <h2 class="text-white font-bold text-lg">某数智科技有限公司</h2>
+                <div class="flex items-center mt-1">
+                    <span class="bg-blue-500 text-white text-[9px] px-1.5 py-0.5 rounded mr-2 font-bold uppercase">Lvl 4 认证企业</span>
+                    <span class="text-white/60 text-[10px]"><i class="fa fa-map-marker mr-1"></i> 广东 · 深圳</span>
+                </div>
+            </div>
+            <div class="ml-auto">
+                <i class="fa fa-cog text-white/60 text-xl"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- 数字化画像概要 -->
+    <div class="px-6 -mt-8 relative z-20 mb-8">
+        <div class="bg-white rounded-3xl shadow-xl p-5">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold text-slate-800">数字化画像概要</h3>
+                <span class="text-[10px] text-blue-600 font-bold">查看详情 <i class="fa fa-chevron-right ml-1"></i></span>
+            </div>
+            <div class="grid grid-cols-4 gap-2">
+                <div class="text-center">
+                    <div class="text-xs font-bold text-slate-800">6.5%</div>
+                    <div class="text-[8px] text-slate-400 mt-1 uppercase">研发占比</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs font-bold text-slate-800">12项</div>
+                    <div class="text-[8px] text-slate-400 mt-1 uppercase">知识产权</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs font-bold text-slate-800">18.5%</div>
+                    <div class="text-[8px] text-slate-400 mt-1 uppercase">销售增长</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs font-bold text-slate-800">A级</div>
+                    <div class="text-[8px] text-slate-400 mt-1 uppercase">纳税信用</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能列表 -->
+    <div class="px-6 space-y-6">
+        <!-- 申报管理 -->
+        <section>
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">申报管理</h3>
+            <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-50">
+                <div class="flex items-center px-4 py-4 hover:bg-slate-50 transition-colors border-b border-slate-50">
+                    <i class="fa fa-paper-plane-o w-8 text-blue-500"></i>
+                    <span class="text-sm font-medium flex-1">正在进行的申报</span>
+                    <span class="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">3</span>
+                </div>
+                <div class="flex items-center px-4 py-4 hover:bg-slate-50 transition-colors border-b border-slate-50">
+                    <i class="fa fa-check-circle-o w-8 text-green-500"></i>
+                    <span class="text-sm font-medium flex-1">已公示/已获批</span>
+                    <span class="text-[10px] text-slate-400 font-bold">12</span>
+                </div>
+                <div class="flex items-center px-4 py-4 hover:bg-slate-50 transition-colors">
+                    <i class="fa fa-clock-o w-8 text-orange-400"></i>
+                    <span class="text-sm font-medium flex-1">历史申报记录</span>
+                    <i class="fa fa-chevron-right text-[10px] text-slate-300"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- 工具与服务 -->
+        <section>
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">工具与服务</h3>
+            <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-50">
+                <div class="flex items-center px-4 py-4 hover:bg-slate-50 transition-colors border-b border-slate-50">
+                    <i class="fa fa-bookmark-o w-8 text-purple-500"></i>
+                    <span class="text-sm font-medium flex-1">我的收藏</span>
+                    <i class="fa fa-chevron-right text-[10px] text-slate-300"></i>
+                </div>
+                <div class="flex items-center px-4 py-4 hover:bg-slate-50 transition-colors border-b border-slate-50">
+                    <i class="fa fa-cloud-download w-8 text-cyan-500"></i>
+                    <span class="text-sm font-medium flex-1">下载中心</span>
+                    <i class="fa fa-chevron-right text-[10px] text-slate-300"></i>
+                </div>
+                <div class="flex items-center px-4 py-4 hover:bg-slate-50 transition-colors">
+                    <i class="fa fa-headphones w-8 text-pink-500"></i>
+                    <span class="text-sm font-medium flex-1">在线专家咨询</span>
+                    <span class="text-[10px] text-slate-300">专属顾问</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 退出登录 -->
+        <button class="w-full py-4 text-red-500 text-sm font-bold bg-white rounded-2xl shadow-sm border border-slate-50 active:scale-[0.98] transition-all">
+            退出当前账号
+        </button>
+    </div>
+</body>
+</html>
