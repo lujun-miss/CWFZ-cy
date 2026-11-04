@@ -17,6 +17,19 @@
         .heat-cell:hover { transform: scale(1.15); z-index: 10; }
         .period-btn.active { background: #7c3aed; color: #fff; box-shadow: 0 4px 12px -2px rgba(124,58,237,0.4); }
     </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
 </head>
 <body class="bg-slate-50 p-8">
 

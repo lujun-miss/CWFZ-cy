@@ -46,6 +46,19 @@
         @keyframes pulse-ai { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
         .ai-loading { animation: pulse-ai 1s infinite; }
     </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <!-- 顶部导航 -->
@@ -115,7 +128,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">报告类型</label>
                         <select id="selType" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm mb-5">
                             <option value="政策匹配">企业分析报告（企业画像 + 政策机会 + 申报建议）</option>
-                            <option value="能力诊断">科创能力诊断报告</option>
+                            <option value="能力诊断">科创测评报告</option>
                         </select>
                         <button onclick="generateDraft()" id="btnGen" class="w-full py-3 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700 flex items-center justify-center">
                             <i class="fa fa-magic mr-2"></i>AI 生成报告草稿
@@ -149,7 +162,7 @@
                             <div><label class="text-xs text-gray-500 mb-1 block">年营收（万元）</label><input id="cRevenue" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
                             <div class="col-span-2"><label class="text-xs text-gray-500 mb-1 block">已获资质（逗号分隔，如：国家高新,专精特新）</label><input id="cQuals" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
                         </div>
-                        <p class="rep-label">科创能力诊断 <span class="text-xs font-normal text-gray-400 ml-2">（已有诊断数据自动带入，可修正）</span></p>
+                        <p class="rep-label">科创测评 <span class="text-xs font-normal text-gray-400 ml-2">（已有诊断数据自动带入，可修正）</span></p>
                         <div class="grid grid-cols-3 gap-4 mb-6">
                             <div><label class="text-xs text-gray-500 mb-1 block">综合得分</label><input id="cScore" type="number" min="0" max="100" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
                             <div><label class="text-xs text-gray-500 mb-1 block">评级</label>
@@ -255,7 +268,7 @@
             CUSTOMERS = DataBridge.loadCustomers();
             REPORTS = DataBridge.loadSalesReports();
             var dl = document.getElementById('customerList');
-            dl.innerHTML = CUSTOMERS.map(function(c) { return '<option value="' + esc(c.name) + '">'; }).join('');
+            dl.innerHTML = CUSTOMERS.filter(function(c) { return c.type !== 'personal'; }).map(function(c) { return '<option value="' + esc(c.name) + '">'; }).join('');
             renderReportList();
         }
 
@@ -413,7 +426,7 @@
         // ===== Step3 微调 =====
         function fillStep3() {
             document.getElementById('rTitle').value = (EDIT_ID ? (findReport(EDIT_ID) || {}).title : '') ||
-                DRAFT.company.name + (DRAFT.type === '能力诊断' ? '科创能力诊断报告' : '企业分析报告');
+                DRAFT.company.name + (DRAFT.type === '能力诊断' ? '科创测评报告' : '企业分析报告');
             document.getElementById('rSummary').value = DRAFT.summary;
             document.getElementById('rProfile').value = DRAFT.profile;
             document.getElementById('rAdvice').value = DRAFT.advice;

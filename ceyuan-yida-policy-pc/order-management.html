@@ -26,6 +26,19 @@
         .timeline-dot { transition: all 0.2s; }
         .progress-bar { transition: width 0.6s ease; }
     </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
 </head>
 <body class="text-slate-800">
     <!-- 顶部导航栏 -->
@@ -57,7 +70,6 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-6 py-8">
-        
 
         <!-- 订单列表 -->
         <section>
@@ -178,12 +190,34 @@
             <div class="p-6 space-y-4">
                 <div>
                     <p class="text-xs font-bold text-slate-600 mb-1.5">记录内容 <span class="text-rose-500">*</span></p>
-                    <textarea id="noteText" rows="4" placeholder="如：已完成需求沟通，方案制定中，预计1月10日完成方案初稿。" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white"></textarea>
+                    <textarea id="noteText" rows="4" placeholder="如：已完成需求评估，方案制定中，预计1月10日完成方案初稿。" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white"></textarea>
                 </div>
             </div>
             <div class="px-6 py-4 border-t border-slate-100 flex justify-end space-x-2 bg-slate-50/60">
                 <button onclick="closeNote()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
                 <button onclick="confirmNote()" class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">发布记录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 推进进度弹窗 -->
+    <div id="advanceModal" class="fixed inset-0 modal-mask z-[55] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-base font-bold"><i class="fa fa-tasks text-orange-500 mr-2"></i>推进服务进度</h3>
+                <button onclick="closeAdvance()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6">
+                <div id="advanceOrderInfo" class="mb-4 px-4 py-3 bg-slate-50 rounded-xl text-xs text-slate-600"></div>
+                <p class="text-xs font-bold text-slate-600 mb-2">选择当前已完成的里程碑阶段：</p>
+                <div id="advanceMilestoneList" class="space-y-2"></div>
+                <div class="mt-4 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl text-[11px] text-orange-700 leading-relaxed">
+                    <i class="fa fa-info-circle mr-1"></i>选择最后一个已完成阶段并确认，系统将更新进度百分比；全部完成时订单自动转为「已完成」。
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end space-x-2 bg-slate-50/60">
+                <button onclick="closeAdvance()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
+                <button onclick="confirmAdvance()" class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">确认推进</button>
             </div>
         </div>
     </div>
@@ -197,7 +231,22 @@
             done:     { text: '已完成', cls: 'bg-emerald-50 text-emerald-600', icon: 'fa-check-circle-o' },
             reviewed: { text: '已评价', cls: 'bg-slate-100 text-slate-500', icon: 'fa-star' }
         };
-        const STEPS = ['已下单', '已接单', '材料准备', '专家审核', '服务完成'];
+        // 交付里程碑跟随商品配置的服务流程（每个服务项目流程不同）
+        const FALLBACK_STEPS = [{ name:'签订合同', deliv:'服务合同（双方盖章）' },{ name:'需求评估', deliv:'需求确认书' },{ name:'方案制定', deliv:'服务方案书' },{ name:'材料准备', deliv:'申报材料/审计底稿' },{ name:'审核提交', deliv:'受理回执/审查意见' },{ name:'完成交付', deliv:'最终成果报告' }];
+        let PRODUCT_CACHE = null;
+        function getMilestones(o) {
+            if (PRODUCT_CACHE === null) {
+                try { PRODUCT_CACHE = (typeof DataBridge !== 'undefined' && DataBridge.loadServiceProducts) ? (DataBridge.loadServiceProducts() || []) : []; }
+                catch (e) { PRODUCT_CACHE = []; }
+            }
+            const p = PRODUCT_CACHE.find(x => x.id === o.svcId);
+            if (p && Array.isArray(p.process) && p.process.length) return p.process.map(s => ({ name: s.t, deliv: s.d }));
+            return FALLBACK_STEPS;
+        }
+        function curMsIdx(o) {
+            const n = getMilestones(o).length;
+            return Math.min(n - 1, Math.floor((o.progress || 0) * n / 100));
+        }
 
         let ORDERS = [];
         let curTab = 'all';
@@ -249,7 +298,7 @@
             tbody.innerHTML = list.map(o => {
                 const st = statusMap[o.status] || statusMap.unpaid;
                 let acts = `<button onclick="openDetail('${o.id}')" class="px-3 py-1.5 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 text-slate-600 text-xs rounded-lg transition-all">详情</button>`;
-                if (o.status === 'unpaid') acts += ` <button onclick="acceptOrder('${o.id}')" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg transition-all">接单</button>`;
+                if (o.status === 'unpaid') acts += ` <span class="text-xs text-slate-400">等待客户付款</span>`;
                 else if (o.status === 'serving') acts += ` <button onclick="advanceOrder('${o.id}')" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg transition-all">推进进度</button>`;
                 else if (o.status === 'done') acts += ` <button onclick="markReviewed('${o.id}')" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs rounded-lg transition-all">标记已评价</button>`;
                 return `
@@ -280,18 +329,63 @@
 
         // ===== 运营侧操作 =====
         function persist() { if (typeof DataBridge !== 'undefined') DataBridge.saveServiceOrders(ORDERS); }
-        function acceptOrder(id) {
-            const o = ORDERS.find(x => x.id === id);
-            if (!o) return;
-            o.status = 'serving'; o.progress = 10;
-            persist(); render();
-        }
+        let advanceTargetId = null;
+        let advanceSelectedIdx = -1;
         function advanceOrder(id) {
             const o = ORDERS.find(x => x.id === id);
             if (!o) return;
-            o.progress = Math.min(100, o.progress + 20);
+            advanceTargetId = id;
+            const steps = getMilestones(o);
+            const cur = curMsIdx(o);
+            advanceSelectedIdx = cur;
+            // 订单信息
+            document.getElementById('advanceOrderInfo').innerHTML =
+                '<i class="fa fa-file-text-o text-orange-400 mr-1"></i><b>' + (o.svcName||'-') + '</b> · '
+                + (o.company||'-') + ' · 当前进度 <b class="text-orange-600">' + (o.progress||0) + '%</b>';
+            // 里程碑列表
+            const list = document.getElementById('advanceMilestoneList');
+            list.innerHTML = steps.map((s, i) => {
+                const isDone = i < cur;
+                const isCur = i === cur;
+                const pct = Math.round((i + 1) * 100 / steps.length);
+                const radio = isCur ? '<i class="fa fa-dot-circle-o text-orange-500 text-lg"></i>'
+                          : isDone ? '<i class="fa fa-check-circle text-green-500 text-lg"></i>'
+                          : '<i class="fa fa-circle-o text-slate-300 text-lg"></i>';
+                const bg = isCur ? 'border-2 border-orange-300 bg-orange-50' : isDone ? 'border border-slate-200 bg-green-50/40' : 'border border-slate-200 bg-white';
+                const st = isDone ? '<span class="text-[10px] text-green-600 font-bold">已完成</span>' : isCur ? '<span class="text-[10px] text-orange-600 font-bold">进行中</span>' : '<span class="text-[10px] text-slate-400 font-bold">待开始</span>';
+                return '<label onclick="selectAdvance(' + i + ')" class="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-50 transition-all ' + bg + '">'
+                    + '<div class="adv-radio-' + i + '">' + radio + '</div>'
+                    + '<div class="flex-1"><div class="flex items-center justify-between"><span class="text-sm font-bold text-slate-800">' + s.name + '</span>' + st + '</div>'
+                    + '<div class="text-[11px] text-slate-400 mt-0.5">交付物：' + (s.deliv||'-') + ' · 推进至 ' + pct + '%</div></div>'
+                    + '</label>';
+            }).join('');
+            showM('advanceModal');
+        }
+        function selectAdvance(idx) {
+            advanceSelectedIdx = idx;
+            const steps = getMilestones(ORDERS.find(x => x.id === advanceTargetId));
+            const cur = curMsIdx(ORDERS.find(x => x.id === advanceTargetId));
+            steps.forEach((s, i) => {
+                const label = document.querySelector('.adv-radio-' + i);
+                if (!label) return;
+                const isSel = i === idx;
+                const isDone = i < cur;
+                if (isSel) label.innerHTML = '<i class="fa fa-dot-circle-o text-orange-500 text-lg"></i>';
+                else if (isDone) label.innerHTML = '<i class="fa fa-check-circle text-green-500 text-lg"></i>';
+                else label.innerHTML = '<i class="fa fa-circle-o text-slate-300 text-lg"></i>';
+            });
+        }
+        function closeAdvance() { hideM('advanceModal'); advanceTargetId = null; }
+        function confirmAdvance() {
+            const o = ORDERS.find(x => x.id === advanceTargetId);
+            if (!o) return;
+            const steps = getMilestones(o);
+            const idx = advanceSelectedIdx;
+            const pct = Math.round((idx + 1) * 100 / steps.length);
+            o.progress = Math.min(100, pct);
             if (o.progress >= 100) o.status = 'done';
             persist(); render();
+            closeAdvance();
             if (o.status === 'done') alert('服务进度已推进至 100%，订单状态变更为「已完成」，等待客户评价。');
         }
         function markReviewed(id) {
@@ -301,30 +395,48 @@
             persist(); render();
         }
 
-        // ===== 交付能力（合并自交付管理） =====
-        const MILESTONES = [
-            { name: '已下单', deliv: '需求确认书' },
-            { name: '已接单', deliv: '服务方案书' },
-            { name: '材料准备', deliv: '申报材料/审计底稿' },
-            { name: '专家审核', deliv: '受理回执/审查意见' },
-            { name: '服务完成', deliv: '最终成果报告' }
-        ];
-        const SEED_DELIV = { 0:[{name:'需求确认书.pdf',type:'pdf',date:'2026-09-01'}], 1:[{name:'高企申报方案.pptx',type:'ppt',date:'2026-09-02'}], 2:[],3:[],4:[] };
+        // ===== 交付能力（里程碑随商品流程动态生成） =====
         const SEED_NOTES = [
-            { who:'李专家（运营）', avatar:'李', color:'blue', time:'2026-09-01 14:25', text:'已完成需求沟通，企业知识产权情况已确认，进入方案制定阶段。' },
+            { who:'李专家（运营）', avatar:'李', color:'blue', time:'2026-09-01 14:25', text:'已完成需求评估，企业知识产权情况已确认，进入方案制定阶段。' },
             { who:'张经理（企业）', avatar:'张', color:'orange', time:'2026-09-01 15:30', text:'收到，方案中知识产权布局部分请重点关注，我们专利数量较少。' }
         ];
         let deliverables = {}; let notes = {}; let uploadMsIdx = null; let noteMsIdx = null;
 
-        function initDelivery(id, o) {
-            if (!deliverables[id]) {
-                deliverables[id] = [];
-                const msIdx = Math.min(STEPS.length - 1, Math.floor((o.progress||0) / 20));
-                for (let i = 0; i <= msIdx; i++) (SEED_DELIV[i]||[]).forEach(d => deliverables[id].push({msIdx:i, ...d}));
+        // 已完成里程碑的种子交付物（演示用；真实场景由运营在时间轴上传）
+        function seedFileName(st) {
+            if (st.name.indexOf('合同') >= 0) return '服务合同_双方盖章.pdf';
+            return st.name + '_交付材料.pdf';
+        }
+        function seedDeliverablesFor(o) {
+            const steps = getMilestones(o);
+            const cur = curMsIdx(o);
+            const d0 = (o.createTime || '').slice(0, 10);
+            const out = [];
+            // 高企认定演示订单：更贴近真实的交付物
+            if (o.svcId === 'SVC001') {
+                const fixed = [
+                    { name:'服务合同_双方盖章.pdf', type:'pdf', date:d0 },
+                    { name:'需求确认书.pdf', type:'pdf', date:d0 },
+                    { name:'高企申报方案.pptx', type:'ppt', date:d0 },
+                    { name:'高企申报材料包.zip', type:'word', date:d0 },
+                    { name:'受理回执.pdf', type:'pdf', date:d0 }
+                ];
+                for (let i = 0; i < cur; i++) if (fixed[i]) out.push({ msIdx:i, ...fixed[i] });
+                return out;
             }
+            for (let i = 0; i < cur; i++) out.push({ msIdx:i, name: seedFileName(steps[i]), type:'pdf', date:d0 });
+            return out;
+        }
+        function initDelivery(id, o) {
+            if (!deliverables[id]) deliverables[id] = seedDeliverablesFor(o);
             if (!notes[id]) notes[id] = [...SEED_NOTES];
         }
-        function openUpload(msIdx) { uploadMsIdx = msIdx; document.getElementById('uploadMilestone').textContent = MILESTONES[msIdx].name + ' · ' + MILESTONES[msIdx].deliv; document.getElementById('uploadName').value=''; showM('uploadModal'); }
+        function openUpload(msIdx) {
+            uploadMsIdx = msIdx;
+            const st = getMilestones(ORDERS.find(x => x.id === detailId))[msIdx];
+            document.getElementById('uploadMilestone').textContent = st.name + ' · ' + st.deliv;
+            document.getElementById('uploadName').value=''; showM('uploadModal');
+        }
         function closeUpload() { hideM('uploadModal'); uploadMsIdx = null; }
         function confirmUpload() {
             const name = document.getElementById('uploadName').value.trim();
@@ -356,12 +468,13 @@
             detailId = id;
             initDelivery(id, o);
             const st = statusMap[o.status] || statusMap.unpaid;
-            const stepIdx = Math.min(STEPS.length - 1, Math.floor((o.progress || 0) / 20));
+            const steps = getMilestones(o);
+            const stepIdx = curMsIdx(o);
             const oldPrice = o.amount * 1.3;
             const isDone = o.status === 'done' || o.status === 'reviewed';
 
             // 里程碑时间轴（含交付物 + 操作按钮）
-            const stepsHtml = MILESTONES.map((m, i) => {
+            const stepsHtml = steps.map((m, i) => {
                 const done = isDone || i < stepIdx;
                 const cur = !isDone && i === stepIdx;
                 const dotCls = done ? 'bg-green-500' : cur ? 'bg-orange-500 animate-pulse' : 'bg-slate-200';
@@ -376,7 +489,7 @@
                     }).join('');
                 } else if (cur) delivHtml = '<div class="text-[10px] text-slate-400 italic">待上传交付物</div>';
                 const acts = cur ? `<button onclick="openUpload(${i})" class="text-[10px] text-orange-600 hover:underline ml-2"><i class="fa fa-upload mr-0.5"></i>上传交付物</button><button onclick="openNote(${i})" class="text-[10px] text-blue-600 hover:underline ml-2"><i class="fa fa-comment-o mr-0.5"></i>添加记录</button>` : '';
-                return `<div class="relative mb-5"><div class="timeline-dot absolute -left-6 top-0 w-4 h-4 ${dotCls} rounded-full border-4 border-white shadow"></div><div class="ml-4 p-4 ${cardCls} rounded-xl border"><div class="flex items-center justify-between mb-2"><h4 class="font-bold text-sm ${done||cur?'':'text-slate-500'}">${m.name}</h4>${badge}</div><p class="text-[10px] text-slate-400 mb-2">交付物：${m.deliv}</p>${delivHtml}${acts}</div></div>`;
+                return `<div class="relative mb-5"><div class="timeline-dot absolute -left-6 top-0 w-4 h-4 ${dotCls} rounded-full border-4 border-white shadow"></div><div class="ml-4 p-4 ${cardCls} rounded-xl border"><div class="flex items-center justify-between mb-2"><h4 class="font-bold text-sm ${done||cur?'':'text-slate-500'}">${m.name}</h4>${badge}</div><p class="text-[10px] text-slate-400 mb-2">节点说明：${m.deliv}</p>${delivHtml}${acts}</div></div>`;
             }).join('');
 
             // 沟通记录
@@ -396,7 +509,7 @@
             }
 
             let acts = '';
-            if (o.status === 'unpaid') acts = `<button onclick="acceptOrder('${o.id}');openDetail('${o.id}')" class="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl text-sm font-semibold"><i class="fa fa-check mr-1"></i>确认接单</button>`;
+            if (o.status === 'unpaid') acts = `<div class="px-6 py-3 bg-slate-100 text-slate-500 rounded-2xl text-sm font-semibold"><i class="fa fa-clock-o mr-1"></i>等待客户付款，付款后可推进进度</div>`;
             else if (o.status === 'serving') acts = `<button onclick="advanceOrder('${o.id}');openDetail('${o.id}')" class="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl text-sm font-semibold"><i class="fa fa-arrow-up mr-1"></i>推进进度</button>`;
             else if (o.status === 'done') acts = `<button onclick="markReviewed('${o.id}');closeModal()" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl text-sm font-semibold">标记已评价</button>`;
 
@@ -406,7 +519,7 @@
                         <div class="w-12 h-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center"><i class="fa ${st.icon} text-xl"></i></div>
                         <div>
                             <h4 class="font-bold text-base">${st.text}</h4>
-                            <p class="text-xs text-slate-500 mt-1">${o.status === 'serving' ? '服务进行中，进度 ' + o.progress + '%' : o.status === 'unpaid' ? '等待企业付款后接单' : o.status === 'done' ? '服务完成，等待客户评价' : '客户已评价，订单闭环'}</p>
+                            <p class="text-xs text-slate-500 mt-1">${o.status === 'serving' ? '服务进行中，进度 ' + o.progress + '%' : o.status === 'unpaid' ? '等待客户付款，付款后自动进入服务中' : o.status === 'done' ? '服务完成，等待客户评价' : '客户已评价，订单闭环'}</p>
                         </div>
                     </div>
                     <span class="text-orange-600 font-black text-2xl">¥${fmtMoney(o.amount)}</span>

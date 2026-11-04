@@ -22,7 +22,15 @@ const MIME = {
 };
 
 const server = http.createServer((req, res) => {
-    let urlPath = decodeURIComponent(req.url.split('?')[0]);
+    let urlPath;
+    try {
+        urlPath = decodeURIComponent(req.url.split('?')[0]);
+    } catch (e) {
+        // 畸形 URL（非法 % 编码）不再导致进程崩溃
+        res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end('<h1>400 Bad Request</h1>');
+        return;
+    }
     if (urlPath === '/') urlPath = '/index.html';
 
     const filePath = path.join(ROOT, urlPath);
@@ -47,8 +55,25 @@ server.listen(PORT, '127.0.0.1', () => {
     console.log('');
     console.log('主入口:   http://127.0.0.1:' + PORT + '/');
     console.log('交付管理:  http://127.0.0.1:' + PORT + '/delivery-management.html');
-    console.log('政策计算器: http://127.0.0.1:' + PORT + '/policy-calculator.html');
+    console.log('政策中心:  http://127.0.0.1:' + PORT + '/policy-center.html');
     console.log('');
     console.log('按 Ctrl+C 停止服务');
     console.log('');
+});
+
+// 端口被占用等服务器级错误：打印提示而不是抛出崩溃
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.log('端口 ' + PORT + ' 已被占用，服务器可能已在运行中。');
+    } else {
+        console.error('服务器错误:', err.message);
+    }
+});
+
+// 进程级兜底：任何未捕获异常都不再让整个服务挂掉
+process.on('uncaughtException', (err) => {
+    console.error('[uncaughtException] 已捕获，服务继续运行:', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('[unhandledRejection] 已捕获，服务继续运行:', reason);
 });

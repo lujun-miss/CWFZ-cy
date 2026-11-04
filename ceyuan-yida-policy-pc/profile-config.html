@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业画像配置 - 策源易答运营平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        .switch { width: 38px; height: 22px; border-radius: 999px; background: #cbd5e1; position: relative; cursor: pointer; transition: all .2s; }
+        .switch.on { background: #10b981; }
+        .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 999px; background: #fff; transition: all .2s; }
+        .switch.on::after { left: 19px; }
+    </style>
+    <script>
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-slate-50 p-8">
+    <script src="data-bridge.js"></script>
+
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 id="pageTitle" class="text-2xl font-black text-slate-800 flex items-center">
+                <i id="pageIcon" class="fa fa-sitemap text-indigo-500 mr-3"></i><span id="pageTitleText">企业所属产业</span>
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">运营管理平台 / 基础配置 / <span id="pageCrumb">企业所属产业</span></p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="resetDefault()" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
+                <i class="fa fa-undo mr-2"></i>恢复默认
+            </button>
+            <button onclick="saveConfig()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20">
+                <i class="fa fa-cloud-upload mr-2"></i>保存并同步
+            </button>
+        </div>
+    </div>
+
+    <div class="mb-5 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 flex items-start space-x-3">
+        <i class="fa fa-info-circle text-indigo-500 mt-0.5"></i>
+        <div class="text-xs text-slate-600 leading-relaxed">
+            <b class="text-indigo-700">配置即生效。</b>
+            这里的选项会同步到「精准政策雷达」的企业画像筛选条件；停用后雷达不再展示该选项，已有历史企业数据不受影响。
+            排序决定雷达筛选区的展示顺序，每次保存后立即同步。
+        </div>
+    </div>
+
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-500">共 <b id="dictCount" class="text-indigo-600">0</b> 项</span>
+            <span class="text-[10px] text-slate-400">（启用 <b id="enabledCount">0</b> 项）</span>
+        </div>
+        <button onclick="openEdit()" class="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-50 transition-all">
+            <i class="fa fa-plus mr-1"></i>新增<span id="addLabel">产业</span>
+        </button>
+    </div>
+
+    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+        <table class="w-full text-xs">
+            <thead class="bg-slate-50 text-slate-500">
+                <tr>
+                    <th class="px-4 py-3 text-left font-bold w-16">排序</th>
+                    <th class="px-4 py-3 text-left font-bold">名称</th>
+                    <th class="px-4 py-3 text-left font-bold w-28">状态</th>
+                    <th class="px-4 py-3 text-right font-bold w-56">操作</th>
+                </tr>
+            </thead>
+            <tbody id="dictBody"></tbody>
+        </table>
+    </div>
+
+    <!-- 新增 / 编辑弹窗 -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[1000] hidden items-center justify-center p-6">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 id="modalTitle" class="text-sm font-black text-slate-800">新增产业</h3>
+                <button onclick="closeEdit()" class="text-slate-400 hover:text-slate-600"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="px-6 py-5 space-y-4">
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 block mb-1"><span class="text-red-500">*</span> 名称</label>
+                    <input id="editName" maxlength="30" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400" placeholder="请输入名称">
+                    <p class="text-[10px] text-slate-400 mt-1">名称需唯一，建议与政策原文表述保持一致</p>
+                </div>
+                <div class="flex items-center justify-between py-2 border-t border-slate-100">
+                    <div>
+                        <p class="text-xs font-bold text-slate-700">启用</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">停用后雷达不展示该项</p>
+                    </div>
+                    <div id="editSwitch" class="switch on" onclick="toggleEditEnabled()"></div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+                <button onclick="closeEdit()" class="px-4 py-2 text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100">取消</button>
+                <button onclick="submitEdit()" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-6 right-6 px-4 py-2.5 bg-slate-800 text-white text-xs font-bold rounded-xl shadow-lg z-[1100] hidden"></div>
+
+    <script>
+        // 当前配置类型：industry 所属产业 / qualification 企业资质
+        var DICT_KEY = (function () {
+            var t = new URLSearchParams(location.search).get('type');
+            return t === 'qualification' ? 'qualification' : 'industry';
+        })();
+        var DICT = DataBridge.loadProfileDict();
+        var LIST = DICT[DICT_KEY] ? DICT[DICT_KEY].slice() : [];
+        var editingIndex = -1;
+
+        var META = {
+            industry: { title: '企业所属产业', crumb: '企业所属产业', icon: 'fa-sitemap', unit: '产业' },
+            qualification: { title: '企业资质', crumb: '企业资质', icon: 'fa-certificate', unit: '资质' }
+        };
+
+        function esc(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        function toast(msg, ok) {
+            var el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = 'fixed bottom-6 right-6 px-4 py-2.5 text-white text-xs font-bold rounded-xl shadow-lg z-[1100] ' + (ok === false ? 'bg-red-500' : 'bg-slate-800');
+            clearTimeout(el._t);
+            el._t = setTimeout(function () { el.className += ' hidden'; }, 2200);
+        }
+
+        function applyMeta() {
+            var m = META[DICT_KEY];
+            document.getElementById('pageTitleText').textContent = m.title;
+            document.getElementById('pageCrumb').textContent = m.crumb;
+            document.getElementById('pageIcon').className = 'fa ' + m.icon + ' text-indigo-500 mr-3';
+            document.getElementById('addLabel').textContent = m.unit;
+        }
+
+        function render() {
+            var body = document.getElementById('dictBody');
+            if (!LIST.length) {
+                body.innerHTML = '<tr><td colspan="4" class="px-4 py-12 text-center text-slate-400 text-xs"><i class="fa fa-inbox text-2xl block mb-2"></i>暂无配置项，点击右上角「新增' + META[DICT_KEY].unit + '」添加</td></tr>';
+            } else {
+                body.innerHTML = LIST.map(function (it, i) {
+                    var status = it.enabled !== false
+                        ? '<span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-600">启用</span>'
+                        : '<span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-100 text-slate-500">已停用</span>';
+                    return '<tr class="border-t border-slate-100' + (it.enabled === false ? ' opacity-60' : '') + '">'
+                        + '<td class="px-4 py-3 text-slate-400 font-bold">' + (i + 1) + '</td>'
+                        + '<td class="px-4 py-3"><span class="font-bold text-slate-700">' + esc(it.name) + '</span></td>'
+                        + '<td class="px-4 py-3">' + status + '</td>'
+                        + '<td class="px-4 py-3 text-right whitespace-nowrap">'
+                        + '<button onclick="moveItem(' + i + ',-1)" class="px-1.5 py-1 text-slate-400 hover:text-indigo-600 ' + (i === 0 ? 'opacity-30 pointer-events-none' : '') + '" title="上移"><i class="fa fa-arrow-up"></i></button>'
+                        + '<button onclick="moveItem(' + i + ',1)" class="px-1.5 py-1 text-slate-400 hover:text-indigo-600 ' + (i === LIST.length - 1 ? 'opacity-30 pointer-events-none' : '') + '" title="下移"><i class="fa fa-arrow-down"></i></button>'
+                        + '<button onclick="toggleItem(' + i + ')" class="px-2 py-1 text-[11px] font-bold ' + (it.enabled !== false ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600') + '">' + (it.enabled !== false ? '停用' : '启用') + '</button>'
+                        + '<button onclick="openEdit(' + i + ')" class="px-2 py-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700">编辑</button>'
+                        + '<button onclick="removeItem(' + i + ')" class="px-2 py-1 text-[11px] font-bold text-red-500 hover:text-red-600">删除</button>'
+                        + '</td></tr>';
+                }).join('');
+            }
+            document.getElementById('dictCount').textContent = LIST.length;
+            document.getElementById('enabledCount').textContent = LIST.filter(function (x) { return x.enabled !== false; }).length;
+        }
+
+        function moveItem(i, dir) {
+            var j = i + dir;
+            if (j < 0 || j >= LIST.length) return;
+            var tmp = LIST[i]; LIST[i] = LIST[j]; LIST[j] = tmp;
+            render();
+        }
+        function toggleItem(i) {
+            LIST[i].enabled = LIST[i].enabled === false;
+            render();
+        }
+        function removeItem(i) {
+            if (!confirm('确定删除「' + LIST[i].name + '」？删除后雷达不再展示该项。')) return;
+            LIST.splice(i, 1);
+            render();
+        }
+
+        function openEdit(i) {
+            editingIndex = (typeof i === 'number') ? i : -1;
+            var isEdit = editingIndex >= 0;
+            document.getElementById('modalTitle').textContent = (isEdit ? '编辑' : '新增') + META[DICT_KEY].unit;
+            document.getElementById('editName').value = isEdit ? LIST[editingIndex].name : '';
+            var sw = document.getElementById('editSwitch');
+            sw.className = 'switch' + (!isEdit || LIST[editingIndex].enabled !== false ? ' on' : '');
+            var el = document.getElementById('editModal');
+            el.classList.remove('hidden'); el.classList.add('flex');
+            setTimeout(function () { document.getElementById('editName').focus(); }, 50);
+        }
+        function closeEdit() {
+            var el = document.getElementById('editModal');
+            el.classList.add('hidden'); el.classList.remove('flex');
+        }
+        function toggleEditEnabled() {
+            document.getElementById('editSwitch').classList.toggle('on');
+        }
+        function submitEdit() {
+            var name = document.getElementById('editName').value.trim();
+            if (!name) { toast('请输入名称', false); return; }
+            var dup = LIST.some(function (it, idx) { return idx !== editingIndex && it.name === name; });
+            if (dup) { toast('该名称已存在', false); return; }
+            var enabled = document.getElementById('editSwitch').classList.contains('on');
+            if (editingIndex >= 0) {
+                LIST[editingIndex].name = name;
+                LIST[editingIndex].enabled = enabled;
+            } else {
+                LIST.push({ name: name, enabled: enabled });
+            }
+            closeEdit();
+            render();
+            toast('已修改，记得点击「保存并同步」');
+        }
+
+        function saveConfig() {
+            var next = {
+                industries: DICT_KEY === 'industry' ? LIST : DICT.industries,
+                qualifications: DICT_KEY === 'qualification' ? LIST : DICT.qualifications
+            };
+            if (!DataBridge.saveProfileDict(next)) { toast('保存失败，请重试', false); return; }
+            DICT = DataBridge.loadProfileDict();
+            toast('已保存，雷达筛选已同步');
+        }
+
+        function resetDefault() {
+            if (!confirm('恢复默认将丢弃当前自定义配置，确定继续？')) return;
+            var other = DICT;
+            try { localStorage.removeItem('ceyuan_profile_dict'); } catch (e) {}
+            var def = DataBridge.loadProfileDict();
+            LIST = (DICT_KEY === 'industry' ? def.industries : def.qualifications).slice();
+            var next = {
+                industries: DICT_KEY === 'industry' ? LIST : other.industries,
+                qualifications: DICT_KEY === 'qualification' ? LIST : other.qualifications
+            };
+            DataBridge.saveProfileDict(next);
+            DICT = DataBridge.loadProfileDict();
+            render();
+            toast('已恢复默认配置');
+        }
+
+        applyMeta();
+        render();
+    </script>
+</body>
+</html>

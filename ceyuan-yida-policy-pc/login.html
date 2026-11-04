@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 策源易答</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        input:focus { border-color: #818cf8 !important; outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+        .field-err { border-color: #f87171 !important; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fadeUp .35s ease both; }
+    </style>
+</head>
+<body class="min-h-screen" style="background: linear-gradient(135deg, #eef2ff 0%, #e0f2fe 50%, #f5f3ff 100%);">
+    <div class="min-h-screen flex items-center justify-center px-4 py-8">
+        <div class="w-full grid grid-cols-2 gap-6 items-stretch" style="min-height: calc(100vh - 64px);">
+            <!-- 左侧品牌区 -->
+            <div class="relative rounded-2xl p-8 text-white overflow-hidden shadow-2xl flex flex-col justify-between" style="background: radial-gradient(130% 130% at 0% 0%, #6366f1 0%, #4f46e5 30%, #6d28d9 65%, #1e2a78 100%);">
+                <!-- 右上光斑 -->
+                <div class="pointer-events-none absolute w-80 h-80 rounded-full" style="top:-7rem; right:-6rem; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.45) 0%, rgba(255,255,255,0) 65%);"></div>
+                <!-- 左下光斑 -->
+                <div class="pointer-events-none absolute w-72 h-72 rounded-full" style="bottom:-6rem; left:-5rem; background: radial-gradient(circle at 50% 50%, rgba(34,211,238,.45) 0%, rgba(34,211,238,0) 70%);"></div>
+                <!-- 细网格 -->
+                <div class="pointer-events-none absolute inset-0" style="opacity:.12; background-image: linear-gradient(rgba(255,255,255,.35) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.35) 1px, transparent 1px); background-size: 30px 30px;"></div>
+                <!-- 水印 -->
+                <div class="pointer-events-none absolute font-black leading-none select-none" style="right:-1rem; bottom:.5rem; font-size:150px; color: rgba(255,255,255,.055);">策</div>
+
+                <div class="relative">
+                    <span class="inline-flex items-center rounded-full text-[10px] font-bold" style="gap:.4rem; padding:.3rem .8rem; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25);">
+                        <span class="rounded-full" style="width:6px;height:6px;background:#6ee7b7;"></span>AI + 政策服务 · 政策智能引擎
+                    </span>
+                    <h1 class="text-3xl font-black leading-snug mt-5 mb-3">登录策源账号<br>继续追踪<span class="relative inline-block">政策红利<span class="absolute left-0 w-full rounded" style="bottom:-2px;height:4px;background:linear-gradient(90deg,#fbbf24,#f472b6);"></span></span></h1>
+                    <p class="text-xs leading-relaxed" style="color: rgba(255,255,255,.72); max-width:34rem;">依托自然语言处理、知识图谱与深度学习技术，为您提供政策搜索、精准匹配、科创测评、申报管家一站式服务。</p>
+                </div>
+
+                <div class="relative mt-8" style="display:flex;flex-direction:column;gap:.6rem;">
+                    <div class="flex items-center rounded-xl" style="gap:.75rem;padding:.6rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(6px);">
+                        <span class="flex items-center justify-center rounded-lg" style="width:28px;height:28px;background:rgba(110,231,183,.18);"><i class="fa fa-database text-xs" style="color:#6ee7b7;"></i></span>
+                        <span class="text-xs" style="color:rgba(255,255,255,.92);">政策库 · 国家到区县四级政策全覆盖</span>
+                    </div>
+                    <div class="flex items-center rounded-xl" style="gap:.75rem;padding:.6rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(6px);">
+                        <span class="flex items-center justify-center rounded-lg" style="width:28px;height:28px;background:rgba(147,197,253,.2);"><i class="fa fa-comments text-xs" style="color:#93c5fd;"></i></span>
+                        <span class="text-xs" style="color:rgba(255,255,255,.92);">AI 问答 · 智能解析给出申报结论</span>
+                    </div>
+                    <div class="flex items-center rounded-xl" style="gap:.75rem;padding:.6rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(6px);">
+                        <span class="flex items-center justify-center rounded-lg" style="width:28px;height:28px;background:rgba(253,230,138,.2);"><i class="fa fa-gauge-high text-xs" style="color:#fde68a;"></i></span>
+                        <span class="text-xs" style="color:rgba(255,255,255,.92);">精准匹配 · 六维测评锁定可申报项</span>
+                    </div>
+                    <div class="flex items-center rounded-xl" style="gap:.75rem;padding:.6rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(6px);">
+                        <span class="flex items-center justify-center rounded-lg" style="width:28px;height:28px;background:rgba(196,181,253,.2);"><i class="fa fa-clipboard-check text-xs" style="color:#c4b5fd;"></i></span>
+                        <span class="text-xs" style="color:rgba(255,255,255,.92);">申报管家 · 材料清单与进度一站管理</span>
+                    </div>
+                </div>
+
+                <div class="relative mt-6 pt-4 flex items-center text-[10px]" style="border-top:1px solid rgba(255,255,255,.16);gap:1.1rem;color:rgba(255,255,255,.6);">
+                    <span><i class="fa fa-shield-alt mr-1" style="color:#6ee7b7;"></i>政策源自官方公开渠道</span>
+                    <span>每日同步更新</span>
+                    <span>支持个人与企业账号</span>
+                </div>
+            </div>
+
+            <!-- 右侧登录表单 -->
+            <div class="flex flex-col">
+                <!-- 顶部品牌标题 -->
+                <div class="relative flex items-center justify-center mb-5">
+                    <div class="flex items-center space-x-3.5">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0" style="background: linear-gradient(160deg, #4f46e5 0%, #7c3aed 100%);">
+                            <span class="text-white font-black text-2xl">策</span>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-black tracking-tight text-slate-800">策源易答</div>
+                            <div class="text-[11px] text-slate-400 uppercase tracking-[0.2em] mt-0.5">AI + 政策服务</div>
+                        </div>
+                    </div>
+                    <button onclick="openGuide('login.html')" class="absolute right-0 top-1/2 -translate-y-1/2 text-[11px] text-amber-600 hover:text-amber-700 font-bold"><i class="fa fa-book mr-1"></i>会员与策能值指南</button>
+                </div>
+                <div class="bg-white/85 backdrop-blur rounded-2xl border border-white/60 shadow-2xl p-6 animate-fade-up flex-1">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 id="lgTitle" class="text-lg font-black text-slate-800 leading-tight">个人登录</h2>
+                        <p id="lgSub" class="text-[11px] text-slate-400 mt-0.5">手机号 + 密码登录</p>
+                    </div>
+                </div>
+                <div class="flex bg-slate-100 rounded-xl p-1 mb-4">
+                    <button id="tabPersonal" onclick="switchLoginType('personal')" class="flex-1 py-2 rounded-lg text-xs font-bold bg-white text-indigo-600 shadow-sm transition-all"><i class="fa fa-user mr-1"></i>个人登录</button>
+                    <button id="tabEnterprise" onclick="switchLoginType('enterprise')" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all"><i class="fa fa-building mr-1"></i>企业登录</button>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- 个人登录 -->
+                    <div id="lgPersonal" class="space-y-3">
+                        <div>
+                            <label class="text-[11px] text-slate-500 font-bold block mb-1">手机号</label>
+                            <input id="lp_phone" type="text" placeholder="11 位手机号" maxlength="11" value="13800138000" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                        </div>
+                        <div id="lpPwdField">
+                            <label class="text-[11px] text-slate-500 font-bold block mb-1">密码</label>
+                            <div class="relative">
+                                <input id="lp_pwd" type="password" placeholder="请输入密码" maxlength="20" value="Demo123456" class="w-full px-3 py-2.5 pr-9 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                                <i id="eye_lp" onclick="togglePwd('lp_pwd','eye_lp')" class="fa fa-eye-slash absolute right-3 top-3 cursor-pointer text-slate-400 hover:text-indigo-500 text-xs"></i>
+                            </div>
+                        </div>
+                        <div id="lpSmsField" style="display:none;">
+                            <label class="text-[11px] text-slate-500 font-bold block mb-1">短信验证码</label>
+                            <div class="flex gap-2">
+                                <input id="lp_sms" type="text" placeholder="6 位验证码" maxlength="6" value="123456" class="flex-1 px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                                <button id="lpSmsBtn" onclick="sendSms('lp')" class="px-3 py-2 rounded-xl text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all whitespace-nowrap flex-shrink-0">获取验证码</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 企业登录 -->
+                    <div id="lgEnterprise" class="space-y-3" style="display:none;">
+                        <div>
+                            <label class="text-[11px] text-slate-500 font-bold block mb-1">企业名称 / 统一社会信用代码</label>
+                            <input id="le_org" type="text" placeholder="输入企业名称或 18 位信用代码" value="深圳市策源数字科技有限公司" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-500 font-bold block mb-1">企业管理员手机号</label>
+                            <input id="le_phone" type="text" placeholder="11 位手机号" maxlength="11" value="13800138000" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                        </div>
+                        <div id="lePwdField">
+                            <label class="text-[11px] text-slate-500 font-bold block mb-1">密码</label>
+                            <div class="relative">
+                                <input id="le_pwd" type="password" placeholder="请输入密码" maxlength="20" value="Demo123456" class="w-full px-3 py-2.5 pr-9 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                                <i id="eye_le" onclick="togglePwd('le_pwd','eye_le')" class="fa fa-eye-slash absolute right-3 top-3 cursor-pointer text-slate-400 hover:text-indigo-500 text-xs"></i>
+                            </div>
+                        </div>
+                        <div id="leSmsField" style="display:none;">
+                            <label class="text-[11px] text-slate-500 font-bold block mb-1">短信验证码</label>
+                            <div class="flex gap-2">
+                                <input id="le_sms" type="text" placeholder="6 位验证码" maxlength="6" value="123456" class="flex-1 px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                                <button id="leSmsBtn" onclick="sendSms('le')" class="px-3 py-2 rounded-xl text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all whitespace-nowrap flex-shrink-0">获取验证码</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 辅助操作 -->
+                    <div class="flex items-center justify-between pt-1">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input id="lg_remember" type="checkbox" class="accent-indigo-600" checked>
+                            <span class="text-[11px] text-slate-500">记住我的手机号</span>
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <a id="switchAuthMode" onclick="toggleAuthMode()" class="text-[11px] text-indigo-500 font-bold cursor-pointer hover:text-indigo-700">验证码登录</a>
+                            <a id="forgotPwd" onclick="goPage('forgot-password.html')" class="text-[11px] text-slate-400 font-bold cursor-pointer hover:text-indigo-700">忘记密码？</a>
+                        </div>
+                    </div>
+
+                    <button onclick="submitLogin()" class="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90 transition-all shadow-lg">
+                        <i class="fa fa-sign-in mr-1"></i>登录
+                    </button>
+                    <p class="text-center text-[11px] text-slate-400">还没有账号？<a onclick="goPage('register.html')" class="text-indigo-500 font-bold cursor-pointer hover:text-indigo-700">立即注册</a></p>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function goPage(url) {
+            try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage(url, null); return; } } catch (e) {}
+            window.location.href = url;
+        }
+        // 打开会员指南，并记录来源页（存储不可用时不影响跳转）
+        function openGuide(from) {
+            try { sessionStorage.setItem('ceyuan_guide_from', from); } catch (e) {}
+            goPage('member-guide.html');
+        }
+        function toast(msg, ok) {
+            var t = document.createElement('div');
+            t.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg ' + (ok === false ? 'bg-red-500' : 'bg-slate-800');
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(function(){ t.remove(); }, 2200);
+        }
+        function markErr(id) { document.getElementById(id).classList.add('field-err'); }
+        function clearErr(id) { document.getElementById(id).classList.remove('field-err'); }
+        function togglePwd(inputId, eyeId) {
+            var input = document.getElementById(inputId);
+            var eye = document.getElementById(eyeId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.classList.remove('fa-eye-slash');
+                eye.classList.add('fa-eye');
+            } else {
+                input.type = 'password';
+                eye.classList.remove('fa-eye');
+                eye.classList.add('fa-eye-slash');
+            }
+        }
+
+        var LOGIN_TYPE = 'personal';
+        var AUTH_MODE = 'pwd'; // pwd | sms
+        var SMS_SENT = { lp: false, le: false };
+        var SMS_CODE_MAP = { lp: '123456', le: '123456' };
+
+        function toggleAuthMode() {
+            AUTH_MODE = AUTH_MODE === 'pwd' ? 'sms' : 'pwd';
+            var isSms = AUTH_MODE === 'sms';
+            var prefix = LOGIN_TYPE === 'enterprise' ? 'le' : 'lp';
+            document.getElementById(prefix + 'PwdField').style.display = isSms ? 'none' : '';
+            document.getElementById(prefix + 'SmsField').style.display = isSms ? '' : 'none';
+            document.getElementById('switchAuthMode').textContent = isSms ? '密码登录' : '验证码登录';
+            document.getElementById('forgotPwd').style.display = isSms ? 'none' : '';
+            updateSubtitle();
+        }
+
+        function sendSms(prefix) {
+            var phoneId = prefix + '_phone';
+            var btnId = prefix + 'SmsBtn';
+            var phone = document.getElementById(phoneId).value.trim();
+            if (!/^1\d{10}$/.test(phone)) { toast('请先输入正确的手机号', false); markErr(phoneId); return; }
+            SMS_SENT[prefix] = true;
+            SMS_CODE_MAP[prefix] = '123456'; // 演示环境固定验证码
+            var btn = document.getElementById(btnId);
+            btn.disabled = true;
+            var s = 60;
+            btn.textContent = s + 's 后重发';
+            var timer = setInterval(function() {
+                s--;
+                if (s <= 0) { clearInterval(timer); btn.disabled = false; btn.textContent = '获取验证码'; return; }
+                btn.textContent = s + 's 后重发';
+            }, 1000);
+            document.getElementById(prefix + '_sms').value = '123456';
+            toast('验证码已发送并自动填入：123456（演示环境）');
+        }
+        function switchLoginType(t) {
+            LOGIN_TYPE = t;
+            // 切账号类型时统一重置为密码登录，避免状态错乱
+            if (AUTH_MODE !== 'pwd') {
+                AUTH_MODE = 'pwd';
+                document.getElementById('lpPwdField').style.display = '';
+                document.getElementById('lpSmsField').style.display = 'none';
+                document.getElementById('lePwdField').style.display = '';
+                document.getElementById('leSmsField').style.display = 'none';
+                document.getElementById('switchAuthMode').textContent = '验证码登录';
+                document.getElementById('forgotPwd').style.display = '';
+            }
+            var isEnt = t === 'enterprise';
+            document.getElementById('lgPersonal').style.display = isEnt ? 'none' : '';
+            document.getElementById('lgEnterprise').style.display = isEnt ? '' : 'none';
+            document.getElementById('lgTitle').textContent = isEnt ? '企业登录' : '个人登录';
+            var on = 'flex-1 py-2 rounded-lg text-xs font-bold bg-white text-indigo-600 shadow-sm transition-all';
+            var off = 'flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all';
+            document.getElementById('tabPersonal').className = isEnt ? off : on;
+            document.getElementById('tabEnterprise').className = isEnt ? on : off;
+            updateSubtitle();
+        }
+
+        function updateSubtitle() {
+            var isEnt = LOGIN_TYPE === 'enterprise';
+            var isSms = AUTH_MODE === 'sms';
+            var sub = isEnt
+                ? (isSms ? '企业信息 + 管理员手机号 + 验证码' : '企业信息 + 管理员手机号 + 密码')
+                : (isSms ? '手机号 + 短信验证码登录' : '手机号 + 密码登录');
+            document.getElementById('lgSub').textContent = sub;
+        }
+
+        function loadUsers() {
+            try { return JSON.parse(localStorage.getItem('ceyuan_registered_users') || '[]'); } catch (e) { return []; }
+        }
+
+        function submitLogin() {
+            var isEnt = LOGIN_TYPE === 'enterprise';
+            var isSms = AUTH_MODE === 'sms';
+            var prefix = isEnt ? 'le' : 'lp';
+            var phone = document.getElementById(prefix + '_phone').value.trim();
+            var org = isEnt ? document.getElementById('le_org').value.trim() : '';
+            var phoneId = prefix + '_phone';
+            [phoneId, prefix + '_pwd', prefix + '_sms', 'le_org'].forEach(clearErr);
+
+            if (!/^1\d{10}$/.test(phone)) { toast('请输入正确的 11 位手机号', false); markErr(phoneId); return; }
+            if (isEnt && !org) { toast('请输入企业名称或统一社会信用代码', false); markErr('le_org'); return; }
+
+            // 演示环境：仅校验字段格式，不校验是否已注册
+            var users = loadUsers();
+            var rec = users.filter(function(u){ return u.phone === phone; })[0] || {};
+
+            if (isSms) {
+                // 验证码模式：先点「获取验证码」，再比对验证码
+                var smsVal = document.getElementById(prefix + '_sms').value.trim();
+                if (!SMS_SENT[prefix]) { toast('请先获取短信验证码', false); return; }
+                if (!/^\d{6}$/.test(smsVal)) { toast('请输入 6 位短信验证码', false); markErr(prefix + '_sms'); return; }
+                if (smsVal !== SMS_CODE_MAP[prefix]) { toast('短信验证码错误，请重新输入', false); markErr(prefix + '_sms'); return; }
+            } else {
+                // 密码模式：演示环境仅校验长度
+                var pwd = document.getElementById(prefix + '_pwd').value;
+                if (pwd.length < 6) { toast('请输入密码（至少 6 位）', false); markErr(prefix + '_pwd'); return; }
+            }
+
+            // 写入登录态，供会员中心 / 首页读取
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    company: isEnt ? (rec.company || org) : (rec.company || ''),
+                    code: rec.code || (isEnt && /^[0-9A-Z]{18}$/.test(org.toUpperCase()) ? org.toUpperCase() : ''),
+                    contact: rec.contact || '',
+                    phone: phone, industry: '',
+                    region: (rec.province || '') + (rec.city ? ' ' + rec.city : '') + (rec.district ? ' ' + rec.district : ''),
+                    province: rec.province || '', city: rec.city || '', district: rec.district || '',
+                    accountType: isEnt ? 'enterprise' : (rec.type || 'personal')
+                }));
+                if (rec.city) {
+                    localStorage.setItem('ceyuan_current_city', JSON.stringify({ name: rec.city, province: rec.province, district: rec.district, t: Date.now() }));
+                }
+                if (document.getElementById('lg_remember').checked) {
+                    localStorage.setItem('ceyuan_login_remember', phone);
+                } else {
+                    localStorage.removeItem('ceyuan_login_remember');
+                }
+            } catch (e) {}
+
+            toast('登录成功，正在进入首页...');
+            setTimeout(function(){ goPage('dashboard.html'); }, 800);
+        }
+
+        // 记住的手机号回填 + 副标题初始化
+        (function initRemembered() {
+            try {
+                var p = localStorage.getItem('ceyuan_login_remember');
+                if (p) {
+                    document.getElementById('lp_phone').value = p;
+                    document.getElementById('le_phone').value = p;
+                }
+            } catch (e) {}
+            updateSubtitle();
+        })();
+    </script>
+</body>
+</html>

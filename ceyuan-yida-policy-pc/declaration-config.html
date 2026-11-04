@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>申报材料配置 - 策源易答</title>
     <link href="libs/css/tailwind.css" rel="stylesheet">
     <link href="libs/css/font-awesome.min.css" rel="stylesheet">
@@ -13,6 +16,19 @@
         .tab-active { color:#2563eb; border-bottom-color:#2563eb; }
         .editor-field label { @apply block text-xs font-bold text-slate-600 mb-1; }
     </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
 </head>
 <body class="bg-slate-50 min-h-screen">
     <div class="max-w-[1400px] mx-auto p-6">
@@ -23,12 +39,8 @@
                 <p class="text-sm text-slate-500">管理申报项目的材料模板、填写提示、样例参考 · 配置后前端材料自查助手自动同步</p>
             </div>
             <div class="flex items-center space-x-2">
-                <button onclick="resetToDefault()" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50">
-                    <i class="fa fa-refresh mr-1.5"></i>恢复默认
-                </button>
-                <button onclick="goPage('declaration-butler.html')" class="px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-50">
-                    <i class="fa fa-eye mr-1.5"></i>预览前端
-                </button>
+                <button onclick="openAiGenModal()" class="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-100" title="单地区精细生成：自动搜索并勾选政策">
+                    <i class="fa fa-magic mr-1.5"></i>AI 智能生成材料包</button>
                 <button onclick="saveAll()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-100">
                     <i class="fa fa-save mr-1.5"></i>保存全部配置
                 </button>
@@ -61,7 +73,118 @@
         </div>
     </div>
 
-<script src="data-bridge.js"></script>
+    <!-- AI 生成材料包 弹窗 -->
+    <div id="aiGenModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4" style="background:rgba(15,23,42,0.45);">
+        <div class="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="px-6 py-4 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center"><i class="fa fa-magic"></i></div>
+                    <div>
+                        <div class="text-sm font-black text-slate-800">AI 智能生成材料包 · 单地区</div>
+                        <div class="text-[10.5px] text-slate-500">选项目后自动搜索并勾选政策，按所选申报地区生成一套材料</div>
+                    </div>
+                </div>
+                <button onclick="closeAiGenModal()" class="w-8 h-8 rounded-lg bg-white/70 hover:bg-white text-slate-500 flex items-center justify-center"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <!-- Step1 选择场景 -->
+                <div id="aiGStep1" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">目标项目与申报地区</label>
+                        <div class="flex items-center gap-2">
+                            <select id="aiGProject" onchange="syncAiGTypeHint(); renderAiGRegionControls(true); renderAiGPolicyOptions()" class="flex-1 min-w-0 px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-400"></select>
+                            <select id="aiGProvince" onchange="onAiGRegionChange('province')" class="shrink-0 w-32 px-2 py-2.5 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-purple-400"></select>
+                            <button type="button" id="aiGMoreRegionBtn" onclick="toggleMoreRegion()" class="shrink-0 px-2.5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 bg-white hover:bg-slate-50 whitespace-nowrap" title="选择市 / 区县细分地区">
+                                <i id="aiGMoreRegionIcon" class="fa fa-caret-down mr-1"></i>市/区县
+                            </button>
+                        </div>
+                        <div id="aiGRegionMore" class="hidden mt-2 grid grid-cols-2 gap-2">
+                            <input id="aiGCity" list="aiGCityList" onchange="onAiGRegionChange('city')" placeholder="全部地市（可输入）" class="px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-purple-400">
+                            <input id="aiGDistrict" list="aiGDistrictList" onchange="onAiGRegionChange('district')" placeholder="全部区县（可输入）" class="px-3 py-2.5 border border-slate-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-purple-400">
+                        </div>
+                        <datalist id="aiGCityList"></datalist>
+                        <datalist id="aiGDistrictList"></datalist>
+                        <div id="aiGRegionHint" class="mt-1.5 text-[10px] text-slate-400 leading-relaxed"></div>
+                        <div id="aiGDetect" class="mt-2 hidden px-3 py-2 bg-cyan-50 border border-cyan-100 rounded-xl text-[11px] text-cyan-800 flex items-start justify-between gap-2">
+                            <span class="flex-1 leading-relaxed"><i class="fa fa-map-marker mr-1"></i>政策库已收录 <b id="aiGDetectCount">0</b> 个有本地政策的地区：<span id="aiGDetectList"></span></span>
+                            <button type="button" onclick="openBatchFromGen()" class="shrink-0 px-2 py-1 bg-cyan-500 text-white rounded-lg text-[10px] font-bold hover:bg-cyan-600">批量生成</button>
+                        </div>
+                    </div>
+                    <div id="aiGTypeHint" class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[11px] text-slate-500 flex items-center gap-1.5"></div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">关联政策 / 申报指南（可多选，按申报地区匹配）</label>
+                        <div id="aiGPolicyList" class="max-h-44 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100"></div>
+                        <div id="aiGPolicyHint" class="mt-1.5 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[11px] text-slate-500 leading-relaxed"></div>
+                    </div>
+                    <div class="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-[11px] text-slate-500 leading-relaxed">
+                        <i class="fa fa-info-circle text-blue-400 mr-1"></i>AI 按「项目 + 申报地区」生成：通用材料为底，地区差异项按所选地市单独成组；同一项目可分别生成多个地市版本，通用材料只保留一份。未选择政策时退回通用模板；生成后可继续手工增删改，点击「保存全部配置」生效。
+                    </div>
+                    <button onclick="aiGenStart()" class="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-purple-100"><i class="fa fa-magic mr-1.5"></i>开始生成</button>
+                </div>
+                <!-- Step2 动画 -->
+                <div id="aiGStep2" class="hidden py-12">
+                    <div class="flex flex-col items-center">
+                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xl animate-pulse"><i class="fa fa-magic"></i></div>
+                        <p id="aiGStage" class="mt-4 text-sm font-bold text-slate-700">正在分析项目类型与政策要求…</p>
+                        <div class="w-full max-w-xs h-2 bg-slate-100 rounded-full mt-5 overflow-hidden">
+                            <div id="aiGBar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-500" style="width:8%"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Step3 预览 -->
+                <div id="aiGStep3" class="hidden">
+                    <div class="mb-3 px-3 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 border border-purple-100 rounded-xl text-[11px] text-slate-600 flex items-center justify-between">
+                        <span><i class="fa fa-check-circle text-emerald-500 mr-1"></i><b>材料包草稿已生成</b>（<span id="aiGStat"></span>），<span id="aiGPolicyUsed" class="text-purple-600"></span>；应用后通用分组只保留一份，地区差异分组按地市单独追加</span>
+                        <span class="px-1.5 py-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-[9px] font-bold rounded"><i class="fa fa-magic mr-0.5"></i>AI 生成</span>
+                    </div>
+                    <div id="aiGPreview" class="space-y-2.5 mb-4"></div>
+                    <div class="flex items-center justify-end space-x-2">
+                        <button onclick="aiGenStep(1)" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50"><i class="fa fa-undo mr-1"></i>重新生成</button>
+                        <button onclick="aiGenApply()" class="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-100"><i class="fa fa-check mr-1"></i>应用到项目</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量生成地区差异 -->
+    <div id="aiRegionBatchModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4" style="background:rgba(15,23,42,0.45);">
+        <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-black text-slate-800"><i class="fa fa-magic text-cyan-500 mr-1.5"></i>AI 智能生成材料包 · 多地区</h3>
+                    <p class="text-[11px] text-slate-400 mt-1">选项目 → 自动搜索并勾选政策库中符合条件的政策 → 按地市分别生成</p>
+                </div>
+                <button type="button" onclick="closeAiRegionBatch()" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="px-6 py-4 overflow-y-auto flex-1">
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">目标项目（材料包将挂到该项目）</label>
+                    <select id="aiBatchProject" onchange="renderAiBatchList()" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-cyan-400"></select>
+                </div>
+                <div class="px-3 py-2.5 bg-cyan-50 border border-cyan-100 rounded-xl text-[11px] text-cyan-800 leading-relaxed">
+                    <i class="fa fa-info-circle mr-1"></i>营业执照、审计报告等<b>全国通用的基础材料</b>项目里只存一份（关闭本弹窗后，在「全国通用材料」页签维护）；各地政策<b>额外要求</b>的材料（如属地推荐函、地方平台证明）按地区分别生成（在「地区补充材料」页签维护）。未收录的地区不生成，后续补充政策后再点一次即可。
+                </div>
+                <div class="flex items-center justify-between my-3">
+                    <span class="text-xs text-slate-500">已选 <b id="aiBatchCount" class="text-cyan-600">0</b> / <b id="aiBatchTotal">0</b> 个地区</span>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="aiBatchToggleAll(true)" class="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 rounded-lg text-[11px] font-bold hover:bg-slate-50">全选</button>
+                        <button type="button" onclick="aiBatchToggleAll(false)" class="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 rounded-lg text-[11px] font-bold hover:bg-slate-50">清空</button>
+                    </div>
+                </div>
+                <div id="aiBatchList" class="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-80 overflow-y-auto"></div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+                <p class="text-[10px] text-slate-400">生成后需点击「保存全部配置」生效</p>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeAiRegionBatch()" class="px-4 py-2 text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100">取消</button>
+                    <button type="button" onclick="aiBatchGenerate()" class="px-4 py-2 text-xs font-bold text-white bg-cyan-500 rounded-lg hover:bg-cyan-600"><i class="fa fa-check mr-1"></i>开始生成</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="data-bridge.js?v=20261014c"></script>
 <script>
     let PROJECTS = [];
     let CURRENT_ID = null;
@@ -77,6 +200,17 @@
     const TYPE_OPTIONS = ['资金补贴', '税收减免', '资质认定', '资质入库'];
     const ICON_COLORS = ['blue', 'emerald', 'orange', 'purple', 'indigo', 'cyan', 'amber'];
     const MATERIAL_COLORS = ['blue', 'orange', 'green', 'purple', 'indigo', 'amber', 'cyan'];
+    // 申报项目所在省份选项（与政策库 region.province 命名风格保持一致：全称带省/市，或"全国"）
+    const PROVINCE_OPTIONS = ['全国','北京市','天津市','上海市','重庆市','河北省','山西省','辽宁省','吉林省','黑龙江省','江苏省','浙江省','安徽省','福建省','江西省','山东省','河南省','湖北省','湖南省','广东省','海南省','四川省','贵州省','云南省','陕西省','甘肃省','青海省','内蒙古自治区','广西壮族自治区','宁夏回族自治区','新疆维吾尔自治区','西藏自治区'];
+    // 申报书模板字段 source 选项（用于省份模板编辑器下拉）
+    const SOURCE_OPTIONS = [
+        'static',
+        'enterprise.name','enterprise.code','enterprise.industry','enterprise.region',
+        'enterprise.regCap','enterprise.employees','enterprise.founded','enterprise.quals',
+        'enterprise.contact','enterprise.phone','enterprise.revenue',
+        'project.name','project.level','project.dept','project.subsidy','project.deadline','project.progress','project.type',
+        'material.all'
+    ];
 
     function goPage(url) {
         if (parent && parent.window && parent.window.switchPage) {
@@ -103,7 +237,7 @@
             const statusCfg = STATUS_OPTIONS.find(s => s.v === p.status) || STATUS_OPTIONS[0];
             const active = p.id === CURRENT_ID ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-slate-50 border-l-4 border-transparent';
             const totalItems = (p.groups || []).reduce((s, g) => s + (g.items || []).length, 0);
-            const doneItems = (p.groups || []).reduce((s, g) => s + (g.items || []).filter(i => i.status === 'done').length, 0);
+            const uploadedItems = (p.groups || []).reduce((s, g) => s + (g.items || []).filter(i => i.attName).length, 0);
             return `<div class="project-item ${active} cursor-pointer px-4 py-3 transition-all" onclick="selectProject('${p.id}')">
                 <div class="flex items-center justify-between mb-1">
                     <span class="text-sm font-bold text-slate-800 truncate flex-1">${p.name}</span>
@@ -114,9 +248,9 @@
                     <span>${p.deadline.split(' ')[0]}</span>
                 </div>
                 <div class="flex items-center justify-between mt-2">
-                    <span class="text-[10px] text-slate-400">材料 ${doneItems}/${totalItems} · 完成度 ${totalItems>0?Math.round(doneItems/totalItems*100):0}%</span>
+                    <span class="text-[10px] text-slate-400">材料 ${totalItems} 项 · 企业已上传 ${uploadedItems} 项（${totalItems>0?Math.round(uploadedItems/totalItems*100):0}%）</span>
                     <div class="w-20 h-1 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-blue-500 rounded-full" style="width:${totalItems>0?Math.round(doneItems/totalItems*100):0}%"></div>
+                        <div class="h-full bg-blue-500 rounded-full" style="width:${totalItems>0?Math.round(uploadedItems/totalItems*100):0}%"></div>
                     </div>
                 </div>
             </div>`;
@@ -144,7 +278,8 @@
 
         const tabs = [
             { k:'basic', t:'基本信息', i:'fa-info-circle' },
-            { k:'material', t:'材料模板', i:'fa-file-text-o' }
+            { k:'material', t:'材料模板', i:'fa-file-text-o' },
+            { k:'template', t:'申报书模板', i:'fa-book' }
         ];
 
         area.innerHTML = `
@@ -181,6 +316,7 @@
         const box = document.getElementById('tabContent');
         if (CURRENT_TAB === 'basic') box.innerHTML = renderBasicTab(p);
         else if (CURRENT_TAB === 'material') box.innerHTML = renderMaterialTab(p);
+        else if (CURRENT_TAB === 'template') box.innerHTML = renderTemplateTab(p);
     }
 
     function field(label, id, value, type, opts) {
@@ -217,47 +353,632 @@
         const fieldMap = {
             'f_name':'name','f_level':'level','f_type':'type','f_status':'status',
             'f_dept':'dept','f_deadline':'deadline','f_subsidy':'subsidy',
-            'f_icon':'icon','f_iconColor':'iconColor'
+            'f_icon':'icon','f_iconColor':'iconColor',
+            'f_province':'__region_province','f_city':'__region_city','f_district':'__region_district'
         };
         const key = fieldMap[id];
         if (key) {
-            p[key] = val;
+            if (key === '__region_province') {
+                if (!p.region) p.region = { province:'', city:'', district:'' };
+                p.region.province = val;
+                if (val === '全国' || !val) { p.region.city = ''; p.region.district = ''; }
+            } else if (key === '__region_city') {
+                if (!p.region) p.region = { province:'全国', city:'', district:'' };
+                p.region.city = val;
+            } else if (key === '__region_district') {
+                if (!p.region) p.region = { province:'全国', city:'', district:'' };
+                p.region.district = val;
+            } else {
+                p[key] = val;
+            }
             renderList();
         }
     }
 
+    // chip 多选操作
+        function getChipVals(id) {
+            const p = getCurrent();
+            if (!p) return [];
+            const map = { f_province:'province', f_city:'city', f_district:'district' };
+            const k = map[id];
+            if (!p.region) p.region = { province:'全国', city:'', district:'' };
+            return String(p.region[k] || '').split(',').map(s=>s.trim()).filter(Boolean);
+        }
+        function setChipVals(id, vals) {
+            const p = getCurrent();
+            if (!p) return;
+            const map = { f_province:'province', f_city:'city', f_district:'district' };
+            const k = map[id];
+            if (!p.region) p.region = { province:'全国', city:'', district:'' };
+            p.region[k] = vals.join(',');
+            if (id === 'f_province' && vals.includes('全国')) { p.region.city = ''; p.region.district = ''; }
+            if (id === 'f_province' && !vals.includes('全国') && !vals.length) { p.region.province = '全国'; }
+            DataBridge.saveDeclarationProjects(PROJECTS);
+            renderTab();
+        }
+        function toggleChip(id, val, mutex) {
+            let vals = getChipVals(id);
+            if (mutex && val === '全国') { vals = ['全国']; }
+            else if (mutex && val !== '全国' && vals.includes('全国')) { vals = vals.filter(v=>v!=='全国'); vals.push(val); }
+            else if (vals.includes(val)) { vals = vals.filter(v=>v!==val); }
+            else { vals.push(val); }
+            setChipVals(id, vals);
+        }
+        function removeChip(id, val) {
+            let vals = getChipVals(id).filter(v=>v!==val);
+            setChipVals(id, vals);
+        }
+        function addChip(id, val) {
+            val = val.trim();
+            if (!val) return;
+            let vals = getChipVals(id);
+            if (!vals.includes(val)) vals.push(val);
+            setChipVals(id, vals);
+        }
+        function toggleChipDropdown(id) {
+            var dd = document.getElementById(id + '_dd');
+            if (!dd) return;
+            dd.classList.toggle('hidden');
+            if (!dd.classList.contains('hidden')) {
+                setTimeout(function(){
+                    document.addEventListener('click', closeChipDropdownOutside);
+                }, 10);
+            }
+        }
+        function closeChipDropdownOutside(e) {
+            var dd = document.querySelector('[id$="_dd"]:not(.hidden)');
+            if (dd && !dd.contains(e.target)) {
+                dd.classList.add('hidden');
+                document.removeEventListener('click', closeChipDropdownOutside);
+            }
+        }
+
     function renderBasicTab(p) {
         const statusOpts = STATUS_OPTIONS.map(s => s.v);
+        const region = p.region || { province:'全国', city:'', district:'' };
+        const provinceVal = region.province || '全国';
+        const cityVal = region.city || '';
+        const isNational = (provinceVal === '全国');
+        const provinces = provinceVal.split(',').map(s=>s.trim()).filter(Boolean);
+        const cities = cityVal.split(',').map(s=>s.trim()).filter(Boolean);
+        const districts = (region.district || '').split(',').map(s=>s.trim()).filter(Boolean);
+
+        function chipField(label, id, vals, opts) {
+            opts = opts || {};
+            const options = opts.options || [];
+            const chips = vals.map(v => `<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-medium border border-blue-200">${v}<button type="button" onclick="removeChip('${id}','${v}')" class="ml-0.5 text-blue-400 hover:text-red-500 font-bold">&times;</button></span>`).join('');
+            let inputHtml;
+            if (options.length) {
+                inputHtml = `<button type="button" onclick="toggleChipDropdown('${id}')" class="text-xs text-blue-500 font-bold hover:text-blue-700 ml-1"><i class="fa fa-plus-circle"></i> 选择</button><div id="${id}_dd" class="hidden absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg p-1" style="max-height:280px;overflow-y:auto">${options.map(o=>`<label class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer rounded text-xs"><input type="checkbox" value="${o}" ${vals.includes(o)?'checked':''} onchange="toggleChip('${id}','${o}',${opts.mutex?'true':'false'})"> ${o}</label>`).join('')}<div class="sticky bottom-0 bg-white border-t border-slate-100 pt-1 pb-0.5 text-center"><button type="button" onclick="document.getElementById('${id}_dd').classList.add('hidden')" class="text-xs text-blue-600 font-bold hover:text-blue-800">确定</button></div></div>`;
+            } else {
+                inputHtml = `<input type="text" placeholder="输入后回车添加" class="flex-1 min-w-[100px] px-2 py-1 text-xs border-0 outline-none bg-transparent" onkeydown="if(event.key==='Enter'){event.preventDefault();addChip('${id}',this.value);this.value='';}">`;
+            }
+            return `<div class="editor-field col-span-2 relative"><label>${label}</label><div class="border border-slate-200 rounded-lg px-2.5 py-2 min-h-[42px] flex flex-wrap gap-1.5 items-center relative">${chips || '<span class="text-slate-400 text-xs">未选择</span>'}${inputHtml}</div></div>`;
+        }
+
         return `
             <div class="grid grid-cols-2 gap-4">
                 ${field('项目名称', 'f_name', p.name)}
                 ${field('项目ID', 'f_id', p.id)}
                 ${field('主管部门', 'f_dept', p.dept)}
                 ${field('申报截止', 'f_deadline', p.deadline)}
+                ${chipField('申报省份（可多选）', 'f_province', provinces, {options:PROVINCE_OPTIONS, mutex:true})}
+                ${isNational ? '' : chipField('申报城市（可多选）', 'f_city', cities)}
+                ${isNational ? '' : chipField('申报区县（可多选）', 'f_district', districts)}
                 ${field('项目级别', 'f_level', p.level, 'select', {options:LEVEL_OPTIONS})}
                 ${field('政策类型', 'f_type', p.type, 'select', {options:TYPE_OPTIONS})}
                 ${field('申报状态', 'f_status', p.status, 'select', {options:statusOpts})}
                 ${field('项目图标', 'f_icon', p.icon, 'select', {options:['fa-star','fa-rocket','fa-bolt','fa-flask','fa-building','fa-file-text-o','fa-shield','fa-lightbulb-o','fa-cogs','fa-area-chart']})}
                 ${field('图标颜色', 'f_iconColor', p.iconColor, 'select', {options:ICON_COLORS})}
                 <div class="col-span-2">${field('预计扶持金额', 'f_subsidy', p.subsidy, 'textarea', {rows:2})}</div>
+                ${isNational ? '<div class="col-span-2 text-[11px] text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2"><i class="fa fa-info-circle text-blue-400 mr-1"></i>当前为全国通用项目，无需选择城市和区县。取消"全国"后可选择具体省份。</div>' : ''}
             </div>
         `;
     }
 
-    function renderMaterialTab(p) {
-        const groups = p.groups || [];
-        return `
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-sm font-bold text-slate-700">材料分组与条目</h3>
-                <button onclick="addGroup()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700">
-                    <i class="fa fa-plus mr-1"></i>新增分组
-                </button>
-            </div>
-            <div class="space-y-4" id="groupsContainer">
-                ${groups.map((g, gi) => renderGroupBlock(g, gi)).join('')}
-                ${groups.length === 0 ? '<div class="p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">暂无材料分组，点击上方新增</div>' : ''}
+    // ========== 申报书模板 Tab ==========
+    let TEMPLATES = [];
+    let EDITING_TPL_ID = null;
+    let TPL_FILTER_PROV = '全部';
+    let TPL_FILTER_TYPE = '全部';
+    let TPL_FILTER_KW = '';
+    // source 下拉分组（中文标签 + 值）
+    const SOURCE_GROUPS = [
+        { label:'静态值', options:[ {v:'static', t:'自定义静态值'} ] },
+        { label:'企业信息', options:[
+            {v:'enterprise.name', t:'企业名称'}, {v:'enterprise.code', t:'统一社会信用代码'},
+            {v:'enterprise.industry', t:'所属行业'}, {v:'enterprise.region', t:'注册所在地'},
+            {v:'enterprise.regCap', t:'注册资本'}, {v:'enterprise.employees', t:'职工人数'},
+            {v:'enterprise.founded', t:'成立日期'}, {v:'enterprise.quals', t:'企业资质'},
+            {v:'enterprise.contact', t:'联系人'}, {v:'enterprise.phone', t:'联系电话'},
+            {v:'enterprise.revenue', t:'年营收'}
+        ]},
+        { label:'项目信息', options:[
+            {v:'project.name', t:'项目名称'}, {v:'project.level', t:'项目级别'},
+            {v:'project.dept', t:'主管部门'}, {v:'project.subsidy', t:'预计扶持'},
+            {v:'project.deadline', t:'申报截止'}, {v:'project.progress', t:'申报进度'},
+            {v:'project.type', t:'政策类型'}
+        ]},
+        { label:'材料数据', options:[ {v:'material.all', t:'全部材料清单'} ] }
+    ];
+
+    function renderTemplateTab(p) {
+        TEMPLATES = DataBridge.loadDeclarationTemplates();
+        const region = p.region || { province:'全国', city:'' };
+        const prov = region.province || '全国';
+        const type = p.type || '';
+        const matchHint = `当前项目「${p.name}」申报省份 <b class="text-slate-800">${prov}${region.city?'/'+region.city:''}</b>，政策类型 <b class="text-slate-800">${type}</b>。一键生成申报书时按此匹配模板；下方为全部模板，可编辑。`;
+        // 构建省份筛选选项（只包含已有模板的省份）
+        const tplProvs = ['全部'];
+        TEMPLATES.forEach(t => { const r = t.region || '通用'; if (tplProvs.indexOf(r) === -1) tplProvs.push(r); });
+        // 构建类型筛选选项
+        const tplTypes = ['全部'];
+        TEMPLATES.forEach(t => { const tp = t.projectType || '*'; if (tplTypes.indexOf(tp) === -1) tplTypes.push(tp); });
+        // 筛选
+        const filtered = TEMPLATES.filter(t => {
+            if (TPL_FILTER_PROV !== '全部' && (t.region || '通用') !== TPL_FILTER_PROV) return false;
+            if (TPL_FILTER_TYPE !== '全部' && (t.projectType || '*') !== TPL_FILTER_TYPE) return false;
+            if (TPL_FILTER_KW && !(t.name||'').toLowerCase().includes(TPL_FILTER_KW.toLowerCase())) return false;
+            return true;
+        });
+        // 按省份分组
+        const groups = {};
+        filtered.forEach(t => {
+            const r = t.region || '通用';
+            if (!groups[r]) groups[r] = [];
+            groups[r].push(t);
+        });
+        // 排序：全国/通用优先，其余按名称
+        const sortedKeys = Object.keys(groups).sort((a,b) => {
+            if (a === '全国' || a === '通用') return -1;
+            if (b === '全国' || b === '通用') return 1;
+            return a.localeCompare(b);
+        });
+        const filterBar = `
+            <div class="px-4 py-3 bg-white border border-slate-200 rounded-xl flex items-center gap-3 flex-wrap">
+                <div class="flex items-center gap-1.5">
+                    <label class="text-[11px] font-bold text-slate-500">省份</label>
+                    <select onchange="filterTplProv(this.value)" class="px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-400">
+                        ${tplProvs.map(o => `<option value="${o}" ${o===TPL_FILTER_PROV?'selected':''}>${o==='全部'?'全部省份':o}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <label class="text-[11px] font-bold text-slate-500">类型</label>
+                    <select onchange="filterTplType(this.value)" class="px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-400">
+                        ${tplTypes.map(o => `<option value="${o}" ${o===TPL_FILTER_TYPE?'selected':''}>${o==='全部'?'全部类型':(o==='*'?'全部类型':o)}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="flex items-center gap-1.5 flex-1 min-w-[160px]">
+                    <label class="text-[11px] font-bold text-slate-500"><i class="fa fa-search"></i></label>
+                    <input type="text" value="${TPL_FILTER_KW}" oninput="filterTplKw(this.value)" placeholder="搜索模板名称…" class="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-[11px] text-slate-700 outline-none focus:ring-2 focus:ring-blue-400">
+                </div>
+                <span class="text-[10px] text-slate-400 ml-auto">${filtered.length} / ${TEMPLATES.length} 个模板</span>
             </div>
         `;
+        // 分组渲染
+        const groupHtml = sortedKeys.length === 0
+            ? '<div class="p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">未找到匹配的模板，调整筛选或点击右上角新增</div>'
+            : sortedKeys.map(gk => {
+                const items = groups[gk];
+                return `
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fa fa-map-marker text-slate-400 text-xs"></i>
+                                <span class="text-xs font-black text-slate-700">${gk}</span>
+                                <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-[9px] font-bold">${items.length}</span>
+                            </div>
+                        </div>
+                        <div class="divide-y divide-slate-100">
+                            ${items.map(t => renderTplCardInline(t)).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        return `
+            <div class="space-y-3">
+                <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl text-[11px] text-slate-600 flex items-center justify-between">
+                    <span><i class="fa fa-info-circle text-blue-500 mr-1"></i>${matchHint}</span>
+                    <button onclick="addTemplate('${prov}','${type}')" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 whitespace-nowrap ml-3">
+                        <i class="fa fa-plus mr-1"></i>新增模板
+                    </button>
+                </div>
+                ${filterBar}
+                <div class="space-y-3" id="tplListGroup">${groupHtml}</div>
+            </div>
+        `;
+    }
+    // 仅刷新分组列表（不触碰筛选栏，避免输入框失焦）
+    function refreshTplGroupList() {
+        const box = document.getElementById('tplListGroup');
+        if (!box) return;
+        const p = getCurrent();
+        if (!p) return;
+        const filtered = TEMPLATES.filter(t => {
+            if (TPL_FILTER_PROV !== '全部' && (t.region || '通用') !== TPL_FILTER_PROV) return false;
+            if (TPL_FILTER_TYPE !== '全部' && (t.projectType || '*') !== TPL_FILTER_TYPE) return false;
+            if (TPL_FILTER_KW && !(t.name||'').toLowerCase().includes(TPL_FILTER_KW.toLowerCase())) return false;
+            return true;
+        });
+        const groups = {};
+        filtered.forEach(t => { const r = t.region || '通用'; if (!groups[r]) groups[r] = []; groups[r].push(t); });
+        const sortedKeys = Object.keys(groups).sort((a,b) => {
+            if (a === '全国' || a === '通用') return -1;
+            if (b === '全国' || b === '通用') return 1;
+            return a.localeCompare(b);
+        });
+        // 更新计数
+        const cnt = box.parentElement.previousElementSibling;
+        if (cnt) { /* 计数在 filterBar 内，不在此刷新 */ }
+        box.innerHTML = sortedKeys.length === 0
+            ? '<div class="p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">未找到匹配的模板，调整筛选或点击右上角新增</div>'
+            : sortedKeys.map(gk => {
+                const items = groups[gk];
+                return `<div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa fa-map-marker text-slate-400 text-xs"></i>
+                            <span class="text-xs font-black text-slate-700">${gk}</span>
+                            <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-[9px] font-bold">${items.length}</span>
+                        </div>
+                    </div>
+                    <div class="divide-y divide-slate-100">${items.map(t => renderTplCardInline(t)).join('')}</div>
+                </div>`;
+            }).join('');
+    }
+    function filterTplProv(v) { TPL_FILTER_PROV = v; refreshTplGroupList(); }
+    function filterTplType(v) { TPL_FILTER_TYPE = v; refreshTplGroupList(); }
+    function filterTplKw(v) { TPL_FILTER_KW = v; refreshTplGroupList(); }
+
+    function renderTplCard(t) {
+        const secCount = (t.sections||[]).length;
+        const fieldCount = (t.sections||[]).reduce((s,sec)=>s+(sec.fields||[]).length,0);
+        if (EDITING_TPL_ID === t.id) return renderTplEditor(t);
+        return `<div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="px-4 py-3 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-r from-indigo-500 to-blue-500 text-white flex items-center justify-center"><i class="fa fa-book"></i></div>
+                    <div>
+                        <div class="text-sm font-black text-slate-800">${t.name||'未命名模板'}</div>
+                        <div class="text-[10.5px] text-slate-500">省份: <b class="text-slate-700">${t.region||'-'}</b> · 类型: <b class="text-slate-700">${t.projectType==='*'?'全部':(t.projectType||'-')}</b> · ${secCount}章 / ${fieldCount}字段</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="editTemplate('${t.id}')" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50"><i class="fa fa-edit mr-1"></i>编辑</button>
+                    <button onclick="deleteTemplate('${t.id}')" class="px-3 py-1.5 bg-white border border-red-200 text-red-500 rounded-lg text-xs font-bold hover:bg-red-50"><i class="fa fa-trash mr-1"></i>删除</button>
+                </div>
+            </div>
+        </div>`;
+    }
+    // 分组内紧凑行（省略省份，已在组标题展示）
+    function renderTplCardInline(t) {
+        if (EDITING_TPL_ID === t.id) return renderTplEditor(t);
+        const secCount = (t.sections||[]).length;
+        const fieldCount = (t.sections||[]).reduce((s,sec)=>s+(sec.fields||[]).length,0);
+        const typeLabel = t.projectType==='*'?'全部':(t.projectType||'-');
+        return `<div class="px-4 py-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+            <div class="flex items-center space-x-3 flex-1 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-500 flex items-center justify-center flex-shrink-0"><i class="fa fa-book text-xs"></i></div>
+                <div class="min-w-0">
+                    <div class="text-sm font-bold text-slate-800 truncate">${t.name||'未命名模板'}</div>
+                    <div class="text-[10.5px] text-slate-500">类型: <b class="text-slate-600">${typeLabel}</b> · ${secCount}章 / ${fieldCount}字段</div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 flex-shrink-0">
+                <button onclick="editTemplate('${t.id}')" class="px-2.5 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50"><i class="fa fa-edit mr-1"></i>编辑</button>
+                <button onclick="deleteTemplate('${t.id}')" class="px-2.5 py-1.5 bg-white border border-red-200 text-red-500 rounded-lg text-xs font-bold hover:bg-red-50"><i class="fa fa-trash"></i></button>
+            </div>
+        </div>`;
+    }
+
+    function renderTplEditor(t) {
+        const provOpts = PROVINCE_OPTIONS.concat(['通用']).map(o=>`<option ${o===t.region?'selected':''}>${o}</option>`).join('');
+        const typeOpts = `<option value="*" ${t.projectType==='*'?'selected':''}>全部</option>` + TYPE_OPTIONS.map(o=>`<option ${o===t.projectType?'selected':''}>${o}</option>`).join('');
+        return `<div class="border-2 border-blue-300 rounded-xl overflow-hidden">
+            <div class="px-4 py-3 bg-blue-50 border-b border-blue-100 flex items-center justify-between">
+                <div class="text-sm font-black text-slate-800"><i class="fa fa-edit text-blue-500 mr-1.5"></i>编辑模板</div>
+                <div class="flex space-x-2">
+                    <button onclick="saveTemplate('${t.id}')" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"><i class="fa fa-save mr-1"></i>保存</button>
+                    <button onclick="cancelEditTemplate()" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50">取消</button>
+                </div>
+            </div>
+            <div class="p-4 space-y-4">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="editor-field"><label>模板名称</label><input id="tpl_name" value="${t.name||''}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400"></div>
+                    <div class="editor-field"><label>申报省份</label><select id="tpl_region" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400">${provOpts}</select></div>
+                    <div class="editor-field"><label>项目类型</label><select id="tpl_projectType" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400">${typeOpts}</select></div>
+                    <div class="col-span-3 editor-field"><label>封面标题模板（支持占位符 \${enterprise.name} \${project.name}）</label><input id="tpl_cover" value="${(t.cover&&t.cover.titleTpl)||''}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400"></div>
+                </div>
+                <div class="border-t border-slate-100 pt-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-xs font-black text-slate-700">章节结构</h4>
+                        <button onclick="addSection('${t.id}')" class="px-2.5 py-1 bg-emerald-500 text-white rounded text-[10px] font-bold hover:bg-emerald-600"><i class="fa fa-plus mr-1"></i>新增章节</button>
+                    </div>
+                    <div class="space-y-3" id="tplSections">
+                        ${(t.sections||[]).map((s,si)=>renderTplSection(t.id,s,si)).join('')}
+                        ${(t.sections||[]).length===0?'<div class="p-4 text-center text-slate-400 border border-dashed border-slate-200 rounded-lg text-[11px]">暂无章节，点击右上角新增</div>':''}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function renderTplSection(tplId, sec, si) {
+        return `<div class="border border-slate-200 rounded-lg overflow-hidden">
+            <div class="px-3 py-2 bg-slate-50 flex items-center gap-2">
+                <i class="fa fa-grip-vertical text-slate-300"></i>
+                <input value="${sec.title||''}" oninput="updateSection('${tplId}',${si},'title',this.value)" class="flex-1 px-2 py-1 border border-slate-200 rounded text-sm font-bold outline-none focus:ring-2 focus:ring-blue-300" placeholder="章节标题">
+                <button onclick="deleteSection('${tplId}',${si})" class="px-2 py-1 text-red-500 text-xs hover:bg-red-50 rounded"><i class="fa fa-trash"></i></button>
+            </div>
+            <div class="p-3 space-y-2">
+                ${(sec.fields||[]).map((f,fi)=>renderTplField(tplId,si,f,fi)).join('')}
+                <button onclick="addField('${tplId}',${si})" class="text-[10px] text-blue-600 hover:underline mt-1"><i class="fa fa-plus mr-0.5"></i>新增字段</button>
+            </div>
+        </div>`;
+    }
+
+    function renderTplField(tplId, secIdx, f, fi) {
+        const isStatic = (f.source === 'static');
+        const sourceOptsHtml = SOURCE_GROUPS.map(g =>
+            `<optgroup label="${g.label}">${g.options.map(o=>`<option value="${o.v}" ${o.v===f.source?'selected':''}>${o.t}</option>`).join('')}</optgroup>`
+        ).join('');
+        return `<div class="grid grid-cols-12 gap-1.5 items-center bg-slate-50/50 rounded p-1.5">
+            <div class="col-span-3"><input value="${f.label||''}" oninput="updateField('${tplId}',${secIdx},${fi},'label',this.value)" class="w-full px-2 py-1 border border-slate-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-300" placeholder="字段标签"></div>
+            <div class="col-span-2"><input value="${f.key||''}" oninput="updateField('${tplId}',${secIdx},${fi},'key',this.value)" class="w-full px-2 py-1 border border-slate-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-300" placeholder="字段key"></div>
+            <div class="col-span-3"><select onchange="updateField('${tplId}',${secIdx},${fi},'source',this.value)" class="w-full px-2 py-1 border border-slate-200 rounded text-[11px] outline-none">${sourceOptsHtml}</select></div>
+            <div class="col-span-3">${isStatic?`<input value="${f.default||''}" oninput="updateField('${tplId}',${secIdx},${fi},'default',this.value)" class="w-full px-2 py-1 border border-slate-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-blue-300" placeholder="静态值">`:'<span class="text-[10px] text-slate-400 px-1">— 数据源取值 —</span>'}</div>
+            <div class="col-span-1 text-right"><button onclick="deleteField('${tplId}',${secIdx},${fi}')" class="px-2 py-1 text-red-500 text-xs hover:bg-red-50 rounded"><i class="fa fa-trash"></i></button></div>
+        </div>`;
+    }
+
+    function _findTpl(id) { return TEMPLATES.find(x => x.id === id); }
+
+    function addTemplate(prov, type) {
+        const newTpl = {
+            id: 'tpl_' + Date.now(),
+            region: prov || '全国',
+            projectType: type || '*',
+            name: '新模板',
+            cover: { titleTpl: '${enterprise.name}申报书' },
+            sections: [
+                { title: '一、申报单位基本情况', fields: [
+                    { key:'companyName', label:'企业名称', source:'enterprise.name' },
+                    { key:'creditCode', label:'统一社会信用代码', source:'enterprise.code' }
+                ]}
+            ],
+            updatedAt: new Date().toISOString().slice(0,10)
+        };
+        TEMPLATES.push(newTpl);
+        EDITING_TPL_ID = newTpl.id;
+        DataBridge.saveDeclarationTemplates(TEMPLATES);
+        renderEditor();
+    }
+    function editTemplate(id) { EDITING_TPL_ID = id; renderEditor(); }
+    function cancelEditTemplate() { EDITING_TPL_ID = null; renderEditor(); }
+    function deleteTemplate(id) {
+        if (!confirm('确认删除该模板？此操作不可恢复。')) return;
+        TEMPLATES = TEMPLATES.filter(t => t.id !== id);
+        if (EDITING_TPL_ID === id) EDITING_TPL_ID = null;
+        DataBridge.saveDeclarationTemplates(TEMPLATES);
+        renderEditor();
+        showToast('模板已删除', 'success');
+    }
+    function saveTemplate(id) {
+        const t = _findTpl(id); if (!t) return;
+        t.name = document.getElementById('tpl_name').value.trim() || '未命名模板';
+        t.region = document.getElementById('tpl_region').value;
+        t.projectType = document.getElementById('tpl_projectType').value;
+        const coverVal = document.getElementById('tpl_cover').value.trim();
+        t.cover = { titleTpl: coverVal || '${enterprise.name}申报书' };
+        t.updatedAt = new Date().toISOString().slice(0,10);
+        DataBridge.saveDeclarationTemplates(TEMPLATES);
+        EDITING_TPL_ID = null;
+        renderEditor();
+        showToast('模板已保存', 'success');
+    }
+    function addSection(tplId) {
+        const t = _findTpl(tplId); if (!t) return;
+        if (!t.sections) t.sections = [];
+        t.sections.push({ title: '新章节', fields: [] });
+        DataBridge.saveDeclarationTemplates(TEMPLATES);
+        renderEditor();
+    }
+    function deleteSection(tplId, secIdx) {
+        const t = _findTpl(tplId); if (!t || !t.sections) return;
+        if (!confirm('确认删除该章节及其下所有字段？')) return;
+        t.sections.splice(secIdx, 1);
+        DataBridge.saveDeclarationTemplates(TEMPLATES);
+        renderEditor();
+    }
+    function updateSection(tplId, secIdx, key, val) {
+        const t = _findTpl(tplId);
+        if (!t || !t.sections || !t.sections[secIdx]) return;
+        t.sections[secIdx][key] = val;
+    }
+    function addField(tplId, secIdx) {
+        const t = _findTpl(tplId);
+        if (!t || !t.sections || !t.sections[secIdx]) return;
+        if (!t.sections[secIdx].fields) t.sections[secIdx].fields = [];
+        t.sections[secIdx].fields.push({ key:'field_'+Date.now(), label:'新字段', source:'static', default:'' });
+        DataBridge.saveDeclarationTemplates(TEMPLATES);
+        renderEditor();
+    }
+    function deleteField(tplId, secIdx, fi) {
+        const t = _findTpl(tplId);
+        if (!t || !t.sections || !t.sections[secIdx] || !t.sections[secIdx].fields) return;
+        t.sections[secIdx].fields.splice(fi, 1);
+        DataBridge.saveDeclarationTemplates(TEMPLATES);
+        renderEditor();
+    }
+    function updateField(tplId, secIdx, fi, key, val) {
+        const t = _findTpl(tplId);
+        if (!t || !t.sections || !t.sections[secIdx] || !t.sections[secIdx].fields || !t.sections[secIdx].fields[fi]) return;
+        t.sections[secIdx].fields[fi][key] = val;
+        if (key === 'source') {
+            // source 切换需重渲染（显隐 default 输入框）
+            DataBridge.saveDeclarationTemplates(TEMPLATES);
+            renderEditor();
+        }
+    }
+    function resetTemplatesToDefault() {
+        if (!confirm('确定恢复默认模板库？当前所有模板修改将被覆盖。')) return;
+        localStorage.removeItem(DataBridge.KEYS.DECLARATION_TEMPLATES);
+        TEMPLATES = JSON.parse(JSON.stringify(DataBridge.DEFAULT_DECLARATION_TEMPLATES));
+        EDITING_TPL_ID = null;
+        renderEditor();
+        showToast('已恢复默认模板库', 'success');
+    }
+
+    // ===== 材料配置 Tab：全国通用材料 / 地区补充材料 双页签 =====
+    var materialSubTab = 'basic'; // 'basic' 全国通用材料 | 'region' 地区补充材料
+    function switchMaterialSubTab(tab) { materialSubTab = tab; renderTab(); }
+
+    function renderMaterialTab(p) {
+        p.regionOverrides = p.regionOverrides || {};
+        var totalItems = (p.groups || []).reduce(function(s,g){ return s + (g.items||[]).length; }, 0);
+        var regionCount = Object.keys(p.regionOverrides).length;
+
+        // 子选项卡 header：全国通用材料 / 地区补充材料，右侧 AI 生成按钮
+        var subTabHeader = '<div class="mb-4 border-b border-slate-200 flex items-center justify-between">' +
+            '<div class="flex items-center gap-1">' +
+                '<button type="button" data-action="switchMaterialSubTab" data-tab="basic" class="px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ' + (materialSubTab === 'basic' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700') + '">' +
+                    '<i class="fa fa-globe mr-1"></i>全国通用材料' +
+                    '<span class="ml-1 px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-full">' + totalItems + ' 项</span>' +
+                '</button>' +
+                '<button type="button" data-action="switchMaterialSubTab" data-tab="region" class="px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ' + (materialSubTab === 'region' ? 'border-amber-500 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700') + '">' +
+                    '<i class="fa fa-map-marker mr-1"></i>地区补充材料' +
+                    (regionCount > 0 ? '<span class="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded-full">' + regionCount + ' 个地区</span>' : '') +
+                '</button>' +
+            '</div>' +
+            '<button type="button" onclick="openAiGenModal()" class="px-3.5 py-2 text-xs font-black rounded-lg text-white cursor-pointer transition-all hover:shadow-md flex-shrink-0" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">' +
+                '<i class="fa fa-magic mr-1"></i>AI 智能生成材料包' +
+            '</button>' +
+        '</div>';
+
+        var tabContent;
+        if (materialSubTab === 'region') {
+            // Tab 2：地区补充材料
+            if (regionCount === 0) {
+                tabContent = '<div class="p-8 text-center text-slate-400 bg-amber-50/30 border-2 border-dashed border-amber-200 rounded-xl">' +
+                    '<i class="fa fa-info-circle text-amber-400 text-3xl mb-2"></i>' +
+                    '<p class="text-sm text-slate-500">各地区暂无额外要求的材料</p>' +
+                    '<p class="text-[11px] text-slate-400 mt-1">未配置地区 = 全国统一用「全国通用材料」页签的清单</p>' +
+                    '<div class="mt-4 flex items-center justify-center gap-2">' +
+                        '<button type="button" data-action="goRegionOverride" class="px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600 cursor-pointer"><i class="fa fa-plus mr-1"></i>配置地区差异</button>' +
+                        '<button type="button" data-action="openAiRegionBatch" class="px-3 py-1.5 bg-cyan-500 text-white text-xs font-bold rounded-lg hover:bg-cyan-600 cursor-pointer"><i class="fa fa-magic mr-1"></i>AI 一键同步</button>' +
+                    '</div>' +
+                '</div>';
+            } else {
+                var regionRows = Object.keys(p.regionOverrides).map(function(k) {
+                    var ov = p.regionOverrides[k];
+                    var m = k.match(/province·([^·]+)/); var prov = m ? m[1] : k;
+                    var cityM = k.match(/city·([^·]+)/); var city = cityM ? '·' + cityM[1] : '';
+                    var distM = k.match(/district·([^·]+)/); var dist = distM ? '·' + distM[1] : '';
+                    var loc = prov + city + dist;
+                    var adds = (ov.adds||[]).length, edits = (ov.edits||[]).length, removes = (ov.removes||[]).length;
+                    return '<div class="px-4 py-3 grid grid-cols-12 gap-3 items-center text-xs border-b border-slate-50 last:border-b-0">' +
+                        '<div class="col-span-4 flex items-center gap-2"><i class="fa fa-map-marker text-amber-500"></i><b class="text-slate-800">' + loc + '</b></div>' +
+                        '<div class="col-span-6 flex items-center gap-3 text-[11px]">' +
+                            '<span class="text-emerald-700 font-bold">+ ' + adds + ' 增量</span>' +
+                            '<span class="text-orange-600 font-bold">改 ' + edits + '</span>' +
+                            (removes ? '<span class="text-rose-600 font-bold">删 ' + removes + '</span>' : '<span class="text-slate-300">-</span>') +
+                        '</div>' +
+                        '<div class="col-span-2 text-right"><button type="button" data-action="goRegionOverride" data-project-id="' + p.id + '" data-region-key="' + k + '" class="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold rounded hover:bg-amber-100 cursor-pointer"><i class="fa fa-edit mr-1"></i>查看/编辑</button></div>' +
+                    '</div>';
+                }).join('');
+
+                tabContent =
+                    '<div class="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-3">' +
+                        '<span class="text-[11px] text-amber-800 leading-relaxed"><i class="fa fa-info-circle mr-1"></i>已配置 <b>' + regionCount + '</b> 个地区差异，前台客户按申报地区自动叠加到通用材料上</span>' +
+                        '<button type="button" data-action="openAiRegionBatch" class="px-3 py-1.5 bg-cyan-500 text-white text-xs font-bold rounded-lg hover:bg-cyan-600 cursor-pointer flex-shrink-0"><i class="fa fa-magic mr-1"></i>AI 一键同步</button>' +
+                    '</div>' +
+                    '<div class="border border-slate-200 rounded-xl overflow-hidden bg-white">' +
+                        '<div class="px-4 py-2 bg-slate-50 grid grid-cols-12 gap-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">' +
+                            '<div class="col-span-4">地区</div><div class="col-span-6">差异统计</div><div class="col-span-2 text-right">操作</div>' +
+                        '</div>' + regionRows +
+                    '</div>' +
+                    '<div class="mt-3 text-right">' +
+                        '<button type="button" data-action="goRegionOverride" class="px-4 py-2 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600 cursor-pointer"><i class="fa fa-arrow-right mr-1"></i>进入完整地区差异管理</button>' +
+                    '</div>';
+            }
+        } else {
+            tabContent = renderBasicMaterials(p, totalItems);
+        }
+        return subTabHeader + '<div>' + tabContent + '</div>';
+    }
+
+    // 跳转到地区差异管理页（通过顶层窗口的 switchPage 切换 iframe，带参数预选项目和地区）
+    // 跨域时 window.top 访问会抛 SecurityError，用 try-catch 包裹，fallback 到 window.location.href
+    function goRegionOverride(projectId, regionKey) {
+        var url = 'region-override-management.html';
+        var params = [];
+        if (projectId) params.push('pid=' + encodeURIComponent(projectId));
+        if (regionKey) params.push('rkey=' + encodeURIComponent(regionKey));
+        if (params.length) url += '?' + params.join('&');
+        // 尝试通过顶层窗口 switchPage 切换 iframe
+        try {
+            var top = window.top || window.parent || window;
+            if (top && top.switchPage) {
+                top.switchPage(url);
+                return;
+            }
+        } catch(e) { /* 跨域安全错误，走 fallback */ }
+        try {
+            if (window.parent && window.parent.switchPage) {
+                window.parent.switchPage(url);
+                return;
+            }
+        } catch(e) { /* 跨域安全错误，走 fallback */ }
+        // fallback：直接在当前 iframe 跳转
+        window.location.href = url;
+    }
+
+    // 事件委托：同时监听 mousedown + click，绕过 Trae 浏览器 inspect draggable 拦截 click 的问题
+    function handleActionEvent(e) {
+        var el = e.target;
+        while (el && el !== document.documentElement) {
+            if (el.dataset && el.dataset.action) {
+                var action = el.dataset.action;
+                if (action === 'goRegionOverride') {
+                    e.preventDefault(); e.stopPropagation();
+                    goRegionOverride(el.dataset.projectId, el.dataset.regionKey);
+                    return;
+                }
+                if (action === 'openAiRegionBatch') {
+                    e.preventDefault(); e.stopPropagation();
+                    openAiRegionBatch();
+                    return;
+                }
+                if (action === 'switchMaterialSubTab') {
+                    e.preventDefault(); e.stopPropagation();
+                    switchMaterialSubTab(el.dataset.tab);
+                    return;
+                }
+            }
+            el = el.parentNode;
+        }
+    }
+    document.addEventListener('click', handleActionEvent, true);
+    document.addEventListener('mousedown', handleActionEvent, true);
+
+    // 第一段：全国通用材料（基础页签内容）
+    function renderBasicMaterials(p, totalItems) {
+        var groups = p.groups || [];
+        return '<div class="mb-4">' +
+            // 顶部说明条
+            '<div class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">' +
+                '<div class="flex items-center gap-2 text-[11px] text-blue-800">' +
+                    '<i class="fa fa-globe text-blue-500"></i>' +
+                    '以下清单所有地区默认继承 · 共 ' + totalItems + ' 项材料' +
+                '</div>' +
+                '<button onclick="addGroup()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"><i class="fa fa-plus mr-1"></i>新增分组</button>' +
+            '</div>' +
+            // 分组列表（复用旧的 renderGroupBlock，简单直观）
+            '<div class="space-y-3" id="groupsContainer">' +
+                groups.map(function(g, gi) { return renderGroupBlock(g, gi); }).join('') +
+                (groups.length === 0 ? '<div class="p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">暂无材料分组，点击上方"新增分组"开始</div>' : '') +
+            '</div>' +
+        '</div>';
     }
 
     function renderGroupBlock(g, gi) {
@@ -269,9 +990,6 @@
                     <span class="text-slate-400 text-xs">(${g.items.length}项)</span>
                 </div>
                 <div class="flex items-center space-x-1">
-                    <select onchange="updateGroup(${gi},'color',this.value)" class="text-[10px] px-1.5 py-0.5 rounded border border-slate-200 bg-white">
-                        ${MATERIAL_COLORS.map(c => `<option value="${c}" ${c===color?'selected':''}>${c}</option>`).join('')}
-                    </select>
                     <button onclick="addItem(${gi})" class="px-2 py-1 bg-white border border-slate-200 text-[10px] font-bold rounded hover:bg-slate-50"><i class="fa fa-plus"></i></button>
                     <button onclick="removeGroup(${gi})" class="px-2 py-1 bg-white border border-red-200 text-red-500 text-[10px] font-bold rounded hover:bg-red-50"><i class="fa fa-trash"></i></button>
                 </div>
@@ -285,23 +1003,20 @@
 
     function renderItemRow(m, gi, mi) {
         return `<div class="px-4 py-3 grid grid-cols-12 gap-3 items-center text-[11px]">
-            <div class="col-span-3">
+            <div class="col-span-4">
                 <input type="text" value="${m.name}" class="w-full px-2 py-1 border border-slate-200 rounded text-sm outline-none focus:ring-1 focus:ring-blue-400" oninput="updateItem(${gi},${mi},'name',this.value)">
             </div>
             <div class="col-span-5">
                 <input type="text" value="${(m.tip||'').substring(0,80)}" class="w-full px-2 py-1 border border-slate-200 rounded text-xs outline-none focus:ring-1 focus:ring-blue-400" placeholder="填写提示..." oninput="updateItem(${gi},${mi},'tip',this.value)">
             </div>
-            <div class="col-span-2 flex items-center space-x-1">
+            <div class="col-span-1 flex items-center">
                 <select onchange="updateItem(${gi},${mi},'required',this.value==='true')" class="text-[10px] px-1 py-0.5 rounded border border-slate-200">
                     <option value="true" ${m.required?'selected':''}>必填</option>
                     <option value="false" ${!m.required?'selected':''}>选填</option>
                 </select>
-                <select onchange="updateItem(${gi},${mi},'status',this.value)" class="text-[10px] px-1 py-0.5 rounded border border-slate-200">
-                    <option value="done" ${m.status==='done'?'selected':''}>已准备</option>
-                    <option value="todo" ${m.status!=='done'?'selected':''}>未准备</option>
-                </select>
             </div>
             <div class="col-span-2 flex items-center space-x-1">
+                <button onclick="aiRewriteTip(${gi},${mi})" class="px-2 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold rounded hover:bg-purple-100" title="AI 重写填写提示"><i class="fa fa-magic"></i></button>
                 <button onclick="editItemDetail(${gi},${mi})" class="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded hover:bg-blue-100" title="编辑详细提示与样例"><i class="fa fa-edit"></i></button>
                 <button onclick="removeItem(${gi},${mi})" class="px-2 py-1 bg-red-50 text-red-500 text-[10px] font-bold rounded hover:bg-red-100"><i class="fa fa-trash"></i></button>
             </div>
@@ -314,7 +1029,8 @@
         const newP = {
             id, name:'新增申报项目', level:'国家级', type:'资金补贴', status:'待申报', statusColor:'blue',
             icon:'fa-star', iconColor:'blue', dept:'', deadline:'', subsidy:'', progress:0,
-            groups:[]
+            region: { province:'全国', city:'', district:'' },
+            groups:[], regionOverrides:{}
         };
         PROJECTS.push(newP);
         CURRENT_ID = id;
@@ -358,7 +1074,7 @@
         const p = getCurrent();
         p.groups[gi].items.push({
             id: 'item_' + Date.now().toString(36),
-            name:'新材料', required:true, status:'todo',
+            name:'新材料', required:true,
             tip:'', sampleName:'', samplePreview:''
         });
         renderTab();
@@ -374,7 +1090,6 @@
     function updateItem(gi, mi, key, val) {
         const p = getCurrent();
         p.groups[gi].items[mi][key] = val;
-        if (key === 'status') renderList();
     }
 
     function editItemDetail(gi, mi) {
@@ -489,6 +1204,774 @@
         document.body.appendChild(d);
         requestAnimationFrame(() => { d.style.opacity='1'; d.style.transform='translateX(0)'; });
         setTimeout(() => { d.style.opacity='0'; setTimeout(() => d.remove(), 300); }, 2600);
+    }
+
+    // ===== AI 生成材料包 =====
+    var AI_GEN_DRAFT = null;
+    function openAiGenModal() {
+        if (!PROJECTS.length) { showToast('请先新增一个申报项目', 'error'); return; }
+        var sel = document.getElementById('aiGProject');
+        sel.innerHTML = PROJECTS.map(function(p){
+            return '<option value="' + p.id + '"' + (p.id === CURRENT_ID ? ' selected' : '') + '>' + p.name + '</option>';
+        }).join('');
+        document.getElementById('aiGenModal').classList.remove('hidden');
+        document.getElementById('aiGenModal').classList.add('flex');
+        renderAiGRegionControls(true);
+        renderAiGPolicyOptions();
+        syncAiGTypeHint();
+        aiGenStep(1);
+    }
+
+    // ===== 关联政策（材料清单生成依据） =====
+    var COND_LABELS = {
+        rdRatio: '研发费用占比', hiTechRatio: '高新技术产品收入占比', sciStaffRatio: '科技人员占比',
+        ipOwned: '拥有知识产权', ipCount: '知识产权数量', revenue: '年营业收入',
+        employees: '职工人数', established: '成立年限', region: '注册地', industry: '所属行业'
+    };
+
+    function condText(c) {
+        if (!c || !c.type) return '';
+        var label = COND_LABELS[c.type] || c.type;
+        if (c.op === '==' && (c.val === true || c.val === false)) return label + (c.val ? '（须满足）' : '（须不满足）');
+        if (c.op === '==') return label + ' = ' + c.val;
+        var unit = (c.type === 'rdRatio' || c.type === 'hiTechRatio' || c.type === 'sciStaffRatio') ? '%' : '';
+        var opMap = { '>=': '≥', '<=': '≤' };
+        return label + ' ' + (opMap[c.op] || c.op || '') + ' ' + c.val + unit;
+    }
+
+    function aiProjectForPolicy() {
+        var sel = document.getElementById('aiGProject');
+        var pid = sel ? sel.value : '';
+        return PROJECTS.find(function(p) { return p.id === pid; }) || null;
+    }
+
+    function aiGProvincePolicyCounts() {
+        var map = {};
+        var list = [];
+        try { list = DataBridge.loadPolicyLibrary() || []; } catch (e) { list = []; }
+        list.forEach(function(p) {
+            if (!p || !p.name || p.status === 'draft' || p.status === 'offline') return;
+            if (p.infoType === '公示公告' || p.infoType === '政策解读') return;
+            var prov = (p.region || {}).province || '全国';
+            if (prov === '全国') return;
+            map[prov] = (map[prov] || 0) + 1;
+        });
+        return map;
+    }
+
+    function toggleMoreRegion(force) {
+        var box = document.getElementById('aiGRegionMore');
+        var icon = document.getElementById('aiGMoreRegionIcon');
+        if (!box) return;
+        var show = (typeof force === 'boolean') ? force : box.classList.contains('hidden');
+        box.classList.toggle('hidden', !show);
+        if (icon) icon.className = 'fa fa-caret-' + (show ? 'up' : 'down') + ' mr-1';
+    }
+
+    function renderAiGRegionControls(reset) {
+        var provSel = document.getElementById('aiGProvince');
+        var cityInput = document.getElementById('aiGCity');
+        var distInput = document.getElementById('aiGDistrict');
+        var cityList = document.getElementById('aiGCityList');
+        var distList = document.getElementById('aiGDistrictList');
+        var hint = document.getElementById('aiGRegionHint');
+        if (!provSel || !cityInput || !distInput || !hint) return;
+        var proj = aiProjectForPolicy();
+        var parts = projectRegionParts(proj);
+        var fixed = parts.province.length && parts.province.indexOf('全国') === -1;
+
+        if (fixed) {
+            provSel.disabled = true;
+            provSel.innerHTML = '<option value="' + parts.province[0] + '">' + parts.province[0] + '</option>';
+            provSel.value = parts.province[0];
+        } else {
+            provSel.disabled = false;
+            var prevProv = reset ? '' : provSel.value;
+            var provCounts = aiGProvincePolicyCounts();
+            provSel.innerHTML = '<option value="全国">全国（不区分地市）</option>' + PROVINCE_OPTIONS.filter(function(x){ return x !== '全国'; }).map(function(x){
+                var n = provCounts[x] || 0;
+                return '<option value="' + x + '">' + x + (n ? '（' + n + '）' : '') + '</option>';
+            }).join('');
+            provSel.value = (prevProv && (prevProv === '全国' || PROVINCE_OPTIONS.indexOf(prevProv) > -1)) ? prevProv : '全国';
+        }
+
+        var regions = aiGLibraryRegions();
+        var pv = provSel.value;
+
+        // 地市：可选政策库中出现的地市，也允许直接输入未收录的地市
+        var cities = [];
+        regions.forEach(function(r){ if (r.province === pv && r.city && cities.indexOf(r.city) === -1) cities.push(r.city); });
+        (parts.city || []).forEach(function(c){ if (c && cities.indexOf(c) === -1) cities.push(c); });
+        if (cityList) cityList.innerHTML = cities.map(function(x){ return '<option value="' + aiGesc(x) + '"></option>'; }).join('');
+        var typedCity = reset ? (fixed ? (parts.city[0] || '') : '') : cityInput.value;
+        cityInput.value = typedCity || '';
+        cityInput.disabled = pv === '全国';
+
+        // 区县：按已填地市过滤候选，同样允许直接输入
+        var cityVal = String(cityInput.value || '').trim();
+        var dists = [];
+        regions.forEach(function(r){
+            if (r.province === pv && r.district && (!cityVal || r.city === cityVal) && dists.indexOf(r.district) === -1) dists.push(r.district);
+        });
+        (parts.district || []).forEach(function(d){ if (d && dists.indexOf(d) === -1) dists.push(d); });
+        if (distList) distList.innerHTML = dists.map(function(x){ return '<option value="' + aiGesc(x) + '"></option>'; }).join('');
+        var typedDist = reset ? (fixed ? (parts.district[0] || '') : '') : distInput.value;
+        distInput.value = typedDist || '';
+        distInput.disabled = pv === '全国';
+        // 已填市/区县时自动展开细分地区行，否则保持收起，避免初始界面过高
+        if (cityInput.value || distInput.value) toggleMoreRegion(true);
+        // 选「全国」时无细分地区可选，禁用并收起按钮
+        var moreBtn = document.getElementById('aiGMoreRegionBtn');
+        if (moreBtn) {
+            var noProv = pv === '全国';
+            moreBtn.disabled = noProv;
+            moreBtn.classList.toggle('opacity-40', noProv);
+            moreBtn.classList.toggle('cursor-not-allowed', noProv);
+            if (noProv) toggleMoreRegion(false);
+        }
+
+        var eff = aiGEffRegion();
+        var label = [eff.province, eff.city, eff.district].filter(Boolean).join(' / ');
+        if (eff.province === '全国') {
+            hint.innerHTML = '未选择具体地市：只生成通用材料 + 全国政策；选择省市后可生成该地区版本。';
+        } else if (fixed) {
+            hint.innerHTML = '项目省份固定为「' + eff.province + '」，可继续填写市/区县细分版本；当前为「' + label + '」。';
+        } else {
+            hint.innerHTML = '将生成「' + label + '」版本：通用材料 + 该地区政策补充项；同一项目可分别生成多个地市版本，通用材料只保留一份。';
+        }
+
+        var detected = aiBatchCandidateRegions();
+        var box = document.getElementById('aiGDetect');
+        if (box) {
+            if (detected.length) {
+                box.classList.remove('hidden');
+                document.getElementById('aiGDetectCount').textContent = detected.length;
+                document.getElementById('aiGDetectList').textContent = detected.slice(0, 4).map(function(r) {
+                    return [r.province, r.city, r.district].filter(Boolean).join(' / ');
+                }).join('、') + (detected.length > 4 ? ' 等' : '');
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+    }
+
+    function openBatchFromGen() {
+        closeAiGenModal();
+        openAiRegionBatch();
+    }
+
+    function onAiGRegionChange(level) {
+        var cityInput = document.getElementById('aiGCity');
+        var distInput = document.getElementById('aiGDistrict');
+        if (level === 'province') {
+            if (cityInput) cityInput.value = '';
+            if (distInput) distInput.value = '';
+        } else if (level === 'city') {
+            if (distInput) distInput.value = '';
+        }
+        renderAiGRegionControls();
+        renderAiGPolicyOptions();
+    }
+
+    function aiGRegionSelection() {
+        return {
+            province: (document.getElementById('aiGProvince') || {}).value || '',
+            city: (document.getElementById('aiGCity') || {}).value || '',
+            district: (document.getElementById('aiGDistrict') || {}).value || ''
+        };
+    }
+
+    function aiGEffRegion() {
+        var proj = aiProjectForPolicy();
+        var parts = projectRegionParts(proj);
+        var sel = aiGRegionSelection();
+        if (!proj) return { province: '全国', city: '', district: '' };
+        if (parts.province.indexOf('全国') > -1) {
+            return { province: sel.province || '全国', city: String(sel.city || '').trim(), district: String(sel.district || '').trim() };
+        }
+        return {
+            province: parts.province[0] || '全国',
+            city: String(sel.city || '').trim() || parts.city[0] || '',
+            district: String(sel.district || '').trim() || parts.district[0] || ''
+        };
+    }
+
+    function aiGEffectiveProject() {
+        var proj = aiProjectForPolicy();
+        if (!proj) return null;
+        if (projectRegionParts(proj).province.indexOf('全国') === -1) return proj;
+        var rg = aiGEffRegion();
+        return { id: proj.id, name: proj.name, type: proj.type, region: { province: rg.province, city: rg.city, district: rg.district } };
+    }
+
+    function aiGLibraryRegions() {
+        var list = [];
+        try { list = DataBridge.loadPolicyLibrary() || []; } catch (e) { list = []; }
+        return list.map(function(p) { return p.region || {}; });
+    }
+
+    function projectRegionParts(proj) {
+        var rg = (proj && proj.region) || {};
+        function split(v) {
+            return String(v || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+        }
+        return { province: split(rg.province), city: split(rg.city), district: split(rg.district) };
+    }
+
+    function projectRegionText(proj) {
+        if (!proj) return '未选择项目';
+        var parts = projectRegionParts(proj);
+        var prov = parts.province.join('/') || '—';
+        if (prov === '全国') return '全国';
+        var sub = [parts.city.join('/'), parts.district.join('/')].filter(Boolean).join('/');
+        return prov + (sub ? ' / ' + sub : '');
+    }
+
+    // 地区匹配：全国政策处处适用；地方政策需与项目申报省份/城市/区县一致
+    function policyMatchProject(pol, proj) {
+        if (!proj) return true;
+        var rg = pol.region || {};
+        var polProv = rg.province || '全国';
+        var parts = projectRegionParts(proj);
+        if (!parts.province.length || parts.province.indexOf('全国') > -1) return polProv === '全国';
+        if (polProv === '全国') return true;
+        if (parts.province.indexOf(polProv) === -1) return false;
+        // 政策越具体，要求项目地区也填到对应层级，避免把某市/某区政策匹配给全省项目
+        if (rg.district) return parts.district.indexOf(rg.district) > -1;
+        if (rg.city) return parts.city.indexOf(rg.city) > -1;
+        return true;
+    }
+
+    // 越具体越优先：区县级 > 市级 > 省级 > 国家级
+    function policySpecificity(pol) {
+        var rg = pol.region || {};
+        if (rg.district) return 3;
+        if (rg.city) return 2;
+        if (rg.province && rg.province !== '全国') return 1;
+        return 0;
+    }
+
+    function aiPolicyList() {
+        var list = [];
+        try { list = DataBridge.loadPolicyLibrary() || []; } catch (e) { list = []; }
+        var proj = aiGEffectiveProject();
+        return list.filter(function(p) {
+                return p && p.name && p.status !== 'draft' && p.status !== 'offline'
+                    && p.infoType !== '公示公告' && p.infoType !== '政策解读'
+                    && policyMatchProject(p, proj);
+            })
+            .sort(function(a, b) {
+                var sa = policySpecificity(a), sb = policySpecificity(b);
+                if (sa !== sb) return sb - sa;
+                return (b.policyType === 'declaration' ? 1 : 0) - (a.policyType === 'declaration' ? 1 : 0);
+            });
+    }
+
+    function aiGesc(s) {
+        return String(s === undefined || s === null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderAiGPolicyOptions(keepIds) {
+        var box = document.getElementById('aiGPolicyList');
+        if (!box) return;
+        var list = aiPolicyList();
+        var keep = keepIds || [];
+        if (!list.length) {
+            box.innerHTML = '<div class="px-3 py-5 text-[11px] text-slate-400 text-center"><i class="fa fa-inbox mr-1"></i>当前项目申报地区暂无可关联政策</div>';
+        } else {
+            box.innerHTML = list.map(function(p) {
+                var lvl = ['国家级（全国适用）', '省级', '市级', '区县级'][policySpecificity(p)] || '国家级（全国适用）';
+                var rg = p.region || {};
+                var region = [rg.province, rg.city, rg.district].filter(Boolean).join(' / ') || '全国';
+                // 自动搜索匹配：首次渲染默认全部勾选（keepIds 用于保留用户手动调整）
+                var checked = keep.length ? (keep.indexOf(p.id) > -1) : true;
+                return '<label class="flex items-start gap-2 px-3 py-2 cursor-pointer hover:bg-slate-50">'
+                    + '<input type="checkbox" value="' + aiGesc(p.id) + '"' + (checked ? ' checked' : '') + ' onchange="syncAiGPolicyHint()" class="mt-0.5 accent-purple-600">'
+                    + '<span class="flex-1 min-w-0">'
+                    + '<span class="block text-xs font-bold text-slate-700 truncate" title="' + aiGesc(p.name) + '">' + aiGesc(p.name) + '</span>'
+                    + '<span class="block text-[10px] text-slate-400 truncate">' + aiGesc(p.dept || '—') + ' · ' + aiGesc(region) + '</span>'
+                    + '</span>'
+                    + '<span class="shrink-0 px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-600 text-[9px] font-bold">' + lvl + '</span>'
+                    + '</label>';
+            }).join('');
+        }
+        syncAiGPolicyHint();
+    }
+
+    function getAiGPolicies() {
+        var box = document.getElementById('aiGPolicyList');
+        if (!box) return [];
+        var ids = Array.prototype.slice.call(box.querySelectorAll('input[type=checkbox]:checked')).map(function(c) { return c.value; });
+        if (!ids.length) return [];
+        var list = aiPolicyList();
+        return ids.map(function(id) { return list.find(function(p) { return p.id === id; }); }).filter(Boolean);
+    }
+
+    function syncAiGPolicyHint() {
+        var box = document.getElementById('aiGPolicyHint');
+        if (!box) return;
+        var pols = getAiGPolicies();
+        if (!pols.length) {
+            var list = aiPolicyList();
+            var proj = aiGEffectiveProject();
+            var scope = projectRegionText(proj);
+            box.innerHTML = (list.length
+                ? '<i class="fa fa-info-circle text-slate-400 mr-1"></i>未选择政策：将根据项目类型生成通用材料模板，建议勾选具体的政策/申报指南以提高材料清单准确度。'
+                : '<i class="fa fa-exclamation-circle text-amber-500 mr-1"></i>当前项目申报地区（<b class="text-slate-600">' + scope + '</b>）暂无可关联政策：本次将使用通用模板生成，建议先在政策库/采集源补充该地区申报通知，无需预先覆盖所有地市。');
+            return;
+        }
+        var mergedConds = [];
+        pols.forEach(function(p) {
+            (p.conditions || []).map(condText).filter(Boolean).forEach(function(c) {
+                if (mergedConds.indexOf(c) === -1) mergedConds.push(c);
+            });
+        });
+        box.innerHTML = '<i class="fa fa-layer-group text-purple-400 mr-1"></i>已叠加 <b class="text-slate-700">' + pols.length + '</b> 份政策：'
+            + pols.map(function(p) { return '《' + p.name + '》'; }).join('、')
+            + '<br><span class="text-slate-500">合并方式：通用材料为底，各政策补充项去重合并；按 区县级 → 市级 → 省级 → 国家级 由具体到通用叠加，申报书以最具体政策为准。</span>'
+            + (mergedConds.length ? '<br><span class="text-slate-500">合并申报条件：' + mergedConds.join('；') + '</span>' : '');
+    }
+    function syncAiGTypeHint() {
+        var pid = document.getElementById('aiGProject').value;
+        var p = PROJECTS.find(function(x){ return x.id === pid; });
+        var type = p ? p.type : '-';
+        var hint = document.getElementById('aiGTypeHint');
+        if (hint) hint.innerHTML = '<i class="fa fa-tag text-purple-400"></i>项目类型：<b class="text-slate-700">' + type + '</b>（将据此匹配材料模板风格）';
+    }
+    function closeAiGenModal() {
+        var m = document.getElementById('aiGenModal');
+        m.classList.add('hidden'); m.classList.remove('flex');
+    }
+    function aiGenStep(n) {
+        ['aiGStep1','aiGStep2','aiGStep3'].forEach(function(id){ document.getElementById(id).classList.add('hidden'); });
+        document.getElementById('aiGStep' + n).classList.remove('hidden');
+    }
+    function aiGenStart() {
+        aiGenStep(2);
+        var pols = getAiGPolicies();
+        var stages = ['正在分析项目类型与政策要求…','正在规划材料分组结构…','正在撰写填写提示…','正在生成样例内容草稿…'];
+        if (pols.length) {
+            stages[0] = pols.length === 1
+                ? '正在解析《' + pols[0].name + '》的申报条件…'
+                : '正在解析 ' + pols.length + ' 份政策并合并申报要求…';
+        }
+        var i = 0;
+        function tick() {
+            if (i >= stages.length) {
+                var _pid = document.getElementById('aiGProject').value;
+                var _p = PROJECTS.find(function(x){ return x.id === _pid; });
+                AI_GEN_DRAFT = aiBuildMaterialPack(_p ? _p.type : '', pols);
+                var _eff = aiGEffRegion();
+                var _label = _eff.province && _eff.province !== '全国'
+                    ? [_eff.province, _eff.city, _eff.district].filter(Boolean).join(' / ')
+                    : '';
+                if (_label && pols.length) {
+                    AI_GEN_DRAFT.forEach(function(g) {
+                        if (g.title.indexOf('政策依据与条件证明') === 0) {
+                            g.title = '地区差异 · ' + _label;
+                            g._regionVersion = _label;
+                        }
+                    });
+                }
+                renderAiGenPreview(AI_GEN_DRAFT);
+                document.getElementById('aiGPolicyUsed').textContent = (pols.length
+                    ? (pols.length === 1 ? '依据《' + pols[0].name + '》生成' : '依据 ' + pols.length + ' 份政策叠加生成：' + pols.map(function(p){ return '《' + p.name + '》'; }).join('、'))
+                    : '未选择政策（通用模板）') + (_label ? ' · 地区版本：' + _label : '');
+                aiGenStep(3);
+                return;
+            }
+            document.getElementById('aiGStage').textContent = stages[i];
+            document.getElementById('aiGBar').style.width = (12 + i * 24) + '%';
+            i++;
+            setTimeout(tick, 520);
+        }
+        tick();
+    }
+    function aiBuildMaterialPack(type, policies) {
+        // 按项目类型生成差异化的基础模板（资质认定 / 资金补贴 / 税收减免 / 资质入库）
+        var base;
+        if (type === '资质入库') {
+            // 精简版：营业执照、纳税申报表、入库信息表为主，去掉成果转化与研发专项审计
+            base = [
+                { title:'基础资质证明', icon:'fa-id-card', color:'blue', items:[
+                    { name:'营业执照副本', required:true, tip:'加盖公章的最新版扫描件，需与申报主体一致', sampleName:'营业执照示例.pdf', samplePreview:'统一社会信用代码：91XXXXXXXXXXXXXX\n名称：XX科技有限公司\n类型：有限责任公司\n法定代表人：张三\n注册资本：1000万元\n成立日期：2018-05-20\n经营范围：软件开发、信息技术服务…' },
+                    { name:'法定代表人身份证', required:true, tip:'正反面复印在同一张A4纸上，加盖公章', sampleName:'身份证示例.pdf', samplePreview:'姓名：张三\n性别：男\n民族：汉\n出生：1980年1月1日\n住址：XX市XX区XX路XX号\n公民身份号码：11010119800101XXXX' }
+                ]},
+                { title:'财务与税务资料', icon:'fa-line-chart', color:'green', items:[
+                    { name:'近一年度财务审计报告', required:false, tip:'部分批次要求提供，含资产负债表、利润表', sampleName:'审计报告示例.pdf', samplePreview:'审计报告\nXX审字[2026]第XXX号\nXX科技有限公司全体股东：\n我们审计了后附的财务报表…\n资产总计：5,000万元\n营业收入：8,000万元\n净利润：600万元' },
+                    { name:'纳税申报表', required:true, tip:'上一个会计年度企业所得税年度纳税申报表主表及附表', sampleName:'纳税申报表示例.pdf', samplePreview:'中华人民共和国企业所得税年度纳税申报表（A类）\n税款所属期间：2025-01-01 至 2025-12-31\n营业收入：80,000,000.00\n营业成本：52,000,000.00\n利润总额：6,000,000.00' },
+                    { name:'研发费用归集说明表', required:false, tip:'按辅助账口径归集上年度研发费用，用于研发占比指标佐证', sampleName:'研发费用归集示例.xlsx', samplePreview:'研发费用归集说明表\n2025年度研发费用合计：412万元\n其中：人员人工 180万，直接投入 120万，折旧与摊销 62万，其他 50万\n研发费用占销售收入比例：6.2%' }
+                ]},
+                { title:'申报书与承诺', icon:'fa-file-text', color:'purple', items:[
+                    { name:'入库申请信息表', required:true, tip:'按科技部门模板填写企业基本信息与评价指标', sampleName:'入库信息表.xlsx', samplePreview:'科技型中小企业入库信息表\n企业名称：XX科技有限公司\n职工总数：85人\n科技人员：32人\n研发费用占比：6.2%\n综合评价得分：78分' },
+                    { name:'真实性承诺书', required:true, tip:'法定代表人签字并加盖公章，扫描上传', sampleName:'承诺书示例.pdf', samplePreview:'真实性承诺书\n本单位承诺：本次申报材料真实、准确、完整，如有虚假愿承担相应法律责任。\n法定代表人（签字）：________\n单位盖章：________\n日期：____年__月__日' }
+                ]}
+            ];
+        } else {
+            base = [
+                { title:'基础资质证明', icon:'fa-id-card', color:'blue', items:[
+                    { name:'营业执照副本', required:true, tip:'加盖公章的最新版扫描件，需与申报主体一致', sampleName:'营业执照示例.pdf', samplePreview:'统一社会信用代码：91XXXXXXXXXXXXXX\n名称：XX科技有限公司\n类型：有限责任公司\n法定代表人：张三\n注册资本：1000万元\n成立日期：2018-05-20\n经营范围：软件开发、信息技术服务…' },
+                    { name:'法定代表人身份证', required:true, tip:'正反面复印在同一张A4纸上，加盖公章', sampleName:'身份证示例.pdf', samplePreview:'姓名：张三\n性别：男\n民族：汉\n出生：1980年1月1日\n住址：XX市XX区XX路XX号\n公民身份号码：11010119800101XXXX' },
+                    { name:'公司章程', required:false, tip:'最新工商备案版本，含股东出资信息', sampleName:'公司章程示例.pdf', samplePreview:'第一章 总则\n第一条 依据《中华人民共和国公司法》设立…\n第二章 股东及出资\n张三 认缴600万元 占60%…' }
+                ]},
+                { title:'财务与审计报告', icon:'fa-file-text-o', color:'green', items:[
+                    { name:'近三年财务审计报告', required:true, tip:'须由具备资质的会计师事务所出具，含资产负债表、利润表、现金流量表', sampleName:'审计报告示例.pdf', samplePreview:'审计报告\nXX审字[2025]第XXX号\nXX科技有限公司全体股东：\n我们审计了后附的财务报表…\n资产总计：5,000万元\n营业收入：8,000万元\n净利润：600万元' },
+                    { name:'研发费用专项审计报告', required:true, tip:'近三年研发费用归集，需符合高企/补贴口径', sampleName:'研发费用审计示例.pdf', samplePreview:'研发费用专项审计报告\n2022年度：人员人工 180万，直接投入 90万…\n2023年度：人员人工 220万，直接投入 110万…\n2024年度：人员人工 280万，直接投入 140万…' },
+                    { name:'纳税申报表', required:true, tip:'近三个会计年度企业所得税年度纳税申报表主表及附表', sampleName:'纳税申报表示例.pdf', samplePreview:'中华人民共和国企业所得税年度纳税申报表（A类）\n税款所属期间：2024-01-01 至 2024-12-31\n营业收入：80,000,000.00\n营业成本：52,000,000.00\n利润总额：6,000,000.00' }
+                ]},
+                { title:'研发与知识产权', icon:'fa-flask', color:'orange', items:[
+                    { name:'知识产权清单及证书', required:true, tip:'专利、软著、集成电路布图等，需在有效期内', sampleName:'知识产权清单.xlsx', samplePreview:'序号 | 知识产权名称 | 类型 | 授权号 | 授权日期 | 状态\n1 | 一种数据处理方法 | 发明专利 | ZL202310000001.1 | 2023-05-10 | 有效\n2 | 智能管理系统V1.0 | 软件著作权 | 2023SR000001 | 2023-01-15 | 有效' },
+                    { name:'研发项目立项报告', required:true, tip:'近三年主要研发项目立项决议、预算、进度记录', sampleName:'立项报告示例.docx', samplePreview:'研发项目立项报告\n项目名称：智能数据分析平台研发\n立项时间：2023年3月\n项目负责人：李四\n预算金额：300万元\n研究内容：基于机器学习的海量数据实时分析…' },
+                    { name:'科技成果转化证明材料', required:false, tip:'新产品销售合同、检测报告、用户使用报告等', sampleName:'成果转化示例.pdf', samplePreview:'科技成果转化情况说明\n成果名称：智能数据分析平台V1.0\n转化形式：自主实施\n转化时间：2023年8月\n经济效益：实现销售收入1,200万元' }
+                ]},
+                { title:'申报书与承诺', icon:'fa-file-text', color:'purple', items:[
+                    { name:'项目申报书', required:true, tip:'按系统模板填写，数据与附件一致，法定代表人签字', sampleName:'申报书示例.docx', samplePreview:'XX项目申报书\n申报单位：XX科技有限公司\n项目名称：2025年度XX专项\n申请金额：200万元\n联系人：王五 138XXXXXXX\n一、单位基本情况…' },
+                    { name:'真实性承诺书', required:true, tip:'法定代表人签字并加盖公章，扫描上传', sampleName:'承诺书示例.pdf', samplePreview:'真实性承诺书\n本单位承诺：本次申报材料真实、准确、完整，如有虚假愿承担相应法律责任。\n法定代表人（签字）：________\n单位盖章：________\n日期：____年__月__日' },
+                    { name:'信用承诺书', required:false, tip:'部分批次要求提供信用中国查询截图', sampleName:'信用承诺书.pdf', samplePreview:'信用承诺书\n本单位郑重承诺：未被列入失信被执行人、重大税收违法案件当事人名单…' }
+                ]}
+            ];
+            if (type === '税收减免') {
+                base[1].items.push({ name:'减免税备案表', required:true, tip:'在电子税务局完成备案后下载', sampleName:'减免税备案表.pdf', samplePreview:'减免税备案表\n纳税人识别号：91XXXXXXXXXXXXXX\n减免税项目：高新技术企业15%优惠税率\n备案有效期：2025-01-01 至 2025-12-31' });
+                base[3].items.push({ name:'优惠事项留存备查资料清单', required:false, tip:'汇算清缴时留存备查，无需随申报报送', sampleName:'留存备查清单.pdf', samplePreview:'留存备查资料清单\n1. 高新技术企业证书\n2. 研发费用辅助账\n3. 知识产权证书\n4. 研发人员名单\n（留存备查，税务机关核查时提供）' });
+            }
+            if (type === '资金补贴') {
+                base.splice(3, 0, { title:'项目与投资证明', icon:'fa-cubes', color:'cyan', items:[
+                    { name:'项目实施方案', required:true, tip:'建设内容、投资构成、实施周期与预期效益，加盖公章', sampleName:'实施方案示例.docx', samplePreview:'项目实施方案\n项目名称：智能制造产线升级改造\n建设期：2026-01 至 2026-12\n总投资：1200万元（其中设备投资 800万元）\n预期效益：产能提升40%，年新增销售收入3000万元' },
+                    { name:'设备购置及投资清单', required:true, tip:'与备案/立项文件口径一致，注明设备数量与金额', sampleName:'设备投资清单.xlsx', samplePreview:'设备投资清单\n序号 | 设备名称 | 数量 | 单价 | 金额 | 合同编号\n1 | 五轴加工中心 | 2 | 260万 | 520万 | HT-2026-001\n2 | AOI检测设备 | 4 | 70万 | 280万 | HT-2026-002' },
+                    { name:'发票佐证材料', required:true, tip:'与投资清单对应的发票复印件，加盖公章并标注对应序号', sampleName:'发票汇总表示例.xlsx', samplePreview:'发票汇总表\n发票号码 | 开票日期 | 金额 | 对应设备序号\n01234567 | 2026-03-12 | 293.8万 | 1\n01234568 | 2026-03-15 | 226.2万 | 1\n01234569 | 2026-04-02 | 79.1万 | 2' }
+                ]});
+            }
+        }
+        // 关联政策（可多份）：以通用材料为底，按层级叠加，材料项去重合并
+        if (policies && policies.length) {
+            var condItems = [];
+            var seen = {};
+            var mergedConds = [];
+            function addPolicyItem(item) {
+                if (!item || seen[item.name]) return;
+                seen[item.name] = true;
+                condItems.push(item);
+            }
+            policies.forEach(function(policy) {
+                var rg = policy.region || {};
+                var locality = rg.city || rg.district || rg.province || '属地';
+                var conds = (policy.conditions || []).map(condText).filter(Boolean);
+                conds.forEach(function(c) {
+                    if (mergedConds.indexOf(c) === -1) mergedConds.push(c);
+                });
+                if (conds.length) {
+                    addPolicyItem({ name:'申报条件佐证材料（' + policy.name + '）', required:true,
+                        tip:'按《' + policy.name + '》条件逐项提供证明：' + conds.join('；') + '；每项标注对应材料编号',
+                        sampleName:'条件佐证材料清单.xlsx',
+                        samplePreview:'政策条件 | 企业实际值 | 佐证材料编号\n' + conds.map(function(c, i){ return c + ' | 待填写 | 附件' + (i + 1); }).join('\n')
+                    });
+                }
+                addPolicyItem({ name:'申报通知/指南原文（' + policy.name + '）', required:true,
+                    tip:'提供《' + policy.name + '》对应批次的申报通知或指南原文，材料顺序与格式以其为准',
+                    sampleName:(policy.name || '申报指南') + '.pdf',
+                    samplePreview:'申报通知/指南\n政策名称：' + policy.name + '\n发文单位：' + (policy.dept || '—') + '\n材料要求：按指南附件清单顺序装订'
+                });
+                if (rg.province && rg.province !== '全国') {
+                    addPolicyItem({ name:locality + '属地补充材料', required:true,
+                        tip:'按' + locality + '主管部门要求提供属地附加材料（如属地推荐函、社保缴纳证明等），以最新申报通知为准',
+                        sampleName:locality + '属地补充材料.zip',
+                        samplePreview:'属地补充材料\n属地推荐函.pdf\n社保缴纳证明.pdf'
+                    });
+                }
+            });
+            var policyNames = policies.map(function(p) { return '《' + p.name + '》'; }).join('、');
+            addPolicyItem({ name:'政策符合性说明', required:false,
+                tip:'逐条对照 ' + policyNames + ' 的支持方向与申报条件，说明企业符合情况',
+                sampleName:'政策符合性说明.docx',
+                samplePreview:'政策符合性说明\n申报政策：' + policyNames + '\n'
+                    + (mergedConds.length ? '一、申报条件复核：' + mergedConds.join('；') + '\n' : '')
+                    + '二、支持方向符合情况：……'
+            });
+            base.push({ title:'政策依据与条件证明（' + policies.length + ' 份政策）', icon:'fa-shield', color:'indigo', items: condItems });
+            base[3].items[0].name = '项目申报书（' + policies[0].name + '）';
+        }
+        // 生成唯一ID
+        var stamp = Date.now().toString(36);
+        base.forEach(function(g, gi){
+            g.items.forEach(function(m, mi){
+                m.id = 'ai_' + stamp + '_' + gi + '_' + mi;
+                m.tip = m.tip + '（AI 预填，可修改）';
+            });
+        });
+        return base;
+    }
+    function renderAiGenPreview(groups) {
+        var total = groups.reduce(function(s,g){ return s + g.items.length; }, 0);
+        document.getElementById('aiGStat').textContent = groups.length + ' 组 / ' + total + ' 项材料';
+        document.getElementById('aiGPreview').innerHTML = groups.map(function(g){
+            var colorMap = { blue:'bg-blue-50 text-blue-600 border-blue-100', green:'bg-green-50 text-green-600 border-green-100', orange:'bg-orange-50 text-orange-600 border-orange-100', purple:'bg-purple-50 text-purple-600 border-purple-100', indigo:'bg-indigo-50 text-indigo-600 border-indigo-100', amber:'bg-amber-50 text-amber-600 border-amber-100', cyan:'bg-cyan-50 text-cyan-600 border-cyan-100' };
+            var c = colorMap[g.color] || colorMap.blue;
+            return '<div class="border border-slate-200 rounded-xl overflow-hidden">'
+                + '<div class="px-3 py-2 ' + c + ' text-xs font-bold flex items-center justify-between"><span><i class="fa ' + g.icon + ' mr-1.5"></i>' + g.title + '</span><span>' + g.items.length + ' 项</span></div>'
+                + '<div class="px-3 py-2 space-y-1">' + g.items.map(function(m){
+                    return '<div class="flex items-center gap-2 text-[11px]"><i class="fa fa-file-o text-slate-400 w-3"></i><span class="text-slate-700 font-medium flex-1 truncate">' + m.name + '</span>' + (m.required ? '<span class="text-[9px] px-1 py-0.5 bg-red-50 text-red-500 rounded font-bold">必填</span>' : '<span class="text-[9px] px-1 py-0.5 bg-slate-100 text-slate-400 rounded">选填</span>') + '</div>';
+                }).join('') + '</div></div>';
+        }).join('');
+    }
+    function aiGenApply() {
+        if (!AI_GEN_DRAFT) return;
+        var pid = document.getElementById('aiGProject').value;
+        var p = PROJECTS.find(function(x){ return x.id === pid; });
+        if (!p) return;
+        p.groups = p.groups || [];
+        p.regionOverrides = p.regionOverrides || {};
+        var eff = aiGEffRegion();
+        var regionKey = '';
+        if (eff.province && eff.province !== '全国') {
+            regionKey = 'province·' + eff.province
+                + (eff.city ? '·city·' + eff.city : '')
+                + (eff.district ? '·district·' + eff.district : '');
+        }
+        var draft = JSON.parse(JSON.stringify(AI_GEN_DRAFT));
+        var wroteRegion = false;
+        draft.forEach(function(g) {
+            if (g._regionVersion && regionKey) {
+                // 地区差异：写入 regionOverrides，由地区差异模块按层级继承合并
+                if (!p.regionOverrides[regionKey]) p.regionOverrides[regionKey] = { adds: [], edits: [], removes: [] };
+                var ov = p.regionOverrides[regionKey];
+                ov.adds = (ov.adds || []).filter(function(x){ return String(x.id || '').indexOf('ai_') !== 0; });
+                (g.items || []).forEach(function(it) {
+                    ov.adds.push({
+                        group: '政策依据与条件证明',
+                        id: it.id,
+                        name: it.name,
+                        required: it.required !== false,
+                        tip: it.tip,
+                        sampleName: it.sampleName,
+                        samplePreview: it.samplePreview
+                    });
+                });
+                wroteRegion = true;
+            } else if (!g._regionVersion) {
+                // 基础模板：项目已有材料时不覆盖，避免重复；新项目才写入通用分组
+                if (!p.groups.length) p.groups.push(g);
+            }
+        });
+        CURRENT_ID = pid;
+        CURRENT_TAB = 'material';
+        materialSubTab = wroteRegion ? 'region' : 'basic'; // 写入了地区差异时切到对应页签
+        closeAiGenModal();
+        renderList();
+        renderEditor();
+        showToast('AI 材料包已写入「' + p.name + '」'
+            + (wroteRegion ? '：地区差异配置（' + [eff.province, eff.city, eff.district].filter(Boolean).join('/') + '）已更新，可在「地区补充材料」页签查看' : '：已写入「全国通用材料」页签')
+            + '，请点击「保存全部配置」生效', 'success');
+    }
+
+    // ===== AI 批量生成地区差异 =====
+    var AI_BATCH_REGIONS = [];
+
+    function policyFitsRegion(pol, rg) {
+        var r = pol.region || {};
+        var pp = r.province || '全国';
+        if (!rg || !rg.province || rg.province === '全国') return pp === '全国';
+        if (pp === '全国') return true;
+        if (pp !== rg.province) return false;
+        if (r.city && r.city !== rg.city) return false;
+        if (r.district && r.district !== rg.district) return false;
+        return true;
+    }
+
+    function aiPolicyListForRegion(rg) {
+        var list = [];
+        try { list = DataBridge.loadPolicyLibrary() || []; } catch (e) { list = []; }
+        return list.filter(function(p) {
+            return p && p.name && p.status !== 'draft' && p.status !== 'offline'
+                && p.infoType !== '公示公告' && p.infoType !== '政策解读'
+                && policyFitsRegion(p, rg);
+        }).sort(function(a, b) {
+            var sa = policySpecificity(a), sb = policySpecificity(b);
+            if (sa !== sb) return sb - sa;
+            return (b.policyType === 'declaration' ? 1 : 0) - (a.policyType === 'declaration' ? 1 : 0);
+        });
+    }
+
+    function aiBatchProjectForGen() {
+        var sel = document.getElementById('aiBatchProject');
+        if (sel && sel.value) {
+            var p = PROJECTS.find(function(x){ return x.id === sel.value; });
+            if (p) return p;
+        }
+        return aiProjectForPolicy();
+    }
+
+    function aiBatchCandidateRegions(projOverride) {
+        var list = [];
+        try { list = DataBridge.loadPolicyLibrary() || []; } catch (e) { list = []; }
+        var proj = projOverride || aiProjectForPolicy();
+        var parts = projectRegionParts(proj);
+        var fixedProv = (parts.province.length && parts.province.indexOf('全国') === -1) ? parts.province : [];
+        var map = {};
+        list.forEach(function(p) {
+            if (!p || !p.name || p.status === 'draft' || p.status === 'offline') return;
+            if (p.infoType === '公示公告' || p.infoType === '政策解读') return;
+            var r = p.region || {};
+            var prov = r.province || '全国';
+            if (prov === '全国') return;
+            if (fixedProv.length && fixedProv.indexOf(prov) === -1) return;
+            if (parts.city.length && r.city && parts.city.indexOf(r.city) === -1) return;
+            if (parts.district.length && r.district && parts.district.indexOf(r.district) === -1) return;
+            var key = 'province·' + prov + (r.city ? '·city·' + r.city : '') + (r.district ? '·district·' + r.district : '');
+            if (!map[key]) map[key] = { key: key, province: prov, city: r.city || '', district: r.district || '', count: 0 };
+            map[key].count++;
+        });
+        return Object.keys(map).map(function(k){ return map[k]; }).sort(function(a, b) {
+            if (a.province !== b.province) return a.province.localeCompare(b.province, 'zh');
+            if (a.city !== b.city) return a.city.localeCompare(b.city, 'zh');
+            return a.district.localeCompare(b.district, 'zh');
+        });
+    }
+
+    function renderAiBatchList() {
+        var box = document.getElementById('aiBatchList');
+        AI_BATCH_REGIONS = aiBatchCandidateRegions(aiBatchProjectForGen());
+        document.getElementById('aiBatchTotal').textContent = AI_BATCH_REGIONS.length;
+        if (!AI_BATCH_REGIONS.length) {
+            box.innerHTML = '<div class="px-4 py-8 text-center text-[11px] text-slate-400"><i class="fa fa-inbox text-xl block mb-2"></i>政策库暂无可生成的地区，请先补充地方政策</div>';
+            updateAiBatchCount();
+            return;
+        }
+        box.innerHTML = AI_BATCH_REGIONS.map(function(r) {
+            var label = [r.province, r.city, r.district].filter(Boolean).join(' / ');
+            var lvl = r.district ? '区县级' : (r.city ? '市级' : '省级');
+            // 自动搜索该地区可用的政策，展示将被采用的政策名称
+            var pols = aiPolicyListForRegion({ province: r.province, city: r.city, district: r.district });
+            var names = pols.slice(0, 2).map(function(p){ return p.name; });
+            var more = pols.length > 2 ? ' 等 ' + pols.length + ' 份' : '';
+            return '<label class="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 cursor-pointer">'
+                + '<input type="checkbox" data-key="' + aiGesc(r.key) + '" checked onchange="updateAiBatchCount()" class="accent-cyan-600">'
+                + '<span class="flex-1 min-w-0"><span class="block text-xs font-bold text-slate-700">' + aiGesc(label) + '</span>'
+                + '<span class="block text-[10px] text-slate-400 truncate" title="' + aiGesc(pols.map(function(p){ return p.name; }).join('、')) + '">已自动匹配：' + aiGesc(names.join('、')) + aiGesc(more) + '</span></span>'
+                + '<span class="shrink-0 px-1.5 py-0.5 rounded-md bg-cyan-50 text-cyan-600 text-[9px] font-bold">' + lvl + '</span>'
+                + '</label>';
+        }).join('');
+        updateAiBatchCount();
+    }
+
+    function updateAiBatchCount() {
+        var boxes = document.querySelectorAll('#aiBatchList input[type=checkbox]');
+        var n = 0;
+        boxes.forEach(function(b){ if (b.checked) n++; });
+        var el = document.getElementById('aiBatchCount');
+        if (el) el.textContent = n;
+    }
+
+    function aiBatchToggleAll(checked) {
+        document.querySelectorAll('#aiBatchList input[type=checkbox]').forEach(function(b){ b.checked = !!checked; });
+        updateAiBatchCount();
+    }
+
+    function openAiRegionBatch() {
+        // 填充目标项目下拉（与单次生成弹窗保持一致的选择）
+        var sel = document.getElementById('aiBatchProject');
+        if (sel) {
+            var prev = sel.value;
+            sel.innerHTML = PROJECTS.map(function(p) {
+                return '<option value="' + aiGesc(p.id) + '">' + aiGesc(p.name) + '</option>';
+            }).join('');
+            if (prev && PROJECTS.some(function(p){ return p.id === prev; })) sel.value = prev;
+            else if (aiProjectForPolicy() && PROJECTS.some(function(p){ return p.id === aiProjectForPolicy().id; })) sel.value = aiProjectForPolicy().id;
+        }
+        AI_BATCH_REGIONS = aiBatchCandidateRegions(aiBatchProjectForGen());
+        renderAiBatchList();
+        document.getElementById('aiRegionBatchModal').classList.remove('hidden');
+        document.getElementById('aiRegionBatchModal').classList.add('flex');
+    }
+
+    function closeAiRegionBatch() {
+        var el = document.getElementById('aiRegionBatchModal');
+        if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+    }
+
+    function aiBatchGenerate() {
+        var proj = aiBatchProjectForGen();
+        if (!proj) {
+            showToast('请先选择目标项目', 'warning');
+            return;
+        }
+        var keys = [];
+        document.querySelectorAll('#aiBatchList input[type=checkbox]').forEach(function(b) {
+            if (b.checked) keys.push(b.getAttribute('data-key'));
+        });
+        if (!keys.length) {
+            showToast('请先勾选要生成的地区', 'warning');
+            return;
+        }
+        var baseEmpty = !(proj.groups || []).length;
+        proj.groups = proj.groups || [];
+        proj.regionOverrides = proj.regionOverrides || {};
+        var regionDone = 0, itemDone = 0, baseDraft = null;
+
+        keys.forEach(function(key) {
+            var r = AI_BATCH_REGIONS.find(function(x){ return x.key === key; });
+            if (!r) return;
+            var pols = aiPolicyListForRegion({ province: r.province, city: r.city, district: r.district });
+            if (!pols.length) return;
+            var draft = aiBuildMaterialPack(proj.type, pols);
+            if (!baseDraft) baseDraft = draft;
+            var group = null;
+            draft.forEach(function(g){ if (g.title.indexOf('政策依据与条件证明') === 0) group = g; });
+            if (!group || !(group.items || []).length) return;
+            var ov = proj.regionOverrides[key] || { adds: [], edits: [], removes: [] };
+            ov.adds = (ov.adds || []).filter(function(x){ return String(x.id || '').indexOf('ai_') !== 0; });
+            group.items.forEach(function(it) {
+                ov.adds.push({
+                    group: '政策依据与条件证明',
+                    id: it.id,
+                    name: it.name,
+                    required: it.required !== false,
+                    tip: it.tip,
+                    sampleName: it.sampleName,
+                    samplePreview: it.samplePreview
+                });
+                itemDone++;
+            });
+            proj.regionOverrides[key] = ov;
+            regionDone++;
+        });
+
+        if (!regionDone) {
+            showToast('所选地区暂无可生成的政策材料', 'warning');
+            return;
+        }
+        if (baseEmpty && baseDraft) {
+            baseDraft.forEach(function(g) {
+                if (g.title.indexOf('政策依据与条件证明') !== 0) proj.groups.push(g);
+            });
+        }
+        CURRENT_ID = proj.id;
+        CURRENT_TAB = 'material';
+        materialSubTab = 'region'; // 批量生成后切到地区补充材料页签
+        closeAiRegionBatch();
+        renderList();
+        renderEditor();
+        showToast('已为 ' + regionDone + ' 个地区生成差异材料（共 ' + itemDone + ' 项），请点击「保存全部配置」生效', 'success');
+    }
+    function aiRewriteTip(gi, mi) {
+        const p = getCurrent();
+        const m = p.groups[gi].items[mi];
+        var btn = event.target.closest('button');
+        var oldHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        setTimeout(function() {
+            var tips = [
+                '须为加盖公章的最新有效版本，扫描件清晰可辨，关键数据与申报书正文一致；复印件请注明「与原件一致」并加盖公章。',
+                '请提供原件扫描件，文件大小不超过 10MB；涉及财务数据的，须与审计报告、纳税申报表交叉一致。',
+                '该材料为评审重点，请确保内容完整、签字盖章齐全；如为外文资料，须附中文翻译件并加盖翻译专用章。',
+                '请按最新模板填写，法定代表人签字处不得遗漏；涉及日期的，请注意与申报批次截止日期匹配。'
+            ];
+            var idx = (gi + mi) % tips.length;
+            m.tip = tips[idx];
+            renderTab();
+            showToast('AI 已重写「' + m.name + '」的填写提示', 'success');
+        }, 800);
     }
 
     document.addEventListener('DOMContentLoaded', load);

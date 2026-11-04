@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>评价体系 - 策源易答服务交易模块</title>
+    <title>评价管理 - 策源易答服务交易模块</title>
     <link href="libs/css/tailwind.css" rel="stylesheet">
     <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
@@ -25,6 +25,19 @@
         .star-rating i { transition: all 0.15s; }
         .bar-fill { transition: width 0.8s ease; }
     </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
 </head>
 <body class="text-slate-800">
     <!-- 顶部导航栏 -->
@@ -35,19 +48,11 @@
                     <i class="fa fa-star-o text-xl"></i>
                 </div>
                 <div class="flex flex-col">
-                    <span class="text-xl font-black tracking-tight leading-none">评价体系</span>
+                    <span class="text-xl font-black tracking-tight leading-none">评价管理</span>
                     <span class="text-[10px] text-orange-500 uppercase tracking-widest mt-1">Evaluation System</span>
                 </div>
             </div>
             <div class="flex items-center space-x-3">
-                <button class="flex items-center space-x-2 px-4 py-2 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 rounded-xl text-sm transition-all text-slate-600">
-                    <i class="fa fa-download"></i>
-                    <span>导出评价</span>
-                </button>
-                <button class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm hover:shadow-lg hover:shadow-orange-500/30 transition-all">
-                    <i class="fa fa-cog"></i>
-                    <span>评价设置</span>
-                </button>
                 <div class="flex items-center space-x-2 pl-4 border-l border-slate-100">
                     <div class="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm">张</div>
                     <div class="flex flex-col">
@@ -60,113 +65,6 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-6 py-8">
-        <!-- 评价统计 -->
-        <section class="mb-8">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- 平均评分 -->
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm card-hover transition-all relative overflow-hidden">
-                    <div class="absolute -right-8 -top-8 w-32 h-32 bg-orange-50 rounded-full opacity-60"></div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-4">
-                            <p class="text-sm font-medium text-slate-500">平均评分</p>
-                            <div class="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
-                                <i class="fa fa-star"></i>
-                            </div>
-                        </div>
-                        <div class="flex items-baseline space-x-2">
-                            <h3 class="text-5xl font-black text-orange-600">4.8</h3>
-                            <span class="text-lg text-slate-400">/ 5.0</span>
-                        </div>
-                        <div class="star-rating flex items-center space-x-1 mt-3 text-orange-400 text-lg">
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star-half-o"></i>
-                        </div>
-                        <div class="mt-3 text-xs text-green-500"><i class="fa fa-level-up mr-1"></i>较上月提升 0.2 分</div>
-                    </div>
-                </div>
-
-                <!-- 好评率 -->
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm card-hover transition-all relative overflow-hidden">
-                    <div class="absolute -right-8 -top-8 w-32 h-32 bg-green-50 rounded-full opacity-60"></div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-4">
-                            <p class="text-sm font-medium text-slate-500">好评率</p>
-                            <div class="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center">
-                                <i class="fa fa-thumbs-o-up"></i>
-                            </div>
-                        </div>
-                        <div class="flex items-baseline space-x-2">
-                            <h3 class="text-5xl font-black text-green-600">98.6<span class="text-2xl">%</span></h3>
-                        </div>
-                        <div class="mt-4 space-y-2">
-                            <div class="flex items-center justify-between text-xs">
-                                <span class="text-slate-500">好评 (4-5星)</span>
-                                <span class="font-bold text-green-500">98.6%</span>
-                            </div>
-                            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="bar-fill h-full bg-green-500" style="width: 98.6%"></div>
-                            </div>
-                            <div class="flex items-center justify-between text-xs">
-                                <span class="text-slate-500">中评 (2-3星)</span>
-                                <span class="font-bold text-orange-500">1.0%</span>
-                            </div>
-                            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="bar-fill h-full bg-orange-400" style="width: 1%"></div>
-                            </div>
-                            <div class="flex items-center justify-between text-xs">
-                                <span class="text-slate-500">差评 (1星以下)</span>
-                                <span class="font-bold text-red-500">0.4%</span>
-                            </div>
-                            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="bar-fill h-full bg-red-400" style="width: 0.4%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 评价数 -->
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm card-hover transition-all relative overflow-hidden">
-                    <div class="absolute -right-8 -top-8 w-32 h-32 bg-blue-50 rounded-full opacity-60"></div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-4">
-                            <p class="text-sm font-medium text-slate-500">累计评价数</p>
-                            <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                                <i class="fa fa-comments-o"></i>
-                            </div>
-                        </div>
-                        <div class="flex items-baseline space-x-2">
-                            <h3 class="text-5xl font-black text-blue-600">2,156</h3>
-                            <span class="text-sm text-slate-400">条</span>
-                        </div>
-                        <div class="mt-4 grid grid-cols-2 gap-3">
-                            <div class="text-center p-3 bg-slate-50 rounded-xl">
-                                <p class="text-[10px] text-slate-400">本月新增</p>
-                                <p class="text-lg font-bold text-blue-600">128</p>
-                            </div>
-                            <div class="text-center p-3 bg-slate-50 rounded-xl">
-                                <p class="text-[10px] text-slate-400">待回复</p>
-                                <p class="text-lg font-bold text-orange-500">6</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 评分维度分布 -->
-        <section class="mb-8">
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-                <div class="flex items-center space-x-3 mb-5">
-                    <div class="w-1 h-6 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full"></div>
-                    <h2 class="text-lg font-bold">评分维度分布</h2>
-                </div>
-                
-            </div>
-        </section>
-
         <!-- 评价列表 -->
         <section>
             <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
@@ -317,7 +215,7 @@
                         <span>评价内容</span>
                     </h3>
                     <div class="p-5 bg-slate-50 rounded-2xl">
-                        <p class="text-sm leading-relaxed text-slate-600">服务非常专业，专家团队经验丰富，从需求沟通到最终申报全程跟进，材料准备得很充分，沟通也很顺畅。高企认定顺利通过，感谢团队的支持！特别感谢李专家的耐心指导，针对我们企业知识产权薄弱的问题给出了很好的规划建议。</p>
+                        <p class="text-sm leading-relaxed text-slate-600">服务非常专业，专家团队经验丰富，从需求评估到最终申报全程跟进，材料准备得很充分，沟通也很顺畅。高企认定顺利通过，感谢团队的支持！特别感谢李专家的耐心指导，针对我们企业知识产权薄弱的问题给出了很好的规划建议。</p>
                         <div class="flex items-center space-x-2 mt-4">
                             <span class="text-[10px] bg-orange-50 text-orange-600 px-2 py-1 rounded-md">#专业负责</span>
                             <span class="text-[10px] bg-orange-50 text-orange-600 px-2 py-1 rounded-md">#沟通顺畅</span>
@@ -381,7 +279,7 @@
 
         // 模拟评价数据
         const evaluations = [
-            { id: 'CY20240107002', service: '高新技术企业认定全程辅导', company: '北京智造科技有限公司', rating: 5, content: '服务非常专业，专家团队经验丰富，从需求沟通到最终申报全程跟进，材料准备充分，高企认定顺利通过，感谢团队的支持！', time: '2024-01-09 15:30', replied: true, tags: ['专业负责', '沟通顺畅', '通过认定'] },
+            { id: 'CY20240107002', service: '高新技术企业认定全程辅导', company: '北京智造科技有限公司', rating: 5, content: '服务非常专业，专家团队经验丰富，从需求评估到最终申报全程跟进，材料准备充分，高企认定顺利通过，感谢团队的支持！', time: '2024-01-09 15:30', replied: true, tags: ['专业负责', '沟通顺畅', '通过认定'] },
             { id: 'CY20240106005', service: '软件著作权登记代理', company: '深圳软云网络科技有限公司', rating: 5, content: '办理速度快，服务态度好，软著证书已经拿到，非常满意！', time: '2024-01-06 11:20', replied: true, tags: ['办理迅速', '服务好'] },
             { id: 'CY20240105006', service: '产品质检报告服务', company: '苏州精密制造科技有限公司', rating: 4, content: '检测报告质量不错，出报告时间比预期稍长，整体满意。', time: '2024-01-05 09:15', replied: false, tags: ['报告准确', '时间稍长'] },
             { id: 'CY20240104007', service: '商标注册全程代理', company: '杭州电商品牌管理有限公司', rating: 5, content: '商标注册很顺利，顾问很专业，解答了很多疑问，推荐！', time: '2024-01-04 14:42', replied: true, tags: ['专业解答', '注册顺利'] },
@@ -473,83 +371,6 @@
         // 初始化
         renderEvaluations();
     </script>
-
-    <section class="max-w-7xl mx-auto px-6 pb-10">
-        <div class="bg-white/85 backdrop-blur-xl rounded-2xl border border-orange-100 shadow-lg shadow-orange-100/40 p-6 relative overflow-hidden">
-            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-orange-500 via-amber-500 to-yellow-500 rounded-l-2xl"></div>
-            <div class="ml-4">
-                <div class="flex items-center justify-between mb-5">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
-                            <i class="fa fa-info-circle"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-lg font-bold text-slate-800 flex items-center">
-                                功能详情说明
-                                <span class="ml-2 px-2.5 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded-full">模块五 · 服务交易中心</span>
-                            </h2>
-                            <p class="text-xs text-slate-500 mt-0.5">评价体系 · 星级评分+文字评价+服务商回复</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="inline-flex items-center px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>4.86 平均分
-                        </span>
-                        <span class="inline-flex items-center px-3 py-1 bg-orange-50 text-orange-600 text-xs font-bold rounded-full">
-                            <i class="fa fa-star mr-1.5"></i>信誉分驱动
-                        </span>
-                    </div>
-                </div>
-                <div class="overflow-x-auto rounded-xl border border-orange-100">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50">
-                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">功能模块</th>
-                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">服务内容</th>
-                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">核心交易流程</th>
-                                <th class="text-left px-5 py-3.5 text-xs font-black text-slate-600">联动关系</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-orange-50">
-                            <tr class="hover:bg-orange-50/40 transition-colors">
-                                <td class="px-5 py-4">
-                                    <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700">
-                                        <i class="fa fa-star"></i>
-                                        <span>评价体系</span>
-                                    </span>
-                                </td>
-                                <td class="px-5 py-4">
-                                    <div class="flex flex-wrap gap-1.5">
-                                        <span class="px-2 py-0.5 bg-orange-50 text-orange-700 text-[11px] font-semibold rounded-md border border-orange-100">星级评分</span>
-                                        <span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[11px] font-semibold rounded-md border border-amber-100">文字评价</span>
-                                        <span class="px-2 py-0.5 bg-yellow-50 text-yellow-700 text-[11px] font-semibold rounded-md border border-yellow-100">服务商回复</span>
-                                    </div>
-                                </td>
-                                <td class="px-5 py-4">
-                                    <div class="flex flex-wrap gap-1.5">
-                                        <span class="px-2 py-0.5 bg-orange-50 text-orange-700 text-[11px] font-semibold rounded-md border border-orange-100">评价模型</span>
-                                        <span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[11px] font-semibold rounded-md border border-amber-100">信誉分计算</span>
-                                    </div>
-                                </td>
-                                <td class="px-5 py-4">
-                                    <div class="space-y-1.5">
-                                        <div class="flex items-center text-xs text-slate-700">
-                                            <span class="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] font-semibold rounded-md mr-2">运营平台</span>
-                                            <span>(质量监控)</span>
-                                        </div>
-                                        <div class="flex items-center text-xs text-slate-700">
-                                            <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-md mr-2">销售中心</span>
-                                            <span>(绩效考核)</span>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </section>
 
 </body>
 </html>

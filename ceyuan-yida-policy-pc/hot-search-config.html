@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>热搜配置 - 策源易答运营平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        .tab-btn.active { background: #4f46e5; color: #fff; box-shadow: 0 6px 14px -6px rgba(79,70,229,.5); }
+        .switch { width: 38px; height: 22px; border-radius: 999px; background: #cbd5e1; position: relative; cursor: pointer; transition: all .2s; }
+        .switch.on { background: #10b981; }
+        .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 999px; background: #fff; transition: all .2s; }
+        .switch.on::after { left: 19px; }
+        .row-dragging { opacity: .5; }
+    </style>
+    <script>
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-slate-50 p-8">
+
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-black text-slate-800 flex items-center">
+                <i class="fa fa-fire text-orange-500 mr-3"></i>热搜配置
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">运营管理平台 / 内容运营 / 热搜配置</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="resetDefault()" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
+                <i class="fa fa-undo mr-2"></i>恢复默认
+            </button>
+            <button onclick="saveConfig()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20">
+                <i class="fa fa-cloud-upload mr-2"></i>保存并同步首页
+            </button>
+        </div>
+    </div>
+
+    <div class="mb-5 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 flex items-start space-x-3">
+        <i class="fa fa-info-circle text-indigo-500 mt-0.5"></i>
+        <div class="text-xs text-slate-600 leading-relaxed">
+            <b class="text-indigo-700">手动优先，自动补位。</b>
+            首页「热门搜索」先按排序展示手动配置项，位置不够时由系统按近 7 天搜索热度自动补足；
+            同一关键词只出现一次，手动优先。自动项只保留当期热度前 20 条，超出自动淘汰，不做历史累积。
+        </div>
+    </div>
+
+    <!-- 全局设置 -->
+    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm p-5 mb-5">
+        <h3 class="text-sm font-black text-slate-800 mb-4"><i class="fa fa-sliders text-indigo-500 mr-2"></i>展示规则</h3>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="text-[11px] font-bold text-slate-500 block mb-1">首页展示位数量</label>
+                <input id="cfgLimit" type="number" min="3" max="10" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400">
+                <p class="text-[10px] text-slate-400 mt-1">建议 6 条，过多会挤占首屏</p>
+            </div>
+            <div>
+                <label class="text-[11px] font-bold text-slate-500 block mb-1">自动推荐开关</label>
+                <div class="flex items-center gap-3 mt-2">
+                    <div id="cfgAutoSwitch" class="switch" onclick="toggleAuto()"></div>
+                    <span id="cfgAutoText" class="text-xs font-bold text-slate-600">已开启</span>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1">开启后，手动词占满剩余位置由热度最高的词补足；关闭后仅展示手动词</p>
+            </div>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-3 pt-3 border-t border-slate-100">自动取数固定为近 7 天搜索热度，最多保留 20 条候选（超出自动淘汰），无需额外配置。</p>
+    </div>
+
+    <!-- Tab -->
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-1 bg-white rounded-xl p-1 border border-slate-100 shadow-sm">
+            <button id="tabManual" onclick="switchTab('manual')" class="tab-btn active px-4 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all">
+                <i class="fa fa-thumb-tack mr-1"></i>手动配置 <span id="manualCnt" class="text-[10px] opacity-70"></span>
+            </button>
+            <button id="tabAuto" onclick="switchTab('auto')" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all">
+                <i class="fa fa-fire mr-1"></i>自动推荐 <span id="autoCnt" class="text-[10px] opacity-70"></span>
+            </button>
+        </div>
+        <button id="addBtn" onclick="openEdit()" class="px-4 py-2 bg-white border border-indigo-200 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-50 transition-all">
+            <i class="fa fa-plus mr-1"></i>新增热搜词
+        </button>
+    </div>
+
+    <!-- 手动配置 -->
+    <div id="panelManual" class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+        <table class="w-full text-xs">
+            <thead class="bg-slate-50 text-slate-500">
+                <tr>
+                    <th class="px-4 py-3 text-left font-bold w-16">排序</th>
+                    <th class="px-4 py-3 text-left font-bold">关键词</th>
+                    <th class="px-4 py-3 text-left font-bold w-28">分类</th>
+                    <th class="px-4 py-3 text-left font-bold w-32">点击行为</th>
+                    <th class="px-4 py-3 text-left font-bold w-24">状态</th>
+                    <th class="px-4 py-3 text-right font-bold w-40">操作</th>
+                </tr>
+            </thead>
+            <tbody id="manualBody"></tbody>
+        </table>
+    </div>
+
+    <!-- 自动推荐 -->
+    <div id="panelAuto" class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden hidden">
+        <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+            <span class="text-[11px] text-slate-400"><i class="fa fa-line-chart text-indigo-400 mr-1"></i>按近 7 天搜索热度排序，最多保留 20 条候选；点击「加入置顶」可转为手动配置</span>
+        </div>
+        <table class="w-full text-xs">
+            <thead class="bg-slate-50 text-slate-500">
+                <tr>
+                    <th class="px-4 py-3 text-left font-bold">关键词</th>
+                    <th class="px-4 py-3 text-left font-bold w-28">搜索次数</th>
+                    <th class="px-4 py-3 text-left font-bold w-24">趋势</th>
+                    <th class="px-4 py-3 text-right font-bold w-32">操作</th>
+                </tr>
+            </thead>
+            <tbody id="autoBody"></tbody>
+        </table>
+    </div>
+
+    <!-- 编辑弹窗 -->
+    <div id="editMask" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(15,23,42,.5);backdrop-filter:blur(2px);">
+        <div class="w-[440px] bg-white rounded-2xl shadow-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="editTitle" class="text-sm font-black text-slate-800">新增热搜词</h3>
+                <button onclick="closeEdit()" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 block mb-1">热搜关键词 <span class="text-red-400">*</span></label>
+                    <input id="editKeyword" type="text" placeholder="如：高新技术企业认定需要什么条件？" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 block mb-1">分类</label>
+                        <select id="editCategory" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400">
+                            <option>政策条件</option>
+                            <option>补贴政策</option>
+                            <option>申报计算</option>
+                            <option>区域政策</option>
+                            <option>自由词</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 block mb-1">点击行为</label>
+                        <select id="editAction" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400">
+                            <option value="search">直接发起搜索</option>
+                            <option value="policy">跳转政策详情</option>
+                            <option value="topic">跳转政策专题</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="editTargetWrap" class="hidden">
+                    <label class="text-[11px] font-bold text-slate-500 block mb-1">目标政策 / 专题名称</label>
+                    <input id="editTarget" type="text" placeholder="政策名称或专题标识" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-5">
+                <button onclick="closeEdit()" class="px-4 py-2 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200">取消</button>
+                <button onclick="submitEdit()" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed hidden px-4 py-2 rounded-xl text-xs font-bold text-white bg-slate-800 shadow-xl" style="left:50%;transform:translateX(-50%);top:24px;z-index:999"></div>
+
+    <script>
+        var CFG_KEY = 'ceyuan_hot_search_config';
+        var POOL_LIMIT = 20; // 自动候选池固定上限，超出的自动淘汰
+        var currentTab = 'manual';
+        var editingId = null;
+
+        var SEED = {
+            limit: 6,
+            autoEnabled: true,
+            seq: 1,
+            items: [
+                { id: 'm1', keyword: '高新技术企业认定需要什么条件？', mode: 'manual', category: '政策条件', action: 'search', sort: 1, enabled: true },
+                { id: 'm2', keyword: '专精特新企业有哪些补贴政策？', mode: 'manual', category: '补贴政策', action: 'search', sort: 2, enabled: true },
+                { id: 'a1', keyword: '研发费用加计扣除怎么计算？', mode: 'auto', category: '申报计算', action: 'search', enabled: true, count: 1286, trend: 'up' },
+                { id: 'a2', keyword: '成都有哪些区级研发补贴？', mode: 'auto', category: '区域政策', action: 'search', enabled: true, count: 964, trend: 'up' },
+                { id: 'a3', keyword: '知识产权贯标有什么资助？', mode: 'auto', category: '补贴政策', action: 'search', enabled: true, count: 721, trend: 'flat' },
+                { id: 'a4', keyword: '技术改造项目能申请什么补贴？', mode: 'auto', category: '补贴政策', action: 'search', enabled: true, count: 653, trend: 'down' },
+                { id: 'a5', keyword: '科技型中小企业入库标准', mode: 'auto', category: '政策条件', action: 'search', enabled: true, count: 588, trend: 'up' },
+                { id: 'a6', keyword: '研发费用加计扣除比例', mode: 'auto', category: '申报计算', action: 'search', enabled: true, count: 512, trend: 'flat' },
+                { id: 'a7', keyword: '深圳市专精特新奖励标准', mode: 'auto', category: '区域政策', action: 'search', enabled: true, count: 467, trend: 'up' },
+                { id: 'a8', keyword: '首台套重大技术装备保险补偿', mode: 'auto', category: '自由词', action: 'search', enabled: true, count: 402, trend: 'down' }
+            ]
+        };
+
+        function load() {
+            try {
+                var raw = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
+                if (raw && raw.items) return raw;
+            } catch (e) {}
+            return JSON.parse(JSON.stringify(SEED));
+        }
+        var cfg = load();
+        if (!cfg.limit) cfg.limit = 6;
+        var draft = JSON.parse(JSON.stringify(cfg));
+
+        function save() {
+            draft.limit = parseInt(document.getElementById('cfgLimit').value || 6);
+        }
+
+        function syncSettings() {
+            document.getElementById('cfgLimit').value = draft.limit;
+            var sw = document.getElementById('cfgAutoSwitch');
+            if (draft.autoEnabled) { sw.classList.add('on'); document.getElementById('cfgAutoText').textContent = '已开启'; }
+            else { sw.classList.remove('on'); document.getElementById('cfgAutoText').textContent = '已关闭'; }
+        }
+
+        function toggleAuto() {
+            draft.autoEnabled = !draft.autoEnabled;
+            syncSettings();
+        }
+
+        function switchTab(t) {
+            currentTab = t;
+            document.getElementById('tabManual').classList.toggle('active', t === 'manual');
+            document.getElementById('tabAuto').classList.toggle('active', t === 'auto');
+            document.getElementById('panelManual').classList.toggle('hidden', t !== 'manual');
+            document.getElementById('panelAuto').classList.toggle('hidden', t !== 'auto');
+            document.getElementById('addBtn').classList.toggle('hidden', t !== 'manual');
+        }
+
+        function renderManual() {
+            var list = draft.items.filter(function (i) { return i.mode === 'manual'; })
+                .sort(function (a, b) { return (a.sort || 0) - (b.sort || 0); });
+            document.getElementById('manualCnt').textContent = '(' + list.length + ')';
+            if (!list.length) {
+                document.getElementById('manualBody').innerHTML = '<tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">暂无手动配置，点击右上角「新增热搜词」添加</td></tr>';
+                return;
+            }
+            document.getElementById('manualBody').innerHTML = list.map(function (it, idx) {
+                var behavior = it.action === 'policy' ? '跳转政策详情：' + (it.target || '未设置')
+                    : (it.action === 'topic' ? '跳转专题：' + (it.target || '未设置') : '直接发起搜索');
+                return '<tr class="border-t border-slate-100 hover:bg-slate-50/60">' +
+                    '<td class="px-4 py-3">' +
+                    '  <div class="flex items-center gap-1">' +
+                    '    <span class="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 text-[11px] font-black flex items-center justify-center">' + (idx + 1) + '</span>' +
+                    '  </div>' +
+                    '</td>' +
+                    '<td class="px-4 py-3 font-bold text-slate-700">' + esc(it.keyword) + '</td>' +
+                    '<td class="px-4 py-3 text-slate-500">' + esc(it.category || '自由词') + '</td>' +
+                    '<td class="px-4 py-3 text-slate-500">' + esc(behavior) + '</td>' +
+                    '<td class="px-4 py-3">' + (it.enabled
+                        ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200">启用</span>'
+                        : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200">停用</span>') + '</td>' +
+                    '<td class="px-4 py-3 text-right whitespace-nowrap">' +
+                    '  <button onclick="moveItem(\'' + it.id + '\',-1)" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400" title="上移"><i class="fa fa-arrow-up"></i></button>' +
+                    '  <button onclick="moveItem(\'' + it.id + '\',1)" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400" title="下移"><i class="fa fa-arrow-down"></i></button>' +
+                    '  <button onclick="toggleItem(\'' + it.id + '\')" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400" title="启用/停用"><i class="fa fa-power-off"></i></button>' +
+                    '  <button onclick="openEdit(\'' + it.id + '\')" class="w-7 h-7 rounded-lg hover:bg-indigo-50 text-indigo-500" title="编辑"><i class="fa fa-pencil"></i></button>' +
+                    '  <button onclick="delItem(\'' + it.id + '\')" class="w-7 h-7 rounded-lg hover:bg-red-50 text-red-400" title="删除"><i class="fa fa-trash"></i></button>' +
+                    '</td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        function renderAuto() {
+            var list = draft.items.filter(function (i) { return i.mode === 'auto'; })
+                .sort(function (a, b) { return (b.count || 0) - (a.count || 0); });
+            document.getElementById('autoCnt').textContent = '(' + list.length + ')';
+            if (!list.length) {
+                document.getElementById('autoBody').innerHTML = '<tr><td colspan="4" class="px-4 py-10 text-center text-slate-400">暂无自动推荐数据</td></tr>';
+                return;
+            }
+            document.getElementById('autoBody').innerHTML = list.map(function (it) {
+                var trendHtml = it.trend === 'up' ? '<span class="text-emerald-600 font-bold"><i class="fa fa-arrow-up mr-0.5"></i>上升</span>'
+                    : (it.trend === 'down' ? '<span class="text-slate-400"><i class="fa fa-arrow-down mr-0.5"></i>下降</span>'
+                    : '<span class="text-slate-400">持平</span>');
+                return '<tr class="border-t border-slate-100 hover:bg-slate-50/60">' +
+                    '<td class="px-4 py-3 font-bold text-slate-700"><i class="fa fa-fire text-orange-400 mr-1"></i>' + esc(it.keyword) + '</td>' +
+                    '<td class="px-4 py-3 text-slate-600">' + (it.count || 0).toLocaleString() + '</td>' +
+                    '<td class="px-4 py-3">' + trendHtml + '</td>' +
+                    '<td class="px-4 py-3 text-right">' +
+                    '  <button onclick="promoteItem(\'' + it.id + '\')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100">加入置顶</button>' +
+                    '</td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        function renderAll() { renderManual(); renderAuto(); syncSettings(); }
+
+        function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+
+        function moveItem(id, dir) {
+            var list = draft.items.filter(function (i) { return i.mode === 'manual'; })
+                .sort(function (a, b) { return (a.sort || 0) - (b.sort || 0); });
+            var idx = list.findIndex(function (i) { return i.id === id; });
+            var target = idx + dir;
+            if (idx < 0 || target < 0 || target >= list.length) return;
+            var tmp = list[idx].sort; list[idx].sort = list[target].sort; list[target].sort = tmp;
+            renderManual();
+        }
+
+        function toggleItem(id) {
+            var it = draft.items.find(function (i) { return i.id === id; });
+            if (!it) return;
+            it.enabled = !it.enabled;
+            renderManual();
+        }
+
+        function delItem(id) {
+            if (!confirm('确定删除该热搜词吗？')) return;
+            draft.items = draft.items.filter(function (i) { return i.id !== id; });
+            renderManual();
+        }
+
+        function promoteItem(id) {
+            var it = draft.items.find(function (i) { return i.id === id; });
+            if (!it) return;
+            var maxSort = 0;
+            draft.items.forEach(function (i) { if (i.mode === 'manual') maxSort = Math.max(maxSort, i.sort || 0); });
+            it.mode = 'manual';
+            it.sort = maxSort + 1;
+            it.enabled = true;
+            renderAll();
+            toast('已加入手动置顶，可在「手动配置」中调整排序');
+        }
+
+        function openEdit(id) {
+            editingId = id || null;
+            var it = id ? draft.items.find(function (i) { return i.id === id; }) : null;
+            document.getElementById('editTitle').textContent = it ? '编辑热搜词' : '新增热搜词';
+            document.getElementById('editKeyword').value = it ? it.keyword : '';
+            document.getElementById('editCategory').value = it ? (it.category || '自由词') : '政策条件';
+            document.getElementById('editAction').value = it ? (it.action || 'search') : 'search';
+            document.getElementById('editTarget').value = it ? (it.target || '') : '';
+            toggleTargetField();
+            document.getElementById('editMask').classList.remove('hidden');
+        }
+        function closeEdit() { document.getElementById('editMask').classList.add('hidden'); editingId = null; }
+        function toggleTargetField() {
+            var v = document.getElementById('editAction').value;
+            document.getElementById('editTargetWrap').classList.toggle('hidden', v === 'search');
+        }
+        document.getElementById('editAction').addEventListener('change', toggleTargetField);
+
+        function submitEdit() {
+            var kw = document.getElementById('editKeyword').value.trim();
+            if (!kw) { toast('请填写热搜关键词', true); return; }
+            var category = document.getElementById('editCategory').value;
+            var action = document.getElementById('editAction').value;
+            var target = document.getElementById('editTarget').value.trim();
+            if (action !== 'search' && !target) { toast('请填写目标政策 / 专题名称', true); return; }
+
+            // 去重：同一关键词只保留一条（手动优先）
+            var dup = draft.items.find(function (i) { return i.keyword === kw && i.id !== editingId; });
+            if (dup) { toast('该关键词已存在（' + (dup.mode === 'manual' ? '手动配置' : '自动推荐') + '）', true); return; }
+
+            if (editingId) {
+                var it = draft.items.find(function (i) { return i.id === editingId; });
+                it.keyword = kw; it.category = category; it.action = action; it.target = target;
+                renderAll();
+                toast('已更新');
+            } else {
+                var maxSort = 0;
+                draft.items.forEach(function (i) { if (i.mode === 'manual') maxSort = Math.max(maxSort, i.sort || 0); });
+                draft.items.push({
+                    id: 'm' + Date.now(), keyword: kw, mode: 'manual', category: category,
+                    action: action, target: target, sort: maxSort + 1, enabled: true
+                });
+                renderAll();
+                toast('已新增，记得点击「保存并同步首页」生效');
+            }
+            closeEdit();
+        }
+
+        function saveConfig() {
+            save();
+            // 候选池裁剪：自动项仅保留当期热度前 N 条，超出的自动淘汰，不做历史累积
+            var autoItems = draft.items.filter(function (i) { return i.mode === 'auto'; })
+                .sort(function (a, b) { return (b.count || 0) - (a.count || 0); });
+            var keep = {};
+            autoItems.slice(0, POOL_LIMIT).forEach(function (i) { keep[i.id] = true; });
+            var dropped = autoItems.length - Object.keys(keep).length;
+            draft.items = draft.items.filter(function (i) { return i.mode !== 'auto' || keep[i.id]; });
+            cfg = JSON.parse(JSON.stringify(draft));
+            try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
+            renderAll();
+            var count = draft.items.filter(function (i) { return i.mode === 'manual' && i.enabled; }).length;
+            var poolCount = draft.items.filter(function (i) { return i.mode === 'auto'; }).length;
+            toast('已保存，首页「热门搜索」已同步（手动词前 ' + Math.min(count, draft.limit) + ' 条 + 自动推荐补足）；候选池 ' + poolCount + ' 条' + (dropped > 0 ? '，淘汰 ' + dropped + ' 条' : ''));
+        }
+
+        function resetDefault() {
+            if (!confirm('恢复默认配置？当前修改将丢失。')) return;
+            draft = JSON.parse(JSON.stringify(SEED));
+            localStorage.removeItem(CFG_KEY);
+            renderAll();
+            toast('已恢复默认配置');
+        }
+
+        function toast(msg, isErr) {
+            var t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'fixed px-4 py-2 rounded-xl text-xs font-bold text-white shadow-xl ' + (isErr ? 'bg-red-500' : 'bg-slate-800');
+            t.style.cssText = 'left:50%;transform:translateX(-50%);top:24px;z-index:999';
+            clearTimeout(window.__tt);
+            window.__tt = setTimeout(function () { t.classList.add('hidden'); }, 2200);
+        }
+
+        renderAll();
+    </script>
+</body>
+</html>

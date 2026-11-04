@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>政策中心 - 策源易答</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+        .left-sidebar { background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4); }
+        .scroll-thin::-webkit-scrollbar { width: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 3px; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .region-tab { cursor: pointer; transition: all .15s ease; white-space: nowrap; user-select: none; }
+        .region-tab:hover { color: #2563eb; background: rgba(37,99,235,.06); }
+        .region-tab.tab-active { background: #4f46e5; color: #fff; box-shadow: 0 4px 12px -4px rgba(79,70,229,.5); }
+        .region-chip { cursor: pointer; transition: all .15s ease; white-space: nowrap; user-select: none; }
+        .region-chip:hover { color: #2563eb; border-color: #2563eb; }
+        .region-chip.chip-active { background: rgba(37,99,235,.10); color: #2563eb; border-color: #2563eb; font-weight: 700; }
+        /* ===== 高级查询：参考图风格（纯文字标签） ===== */
+        .aq-row { display: flex; align-items: flex-start; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
+        .aq-row:last-child { border-bottom: none; }
+        .aq-label { width: 84px; flex-shrink: 0; color: #64748b; font-size: 13px; font-weight: 600; padding-top: 2px; }
+        .aq-tags { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; }
+        .aq-tag { color: #64748b; font-size: 13px; cursor: pointer; padding: 1px 2px; transition: all .12s; line-height: 1.8; }
+        .aq-tag:hover { color: #2563eb; }
+        .aq-tag.active { color: #2563eb; font-weight: 700; }
+        .aq-toggle { color: #2563eb; font-size: 12px; cursor: pointer; flex-shrink: 0; padding-top: 3px; font-weight: 600; }
+        .aq-toggle:hover { text-decoration: underline; }
+        .aq-collapse { overflow: hidden; max-height: 30px; transition: max-height .25s ease; }
+        .aq-collapse.open { max-height: 600px; }
+        .aq-pager { color: #64748b; font-size: 12px; cursor: pointer; user-select: none; }
+        .aq-pager span { margin: 0 4px; }
+        .aq-pager .aq-page-cur { color: #2563eb; font-weight: 700; }
+        /* 政策列表（精简卡片，参考政务公告列表） */
+        .pc-card { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid #eef2f7; border-radius: 10px; padding: 16px 22px; margin-bottom: 8px; cursor: pointer; transition: all .18s ease; }
+        .pc-card:hover { border-color: #a5b4fc; box-shadow: 0 8px 20px -12px rgba(79,70,229,.22); transform: translateY(-1px); }
+        .pc-card:hover .pc-title { color: #4f46e5; }
+        .pc-title { font-size: 15px; font-weight: 700; color: #1e293b; transition: color .15s; line-height: 1.5; }
+        .pc-meta { font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: 6px; }
+        .pc-meta i { color: #c4b5fd; margin-right: 4px; }
+        /* 条件区整体展开/收起（骑缝胶囊按钮） */
+        .aq-more-wrap { position: relative; height: 0; }
+        .aq-more-btn { position: absolute; left: 50%; transform: translateX(-50%); top: -12px; padding: 5px 22px; background: #fff; border: 1px solid #e2e8f0; border-radius: 999px; font-size: 12px; font-weight: 700; color: #64748b; cursor: pointer; transition: all .15s; box-shadow: 0 4px 12px -6px rgba(100,116,139,.4); z-index: 5; }
+        .aq-more-btn:hover { color: #4f46e5; border-color: #a5b4fc; }
+        .aq-more-btn i { transition: transform .2s; }
+        .aq-more-btn.open i { transform: rotate(180deg); }
+        .list-pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 20px 0 8px; font-size: 13px; color: #64748b; }
+        .list-pager button { padding: 5px 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px; cursor: pointer; font-size: 12px; color: #475569; }
+        .list-pager button:hover { border-color: #6366f1; color: #4f46e5; }
+        .list-pager button:disabled { opacity: .4; cursor: not-allowed; }
+        .list-pager select { padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; }
+        .policy-card { transition: all .2s ease; cursor: pointer; }
+        .policy-card:hover { box-shadow: 0 8px 20px -10px rgba(79,70,229,.25); border-color: #818cf8; background: #fff; }
+        @keyframes modalIn { from { opacity: 0; transform: translate(-50%, calc(-50% - 12px)) scale(0.97); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+        .animate-modal-in { animation: modalIn 0.18s cubic-bezier(0.4, 0, 0.2, 1) both; }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="flex h-screen">
+        <!-- 左侧窄导航 -->
+        <aside class="left-sidebar w-20 flex-shrink-0 flex flex-col items-center" style="background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4);">
+            <div class="w-full pt-4 pb-3 border-b border-white/30 flex flex-col items-center">
+                <div style="position:relative;width:62px;height:28px;"><svg style="position:absolute;top:0;left:0;" width="62" height="14" viewBox="0 0 62 14"><path d="M3 13 C 18 1, 44 -1, 59 7" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round"/></svg><div style="position:absolute;top:5px;left:0;width:62px;text-align:center;font-size:17px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#1d4ed8;font-family:Arial,sans-serif;">ELHP</div></div><div class="text-[10px] font-black text-slate-800" style="margin-top:2px;">策源易答</div>
+            </div>
+            <div class="w-full pt-3 pb-3 flex flex-col items-center gap-1.5">
+                <button onclick="goPage('dashboard.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="智能政策问答">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-comments text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策问答</span>
+                </button>
+                <button onclick="goPage('policy-radar.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策雷达</span>
+                </button>
+                <button onclick="goPage('ability-diagnosis.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="科创能力评估">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-stethoscope text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">科创测评</span>
+                </button>
+                <button onclick="goPage('declaration-butler.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="申报材料自查">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-file-text-o text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">申报管家</span>
+                </button>
+                <button onclick="goPage('policy-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center" style="background:#6366f1;"><i class="fa fa-university text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold" style="color:#4f46e5;">政策中心</span>
+                </button>
+                <button onclick="goPage('service-market.html')" class="flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold text-orange-600">服务商城</span>
+                </button>
+            </div>
+            <div class="mt-auto w-full pt-2 pb-3 border-t border-white/30 flex flex-col items-center gap-1.5">
+                <button onclick="goPage('member-center.html?action=plan')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="策能值充值">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-amber-400 to-orange-500"><i class="fa fa-bolt text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold">充值中心</span>
+                </button>
+                <button onclick="goPage('member-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="会员中心">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-user text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">会员中心</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto scroll-thin" style="background: linear-gradient(135deg, #eef2ff 0%, #e0f2fe 50%, #f5f3ff 100%);">
+            <!-- 顶栏 -->
+            <div class="sticky top-0 z-10 flex items-center justify-between px-6 py-3 bg-white/60 backdrop-blur-md border-b border-white/50">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+                        <i class="fa fa-university text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-black text-slate-800 leading-tight">政策中心</h1>
+                        <p class="text-[11px] text-slate-500">按省份 / 市 / 区县浏览全量惠企政策，共 <span id="totalCount" class="font-bold text-indigo-600">0</span> 条</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="tbOpenCity()" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all" title="切换城市，查看当地政策">
+                        <i class="fa fa-map-marker mr-1"></i><span id="tbCity">成都市</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
+                    </button>
+                    <div class="relative group">
+                        <button onclick="goPage('member-center.html')" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all flex items-center gap-1.5">
+                            <i class="fa fa-user-circle mr-1"></i><span id="tbUser">未登录</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
+                        </button>
+                        <div class="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                            <div class="px-4 py-3 border-b border-slate-100">
+                                <div id="tbUserName" class="text-xs font-bold text-slate-700">未登录</div>
+                                <div id="tbUserPhone" class="text-[10px] text-slate-400 mt-0.5">—</div>
+                            </div>
+                            <button onclick="goPage('member-center.html')" class="w-full px-4 py-2.5 text-left text-xs text-slate-600 hover:bg-slate-50 flex items-center gap-2">
+                                <i class="fa fa-user w-3.5"></i>会员中心
+                            </button>
+                            <button onclick="tbLogout()" class="w-full px-4 py-2.5 text-left text-xs text-red-500 hover:bg-red-50 flex items-center gap-2">
+                                <i class="fa fa-sign-out w-3.5"></i>退出登录
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 mx-auto" style="max-width:1400px;">
+                <!-- 高级查询（参考图风格） -->
+                <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-5 mb-3">
+                    <h3 class="text-base font-black mb-2" style="color:#3358d4;"><span style="color:#4f8cff;">//</span> 高级查询</h3>
+
+                    <!-- 省市地区 -->
+                    <div class="aq-row">
+                        <div class="aq-label">省市地区</div>
+                        <div class="aq-tags aq-collapse" id="aqProvince"></div>
+                        <span class="aq-toggle" onclick="toggleCollapse('aqProvince')" id="aqProvinceToggle">展开</span>
+                    </div>
+                    <!-- 城市（选中省份后出现） -->
+                    <div class="aq-row hidden" id="aqCityRow">
+                        <div class="aq-label">城市</div>
+                        <div class="aq-tags aq-collapse" id="aqCity"></div>
+                        <span class="aq-toggle" onclick="toggleCollapse('aqCity')" id="aqCityToggle">展开</span>
+                    </div>
+                    <!-- 区县（选中城市后出现） -->
+                    <div class="aq-row hidden" id="aqDistrictRow">
+                        <div class="aq-label">区县</div>
+                        <div class="aq-tags aq-collapse" id="aqDistrict"></div>
+                        <span class="aq-toggle" onclick="toggleCollapse('aqDistrict')" id="aqDistrictToggle">展开</span>
+                    </div>
+
+                    <!-- 行业 -->
+                    <div class="aq-row">
+                        <div class="aq-label">行业</div>
+                        <div class="aq-tags aq-collapse" id="aqIndustry"></div>
+                        <span class="aq-toggle" onclick="toggleCollapse('aqIndustry')" id="aqIndustryToggle">展开</span>
+                    </div>
+
+                    <!-- 级别 -->
+                    <div class="aq-row">
+                        <div class="aq-label">级别</div>
+                        <div class="aq-tags" id="aqLevel"></div>
+                    </div>
+
+                    <!-- 可折叠区：政策发文机构 + 热门政策（默认收起） -->
+                    <div id="aqMore" class="hidden">
+                        <!-- 政策发文机构 -->
+                        <div class="aq-row">
+                            <div class="aq-label">政策发文机构</div>
+                            <div class="aq-tags aq-collapse" id="aqDept"></div>
+                            <span class="aq-pager" id="aqDeptPager"></span>
+                            <span class="aq-toggle" onclick="toggleCollapse('aqDept')" id="aqDeptToggle">展开</span>
+                        </div>
+
+                        <!-- 热门政策 -->
+                        <div class="aq-row">
+                            <div class="aq-label">热门政策</div>
+                            <div class="aq-tags aq-collapse" id="aqHot"></div>
+                            <span class="aq-toggle" onclick="toggleCollapse('aqHot')" id="aqHotToggle">展开</span>
+                        </div>
+                    </div>
+
+                    <!-- 搜索 + 操作按钮 -->
+                    <div class="flex items-center justify-between gap-2 pt-4">
+                        <div class="relative">
+                            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input id="kwInput" type="text" placeholder="搜索政策名称 / 部门 / 文号..."
+                                class="pl-8 pr-3 py-2 w-64 text-xs rounded-lg border border-slate-200 bg-white/80 focus:outline-none focus:border-indigo-400"
+                                oninput="STATE.kw=this.value; STATE.page=1; renderCards();">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="resetFilter()" class="px-5 py-2 text-xs font-bold text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-all">
+                                <i class="fa fa-rotate-left mr-1"></i>重置
+                            </button>
+                            <button onclick="renderCards()" class="px-6 py-2 text-xs font-bold text-white rounded-lg transition-all" style="background:linear-gradient(135deg,#4f8cff,#3358d4);">
+                                <i class="fa fa-search mr-1"></i>查一下
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 整体展开/收起（骑缝胶囊按钮） -->
+                    <div class="aq-more-wrap">
+                        <button id="aqMoreToggle" class="aq-more-btn" onclick="toggleAqMore()">展开更多条件 <i class="fa fa-angle-down ml-1"></i></button>
+                    </div>
+                </div>
+
+                <!-- 当前筛选结果统计 + 排序（白条卡片） -->
+                <div class="bg-white/80 backdrop-blur rounded-xl border border-white/60 shadow-sm px-4 py-2.5 mb-3 flex items-center justify-between">
+                    <div class="text-xs text-slate-600" id="filterDesc"></div>
+                    <div class="flex items-center gap-3">
+                        <select id="sortSelect" onchange="STATE.sort=this.value; STATE.page=1; renderCards();" class="text-[11px] text-slate-600 border border-slate-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:border-indigo-400">
+                            <option value="deadline">按截止日期</option>
+                            <option value="effective">按生效日期</option>
+                            <option value="level">按层级优先</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 政策列表（极简列表） -->
+                <div id="policyGrid" class="flex flex-col pb-4"></div>
+                <div id="listPager" class="list-pager"></div>
+                <div id="emptyState" class="hidden text-center py-12">
+                    <i class="fa fa-inbox text-4xl text-slate-300 mb-3"></i>
+                    <p class="text-sm text-slate-400 font-bold">当前地区 / 筛选条件下暂无政策</p>
+                    <p class="text-xs text-slate-400 mt-1">可切换省份或重置筛选试试</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 政策详情弹窗 -->
+    <div id="detailMask" class="hidden fixed inset-0 z-50 bg-slate-900/40" onclick="if(event.target===this)closeDetail()">
+        <div class="animate-modal-in absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-lg w-full mx-4 overflow-y-auto scroll-thin bg-white rounded-2xl shadow-2xl" style="max-height:85vh;">
+            <div id="detailBody"></div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js?v=20250929p"></script>
+    <script>
+        function goPage(url) {
+            try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage(url, null); return; } } catch (e) {}
+            window.location.href = url;
+        }
+
+        var COND_LABELS = { duration:'企业成立年限', rdRatio:'研发费用占比', hiTechRatio:'高新产品收入占比', ipOwned:'核心自主知识产权', scale:'企业规模', industry:'行业类型', region:'注册地区', employees:'员工人数', rdInvest:'年度研发投入', revenue:'年度营业收入', netAssets:'净资产', capital:'注册资本', hiTechCert:'高新技术企业资质', smeCert:'科技型中小企业', gazelleCert:'专精特新资质', profit:'年度净利润', exportRatio:'出口收入占比', projectInvest:'项目总投入', qualification:'企业资质' };
+        var COND_UNITS = { duration:'年', rdRatio:'%', hiTechRatio:'%', employees:'人', rdInvest:'万元', revenue:'万元', netAssets:'万元', capital:'万元', profit:'万元', exportRatio:'%', projectInvest:'万元' };
+        function _normOp(op) { return ({ '>=':'≥', '<=':'≤', '==':'=', '=':'=' })[op] || op; }
+        function conditionText(c) {
+            var label = COND_LABELS[c.type] || c.type;
+            var op = _normOp(c.op);
+            var val = (c.val === true || c.val === 'true') ? '是' : (c.val === false || c.val === 'false') ? '否' : c.val;
+            var unit = COND_UNITS[c.type] || '';
+            if (c.type === 'qualification') return label + ' 包含 ' + val;
+            if (val === '是' || val === '否') return label + '：' + val;
+            if (val === undefined || val === null || val === '') return label + ' ' + op;
+            return label + ' ' + op + ' ' + val + unit;
+        }
+
+        var LEVEL_STYLE = {
+            '国家级': { bg:'#eef2ff', color:'#4f46e5', icon:'fa-flag' },
+            '省级':   { bg:'#eff6ff', color:'#2563eb', icon:'fa-building' },
+            '市级':   { bg:'#f0fdfa', color:'#0d9488', icon:'fa-building-o' },
+            '区县级': { bg:'#fffbeb', color:'#d97706', icon:'fa-map-marker' },
+            '区级':   { bg:'#fffbeb', color:'#d97706', icon:'fa-map-marker' }
+        };
+        var BATCH_BADGE = { open:['申报中','#059669','#ecfdf5'], upcoming:['未开始','#2563eb','#eff6ff'], closed:['已截止','#94a3b8','#f1f5f9'] };
+
+        var POLICIES = DataBridge.loadPolicyLibrary();
+        var STATE = { province:'all', city:'all', district:'all', kw:'', level:'all', industry:'all', batchStatus:'all', sort:'deadline', dept:'all', deptPage:1, hotKw:'', page:1, pageSize:20 };
+        var ALL_LEVELS = ['国家级','省级','市级','区级'];
+        var LEVEL_ORDER = { '国家级':1, '省级':2, '市级':3, '区级':4, '区县级':4 };
+        // UI 显示「区级」，数据中存「区县级」，做映射
+        function uiLevelToData(lv) { return lv === '区级' ? '区县级' : lv; }
+        // 行业（参考图二字段值，GB/T 4754 门类）
+        var ALL_INDUSTRIES = ['采矿业','电力、热力、燃气及水生产和供应业','房地产业','公共管理、社会保障和社会组织','国际组织','建筑业','交通运输、仓储和邮政业','金融业','居民服务、修理和其他服务业','教育','科学研究和技术服务业','农、林、牧、渔业','批发和零售业','水利、环境和公共设施管理业','文化、体育和娱乐业','卫生和社会工作','信息传输、软件和信息技术服务业','制造业','住宿和餐饮业','租赁和商务服务业'];
+        // 政策发文机构（参考图二字段值）
+        var ALL_DEPTS = ['科技创新部','工业经济和信息化部','发展与改革部','市场监督部','人力资源部','住房与城乡建设部','农业农村部','财政部门','自然资源部','税务部门','生态环境部','商务部','人民政府','文化和旅游部','社保部门','人民政府办公室','广电与新闻部','体育部门','乡村振兴部门','金融部门','投资推广与促进部门','经济发展部门','管委会','经开区管委会','高新区管委会','认证认可部门','海事与海洋部门','外交外事部门','招商引资部门','环境保护部门','就业服务部门','行业协会组织'];
+        var DEPT_PAGE_SIZE = 12;
+
+        // 计算政策的申报状态（综合所有批次）
+        function policyBatchStatus(p) {
+            if (!p.batches || !p.batches.length) return 'perennial';
+            var today = new Date();
+            var hasOpen = p.batches.some(function(b){ return DataBridge.batchStatus(b, today) === 'open'; });
+            if (hasOpen) {
+                var urgent = p.batches.some(function(b){
+                    if (DataBridge.batchStatus(b, today) !== 'open') return false;
+                    var d = new Date(b.end); return (d - today) / 86400000 <= 7;
+                });
+                return urgent ? 'urgent' : 'open';
+            }
+            var hasUpcoming = p.batches.some(function(b){ return DataBridge.batchStatus(b, today) === 'upcoming'; });
+            return hasUpcoming ? 'upcoming' : 'closed';
+        }
+
+        function regionText(p) {
+            if (!p.region || p.region.province === '全国') return '全国通用';
+            return [p.region.province, p.region.city, p.region.district].filter(Boolean).join(' · ');
+        }
+        function latestBatch(p) {
+            if (!p.batches || !p.batches.length) return null;
+            var today = new Date();
+            // 优先申报中，其次未开始，最后最近截止
+            var sorted = p.batches.slice().sort(function(a,b){ return String(a.end).localeCompare(String(b.end)); });
+            var open = sorted.filter(function(b){ return DataBridge.batchStatus(b, today) === 'open'; });
+            if (open.length) return open[0];
+            var upcoming = sorted.filter(function(b){ return DataBridge.batchStatus(b, today) === 'upcoming'; });
+            if (upcoming.length) return upcoming[0];
+            return sorted[sorted.length - 1];
+        }
+        function batchBadgeHtml(p) {
+            var b = latestBatch(p);
+            if (!b) return '<span class="text-[10px] px-2 py-0.5 rounded-full font-bold" style="color:#7c3aed;background:#f5f3ff;">常年受理</span>';
+            var st = DataBridge.batchStatus(b, new Date());
+            var cfg = BATCH_BADGE[st];
+            return '<span class="text-[10px] px-2 py-0.5 rounded-full font-bold" style="color:' + cfg[1] + ';background:' + cfg[2] + ';" title="' + b.name + '（' + (b.start||'随时') + ' ~ ' + b.end + '）">' + cfg[0] + ' · ' + b.name + '</span>';
+        }
+
+var REGION_DATA = {"provinces":["北京市","广东省","上海市","重庆市","天津市","福建省","浙江省","江苏省","江西省","湖北省","湖南省","山东省","安徽省","河南省","河北省","山西省","内蒙古自治区","辽宁省","吉林省","黑龙江省","广西壮族自治区","海南省","四川省","贵州省","云南省","西藏自治区","陕西省","甘肃省","青海省","宁夏回族自治区","新疆维吾尔自治区","台湾省","香港特别行政区","澳门特别行政区","钓鱼岛"],"cityMap":{"北京市":["北京市"],"上海市":["上海市"],"天津市":["天津市"],"重庆市":["重庆市"],"安徽省":["合肥市","芜湖市","蚌埠市","淮南市","马鞍山市","淮北市","铜陵市","安庆市","黄山市","滁州市","阜阳市","宿州市","六安市","亳州市","池州市","宣城市"],"福建省":["福州市","厦门市","莆田市","三明市","泉州市","漳州市","南平市","龙岩市","宁德市"],"甘肃省":["兰州市","嘉峪关市","金昌市","白银市","天水市","酒泉市","张掖市","武威市","定西市","陇南市"],"广东省":["广州市","深圳市","珠海市","汕头市","佛山市","韶关市","湛江市","肇庆市","江门市","茂名市","惠州市","梅州市","汕尾市","河源市","阳江市","清远市","东莞市","中山市","潮州市","揭阳市"],"广西壮族自治区":["南宁市","柳州市","桂林市","梧州市","北海市","防城港市","钦州市","贵港市","玉林市","百色市","贺州市","河池市","来宾市","崇左市"],"贵州省":["贵阳市","六盘水市","遵义市","安顺市","毕节市","铜仁市"],"海南省":["海口市","三亚市","三沙市","儋州市"],"河北省":["石家庄市","唐山市","秦皇岛市","邯郸市","邢台市","保定市","张家口市","承德市","沧州市","廊坊市","衡水市"],"河南省":["郑州市","开封市","洛阳市","平顶山市","安阳市","鹤壁市","新乡市","焦作市","濮阳市","许昌市","漯河市","三门峡市","南阳市","商丘市","信阳市","周口市","驻马店市"],"黑龙江省":["哈尔滨市","齐齐哈尔市","鸡西市","鹤岗市","双鸭山市","大庆市","伊春市","佳木斯市","七台河市","牡丹江市","黑河市","绥化市"],"湖北省":["武汉市","黄石市","十堰市","宜昌市","襄阳市","鄂州市","荆门市","孝感市","荆州市","黄冈市","咸宁市","随州市"],"湖南省":["长沙市","株洲市","湘潭市","衡阳市","邵阳市","岳阳市","常德市","张家界市","益阳市","郴州市","永州市","怀化市","娄底市"],"吉林省":["长春市","吉林市","四平市","辽源市","通化市","白山市","松原市","白城市"],"江苏省":["南京市","无锡市","徐州市","常州市","苏州市","南通市","连云港市","淮安市","盐城市","扬州市","镇江市","泰州市","宿迁市"],"江西省":["南昌市","景德镇市","萍乡市","九江市","新余市","鹰潭市","赣州市","吉安市","宜春市","抚州市","上饶市"],"辽宁省":["沈阳市","大连市","鞍山市","抚顺市","本溪市","丹东市","锦州市","营口市","阜新市","辽阳市","盘锦市","铁岭市","朝阳市","葫芦岛市"],"内蒙古自治区":["呼和浩特市","包头市","乌海市","赤峰市","通辽市","鄂尔多斯市","呼伦贝尔市","巴彦淖尔市","乌兰察布市"],"宁夏回族自治区":["银川市","石嘴山市","吴忠市","固原市","中卫市"],"青海省":["西宁市","海东市"],"山东省":["济南市","青岛市","淄博市","枣庄市","东营市","烟台市","潍坊市","济宁市","泰安市","威海市","日照市","临沂市","德州市","聊城市","滨州市","菏泽市"],"山西省":["太原市","大同市","阳泉市","长治市","晋城市","朔州市","晋中市","运城市","忻州市","临汾市","吕梁市"],"陕西省":["西安市","铜川市","宝鸡市","咸阳市","渭南市","延安市","汉中市","榆林市","安康市","商洛市"],"四川省":["成都市","自贡市","攀枝花市","泸州市","德阳市","绵阳市","广元市","遂宁市","内江市","乐山市","南充市","眉山市","宜宾市","广安市","达州市","雅安市","巴中市","资阳市"],"台湾省":["台北市","高雄市","台中市"],"西藏自治区":["拉萨市","日喀则市","昌都市","林芝市","山南市","那曲市"],"新疆维吾尔自治区":["乌鲁木齐市","克拉玛依市","吐鲁番市","哈密市","昌吉市","伊宁市","库尔勒市"],"云南省":["昆明市","曲靖市","玉溪市","保山市","昭通市","丽江市","普洱市","临沧市"],"浙江省":["杭州市","宁波市","温州市","嘉兴市","湖州市","绍兴市","金华市","衢州市","舟山市","台州市","丽水市"],"香港特别行政区":["香港岛","九龙","新界"],"澳门特别行政区":["澳门半岛","氹仔","路环"],"钓鱼岛":["钓鱼岛"]},"districtMap":{"北京市":["东城区","西城区","朝阳区","海淀区","丰台区","石景山区","通州区","昌平区","大兴区","顺义区","房山区","门头沟区","平谷区","密云区","怀柔区","延庆区"],"上海市":["黄浦区","徐汇区","长宁区","静安区","普陀区","虹口区","杨浦区","浦东新区","闵行区","宝山区","嘉定区","金山区","松江区","青浦区","奉贤区","崇明区"],"天津市":["和平区","河东区","河西区","南开区","河北区","红桥区","东丽区","西青区","津南区","北辰区","武清区","宝坻区","滨海新区","宁河区","静海区","蓟州区"],"重庆市":["渝中区","大渡口区","江北区","沙坪坝区","九龙坡区","南岸区","北碚区","綦江区","大足区","渝北区","巴南区","万州区","涪陵区","永川区","江津区","合川区"],"成都市":["锦江区","青羊区","金牛区","武侯区","成华区","龙泉驿区","青白江区","新都区","温江区","双流区","郫都区","都江堰市","彭州市","邛崃市","崇州市","简阳市","金堂县","大邑县","蒲江县","新津县"],"绵阳市":["涪城区","游仙区","安州区","江油市","三台县","盐亭县","梓潼县","北川羌族自治县","平武县"],"广州市":["荔湾区","越秀区","海珠区","天河区","白云区","黄埔区","番禺区","花都区","南沙区","从化区","增城区"],"深圳市":["罗湖区","福田区","南山区","宝安区","龙岗区","盐田区","龙华区","坪山区","光明区","大鹏新区"],"杭州市":["上城区","下城区","江干区","拱墅区","西湖区","滨江区","萧山区","余杭区","富阳区","临安区","桐庐县","淳安县","建德市"],"武汉市":["江岸区","江汉区","硚口区","汉阳区","武昌区","青山区","洪山区","东西湖区","汉南区","蔡甸区","江夏区","黄陂区","新洲区"],"南京市":["玄武区","秦淮区","建邺区","鼓楼区","浦口区","栖霞区","雨花台区","江宁区","六合区","溧水区","高淳区"],"西安市":["新城区","碑林区","莲湖区","灞桥区","未央区","雁塔区","阎良区","临潼区","长安区","高陵区","鄠邑区","蓝田县","周至县"],"苏州市":["姑苏区","虎丘区","吴中区","相城区","吴江区","常熟市","张家港市","昆山市","太仓市"],"青岛市":["市南区","市北区","黄岛区","崂山区","李沧区","城阳区","即墨区","胶州市","平度市","莱西市"],"沈阳市":["和平区","沈河区","大东区","皇姑区","铁西区","苏家屯区","浑南区","沈北新区","于洪区","辽中区","新民市","康平县","法库县"],"大连市":["中山区","西岗区","沙河口区","甘井子区","旅顺口区","金州区","普兰店区","瓦房店市","庄河市","长海县"],"长沙市":["芙蓉区","天心区","岳麓区","开福区","雨花区","望城区","长沙县","浏阳市","宁乡市"],"郑州市":["中原区","二七区","管城回族区","金水区","上街区","惠济区","中牟县","巩义市","荥阳市","新密市","新郑市","登封市"],"福州市":["鼓楼区","台江区","仓山区","马尾区","晋安区","长乐区","闽侯县","连江县","罗源县","闽清县","永泰县","平潭县","福清市"],"厦门市":["思明区","海沧区","湖里区","集美区","同安区","翔安区"]},"genericDistricts":["市辖区","县级市","县","自治县"]};
+
+        // ===== 地区聚合 =====
+        function aggregate() {
+            var provMap = {};
+            POLICIES.forEach(function(p) {
+                var prov = (p.region && p.region.province) || '全国';
+                if (!provMap[prov]) provMap[prov] = { count:0, cities:{} };
+                provMap[prov].count++;
+                var city = p.region && p.region.city;
+                if (city) {
+                    if (!provMap[prov].cities[city]) provMap[prov].cities[city] = { count:0, districts:{} };
+                    provMap[prov].cities[city].count++;
+                    var dist = p.region && p.region.district;
+                    if (dist) {
+                        provMap[prov].cities[city].districts[dist] = (provMap[prov].cities[city].districts[dist] || 0) + 1;
+                    }
+                }
+            });
+            return provMap;
+        }
+
+        // aq 标签工具
+        function aqTag(label, active, onclick) {
+            var safeLabel = String(label).replace(/"/g, '&quot;');
+            var safeOnclick = String(onclick).replace(/"/g, '&quot;');
+            return '<span class="aq-tag ' + (active ? 'active' : '') + '" onclick="' + safeOnclick + '">' + safeLabel + '</span>';
+        }
+        function toggleCollapse(id) {
+            var el = document.getElementById(id);
+            var tg = document.getElementById(id + 'Toggle');
+            if (!el) return;
+            el.classList.toggle('open');
+            if (tg) tg.textContent = el.classList.contains('open') ? '收起' : '展开';
+        }
+
+        function renderProvinceTabs() {
+            var provEl = document.getElementById('aqProvince');
+            var html = aqTag('全部', STATE.province==='all', "pickProvince('all')");
+            REGION_DATA.provinces.forEach(function(prov) {
+                html += aqTag(prov, STATE.province===prov, "pickProvince('" + prov + "')");
+            });
+            provEl.innerHTML = html;
+
+            var cityRow = document.getElementById('aqCityRow');
+            var cityEl = document.getElementById('aqCity');
+            var cities = REGION_DATA.cityMap[STATE.province] || [];
+            if (STATE.province !== 'all' && cities.length) {
+                cityRow.classList.remove('hidden');
+                var ch = aqTag('全部', STATE.city==='all', "pickCity('all')");
+                cities.forEach(function(c) { ch += aqTag(c, STATE.city===c, "pickCity('" + c + "')"); });
+                cityEl.innerHTML = ch;
+            } else { cityRow.classList.add('hidden'); STATE.city = 'all'; }
+
+            var distRow = document.getElementById('aqDistrictRow');
+            var distEl = document.getElementById('aqDistrict');
+            var districts = REGION_DATA.districtMap[STATE.city] || REGION_DATA.genericDistricts;
+            if (STATE.city !== 'all' && districts.length) {
+                distRow.classList.remove('hidden');
+                var dh = aqTag('全部', STATE.district==='all', "pickDistrict('all')");
+                districts.forEach(function(d) { dh += aqTag(d, STATE.district===d, "pickDistrict('" + d + "')"); });
+                distEl.innerHTML = dh;
+            } else { distRow.classList.add('hidden'); STATE.district = 'all'; }
+        }
+
+        function pickProvince(p) { STATE.province = p; STATE.city = 'all'; STATE.district = 'all'; STATE.page = 1; renderProvinceTabs(); renderCards(); }
+        function pickCity(c) { STATE.city = c; STATE.district = 'all'; STATE.page = 1; renderProvinceTabs(); renderCards(); }
+        function pickDistrict(d) { STATE.district = d; STATE.page = 1; renderProvinceTabs(); renderCards(); }
+        function pickLevel(v) { STATE.level = v; STATE.page = 1; renderAdvancedFilters(); renderCards(); }
+        function pickIndustry(v) { STATE.industry = v; STATE.page = 1; renderAdvancedFilters(); renderCards(); }
+        function pickStatus(v) { STATE.batchStatus = v; STATE.page = 1; renderAdvancedFilters(); renderCards(); }
+        function pickDept(v) { STATE.dept = v; STATE.page = 1; renderAdvancedFilters(); renderCards(); }
+        function resetFilter() {
+            STATE = { province:'all', city:'all', district:'all', kw:'', level:'all', industry:'all', batchStatus:'all', sort:'deadline', dept:'all', deptPage:1, hotKw:'', page:1, pageSize:20 };
+            document.getElementById('kwInput').value = '';
+            document.getElementById('sortSelect').value = 'deadline';
+            renderProvinceTabs(); renderAdvancedFilters(); renderCards();
+        }
+
+        // 发文机构翻页
+        function setDeptPage(p) { STATE.deptPage = p; renderAdvancedFilters(); }
+
+        // 高级筛选渲染（行业 / 级别 / 发文机构 / 申报状态 / 热门政策）
+        function renderAdvancedFilters() {
+            var indEl = document.getElementById('aqIndustry');
+            var indHtml = aqTag('全部', STATE.industry==='all', "pickIndustry('all')");
+            ALL_INDUSTRIES.forEach(function(i){ indHtml += aqTag(i, STATE.industry===i, "pickIndustry('" + i + "')"); });
+            indEl.innerHTML = indHtml;
+
+            var lvEl = document.getElementById('aqLevel');
+            var lvHtml = aqTag('全部', STATE.level==='all', "pickLevel('all')");
+            ALL_LEVELS.forEach(function(l){ lvHtml += aqTag(l, STATE.level===l, "pickLevel('" + l + "')"); });
+            lvEl.innerHTML = lvHtml;
+
+            // 政策发文机构（分页，使用固定列表）
+            var depts = ALL_DEPTS;
+            var deptTotal = Math.max(1, Math.ceil(depts.length / DEPT_PAGE_SIZE));
+            if (STATE.deptPage > deptTotal) STATE.deptPage = 1;
+            var deptStart = (STATE.deptPage - 1) * DEPT_PAGE_SIZE;
+            var deptSlice = depts.slice(deptStart, deptStart + DEPT_PAGE_SIZE);
+            var deptEl = document.getElementById('aqDept');
+            var deptHtml = aqTag('全部', STATE.dept==='all', "pickDept('all')");
+            deptSlice.forEach(function(d){ deptHtml += aqTag(d, STATE.dept===d, "pickDept('" + d + "')"); });
+            deptEl.innerHTML = deptHtml;
+            var deptPagerEl = document.getElementById('aqDeptPager');
+            deptPagerEl.innerHTML = '<span class="' + (STATE.deptPage<=1?'opacity-40':'') + '" onclick="' + (STATE.deptPage>1?"setDeptPage("+(STATE.deptPage-1)+")":'') + '">❬</span><span class="aq-page-cur">' + STATE.deptPage + '</span>/<span>' + deptTotal + '</span><span class="' + (STATE.deptPage>=deptTotal?'opacity-40':'') + '" onclick="' + (STATE.deptPage<deptTotal?"setDeptPage("+(STATE.deptPage+1)+")":'') + '">❭</span>';
+
+            var hotKeywords = ['国家级制造业单项冠军企业认定','T/SIA002软件企业评估','创新型中小企业','国家级工程研究中心认定','GB/T 29490知识产权管理体系','国家级重点实验室认定','国家级科技型中小企业认定','GB/T23001两化融合管理体系','国家高新技术企业认定','国家级专精特新"小巨人"企业认定','国家级工业设计中心认定','国家科学技术奖','国家知识产权优势企业认定'];
+            var hotEl = document.getElementById('aqHot');
+            hotEl.innerHTML = hotKeywords.map(function(k){ return aqTag(k, STATE.hotKw===k, "pickHot('" + k + "')"); }).join('');
+        }
+
+        function pickHot(kw) {
+            STATE.hotKw = (STATE.hotKw === kw) ? '' : kw;
+            STATE.page = 1;
+            renderAdvancedFilters();
+            renderCards();
+        }
+
+        function filtered() {
+            var kw = STATE.kw.trim().toLowerCase();
+            var list = POLICIES.filter(function(p) {
+                var prov = (p.region && p.region.province) || '全国';
+                if (STATE.province !== 'all' && prov !== STATE.province) return false;
+                if (STATE.city !== 'all' && (!p.region || p.region.city !== STATE.city)) return false;
+                if (STATE.district !== 'all' && (!p.region || p.region.district !== STATE.district)) return false;
+                if (STATE.level !== 'all' && p.level !== uiLevelToData(STATE.level)) return false;
+                if (STATE.industry !== 'all' && p.industry !== STATE.industry) return false;
+                if (STATE.batchStatus !== 'all' && policyBatchStatus(p) !== STATE.batchStatus) return false;
+                if (STATE.dept !== 'all' && p.dept !== STATE.dept) return false;
+                if (STATE.hotKw) {
+                    if (p.name.indexOf(STATE.hotKw) < 0) return false;
+                }
+                if (kw) {
+                    var hay = (p.name + ' ' + p.dept + ' ' + (p.industry||'') + ' ' + regionText(p)).toLowerCase();
+                    if (hay.indexOf(kw) < 0) return false;
+                }
+                return true;
+            });
+            // 排序
+            var today = new Date();
+            list.sort(function(a, b) {
+                if (STATE.sort === 'level') {
+                    return (LEVEL_ORDER[a.level] || 9) - (LEVEL_ORDER[b.level] || 9);
+                }
+                if (STATE.sort === 'effective') {
+                    return String(b.effective || '').localeCompare(String(a.effective || ''));
+                }
+                // 默认按最新批次截止日期升序（即将截止的排前面）
+                var ba = latestBatch(a), bb = latestBatch(b);
+                var ea = ba ? ba.end : '9999-12-31';
+                var eb = bb ? bb.end : '9999-12-31';
+                return ea.localeCompare(eb);
+            });
+            return list;
+        }
+
+        // 条件区整体展开/收起
+        var aqMoreOpen = false;
+        function toggleAqMore() {
+            aqMoreOpen = !aqMoreOpen;
+            document.getElementById('aqMore').classList.toggle('hidden', !aqMoreOpen);
+            var btn = document.getElementById('aqMoreToggle');
+            btn.classList.toggle('open', aqMoreOpen);
+            btn.innerHTML = aqMoreOpen ? '收起条件 <i class="fa fa-angle-up ml-1"></i>' : '展开更多条件 <i class="fa fa-angle-down ml-1"></i>';
+        }
+
+        function renderCards() {
+            var list = filtered();
+            var grid = document.getElementById('policyGrid');
+            var empty = document.getElementById('emptyState');
+            document.getElementById('totalCount').textContent = POLICIES.length;
+            var desc = '共 <b class="text-indigo-600">' + list.length + '</b> 条政策';
+            var crumbs = [];
+            if (STATE.province !== 'all') crumbs.push(STATE.province);
+            if (STATE.city !== 'all') crumbs.push(STATE.city);
+            if (STATE.district !== 'all') crumbs.push(STATE.district);
+            if (crumbs.length) desc = '<i class="fa fa-map-marker text-indigo-400 mr-1"></i>' + crumbs.join(' / ') + ' · ' + desc;
+            if (STATE.kw.trim()) desc += ' · 关键词「' + STATE.kw.trim() + '」';
+            var extra = [];
+            if (STATE.level !== 'all') extra.push(STATE.level);
+            if (STATE.industry !== 'all') extra.push(STATE.industry);
+            if (STATE.batchStatus !== 'all') {
+                var stMap = { urgent:'即将截止', open:'申报中', upcoming:'未开始', closed:'已截止', perennial:'常年受理' };
+                extra.push(stMap[STATE.batchStatus]);
+            }
+            if (STATE.dept !== 'all') extra.push(STATE.dept);
+            if (extra.length) desc += ' · 已选 ' + extra.join('、');
+            document.getElementById('filterDesc').innerHTML = desc;
+
+            if (!list.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); document.getElementById('listPager').innerHTML=''; return; }
+            empty.classList.add('hidden');
+
+            // 分页
+            var totalPages = Math.max(1, Math.ceil(list.length / STATE.pageSize));
+            if (STATE.page > totalPages) STATE.page = totalPages;
+            var pageStart = (STATE.page - 1) * STATE.pageSize;
+            var pageList = list.slice(pageStart, pageStart + STATE.pageSize);
+
+            // 层级徽章配色
+            var LEVEL_BADGE = {
+                '国家级': ['#dc2626', '#fef2f2'],
+                '省级':   ['#2563eb', '#eff6ff'],
+                '市级':   ['#059669', '#ecfdf5'],
+                '区级':   ['#7c3aed', '#f5f3ff']
+            };
+            // 判断政策是否为"申报型"（用显式 policyType 字段）
+            function hasBatch(p) { return DataBridge.isDeclaration(p); }
+            // 根据政策"有什么"返回对应的展示信息
+            function pcStatus(p) {
+                if (!hasBatch(p)) {
+                    // 通知/公告类：没有申报批次，用发布/生效日期
+                    var pubDate = p.effective || (p.batches && p.batches[0] && p.batches[0].start) || '';
+                    return { type:'notice', txt:'政策通知', icon:'fa-bell', days:null, open:false, pubDate: pubDate };
+                }
+                // 申报型：根据批次状态细分
+                var st = policyBatchStatus(p);
+                var b = latestBatch(p);
+                if (st === 'perennial') return { type:'apply', txt:'常年受理', days:null, open:true, batch:b };
+                if (st === 'closed') return { type:'apply', txt:'本期已结束', days:null, open:false, batch:b };
+                if (st === 'upcoming' && b && b.start) {
+                    var ds = Math.ceil((new Date(b.start) - new Date()) / 86400000);
+                    return { type:'apply', txt:'距申报开始还有', days:Math.max(ds,0), open:false, batch:b };
+                }
+                var de = b && b.end ? Math.ceil((new Date(b.end) - new Date()) / 86400000) : 0;
+                return { type:'apply', txt:'距申报结束还有', days:Math.max(de,0), open:true, batch:b };
+            }
+
+            grid.innerHTML = pageList.map(function(p) {
+                // 简化卡片：只展示标题、发布单位、发布时间（参考政务公告列表）
+                var pubDate = p.effective || (p.batches && p.batches[0] && p.batches[0].start) || '—';
+                return '<div class="pc-card" onclick="openDetail(\'' + p.id + '\')">' +
+                    '<div class="flex-1 min-w-0">' +
+                        '<div class="pc-title truncate" title="' + p.name + '">' + p.name + '</div>' +
+                        '<div class="pc-meta">' +
+                            '<span><i class="fa fa-building"></i>' + (p.dept || '—') + '</span>' +
+                            '<span><i class="fa fa-clock-o"></i>发布时间：' + pubDate + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<i class="fa fa-chevron-right text-slate-300 text-xs ml-2"></i>' +
+                '</div>';
+            }).join('');
+
+            // 分页控件
+            var pager = document.getElementById('listPager');
+            var pageOpts = '';
+            for (var i = 1; i <= totalPages; i++) {
+                pageOpts += '<option value="' + i + '"' + (i===STATE.page?' selected':'') + '>' + i + '</option>';
+            }
+            pager.innerHTML =
+                '<span>共<b class="text-indigo-600 mx-1">' + list.length + '</b>条记录 ' + STATE.page + '/' + totalPages + '页</span>' +
+                '<button onclick="gotoPage(1)"' + (STATE.page===1?' disabled':'') + '>首页</button>' +
+                '<button onclick="gotoPage(' + (STATE.page-1) + ')"' + (STATE.page===1?' disabled':'') + '>上一页</button>' +
+                '<button onclick="gotoPage(' + (STATE.page+1) + ')"' + (STATE.page===totalPages?' disabled':'') + '>下一页</button>' +
+                '<button onclick="gotoPage(' + totalPages + ')"' + (STATE.page===totalPages?' disabled':'') + '>尾页</button>' +
+                '<span>第</span><select onchange="gotoPage(this.value)">' + pageOpts + '</select><span>页</span>';
+        }
+
+        function gotoPage(p) {
+            STATE.page = parseInt(p);
+            renderCards();
+        }
+
+        // ===== 详情弹窗 =====
+        function openDetail(id) {
+            goPage('policy-detail.html?policyId=' + encodeURIComponent(id) + '&v=20250929a');
+        }
+        function closeDetail() {} // 保留兼容
+
+        renderProvinceTabs();
+        renderAdvancedFilters();
+        renderCards();
+    </script>
+    <script src="libs/js/topbar.js"></script>
+</body>
+</html>

@@ -14,6 +14,19 @@
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
     </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
 </head>
 <body class="bg-slate-50 p-8">
 
@@ -323,7 +336,7 @@
             row.className = 'step-row flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-2';
             row.innerHTML = `
                 <span class="step-idx w-6 h-6 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">${box.children.length+1}</span>
-                <input type="text" value="${esc(t)}" placeholder="步骤名称，如：需求沟通" class="step-t w-40 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+                <input type="text" value="${esc(t)}" placeholder="步骤名称，如：需求评估" class="step-t w-40 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
                 <input type="text" value="${esc(d)}" placeholder="步骤说明，如：了解企业情况" class="step-d flex-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
                 <button class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg flex-shrink-0"><i class="fa fa-trash-o"></i></button>`;
             row.querySelector('button').onclick = () => { row.remove(); reindexSteps(); };

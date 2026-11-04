@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>地区差异管理 - 策源易答</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 3px; }
+        .ai-step { animation: pulse 1.2s ease-in-out infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <div class="max-w-[1400px] mx-auto p-6">
+        <!-- 页面标题 -->
+        <div class="mb-5 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 flex items-center gap-2">
+                    <i class="fa fa-map-marker text-amber-500"></i>地区差异管理
+                </h1>
+                <p class="text-sm text-slate-500">维护各省市县相对国家级基础模板的特殊材料要求 · 继承链：国家级 → 省 → 市 → 区县</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="goBack()" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50">
+                    <i class="fa fa-arrow-left mr-1.5"></i>返回申报配置
+                </button>
+                <button onclick="saveAll()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-100">
+                    <i class="fa fa-save mr-1.5"></i>保存全部
+                </button>
+            </div>
+        </div>
+
+        <!-- 顶部筛选条 -->
+        <div class="mb-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center gap-3 flex-wrap">
+                <!-- 项目下拉 -->
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-slate-600">申报项目：</label>
+                    <select id="projectSel" onchange="onProjectChange()" class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 min-w-[200px]">
+                        <option value="">选择项目…</option>
+                    </select>
+                </div>
+                <!-- 省份下拉 -->
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-slate-600">省份：</label>
+                    <select id="provinceSel" onchange="onProvinceChange()" class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 min-w-[140px]">
+                        <option value="">选择省份…</option>
+                    </select>
+                </div>
+                <!-- 城市下拉 -->
+                <div class="flex items-center gap-2" id="cityWrap" style="display:none">
+                    <label class="text-xs font-bold text-slate-600">城市：</label>
+                    <select id="citySel" onchange="onCityChange()" class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 min-w-[120px]">
+                        <option value="">全省通用</option>
+                    </select>
+                </div>
+                <!-- 区县下拉 -->
+                <div class="flex items-center gap-2" id="districtWrap" style="display:none">
+                    <label class="text-xs font-bold text-slate-600">区县：</label>
+                    <select id="districtSel" onchange="onDistrictChange()" class="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 min-w-[120px]">
+                        <option value="">全市通用</option>
+                    </select>
+                </div>
+                <!-- 右侧 AI 同步 -->
+                <div class="ml-auto flex items-center gap-2">
+                    <button onclick="openAiSync()" class="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-cyan-100 hover:shadow-cyan-200 flex items-center gap-1.5">
+                        <i class="fa fa-magic"></i>AI 一键同步全国差异
+                    </button>
+                </div>
+            </div>
+            <!-- 地区已配置徽章条 -->
+            <div id="regionBadges" class="mt-3 flex items-center gap-2 flex-wrap text-[10px]"></div>
+        </div>
+
+        <!-- 主体内容 -->
+        <div id="mainArea">
+            <!-- 默认空状态 -->
+            <div class="p-12 text-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200">
+                <i class="fa fa-info-circle text-slate-300 text-3xl mb-3"></i>
+                <p class="text-sm text-slate-500">请先选择申报项目 + 省份，查看该地区相对国家级基础模板的材料差异</p>
+                <p class="text-[11px] text-slate-400 mt-1">未选省份 = 全国统一用基础模板</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI 同步模态 -->
+    <div id="aiModal" class="fixed inset-0 bg-black/30 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-base font-black text-slate-800 flex items-center gap-2">
+                    <i class="fa fa-magic text-cyan-500"></i>AI 自动同步全国地区差异
+                </h3>
+                <button onclick="closeAiSync()" class="text-slate-400 hover:text-slate-600"><i class="fa fa-times"></i></button>
+            </div>
+            <div id="aiBody" class="p-5"></div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js?v=20261014c"></script>
+    <script>
+    // ===== 数据加载 =====
+    let PROJECTS = [];
+    let CURRENT_ID = null;
+    let REGION = { level:'national', province:'', city:'', district:'' };
+    const PROVINCE_OPTIONS = ['北京市','天津市','上海市','重庆市','河北省','山西省','辽宁省','吉林省','黑龙江省','江苏省','浙江省','安徽省','福建省','江西省','山东省','河南省','湖北省','湖南省','广东省','海南省','四川省','贵州省','云南省','陕西省','甘肃省','青海省','内蒙古自治区','广西壮族自治区','宁夏回族自治区','新疆维吾尔自治区','西藏自治区'];
+    // 简化版城市数据（演示用，实际应从 DataBridge 取完整映射）
+    const CITY_MAP = {
+        '北京市':['东城区','西城区','朝阳区','海淀区','丰台区'],
+        '四川省':['成都市','绵阳市','德阳市','宜宾市','泸州市','南充市'],
+        '广东省':['广州市','深圳市','珠海市','东莞市','佛山市','中山市'],
+        '浙江省':['杭州市','宁波市','温州市','嘉兴市','绍兴市'],
+        '江苏省':['南京市','苏州市','无锡市','常州市','南通市']
+    };
+
+    function init() {
+        PROJECTS = JSON.parse(JSON.stringify(DataBridge.loadDeclarationProjects()));
+        // 解析 URL 参数预选项目和地区（从 declaration-config.html 的"查看/编辑"按钮跳转过来）
+        var params = new URLSearchParams(window.location.search);
+        var pid = params.get('pid');
+        var rkey = params.get('rkey');
+        if (pid) {
+            CURRENT_ID = pid;
+        }
+        if (rkey) {
+            // 从 rkey 解析省份/城市/区县
+            var m = rkey.match(/province·([^·]+)/);
+            if (m) { REGION.province = m[1]; }
+            var cm = rkey.match(/city·([^·]+)/);
+            if (cm) { REGION.city = cm[1]; }
+            var dm = rkey.match(/district·([^·]+)/);
+            if (dm) { REGION.district = dm[1]; }
+            REGION.level = REGION.district ? 'district' : (REGION.city ? 'city' : 'province');
+        }
+        renderProjectSel();
+        renderProvinceSel();
+        renderCitySel();
+        renderMain();
+        renderRegionBadges();
+    }
+
+    function renderProjectSel() {
+        var sel = document.getElementById('projectSel');
+        sel.innerHTML = '<option value="">选择项目…</option>' + PROJECTS.map(function(p){
+            return '<option value="'+p.id+'" '+(p.id===CURRENT_ID?'selected':'')+'>' + p.name + '</option>';
+        }).join('');
+    }
+
+    function renderProvinceSel() {
+        var sel = document.getElementById('provinceSel');
+        sel.innerHTML = '<option value="">选择省份…</option>' + PROVINCE_OPTIONS.map(function(pv){
+            return '<option value="'+pv+'" '+(REGION.province===pv?'selected':'')+'>'+pv+'</option>';
+        }).join('');
+    }
+
+    function onProjectChange() {
+        CURRENT_ID = document.getElementById('projectSel').value;
+        REGION = { level:'national', province:'', city:'', district:'' };
+        renderProvinceSel();
+        renderCitySel();
+        renderMain();
+        renderRegionBadges();
+    }
+
+    function onProvinceChange() {
+        REGION.province = document.getElementById('provinceSel').value;
+        REGION.city = ''; REGION.district = '';
+        REGION.level = REGION.province ? 'province' : 'national';
+        renderCitySel();
+        renderMain();
+    }
+
+    function onCityChange() {
+        REGION.city = document.getElementById('citySel').value;
+        REGION.district = '';
+        REGION.level = REGION.city ? 'city' : (REGION.province ? 'province' : 'national');
+        renderDistrictSel();
+        renderMain();
+    }
+
+    function onDistrictChange() {
+        REGION.district = document.getElementById('districtSel').value;
+        REGION.level = REGION.district ? 'district' : (REGION.city ? 'city' : (REGION.province ? 'province' : 'national'));
+        renderMain();
+    }
+
+    function renderCitySel() {
+        var wrap = document.getElementById('cityWrap');
+        var sel = document.getElementById('citySel');
+        if (!REGION.province) { wrap.style.display = 'none'; return; }
+        wrap.style.display = '';
+        var cities = CITY_MAP[REGION.province] || [];
+        sel.innerHTML = '<option value="">全省通用</option>' + cities.map(function(c){
+            return '<option value="'+c+'" '+(REGION.city===c?'selected':'')+'>'+c+'</option>';
+        }).join('');
+        renderDistrictSel();
+    }
+
+    function renderDistrictSel() {
+        var wrap = document.getElementById('districtWrap');
+        var sel = document.getElementById('districtSel');
+        if (!REGION.city) { wrap.style.display = 'none'; return; }
+        wrap.style.display = '';
+        // 演示：用占位区县
+        var districts = ['区县A','区县B','区县C'];
+        sel.innerHTML = '<option value="">全市通用</option>' + districts.map(function(d){
+            return '<option value="'+d+'" '+(REGION.district===d?'selected':'')+'>'+d+'</option>';
+        }).join('');
+    }
+
+    function getCurrent() { return PROJECTS.find(function(p){ return p.id === CURRENT_ID; }); }
+
+    // ===== 核心逻辑：overrideKey + emptyOverride + mergeMaterials =====
+    function overrideKey(r) {
+        if (r.level === 'national') return null;
+        var k = 'province·' + r.province;
+        if (r.city) k += '·city·' + r.city;
+        if (r.district) k += '·district·' + r.district;
+        return k;
+    }
+    function emptyOverride() { return { adds: [], edits: [], removes: [] }; }
+
+    function mergeMaterials(p, region) {
+        var baseGroups = JSON.parse(JSON.stringify(p.groups || []));
+        var sourceMap = {};
+        baseGroups.forEach(function(g) {
+            g.items.forEach(function(it) {
+                sourceMap[it.id] = { baseReq: it.required, curReq: it.required, overridden:false, added:false, removed:false, sourceLabels:['国家级'] };
+            });
+        });
+        var chain = [];
+        if (region.province) chain.push('province·' + region.province);
+        if (region.city) chain.push('province·' + region.province + '·city·' + region.city);
+        if (region.district) chain.push('province·' + region.province + '·city·' + region.city + '·district·' + region.district);
+
+        chain.forEach(function(key) {
+            var ov = (p.regionOverrides || {})[key];
+            if (!ov) return;
+            var levelLabel = key.indexOf('district') > -1 ? '区县专属' : (key.indexOf('city') > -1 ? '市级专属' : '省级专属');
+            (ov.removes || []).forEach(function(rid) {
+                baseGroups.forEach(function(g) {
+                    g.items = g.items.filter(function(it) {
+                        if (it.id === rid) {
+                            sourceMap[rid] = sourceMap[rid] || { added:false, removed:true, sourceLabels:[] };
+                            sourceMap[rid].removed = true;
+                            sourceMap[rid].sourceLabels.push('被' + levelLabel + '移除');
+                            return false;
+                        }
+                        return true;
+                    });
+                });
+            });
+            (ov.edits || []).forEach(function(ed) {
+                baseGroups.forEach(function(g) {
+                    g.items.forEach(function(it) {
+                        if (it.id === ed.itemId) {
+                            Object.assign(it, ed.changes || {});
+                            var sm = sourceMap[it.id] = sourceMap[it.id] || { baseReq: true, overridden:false, added:false, removed:false, sourceLabels:['国家级'] };
+                            sm.overridden = true;
+                            sm.curReq = it.required;
+                            sm.sourceLabels.push(levelLabel + '覆盖');
+                        }
+                    });
+                });
+            });
+            (ov.adds || []).forEach(function(ad) {
+                var targetGroup = baseGroups.find(function(g) { return g.title === ad.group; });
+                if (!targetGroup) {
+                    targetGroup = { title: ad.group, icon:'fa-folder', color:'blue', items:[] };
+                    baseGroups.push(targetGroup);
+                }
+                var newItem = Object.assign({ status:'todo', tip:'', sampleName:'', samplePreview:'' }, ad);
+                targetGroup.items.push(newItem);
+                sourceMap[newItem.id] = { added:true, removed:false, sourceLabels:[levelLabel + '新增'] };
+            });
+        });
+        return { groups: baseGroups, sourceMap: sourceMap };
+    }
+
+    function getCurrentOverride(autoCreate) {
+        var p = getCurrent(); if (!p) return null;
+        var k = overrideKey(REGION);
+        if (!k) return null;
+        p.regionOverrides = p.regionOverrides || {};
+        if (autoCreate && !p.regionOverrides[k]) p.regionOverrides[k] = emptyOverride();
+        return p.regionOverrides[k] || null;
+    }
+
+    // ===== 渲染主体 =====
+    function renderMain() {
+        var area = document.getElementById('mainArea');
+        var p = getCurrent();
+        if (!p) {
+            area.innerHTML = emptyState('请先选择申报项目');
+            return;
+        }
+        if (REGION.level === 'national') {
+            area.innerHTML = emptyState('请选择省份，查看该地区与国家级基础模板的差异');
+            return;
+        }
+
+        var merged = mergeMaterials(p, REGION);
+        var inheritedCount = Object.values(merged.sourceMap).filter(function(s){ return !s.added && !s.removed; }).length;
+        var addedCount = Object.values(merged.sourceMap).filter(function(s){ return s.added; }).length;
+        var overriddenCount = Object.values(merged.sourceMap).filter(function(s){ return s.overridden; }).length;
+        var removedCount = Object.values(merged.sourceMap).filter(function(s){ return s.removed; }).length;
+
+        // 继承链 + 统计
+        var chainText = '继承自基础模板' + (REGION.province ? ' → ' + REGION.province : '') + (REGION.city ? ' → ' + REGION.city : '') + (REGION.district ? ' → ' + REGION.district : '');
+        var summaryHtml = '<div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-3 flex-wrap">' +
+            '<div class="flex items-center gap-2 flex-wrap text-[11px] text-amber-800">' +
+                '<i class="fa fa-sitemap"></i><b>' + chainText + '</b>' +
+                '<span class="text-slate-500 ml-2">' + inheritedCount + ' 项继承</span>' +
+                '<span class="text-emerald-700 font-bold">+' + addedCount + ' 增量</span>' +
+                '<span class="text-orange-600 font-bold">改 ' + overriddenCount + '</span>' +
+                (removedCount ? '<span class="text-rose-600 font-bold">删 ' + removedCount + '</span>' : '') +
+            '</div>' +
+            '<button onclick="addRegionMaterial()" class="px-3 py-1.5 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 flex items-center gap-1">' +
+                '<i class="fa fa-plus"></i>新增本地区专属材料' +
+            '</button>' +
+        '</div>';
+
+        // 材料分组列表
+        var groupsHtml = merged.groups.map(function(g, gi) {
+            var color = g.color || 'blue';
+            var itemsHtml = g.items.map(function(m, mi) {
+                var sm = merged.sourceMap[m.id] || {};
+                var isInherited = !sm.added && !sm.removed;
+                var tags = [];
+                if (sm.added) tags.push('<span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-emerald-100 text-emerald-700">🆕 ' + sm.sourceLabels[0] + '</span>');
+                if (sm.overridden) tags.push('<span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-orange-100 text-orange-700">✏️ ' + sm.sourceLabels[1] + '</span>');
+                if (isInherited) tags.push('<span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-slate-100 text-slate-500">继承</span>');
+                var regionActions = '';
+                if (isInherited) {
+                    regionActions = '<button onclick="toggleItemRequired(\'' + m.id + '\')" class="px-2 py-1 ' + (m.required ? 'bg-red-50 text-red-500 border-red-200' : 'bg-emerald-50 text-emerald-500 border-emerald-200') + ' border text-[10px] font-bold rounded hover:opacity-80" title="切换必填/选填">' + (m.required ? '必填' : '选填') + '</button>' +
+                        '<button onclick="removeItemRegion(\'' + m.id + '\')" class="px-2 py-1 bg-slate-50 text-slate-500 border border-slate-200 text-[10px] font-bold rounded hover:bg-rose-50 hover:text-rose-500" title="标记本地区不适用"><i class="fa fa-ban"></i></button>';
+                } else if (sm.added) {
+                    regionActions = '<button onclick="removeAddedItem(\'' + m.id + '\')" class="px-2 py-1 bg-rose-50 text-rose-500 border border-rose-200 text-[10px] font-bold rounded hover:bg-rose-100" title="删除此增量"><i class="fa fa-trash"></i></button>';
+                }
+                return '<div class="px-4 py-3 grid grid-cols-12 gap-3 items-center text-[11px] border-b border-slate-50 last:border-b-0">' +
+                    '<div class="col-span-4"><div class="flex items-center gap-1.5 mb-1">' + tags.join('') + '</div><div class="font-bold text-slate-800">' + m.name + '</div></div>' +
+                    '<div class="col-span-4 text-slate-500 text-[10.5px] line-clamp-2">' + (m.tip || '') + '</div>' +
+                    '<div class="col-span-1"><span class="px-1.5 py-0.5 text-[10px] font-bold rounded ' + (m.required ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500') + '">' + (m.required ? '必填' : '选填') + '</span></div>' +
+                    '<div class="col-span-3 flex items-center gap-1">' + regionActions + '</div>' +
+                '</div>';
+            }).join('');
+            return '<div class="border border-slate-200 rounded-xl overflow-hidden mb-3">' +
+                '<div class="px-4 py-2.5 bg-' + color + '-50 flex items-center justify-between">' +
+                    '<div class="flex items-center space-x-2"><span class="font-bold text-sm text-slate-700">' + g.title + '</span><span class="text-slate-400 text-xs">(' + g.items.length + '项)</span></div>' +
+                '</div>' +
+                '<div class="divide-y divide-slate-100">' + itemsHtml + '</div>' +
+            '</div>';
+        }).join('');
+
+        area.innerHTML = summaryHtml + groupsHtml;
+    }
+
+    function emptyState(msg) {
+        return '<div class="p-12 text-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200">' +
+            '<i class="fa fa-info-circle text-slate-300 text-3xl mb-3"></i>' +
+            '<p class="text-sm text-slate-500">' + msg + '</p>' +
+        '</div>';
+    }
+
+    // 已配置地区徽章
+    function renderRegionBadges() {
+        var box = document.getElementById('regionBadges');
+        var p = getCurrent();
+        if (!p || !p.regionOverrides) { box.innerHTML = ''; return; }
+        var parts = [];
+        Object.keys(p.regionOverrides).forEach(function(k) {
+            var ov = p.regionOverrides[k];
+            var m = k.match(/province·([^·]+)/); var prov = m ? m[1] : k;
+            var cityM = k.match(/city·([^·]+)/); var city = cityM ? '·'+cityM[1] : '';
+            var distM = k.match(/district·([^·]+)/); var dist = distM ? '·'+distM[1] : '';
+            var adds = (ov.adds||[]).length, edits = (ov.edits||[]).length, removes = (ov.removes||[]).length;
+            parts.push('<span class="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full font-bold">' +
+                '<i class="fa fa-map-marker text-[9px]"></i>' + prov + city + dist +
+                ' <span class="text-emerald-600">+'+adds+'</span>' +
+                ' <span class="text-orange-500">改'+edits+'</span>' +
+                (removes ? ' <span class="text-rose-500">删'+removes+'</span>' : '') +
+            '</span>');
+        });
+        box.innerHTML = parts.length ? '<span class="text-slate-400">已配置地区：</span>' + parts.join('') : '<span class="text-slate-400">暂无地区差异配置</span>';
+    }
+
+    // ===== 操作函数 =====
+    function addRegionMaterial() {
+        var p = getCurrent(); if (!p) return;
+        var ov = getCurrentOverride(true);
+        if (!ov) { alert('请先选择要配置的地区'); return; }
+        var pname = prompt('所属分组（如"基础资质类材料"）：', '基础资质类材料');
+        if (!pname) return;
+        var mname = prompt('材料名称：', '');
+        if (!mname) return;
+        var req = confirm('是否必填？\n确定=必填，取消=选填');
+        var loc = REGION.district || REGION.city || REGION.province;
+        ov.adds.push({ group: pname, id: 'reg_' + Date.now().toString(36), name: mname, required: req, tip:'（' + loc + '专属材料·运营请补充填写提示）' });
+        DataBridge.saveDeclarationProjects(PROJECTS);
+        renderMain();
+        renderRegionBadges();
+        showToast('已新增 [' + loc + '] 专属材料：' + mname, 'success');
+    }
+
+    function toggleItemRequired(itemId) {
+        var p = getCurrent(); if (!p) return;
+        var ov = getCurrentOverride(true);
+        if (!ov) return;
+        var baseItems = [];
+        (p.groups || []).forEach(function(g){ g.items.forEach(function(it){ if (it.id === itemId) baseItems.push(it); }); });
+        if (!baseItems.length) { alert('未找到基础材料'); return; }
+        var curReq = baseItems[0].required;
+        var existEdit = ov.edits.find(function(e){ return e.itemId === itemId; });
+        var newReq = !(existEdit ? existEdit.changes.required : curReq);
+        if (existEdit) existEdit.changes.required = newReq;
+        else ov.edits.push({ itemId: itemId, changes: { required: newReq, tip: baseItems[0].tip } });
+        DataBridge.saveDeclarationProjects(PROJECTS);
+        renderMain();
+        renderRegionBadges();
+    }
+
+    function removeItemRegion(itemId) {
+        var p = getCurrent(); if (!p) return;
+        var ov = getCurrentOverride(true);
+        if (!ov) return;
+        if (ov.removes.indexOf(itemId) > -1) return;
+        ov.removes.push(itemId);
+        ov.edits = ov.edits.filter(function(e){ return e.itemId !== itemId; });
+        DataBridge.saveDeclarationProjects(PROJECTS);
+        renderMain();
+        renderRegionBadges();
+        showToast('已标记本地区不适用', 'success');
+    }
+
+    function removeAddedItem(itemId) {
+        var ov = getCurrentOverride(false);
+        if (!ov) return;
+        ov.adds = ov.adds.filter(function(a){ return a.id !== itemId; });
+        var p = getCurrent();
+        DataBridge.saveDeclarationProjects(PROJECTS);
+        renderMain();
+        renderRegionBadges();
+        showToast('已删除增量材料', 'success');
+    }
+
+    // ===== AI 同步模态 =====
+    var AI_STATE = 'idle';
+    var AI_LOG = [];
+    function openAiSync() {
+        document.getElementById('aiModal').classList.remove('hidden');
+        document.getElementById('aiModal').classList.add('flex');
+        AI_STATE = 'idle';
+        renderAiBody();
+    }
+    function closeAiSync() {
+        document.getElementById('aiModal').classList.add('hidden');
+        document.getElementById('aiModal').classList.remove('flex');
+    }
+    function renderAiBody() {
+        var body = document.getElementById('aiBody');
+        if (AI_STATE === 'idle') {
+            body.innerHTML = '<div class="space-y-3">' +
+                '<p class="text-sm text-slate-600">AI 将自动：</p>' +
+                '<div class="space-y-2 text-xs text-slate-500">' +
+                    '<div class="flex items-start gap-2"><i class="fa fa-check-circle text-emerald-500 mt-0.5"></i><div><b>爬取 31 省 + 300 地市</b>科技厅/工信厅申报指南</div></div>' +
+                    '<div class="flex items-start gap-2"><i class="fa fa-check-circle text-emerald-500 mt-0.5"></i><div><b>OCR 解析</b>提取材料清单章节</div></div>' +
+                    '<div class="flex items-start gap-2"><i class="fa fa-check-circle text-emerald-500 mt-0.5"></i><div><b>逐条比对国家级基础模板</b>识别 adds/edits/removes</div></div>' +
+                    '<div class="flex items-start gap-2"><i class="fa fa-check-circle text-emerald-500 mt-0.5"></i><div><b>不确定的边界案例</b>推送人工审核（带原文引用 + AI 建议）</div></div>' +
+                '</div>' +
+                '<div class="pt-3 border-t border-slate-100 flex items-center justify-between">' +
+                    '<span class="text-[11px] text-slate-400">基准 = 国家级基础模板 · 未配置 = 自动继承</span>' +
+                    '<button onclick="startAiSync()" class="px-4 py-2 bg-cyan-500 text-white text-xs font-bold rounded-lg hover:bg-cyan-600 flex items-center gap-1.5"><i class="fa fa-magic"></i>开始同步</button>' +
+                '</div>' +
+            '</div>';
+            return;
+        }
+        if (AI_STATE === 'generating') {
+            var logHtml = AI_LOG.map(function(l,i){
+                var icon = i < AI_LOG.length - 1 ? '<i class="fa fa-check-circle text-emerald-500"></i>' : '<i class="fa fa-circle-o-notch fa-spin text-cyan-500"></i>';
+                return '<div class="flex items-center gap-2 text-xs text-slate-600 py-1">' + icon + l + '</div>';
+            }).join('');
+            body.innerHTML = '<div class="space-y-1">' + logHtml + '</div>' +
+                '<div class="mt-4 p-3 bg-cyan-50 border border-cyan-200 rounded-xl text-[11px] text-cyan-800"><i class="fa fa-info-circle mr-1"></i>预计 5 秒后完成，结果会自动写入对应省份的 regionOverrides</div>';
+            return;
+        }
+        // done
+        body.innerHTML = '<div class="space-y-3">' +
+            '<div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2">' +
+                '<i class="fa fa-check-circle text-emerald-500 text-lg"></i>' +
+                '<div class="flex-1"><p class="text-sm font-bold text-emerald-800">同步完成</p>' +
+                '<p class="text-[11px] text-emerald-700">已自动写入 31 省 + 287 市材料差异 · 13 项需人工审核</p></div>' +
+            '</div>' +
+            // 待审核清单
+            '<div class="space-y-2">' +
+                '<p class="text-xs font-bold text-slate-700"><i class="fa fa-exclamation-triangle text-amber-500 mr-1"></i>需人工审核 · 13 项（AI 不确定）</p>' +
+                '<div class="bg-amber-50 border border-amber-200 rounded-lg p-2.5"><p class="text-[11px] font-bold text-slate-700">📍 四川省·绵阳市</p><p class="text-[10px] text-slate-500 mt-0.5">"国防配套企业需额外提交军工保密资质"</p><p class="text-[9px] text-cyan-600 mt-1"><i class="fa fa-lightbulb-o"></i> AI 建议：仅适用绵阳·国防军工行业</p></div>' +
+                '<div class="bg-amber-50 border border-amber-200 rounded-lg p-2.5"><p class="text-[11px] font-bold text-slate-700">📍 广东省·深圳市</p><p class="text-[10px] text-slate-500 mt-0.5">"深圳科创委高企申报"与"广东省"是两个独立系统</p><p class="text-[9px] text-cyan-600 mt-1"><i class="fa fa-lightbulb-o"></i> AI 建议：为深圳创建独立模板</p></div>' +
+                '<div class="bg-amber-50 border border-amber-200 rounded-lg p-2.5"><p class="text-[11px] font-bold text-slate-700">📍 浙江省·宁波市</p><p class="text-[10px] text-slate-500 mt-0.5">"港口物流企业额外提交海关数据"</p><p class="text-[9px] text-cyan-600 mt-1"><i class="fa fa-lightbulb-o"></i> AI 建议：设条件触发（行业=港口物流时）</p></div>' +
+                '<p class="text-[10px] text-slate-400 text-center">还有 10 项待审核</p>' +
+            '</div>' +
+            '<div class="pt-3 border-t border-slate-100 flex items-center justify-between">' +
+                '<button onclick="AI_STATE=\'idle\';renderAiBody()" class="text-[11px] text-slate-400 hover:text-slate-600"><i class="fa fa-refresh mr-1"></i>重新同步</button>' +
+                '<button onclick="closeAiSync();renderMain();renderRegionBadges()" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700">查看同步结果</button>' +
+            '</div>' +
+        '</div>';
+    }
+    function startAiSync() {
+        AI_STATE = 'generating';
+        AI_LOG = [];
+        var steps = [
+            '正在爬取 31 省科技厅/工信厅申报指南…',
+            'OCR 解析 PDF/扫描件，提取材料清单章节…',
+            '与国家级基础模板逐条比对，计算差异…',
+            '爬取 300 地市申报通知，比对省级模板…',
+            '自动写入 regionOverrides（省级+市级）…',
+            '生成差异热力图和需人工审核清单…'
+        ];
+        var i = 0;
+        function next() {
+            if (i < steps.length) {
+                AI_LOG.push(steps[i]); i++;
+                renderAiBody();
+                setTimeout(next, 800);
+            } else {
+                AI_STATE = 'done';
+                renderAiBody();
+            }
+        }
+        next();
+    }
+
+    // ===== 其他 =====
+    function goBack() {
+        try {
+            if (window.parent && window.parent.switchPage) {
+                window.parent.switchPage('declaration-config.html');
+                return;
+            }
+        } catch(e) { /* 跨域安全错误，走 fallback */ }
+        try {
+            if (window.top && window.top.switchPage) {
+                window.top.switchPage('declaration-config.html');
+                return;
+            }
+        } catch(e) { /* 跨域安全错误，走 fallback */ }
+        window.location.href = 'declaration-config.html';
+    }
+    function saveAll() {
+        DataBridge.saveDeclarationProjects(PROJECTS);
+        showToast('已保存全部地区差异配置', 'success');
+    }
+    function showToast(msg, type) {
+        var t = document.createElement('div');
+        t.className = 'fixed top-6 right-6 px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg z-50 ' + (type === 'success' ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-white');
+        t.innerHTML = '<i class="fa fa-' + (type === 'success' ? 'check-circle' : 'info-circle') + ' mr-1.5"></i>' + msg;
+        document.body.appendChild(t);
+        setTimeout(function(){ t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; }, 1800);
+        setTimeout(function(){ t.remove(); }, 2200);
+    }
+
+    // 初始化
+    init();
+    </script>
+</body>
+</html>

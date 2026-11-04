@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测评规则配置 - 策源易答运营平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+        .modal-mask { background: rgba(15,23,42,0.5); backdrop-filter: blur(2px); }
+        .tab-active { background: linear-gradient(135deg,#4f46e5,#6366f1); color: white; box-shadow: 0 8px 20px -8px rgba(99,102,241,0.5); }
+        .tab-inactive { background: white; color: #475569; border: 1px solid #e2e8f0; }
+        .tab-inactive:hover { background: #f8fafc; border-color: #c7d2fe; }
+        .template-card { border: 2px solid #e2e8f0; border-radius: 12px; padding: 14px; cursor: pointer; transition: all 0.2s; }
+        .template-card:hover { border-color: #818cf8; background: #eef2ff; }
+        .template-card.selected { border-color: #4f46e5; background: #eef2ff; box-shadow: 0 0 0 3px rgba(79,70,229,0.15); }
+        .nl-preview { background: linear-gradient(135deg,#fef3c7,#fde68a); border: 1px solid #fbbf24; border-radius: 10px; padding: 12px 16px; font-size: 13px; line-height: 1.7; color: #78350f; }
+        .nl-preview b { color: #b45309; }
+        .nl-preview code { background: #fff; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: #4f46e5; }
+        .score-row { display: grid; grid-template-columns: 120px 60px 1fr 60px; gap: 8px; align-items: center; margin-bottom: 6px; }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-slate-50">
+
+    <!-- 页面标题 -->
+    <div class="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-8 py-5 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 flex items-center">
+                    <i class="fa fa-gavel text-indigo-600 mr-3"></i>测评规则配置
+                </h1>
+                <p class="text-xs text-slate-400 mt-1">运营管理平台 / 测评规则配置（高企·专精特新·小巨人）</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="resetToDefault()" class="px-3 py-2 bg-white border-2 border-red-300 text-red-600 rounded-lg text-xs font-bold hover:bg-red-50 transition-all flex items-center">
+                    <i class="fa fa-undo mr-1.5"></i>恢复默认
+                </button>
+                <button onclick="saveAll()" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-indigo-200 flex items-center">
+                    <i class="fa fa-save mr-2"></i>保存配置
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-8 py-6">
+
+        <!-- 说明条 -->
+        <div class="mb-5 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 flex items-start space-x-3">
+            <i class="fa fa-info-circle text-indigo-500 mt-0.5"></i>
+            <div class="text-xs text-slate-600 leading-relaxed">
+                <b class="text-indigo-700">本页用于维护科创测评的评分规则。</b>
+                点击「编辑」修改某项规则的阈值、运算符或得分方式，系统会自动翻译成专业逻辑，运营人员无需写代码。
+                保存后，客户侧「科创测评」页面刷新即可生效。
+            </div>
+        </div>
+
+        <!-- 同步状态 -->
+        <div id="syncStatus" class="mb-5 px-4 py-2.5 rounded-xl border flex items-center space-x-2 text-sm"></div>
+
+        <!-- Tab 切换：三类测评 -->
+        <div class="flex items-center gap-2 mb-5">
+            <button onclick="switchTab('hightech', this)" class="tab-btn tab-active px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center" data-tab="hightech">
+                <i class="fa fa-rocket mr-2"></i>高企测评
+            </button>
+            <button onclick="switchTab('specialized', this)" class="tab-btn tab-inactive px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center" data-tab="specialized">
+                <i class="fa fa-gem mr-2"></i>专精特新测评
+            </button>
+            <button onclick="switchTab('giant', this)" class="tab-btn tab-inactive px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center" data-tab="giant">
+                <i class="fa fa-industry mr-2"></i>小巨人测评
+            </button>
+            <button onclick="switchTab('gradient', this)" class="tab-btn tab-inactive px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center" data-tab="gradient">
+                <i class="fa fa-layer-group mr-2"></i>梯度培育方案
+            </button>
+        </div>
+
+        <!-- 当前 Tab 内容 -->
+        <div id="tabContent" class="space-y-5"></div>
+
+    </div>
+
+    <!-- ========== 编辑模态框（运营版：模板化 + 自然语言预览） ========== -->
+    <div id="editModal" class="fixed inset-0 modal-mask z-50 hidden flex items-center justify-center p-6">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                <h3 id="modalTitle" class="text-lg font-black text-slate-800 flex items-center"><i class="fa fa-edit text-indigo-600 mr-2"></i>编辑规则</h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600"><i class="fa fa-times text-lg"></i></button>
+            </div>
+            <div class="px-6 py-5 overflow-y-auto flex-1">
+                <!-- 基础信息 -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div><label class="text-xs text-slate-500 font-bold">规则名称</label>
+                        <input id="fName" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></div>
+                    <div><label id="fMaxLabel" class="text-xs text-slate-500 font-bold">满分（评分项才填）</label>
+                        <input id="fMax" type="number" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></div>
+                </div>
+
+                <!-- 模板选择 -->
+                <div class="mb-4">
+                    <label class="text-xs font-black text-slate-700 block mb-2"><i class="fa fa-list text-indigo-500 mr-1"></i>规则类型（选一种适用的模板）</label>
+                    <div id="templateList" class="grid grid-cols-2 gap-3"></div>
+                </div>
+
+                <!-- 模板配置区 -->
+                <div id="templateConfig" class="bg-slate-50 rounded-xl p-4"></div>
+
+                <!-- 自然语言预览 -->
+                <div class="mt-4">
+                    <label class="text-xs font-black text-slate-700 block mb-2"><i class="fa fa-comments text-amber-500 mr-1"></i>系统翻译成的规则说明（确认无误）</label>
+                    <div id="nlPreview" class="nl-preview"></div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50 rounded-b-2xl">
+                <span class="text-[11px] text-slate-400">保存后，客户侧测评刷新即可生效</span>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeEditModal()" type="button" class="px-4 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-50">取消</button>
+                    <button onclick="saveRule()" type="button" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold">确认保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js?v=20261013a"></script>
+    <script>
+    // ============ 字段中文映射表（运营下拉菜单数据源） ============
+    // 每个字段：{ key: '变量名', label: '中文显示', type: 'number'|'array'|'bool'|'date'|'string', source: '员工表'|'财务表'|... }
+    var FIELD_MAP = [
+        // —— 基础信息 ——
+        { key: 'formName',      label: '企业名称',           type: 'string', source: '基础信息' },
+        { key: 'formFoundDate', label: '成立时间',           type: 'date',   source: '基础信息' },
+        { key: 'formProduct',   label: '主导产品/服务',      type: 'string', source: '基础信息' },
+        { key: 'formYears',     label: '从事本行业年限',     type: 'enum',   source: '基础信息', options: ['1年以下','1-3年','3-5年','5年以上'] },
+        { key: 'formEmployees', label: '企业员工总数',       type: 'number', source: '基础信息' },
+        { key: 'formRdStaff',   label: '研发人员数量（人）', type: 'number', source: '基础信息' },
+
+        // —— 荣誉与资质 ——
+        { key: 'formHonors',    label: '获得荣誉数量（多选）', type: 'count', source: '荣誉资质' },
+        { key: 'formQuals',     label: '获得资质数量（多选）', type: 'count', source: '荣誉资质' },
+
+        // —— 知识产权 ——
+        { key: 'formIP1',         label: 'Ⅰ类知识产权数量', type: 'number', source: '知识产权' },
+        { key: 'formIP2',         label: 'Ⅱ类知识产权数量', type: 'number', source: '知识产权' },
+        { key: 'formPatentTotal', label: '专利总数',        type: 'number', source: '知识产权' },
+
+        // —— 数字化与研发机构 ——
+        { key: 'formDigitalLevel', label: '企业数字化水平',   type: 'enum', source: '数字化', options: ['一级','二级','三级'] },
+        { key: 'formRdOrgLevel',   label: '研发机构级别',     type: 'enum', source: '数字化', options: ['国家级','省级','市级','市级以下','未建研发部门'] },
+
+        // —— 成果转化/研发管理 ——
+        { key: 'formTransform', label: '近三年年均成果转化数量', type: 'number', source: '研发管理' },
+        { key: 'formIUR',       label: '是否签订产学研合作', type: 'bool',    source: '研发管理' },
+        { key: 'formStd',       label: '是否参与制订国家/行业标准', type: 'bool', source: '研发管理' },
+
+        // —— 财务数据（3 年数组 [2023,2024,2025]）——
+        { key: 'formRev',       label: '营业收入（近三年）',       type: 'array', source: '财务数据' },
+        { key: 'formMainRev',   label: '主营业务收入（近三年）',   type: 'array', source: '财务数据' },
+        { key: 'formAsset',     label: '总资产（近三年）',         type: 'array', source: '财务数据' },
+        { key: 'formNet',       label: '净资产（近三年）',         type: 'array', source: '财务数据' },
+        { key: 'formProfit',    label: '净利润（近三年）',         type: 'array', source: '财务数据' },
+        { key: 'formRdFee',     label: '研发费用（近三年）',       type: 'array', source: '财务数据' },
+        { key: 'formHtInc',     label: '高新技术产品收入（近三年）', type: 'array', source: '财务数据' },
+        { key: 'formNetAsset',  label: '净资产（旧字段，用 formNet）', type: 'array', source: '财务数据', deprecated: true },
+
+        // —— 专精特新 派生指标 ——
+        { key: 'formProdPct',    label: '主导产品收入占比（%）', type: 'number', source: '派生指标(自动计算)' },
+        { key: 'formRdStaffPct', label: '研发人员占比（%）',    type: 'number', source: '派生指标(自动计算)' },
+        { key: 'formMarketPos',  label: '细分市场地位（派生）', type: 'enum',   source: '派生指标(自动计算)', options: ['全国前列','区域前列','省内前列','一般'] },
+        { key: 'formGrowth',     label: '营收增长率（%）',      type: 'number', source: '派生指标(自动计算)' },
+        { key: 'formDebt',       label: '资产负债率（%）',      type: 'number', source: '派生指标(自动计算)' },
+
+        // —— 小巨人专有字段（v2 表单重构后） ——
+        { key: 'formProvincial',    label: '省级专精特新中小企业（是/否）', type: 'bool', source: '基础资格' },
+        { key: 'formMajorIncident', label: '近3年重大事故/偷漏税（无/有）', type: 'bool', source: '基础资格' },
+        { key: 'formRegPlace',      label: '企业注册地',           type: 'string', source: '基础资格' },
+        { key: 'formMarketYears',  label: '细分市场从事年限（年）', type: 'number', source: '基础资格' },
+        { key: 'formMainRevRatio',  label: '主营收入占比≥90%（是/否）', type: 'bool', source: '核心指标' },
+        { key: 'formRdOrg',         label: '自建/联建研发机构（是/否）', type: 'bool', source: '核心指标' },
+        { key: 'formProduct',      label: '企业主导产品名称',     type: 'string', source: '专业化' },
+        { key: 'formChainCase',     label: '补短板/锻长板案例（是/否）', type: 'bool', source: '专业化' },
+        { key: 'formDebtPass',      label: '资产负债率≤75%（是/否，2026新版）',   type: 'bool', source: '精细化' },
+        { key: 'formErpMes',        label: '应用ERP/MES等系统（是/否）', type: 'bool', source: '精细化' },
+        { key: 'formIsoCert',      label: 'ISO/CE/UL认证（是/否）',     type: 'bool', source: '精细化' },
+        { key: 'formSharePass',    label: '细分市场占有率≥10%（是/否）', type: 'bool', source: '特色化' },
+        { key: 'formOwnBrand',     label: '核心IP关联自主品牌（是/否）', type: 'bool', source: '特色化' },
+        { key: 'formNationalAward', label: '国家级科技奖励/创客中国50强（是/否）', type: 'bool', source: '新颖化' },
+        { key: 'formDomesticSub',  label: '国产替代成效（是/否）',       type: 'bool', source: '产业链' },
+        { key: 'formBreakChoke',   label: '突破卡脖子技术（是/否）',     type: 'bool', source: '产业链' },
+        { key: 'formRepeatBuy',    label: '客户重复购买率≥60%（是/否）',  type: 'bool', source: '品牌化' },
+        { key: 'formBrandHonor',   label: '行业权威品牌荣誉（是/否）',   type: 'bool', source: '品牌化' },
+        { key: 'formClientReview', label: '核心客户正面评价（是/否）',   type: 'bool', source: '品牌化' },
+        // 派生字段（enrichInputs 自动计算）
+        { key: 'formRdFeePct',       label: '研发费用占比（派生%）',          type: 'number', source: '派生指标(自动计算)' },
+        { key: 'formRdFeeTotal2yr',  label: '近两年研发费用合计（万元，派生）', type: 'number', source: '派生指标(自动计算)' },
+        { key: 'formRevScale',       label: '上年度营业收入（万元，派生）',     type: 'number', source: '派生指标(自动计算)' },
+        { key: 'formShare',     label: '细分市场占有率（派生%）', type: 'number', source: '派生指标(自动计算)', deprecated: true },
+        { key: 'formSixBase',   label: '工业六基（派生）',       type: 'bool',   source: '派生指标(自动计算)', deprecated: true },
+        { key: 'formChain',     label: '补产业链短板（派生）',   type: 'bool',   source: '派生指标(自动计算)', deprecated: true },
+        { key: 'formRdStaff',   label: '研发人员占比（派生）',   type: 'number', source: '派生指标(自动计算)', deprecated: true },
+        { key: 'formDebt',      label: '资产负债率（派生%）',    type: 'number', source: '派生指标(自动计算)', deprecated: true }
+    ];
+
+    // ============ 规则模板定义 ============
+    // 每个模板有：id、中文名、图标、适用场景、配置字段、DSL 翻译函数、自然语言预览函数
+    var TEMPLATES = {
+        // 模板 1：占比达标 —— "A 占 B 的比例 ≥ 阈值%"
+        ratio: {
+            name: '占比达标',
+            icon: 'fa-percent',
+            desc: '研发人员占比、高新收入占比、研发费用占比等',
+            hardOnly: true,
+            fields: [
+                { id: 'numerator', label: '分子（被除数）', type: 'field', filter: 'number|array', help: '例如：研发人员数量、研发费用合计' },
+                { id: 'denominator', label: '分母（除数）', type: 'field', filter: 'number|array', help: '例如：员工总数、营业收入合计' },
+                { id: 'op', label: '比较方式', type: 'op' },
+                { id: 'value', label: '阈值（%）', type: 'number' }
+            ],
+            toDSL: function(cfg) {
+                var num = fieldToExpr(cfg.numerator, true); // array 用 sum()
+                var den = fieldToExpr(cfg.denominator, true);
+                return {
+                    check: { expr: num + ' / ' + den + ' * 100', op: cfg.op, value: parseFloat(cfg.value), guard: den + ' > 0' },
+                    value: { expr: num + ' / ' + den + ' * 100', unit: '%', decimals: 1, fallback: '未填', guard: den + ' > 0' }
+                };
+            },
+            toNL: function(cfg) {
+                return '当 <b>' + fieldLabel(cfg.numerator) + '</b> 占 <b>' + fieldLabel(cfg.denominator) + '</b> 的比例 ' + opLabel(cfg.op) + ' <b>' + cfg.value + '%</b> 时，判定为达标';
+            }
+        },
+        // 模板 2：数量达标 —— "字段 ≥ 阈值"
+        quantity: {
+            name: '数量达标',
+            icon: 'fa-hashtag',
+            desc: '研发人员≥10、知识产权≥2、成立年限≥1等',
+            hardOnly: true,
+            fields: [
+                { id: 'field', label: '指标字段', type: 'field', filter: 'number|date', help: '选择要检查的指标' },
+                { id: 'op', label: '比较方式', type: 'op' },
+                { id: 'value', label: '阈值', type: 'number' },
+                { id: 'unit', label: '单位（可选）', type: 'text', help: '项、人、年、% 等' }
+            ],
+            toDSL: function(cfg) {
+                var isDate = FIELD_MAP.find(function(f){ return f.key === cfg.field; }) && FIELD_MAP.find(function(f){ return f.key === cfg.field; }).type === 'date';
+                var expr = isDate ? 'yearsSince(' + cfg.field + ')' : cfg.field;
+                return {
+                    check: { expr: expr, op: cfg.op, value: parseFloat(cfg.value) },
+                    value: { expr: expr, unit: cfg.unit || '', decimals: isDate ? 1 : 0, fallback: '未填' }
+                };
+            },
+            toNL: function(cfg) {
+                var isDate = FIELD_MAP.find(function(f){ return f.key === cfg.field; }) && FIELD_MAP.find(function(f){ return f.key === cfg.field; }).type === 'date';
+                var fieldName = isDate ? '成立年限' : fieldLabel(cfg.field);
+                var suffix = cfg.unit ? cfg.unit : '';
+                return '当 <b>' + fieldName + '</b> ' + opLabel(cfg.op) + ' <b>' + cfg.value + suffix + '</b> 时，判定为达标';
+            }
+        },
+        // 模板 3：条件选择 —— "字段 == '是'" 或多字段复合
+        condition: {
+            name: '条件选择',
+            icon: 'fa-toggle-on',
+            desc: '是否属于"六基"、是否签订产学研、市场地位为"全国前列"等',
+            hardOnly: true,
+            fields: [
+                { id: 'field', label: '判断字段', type: 'field', filter: 'bool|enum|string' },
+                { id: 'op', label: '比较方式', type: 'opBool' },
+                { id: 'value', label: '期望值', type: 'valueSelect', fieldIdRef: 'field' }
+            ],
+            toDSL: function(cfg) {
+                return {
+                    check: { boolExpr: cfg.field + ' ' + cfg.op + ' "' + cfg.value + '"' },
+                    value: { expr: cfg.field + ' == "' + cfg.value + '" ? "符合" : "不符合"', unit: '', decimals: 0, fallback: '未填' }
+                };
+            },
+            toNL: function(cfg) {
+                return '当 <b>' + fieldLabel(cfg.field) + '</b> ' + opBoolLabel(cfg.op) + ' <b>' + cfg.value + '</b> 时，判定为达标';
+            }
+        },
+        // 模板 4：多条件组合 —— "A 且 B 且 C 都为'是'"
+        multiCondition: {
+            name: '多条件组合',
+            icon: 'fa-layer-group',
+            desc: '需要同时满足多个条件（如六基 且 补短板）',
+            hardOnly: true,
+            fields: [
+                { id: 'conditions', label: '条件列表', type: 'multiCond' }
+            ],
+            toDSL: function(cfg) {
+                var parts = (cfg.conditions || []).map(function(c) { return c.field + ' == "' + c.value + '"'; });
+                return {
+                    check: { boolExpr: parts.join(' && ') },
+                    value: { expr: '(' + parts.join(' ? "符合" : "部分符合" + " / "') + ')', unit: '', decimals: 0, fallback: '未填' }
+                };
+            },
+            toNL: function(cfg) {
+                var parts = (cfg.conditions || []).map(function(c) { return '<b>' + fieldLabel(c.field) + '</b> 为 <b>' + c.value + '</b>'; });
+                return '当 ' + parts.join(' 且 ') + ' 时，判定为达标';
+            }
+        },
+        // 模板 5：得分映射表 —— 分段给分，运营直接填数字
+        scoreMap: {
+            name: '得分映射表',
+            icon: 'fa-table',
+            desc: '根据指标值分段给分（如研发人员0-10得0分、10-15得15分等）',
+            hardOnly: false,
+            fields: [
+                { id: 'max', label: '满分', type: 'number', help: '最高可得多少分' },
+                { id: 'field', label: '参考字段', type: 'field', filter: 'number' },
+                { id: 'rows', label: '得分区间', type: 'scoreRows' }
+            ],
+            toDSL: function(cfg) {
+                // 生成分段计算表达式
+                var rows = cfg.rows || [];
+                rows.sort(function(a, b) { return parseFloat(a.min) - parseFloat(b.min); });
+                var expr = rows.reduce(function(prev, r) {
+                    var cond = cfg.field + ' >= ' + r.min + ' && ' + cfg.field + ' < ' + (r.max || '999999');
+                    var score = parseFloat(r.score) || 0;
+                    return prev + (prev ? ' : ' : '') + '(' + cond + ' ? ' + score;
+                }, '') + ')'.repeat(rows.length - 1);
+                return {
+                    calc: { expr: expr, cap: parseFloat(cfg.max) || 100, floor: 0 }
+                };
+            },
+            toNL: function(cfg) {
+                var rows = cfg.rows || [];
+                var lines = rows.map(function(r) {
+                    var upper = r.max ? ' < ' + r.max : ' 及以上';
+                    return '<code>' + r.min + upper + '</code> → <b>' + r.score + ' 分</b>';
+                }).join('；');
+                return '参考 <b>' + fieldLabel(cfg.field) + '</b>，按区间给分（满分 ' + cfg.max + '）：' + lines;
+            }
+        },
+        // 模板 6：线性计算 —— 简单公式，运营选"系数"和"奖励分"
+        linear: {
+            name: '线性计算（简单公式）',
+            icon: 'fa-calculator',
+            desc: '基础分 + 达标奖励，如"每1项知识产权×5分，达标额外加20分"',
+            hardOnly: false,
+            fields: [
+                { id: 'max', label: '满分', type: 'number' },
+                { id: 'parts', label: '计分组成', type: 'linearParts' }
+            ],
+            toDSL: function(cfg) {
+                var parts = cfg.parts || [];
+                var expr = parts.map(function(p) {
+                    var base = p.field + ' * ' + (p.coef || 1);
+                    if (p.bonusOnPass) base += ' + (' + p.field + ' ' + p.bonusOp + ' ' + p.bonusVal + ' ? ' + (p.bonusScore || 0) + ' : 0)';
+                    return base;
+                }).join(' + ');
+                return {
+                    calc: { expr: expr, cap: parseFloat(cfg.max) || 100, floor: 0 }
+                };
+            },
+            toNL: function(cfg) {
+                var parts = cfg.parts || [];
+                var lines = parts.map(function(p) {
+                    var s = '每 <b>' + fieldLabel(p.field) + '</b> × <b>' + (p.coef || 1) + '分</b>';
+                    if (p.bonusOnPass) s += '，若 ' + fieldLabel(p.field) + ' ' + opLabel(p.bonusOp) + ' ' + p.bonusVal + ' 额外加 ' + p.bonusScore + ' 分';
+                    return s;
+                }).join('；');
+                return lines + '（满分 ' + cfg.max + '）';
+            }
+        }
+    };
+
+    // ============ 工具函数 ============
+    function fieldToExpr(key, useSum) {
+        var f = FIELD_MAP.find(function(x){ return x.key === key; });
+        if (!f) return key;
+        if (useSum && f.type === 'array') return 'sum(' + key + ')';
+        return key;
+    }
+    function fieldLabel(key) {
+        var f = FIELD_MAP.find(function(x){ return x.key === key; });
+        return f ? f.label : key;
+    }
+    function opLabel(op) {
+        return { '>=':'大于等于','<=':'小于等于','>':'大于','<':'小于','==':'等于','!=':'不等于' }[op] || op;
+    }
+    function opBoolLabel(op) {
+        return { '==':'等于','!=':'不等于' }[op] || op;
+    }
+    function opOptions() {
+        return ['>=','<=','>','<','==','!='];
+    }
+    function fieldOptions(filter) {
+        var list = filter ? FIELD_MAP.filter(function(f){ return filter.includes(f.type); }) : FIELD_MAP;
+        return list.map(function(f){ return { value: f.key, label: f.label, type: f.type, source: f.source }; });
+    }
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+    function fieldFilter(filter) {
+        return FIELD_MAP.filter(function(f){
+            if (!filter) return true;
+            var types = filter.split('|');
+            if (f.type === 'count') return types.includes('number'); // count 字段允许选
+            return types.includes(f.type);
+        });
+    }
+
+    // ============ 状态 ============
+    var CFG = null;
+    var currentTab = 'hightech';
+    var editingKind = null;    // 'hard' | 'score'
+    var editingIndex = -1;
+    var editingTemplate = null; // 当前选中的模板 id
+    var editingData = null;     // 当前规则原始 DSL（用于保留 max/passLine 等元数据）
+    var editingForm = {};       // 表单结构化数据（运营视角）
+
+    // ============ 初始化 ============
+    function init() {
+        CFG = DataBridge.loadDiagnosisRules();
+        renderTab();
+        renderSyncStatus(true);
+    }
+    function renderSyncStatus(saved) {
+        var el = document.getElementById('syncStatus');
+        if (saved) {
+            el.className = 'mb-5 px-4 py-2.5 rounded-xl border flex items-center space-x-2 text-sm bg-emerald-50 border-emerald-200 text-emerald-700';
+            el.innerHTML = '<i class="fa fa-check-circle"></i><span>规则已与前端同步（localStorage 已保存）</span>';
+        } else {
+            el.className = 'mb-5 px-4 py-2.5 rounded-xl border flex items-center space-x-2 text-sm bg-amber-50 border-amber-200 text-amber-700';
+            el.innerHTML = '<i class="fa fa-exclamation-triangle"></i><span>有未保存的修改，请点击右上角「保存配置」生效</span>';
+        }
+    }
+
+    // ============ Tab 切换 ============
+    function switchTab(tab, btn) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(function(b) {
+            b.classList.remove('tab-active');
+            b.classList.add('tab-inactive');
+        });
+        btn.classList.remove('tab-inactive');
+        btn.classList.add('tab-active');
+        renderTab();
+    }
+
+    function renderTab() {
+        var r = CFG.rules[currentTab];
+        var container = document.getElementById('tabContent');
+        var html = '';
+
+        // 基础设置
+        html += '<div class="bg-white rounded-2xl border border-slate-200 p-5">';
+        html += '  <h3 class="text-base font-black text-slate-800 mb-3 flex items-center"><i class="fa fa-cog text-indigo-600 mr-2"></i>基础设置</h3>';
+        html += '  <div class="grid grid-cols-2 gap-4">';
+        html += '    <div><label class="text-xs text-slate-500 font-bold">测评类型名称</label><input id="cfgType" value="' + escapeHtml(r.type) + '" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></div>';
+        html += '    <div><label class="text-xs text-slate-500 font-bold">及格线（综合得分）</label><input id="cfgPassLine" type="number" step="0.1" value="' + r.passLine + '" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></div>';
+        html += '  </div>';
+        html += '  <div class="mt-3 flex justify-end"><button onclick="saveBase()" class="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold hover:bg-indigo-100">应用基础设置</button></div>';
+        html += '</div>';
+
+        // 硬性指标表
+        html += renderHardTable(r);
+        // 评分项表
+        html += renderScoreTable(r);
+        // 建议文案配置（运营自定义改进建议）
+        html += renderSuggestionEditor(r);
+
+        container.innerHTML = html;
+    }
+
+    function renderHardTable(r) {
+        var rows = r.hardMetrics.map(function(m, idx) {
+            var nl = dslToNL(m, true);
+            return '<tr class="hover:bg-indigo-50/30 transition-colors">' +
+                '<td class="px-3 py-3 font-bold text-slate-800">' + escapeHtml(m.name) + '</td>' +
+                '<td class="px-3 py-3 text-[12px] text-slate-600 max-w-md">' + nl + '</td>' +
+                '<td class="px-3 py-3 text-center">' +
+                    '<button onclick="openEditModal(\'hard\',' + idx + ')" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs mr-3"><i class="fa fa-edit mr-1"></i>编辑</button>' +
+                    '<button onclick="deleteRule(\'hard\',' + idx + ')" class="text-red-500 hover:text-red-700 font-bold text-xs"><i class="fa fa-trash mr-1"></i>删除</button>' +
+                '</td>' +
+            '</tr>';
+        }).join('');
+        return '<div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">' +
+            '<div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">' +
+                '<div><h3 class="text-base font-black text-slate-800 flex items-center"><i class="fa fa-shield-alt text-emerald-600 mr-2"></i>硬性指标（' + r.hardMetrics.length + '）</h3>' +
+                '<p class="text-xs text-slate-400 mt-0.5">必须全部达标才能通过测评</p></div>' +
+                '<button onclick="openEditModal(\'hard\',-1)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center"><i class="fa fa-plus mr-1"></i>新增指标</button>' +
+            '</div>' +
+            '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="bg-slate-50 text-slate-500 text-xs uppercase">' +
+                '<th class="px-3 py-2 text-left font-bold">指标名称</th><th class="px-3 py-2 text-left font-bold">判定规则（运营可读）</th><th class="px-3 py-2 text-center font-bold w-40">操作</th>' +
+            '</tr></thead><tbody class="divide-y divide-slate-100">' + rows + '</tbody></table></div>' +
+        '</div>';
+    }
+
+    function renderScoreTable(r) {
+        var rows = r.scoreItems.map(function(s, idx) {
+            var nl = dslToNL(s, false);
+            var basis = s.basis ? s.basis.template : '';
+            return '<tr class="hover:bg-indigo-50/30 transition-colors">' +
+                '<td class="px-3 py-3 font-bold text-slate-800">' + escapeHtml(s.name) + '</td>' +
+                '<td class="px-3 py-3 text-center"><span class="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded">' + s.max + '</span></td>' +
+                '<td class="px-3 py-3 text-[12px] text-slate-600 max-w-md">' + nl + '</td>' +
+                '<td class="px-3 py-3 text-center">' +
+                    '<button onclick="openEditModal(\'score\',' + idx + ')" class="text-indigo-600 hover:text-indigo-800 font-bold text-xs mr-3"><i class="fa fa-edit mr-1"></i>编辑</button>' +
+                    '<button onclick="deleteRule(\'score\',' + idx + ')" class="text-red-500 hover:text-red-700 font-bold text-xs"><i class="fa fa-trash mr-1"></i>删除</button>' +
+                '</td>' +
+            '</tr>';
+        }).join('');
+        return '<div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">' +
+            '<div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">' +
+                '<div><h3 class="text-base font-black text-slate-800 flex items-center"><i class="fa fa-calculator text-indigo-600 mr-2"></i>评分项（' + r.scoreItems.length + '，合计 ' + r.scoreItems.reduce(function(a,s){return a+s.max;},0) + ' 分）</h3>' +
+                '<p class="text-xs text-slate-400 mt-0.5">按公式计算得分，结果限制在满分以内</p></div>' +
+                '<button onclick="openEditModal(\'score\',-1)" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center"><i class="fa fa-plus mr-1"></i>新增评分项</button>' +
+            '</div>' +
+            '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="bg-slate-50 text-slate-500 text-xs uppercase">' +
+                '<th class="px-3 py-2 text-left font-bold">评分项名称</th><th class="px-3 py-2 text-center font-bold">满分</th><th class="px-3 py-2 text-left font-bold">计分方式（运营可读）</th><th class="px-3 py-2 text-center font-bold w-40">操作</th>' +
+            '</tr></thead><tbody class="divide-y divide-slate-100">' + rows + '</tbody></table></div>' +
+        '</div>';
+    }
+
+    // ============ DSL → 自然语言（列表页只读展示） ============
+    function dslToNL(d, isHard) {
+        if (!d) return '';
+        if (isHard) {
+            if (d.check && d.check.boolExpr) {
+                return boolExprToNL(d.check.boolExpr);
+            }
+            if (d.check && d.check.expr) {
+                return exprToNL(d.check.expr) + ' ' + opLabel(d.check.op) + ' <b>' + d.check.value + '</b>' + (d.value && d.value.unit ? d.value.unit : '');
+            }
+            return '系统预设规则';
+        } else {
+            if (d.calc && d.calc.expr) {
+                return calcToNL(d.calc.expr, d.calc.cap || d.max);
+            }
+            if (d.basis && d.basis.template) {
+                return '依据：' + d.basis.template;
+            }
+            return '系统预设规则';
+        }
+    }
+
+    function exprToNL(expr) {
+        // 1. sum(X) / sum(Y) * 100 → X 合计占 Y 合计 的比例
+        var m = expr.match(/sum\((form\w+)\)\s*\/\s*sum\((form\w+)\)\s*\*\s*100/);
+        if (m) {
+            return fieldLabel(m[1]) + ' 合计占 ' + fieldLabel(m[2]) + ' 合计 的比例';
+        }
+        // 2. sum(X) / sum(Y) → X 合计占 Y 合计 的比例（不带 *100）
+        m = expr.match(/sum\((form\w+)\)\s*\/\s*sum\((form\w+)\)/);
+        if (m) {
+            return fieldLabel(m[1]) + ' 合计占 ' + fieldLabel(m[2]) + ' 合计 的比例';
+        }
+        // 3. yearsSince(X) → X 年限
+        m = expr.match(/yearsSince\((form\w+)\)/);
+        if (m) return fieldLabel(m[1]) + ' 年限';
+        // 4. X / Y * 100 → X 占 Y 的比例
+        m = expr.match(/(form\w+)\s*\/\s*(form\w+)\s*\*\s*100/);
+        if (m) return fieldLabel(m[1]) + ' 占 ' + fieldLabel(m[2]) + ' 的比例';
+        // 5. X / Y → X 除以 Y
+        m = expr.match(/(form\w+)\s*\/\s*(form\w+)/);
+        if (m) return fieldLabel(m[1]) + ' 占 ' + fieldLabel(m[2]) + ' 的比例';
+        // 6. 直接字段
+        var f = FIELD_MAP.find(function(x){ return x.key === expr.trim(); });
+        if (f) return f.label;
+        // 7. X * Y（简单乘法）
+        m = expr.match(/(form\w+)\s*\*/);
+        if (m) return fieldLabel(m[1]);
+        // 8. 兜底：去掉 form 前缀 + sum() 包装
+        return expr.replace(/sum\(/g, '').replace(/\)/g, '').replace(/form/g, '').replace(/\*/g, '×');
+    }
+
+    function calcToNL(expr, cap) {
+        // 1. 三元链 "X == '是' ? a : (X == '是' ? b : c)" → X 达标得a分，部分达标得b分，否则c分
+        var ternaryMatch = expr.match(/(.+?)\?/);
+        if (ternaryMatch) {
+            // 简化：展示"按条件分段给分，上限 cap 分"
+            return '按条件分段给分（上限 ' + cap + ' 分）';
+        }
+        // 2. X * Y 简单计算
+        var m = expr.match(/(form\w+)\s*\*/);
+        if (m) return fieldLabel(m[1]) + ' 按数量计算（上限 ' + cap + ' 分）';
+        // 3. 兜底
+        return '按公式计算（上限 ' + cap + ' 分）';
+    }
+
+    function boolExprToNL(expr) {
+        // 1. yearsSince(X) >= N 单独处理（比较表达式不是 ==/!= 值模式）
+        var m = expr.match(/^yearsSince\((form\w+)\)\s*(>=|<=|>|<|==|!=)\s*(\S+)$/);
+        if (m) return fieldLabel(m[1]) + '年限 ' + opLabel(m[2]) + ' ' + m[3];
+        // 2. X != "" / X == "" 非空检查
+        m = expr.match(/^(form\w+)\s*(!=|==)\s*""$/);
+        if (m) return (m[2] === '!=' ? fieldLabel(m[1]) + ' 已填写' : fieldLabel(m[1]) + ' 为空');
+        // 3. 全局替换：所有 formXxx == "值" / != "值" 转中文，然后 &&/|| 转中文
+        return expr
+            .replace(/(form\w+)\s*==\s*"([^"]+)"/g, function(_, field, val) {
+                return fieldLabel(field) + ' 为 ' + val;
+            })
+            .replace(/(form\w+)\s*!=\s*"([^"]+)"/g, function(_, field, val) {
+                return fieldLabel(field) + ' 不等于 ' + val;
+            })
+            .replace(/&&/g, ' 且 ')
+            .replace(/\|\|/g, ' 或 ');
+    }
+
+    // ============ 建议文案配置（改进建议模板） ============
+    // 每个维度三档模板：fail=未达标(<60分) pass=刚达标(60-80) excel=优秀(>80)
+    // 变量：{value}=当前值 {passline}=达标线 {gap}=差距 {unit}=单位 {needInvest}=需再投入金额(万元)
+    var SUGGEST_DIMS = {
+        hightech: [
+            { key:'years',     name:'成立年限',       demo:{ value:2.5, passline:3, gap:0.5, unit:'年' } },
+            { key:'personnel', name:'科技人员占比',   demo:{ value:8, passline:10, gap:2, unit:'%' } },
+            { key:'rdFee',     name:'研发费用占比',   demo:{ value:2.1, passline:3, gap:0.9, unit:'%', needInvest:189 } },
+            { key:'htIncome',  name:'高新收入占比',   demo:{ value:45, passline:60, gap:15, unit:'%' } },
+            { key:'ip',        name:'知识产权总数',   demo:{ value:4, passline:6, gap:2, unit:'项' } },
+            { key:'mgmt',      name:'研发管理水平',   demo:{ value:'待建立' } }
+        ],
+        specialized: [
+            { key:'profe',   name:'专业化（主营占比）', demo:{ value:48, passline:60, gap:12, unit:'%' } },
+            { key:'refine',  name:'精细化（资质认证）', demo:{ value:1, passline:2, gap:1, unit:'项' } },
+            { key:'special', name:'特色化（数字化）',   demo:{ value:'二级' } },
+            { key:'novel',   name:'新颖化（研发人员）', demo:{ value:7, passline:10, gap:3, unit:'%' } },
+            { key:'growth',  name:'成长性（营收增长）', demo:{ value:5, passline:10, gap:5, unit:'%' } },
+            { key:'quality', name:'质量管控（负债率）', demo:{ value:75, passline:70, gap:5, unit:'%' } }
+        ],
+        giant: [
+            { key:'share',   name:'市场占有率',     demo:{ value:'未达标' } },
+            { key:'chain',   name:'产业链补短板',   demo:{ value:1 } },
+            { key:'rdFee',   name:'研发费用占比',   demo:{ value:1.9, passline:3, gap:1.1, unit:'%', needInvest:209 } },
+            { key:'rdStaff', name:'研发机构',       demo:{ value:'已建' } },
+            { key:'ip1',     name:'Ⅰ类知识产权',   demo:{ value:1, passline:2, gap:1, unit:'项' } },
+            { key:'debt',    name:'资产负债率',     demo:{ value:'≤70%' } }
+        ],
+        gradient: [
+            { key:'tech',      name:'技术实力',   demo:{ value:'起步阶段' } },
+            { key:'rd',        name:'研发投入',   demo:{ value:2.1, passline:3, gap:0.9, unit:'%' } },
+            { key:'ip',        name:'知识产权',   demo:{ value:3, passline:5, gap:2, unit:'项' } },
+            { key:'transform', name:'成果转化',   demo:{ value:'基础阶段' } },
+            { key:'talent',    name:'人才团队',   demo:{ value:'初具规模' } },
+            { key:'market',    name:'市场表现',   demo:{ value:'区域起步' } }
+        ]
+    };
+
+    function renderSuggestionEditor(r) {
+        var dims = SUGGEST_DIMS[currentTab] || [];
+        var st = r.suggestionTexts || {};
+        var html = '<div class="bg-white rounded-2xl border border-slate-200 p-5">';
+        html += '<h3 class="text-base font-black text-slate-800 mb-1 flex items-center"><i class="fa fa-comment-dots text-purple-600 mr-2"></i>改进建议文案（' + dims.length + ' 个维度）</h3>';
+        html += '<p class="text-xs text-slate-400 mb-3">前端测评报告的「改进建议」按维度得分自动取三档之一；留空则使用系统内置文案。改完点右上角「保存配置」生效。</p>';
+        html += '<div class="mb-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-slate-600 leading-relaxed">';
+        html += '<b class="text-indigo-700">文案建议：</b>优先用文字表述（如"未达标""已达门槛"），读起来更像顾问话术，避免数字生硬拼接。仅在有真实价值时用变量：<code class="bg-white px-1.5 py-0.5 rounded border border-indigo-100 mx-0.5">{needInvest}</code>需再投入金额（万元，按企业营收自动测算，仅研发费用类）。其余变量（<code class="bg-white px-1.5 py-0.5 rounded border border-indigo-100 mx-0.5">{value}</code>当前值 <code class="bg-white px-1.5 py-0.5 rounded border border-indigo-100 mx-0.5">{passline}</code>达标线 <code class="bg-white px-1.5 py-0.5 rounded border border-indigo-100 mx-0.5">{gap}</code>差距 <code class="bg-white px-1.5 py-0.5 rounded border border-indigo-100 mx-0.5">{unit}</code>单位）仍支持，但默认模板已不使用';
+        html += '</div>';
+        dims.forEach(function(d) {
+            var conf = st[d.key] || {};
+            html += '<div class="mb-3 p-4 bg-slate-50 rounded-xl border border-slate-100">';
+            html += '<div class="flex items-center justify-between mb-2">';
+            html += '<div class="text-sm font-black text-slate-700">' + d.name + ' <span class="text-[10px] text-slate-400 font-mono ml-1">' + d.key + '</span></div>';
+            html += '<button onclick="resetSuggText(\'' + d.key + '\')" class="text-[11px] text-slate-400 hover:text-indigo-600 font-bold"><i class="fa fa-undo mr-1"></i>恢复默认</button>';
+            html += '</div>';
+            [['fail', '未达标（<60分）', 'border-red-200 bg-red-50/50'], ['pass', '刚达标（60-80分）', 'border-amber-200 bg-amber-50/50'], ['excel', '优秀（>80分）', 'border-emerald-200 bg-emerald-50/50']].forEach(function(t) {
+                html += '<div class="mt-2">';
+                html += '<label class="text-[11px] font-bold text-slate-500 mb-1 block">' + t[1] + '</label>';
+                html += '<textarea id="sugg_' + d.key + '_' + t[0] + '" rows="2" oninput="saveSuggText(\'' + d.key + '\',\'' + t[0] + '\', this.value)" placeholder="留空使用系统内置文案" class="w-full px-3 py-2 ' + t[2] + ' border rounded-lg text-xs leading-relaxed focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none">' + escapeHtml(conf[t[0]] || '') + '</textarea>';
+                html += '</div>';
+            });
+            html += '<div class="mt-2"><button onclick="previewSugg(\'' + d.key + '\')" class="text-[11px] text-indigo-600 font-bold hover:text-indigo-800"><i class="fa fa-eye mr-1"></i>用示例值预览</button>';
+            html += '<div id="suggPreview_' + d.key + '" class="hidden mt-2 space-y-1"></div></div>';
+            html += '</div>';
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function saveSuggText(dimKey, tier, val) {
+        if (!CFG.rules[currentTab].suggestionTexts) CFG.rules[currentTab].suggestionTexts = {};
+        var st = CFG.rules[currentTab].suggestionTexts;
+        if (!st[dimKey]) st[dimKey] = {};
+        st[dimKey][tier] = val;
+        renderSyncStatus(false);
+    }
+
+    function previewSugg(dimKey) {
+        var dims = SUGGEST_DIMS[currentTab] || [];
+        var d = null;
+        dims.forEach(function(x) { if (x.key === dimKey) d = x; });
+        var box = document.getElementById('suggPreview_' + dimKey);
+        if (!d || !box) return;
+        var st = (CFG.rules[currentTab].suggestionTexts || {})[dimKey] || {};
+        var tierNames = { fail: '未达标', pass: '刚达标', excel: '优秀' };
+        var rows = ['fail', 'pass', 'excel'].map(function(tier) {
+            var tpl = st[tier] || '';
+            if (!tpl.trim()) return '<div class="text-[11px] text-slate-400">' + tierNames[tier] + '：未配置（用内置文案）</div>';
+            var text = tpl.replace(/\{(\w+)\}/g, function(m, k) {
+                return (d.demo && d.demo[k] !== undefined) ? d.demo[k] : '';
+            });
+            return '<div class="text-[11px] text-slate-600"><b class="text-slate-500">' + tierNames[tier] + '：</b>' + escapeHtml(text) + '</div>';
+        });
+        box.innerHTML = rows.join('');
+        box.classList.remove('hidden');
+    }
+
+    function resetSuggText(dimKey) {
+        if (!confirm('确认恢复该维度的默认建议文案？')) return;
+        var def = (DataBridge.DEFAULT_DIAGNOSIS_RULES.rules[currentTab] || {}).suggestionTexts || {};
+        var defConf = def[dimKey] || {};
+        if (!CFG.rules[currentTab].suggestionTexts) CFG.rules[currentTab].suggestionTexts = {};
+        CFG.rules[currentTab].suggestionTexts[dimKey] = JSON.parse(JSON.stringify(defConf));
+        ['fail', 'pass', 'excel'].forEach(function(tier) {
+            var el = document.getElementById('sugg_' + dimKey + '_' + tier);
+            if (el) el.value = defConf[tier] || '';
+        });
+        renderSyncStatus(false);
+    }
+
+    // ============ 基础设置 ============
+    function saveBase() {
+        var r = CFG.rules[currentTab];
+        r.type = document.getElementById('cfgType').value.trim();
+        r.passLine = parseFloat(document.getElementById('cfgPassLine').value) || 0;
+        renderTab();
+        renderSyncStatus(false);
+    }
+
+    // ============ 编辑模态框（运营版） ============
+    function openEditModal(kind, idx) {
+        editingKind = kind;
+        editingIndex = idx;
+        editingData = null;
+        editingForm = {};
+        editingTemplate = null;
+
+        var r = CFG.rules[currentTab];
+        var d = idx >= 0 ? (kind === 'hard' ? r.hardMetrics[idx] : r.scoreItems[idx]) : null;
+        if (d) editingData = JSON.parse(JSON.stringify(d)); // 深拷贝原始 DSL
+
+        var title = kind === 'hard'
+            ? (idx >= 0 ? '编辑硬性指标' : '新增硬性指标')
+            : (idx >= 0 ? '编辑评分项' : '新增评分项');
+        document.getElementById('modalTitle').innerHTML = '<i class="fa fa-' + (kind === 'hard' ? 'shield-alt' : 'calculator') + ' text-' + (kind === 'hard' ? 'emerald' : 'indigo') + '-600 mr-2"></i>' + title;
+        document.getElementById('fMaxLabel').style.display = kind === 'score' ? '' : 'none';
+        document.getElementById('fMax').style.display = kind === 'score' ? '' : 'none';
+
+        // 初始化表单值
+        document.getElementById('fName').value = (d && d.name) ? d.name : '';
+        document.getElementById('fMax').value = (d && d.max) ? d.max : 100;
+
+        // 根据已有 DSL 反推模板选择（尽量匹配）
+        var guessedTemplate = dslGuessTemplate(d, kind);
+        editingTemplate = guessedTemplate;
+        editingForm = dslToForm(d, kind, guessedTemplate) || {};
+
+        renderTemplateList(kind);
+        renderTemplateConfig(editingTemplate);
+        updateNLPreview();
+
+        document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    // 从 DSL 反推模板 + 表单数据
+    function dslGuessTemplate(d, kind) {
+        if (!d) return null;
+        // 硬指标
+        if (kind === 'hard') {
+            if (d.check && d.check.boolExpr) {
+                if (d.check.boolExpr.indexOf(' && ') !== -1 || d.check.boolExpr.indexOf(' || ') !== -1) return 'multiCondition';
+                return 'condition';
+            }
+            if (d.check && d.check.expr && d.check.expr.indexOf(' / ') !== -1) return 'ratio';
+            return 'quantity';
+        }
+        // 评分项
+        if (kind === 'score') {
+            if (d.calc && d.calc.expr && d.calc.expr.indexOf('?') !== -1) return 'scoreMap';
+            return 'linear';
+        }
+        return null;
+    }
+    function dslToForm(d, kind, templateId) {
+        if (!d || !templateId) return null;
+        if (kind === 'hard') {
+            var t = TEMPLATES[templateId];
+            var cfg = {};
+            if (templateId === 'ratio' && d.check && d.check.expr) {
+                // "num / den * 100" → numerator/denominator
+                var expr = d.check.expr;
+                // 简化解析
+                var m = expr.match(/(.+?)\s*\/\s*(.+)/);
+                if (m) {
+                    cfg.numerator = m[1].trim().replace('sum(', '').replace(')', '');
+                    cfg.denominator = m[2].trim().replace(' * 100', '').replace('sum(', '').replace(')', '');
+                }
+                cfg.op = d.check.op;
+                cfg.value = d.check.value;
+            } else if (templateId === 'quantity' && d.check) {
+                var expr2 = d.check.expr || '';
+                cfg.field = expr2.replace('yearsSince(', '').replace(')', '');
+                cfg.op = d.check.op;
+                cfg.value = d.check.value;
+                cfg.unit = d.value ? d.value.unit : '';
+            } else if (templateId === 'condition' && d.check && d.check.boolExpr) {
+                var bool = d.check.boolExpr;
+                var m2 = bool.match(/(\w+)\s*==\s*"([^"]+)"/);
+                if (m2) { cfg.field = m2[1]; cfg.op = '=='; cfg.value = m2[2]; }
+            } else if (templateId === 'multiCondition' && d.check && d.check.boolExpr) {
+                cfg.conditions = [];
+                var bool2 = d.check.boolExpr;
+                var parts = bool2.split(' && ');
+                parts.forEach(function(p) {
+                    var m3 = p.match(/(\w+)\s*==\s*"([^"]+)"/);
+                    if (m3) cfg.conditions.push({ field: m3[1], value: m3[2] });
+                });
+            }
+            return cfg;
+        } else {
+            // 评分项
+            var cfg2 = { max: d.max };
+            if (templateId === 'linear') {
+                cfg2.parts = d.calc ? [{ field: findFirstField(d.calc.expr), coef: 1 }] : [];
+            } else if (templateId === 'scoreMap') {
+                cfg2.field = findFirstField(d.calc ? d.calc.expr : '');
+                cfg2.rows = [{ min: 0, max: 100, score: d.max || 0 }];
+            }
+            return cfg2;
+        }
+    }
+    function findFirstField(expr) {
+        if (!expr) return '';
+        var m = expr.match(/form\w+/);
+        return m ? m[0] : '';
+    }
+
+    function renderTemplateList(kind) {
+        var list = kind === 'hard'
+            ? ['ratio','quantity','condition','multiCondition']
+            : ['linear','scoreMap'];
+        var html = list.map(function(id) {
+            var t = TEMPLATES[id];
+            var sel = editingTemplate === id ? ' selected' : '';
+            return '<div class="template-card' + sel + '" data-tpl="' + id + '" onclick="selectTemplate(\'' + id + '\')">' +
+                '<div class="flex items-center gap-2 mb-1"><i class="fa ' + t.icon + ' text-indigo-500"></i><span class="font-bold text-slate-800 text-sm">' + t.name + '</span></div>' +
+                '<p class="text-[11px] text-slate-500">' + t.desc + '</p>' +
+            '</div>';
+        }).join('');
+        document.getElementById('templateList').innerHTML = html;
+    }
+
+    function selectTemplate(id) {
+        editingTemplate = id;
+        // 新模板：初始化空表单
+        editingForm = {};
+        renderTemplateList(editingKind);
+        renderTemplateConfig(id);
+        updateNLPreview();
+    }
+
+    function renderTemplateConfig(tplId) {
+        if (!tplId) { document.getElementById('templateConfig').innerHTML = '<p class="text-xs text-slate-400 text-center py-6">请先选择规则类型</p>'; return; }
+        var t = TEMPLATES[tplId];
+        var html = '';
+
+        t.fields.forEach(function(f) {
+            html += renderField(f, editingForm[f.id] !== undefined ? editingForm[f.id] : '');
+        });
+
+        document.getElementById('templateConfig').innerHTML = html;
+        // 绑定 change 事件
+        bindFieldChange();
+    }
+
+    function renderField(f, curVal) {
+        var cur = curVal;
+        if (f.type === 'field') {
+            var opts = fieldOptions(f.filter);
+            return '<div class="mb-3"><label class="text-xs text-slate-500 font-bold">' + f.label + '</label>' +
+                '<select data-field="' + f.id + '" data-type="field" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">' +
+                '<option value="">请选择...</option>' + opts.map(function(o) {
+                    return '<option value="' + o.value + '" ' + (cur === o.value ? 'selected' : '') + '>' + o.label + '（' + o.source + '）</option>';
+                }).join('') + '</select>' +
+                (f.help ? '<p class="text-[10px] text-slate-400 mt-0.5">' + f.help + '</p>' : '') + '</div>';
+        }
+        if (f.type === 'op') {
+            return '<div class="mb-3"><label class="text-xs text-slate-500 font-bold">' + f.label + '</label>' +
+                '<select data-field="' + f.id + '" data-type="op" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">' +
+                opOptions().map(function(o) {
+                    return '<option value="' + o + '" ' + (cur === o ? 'selected' : '') + '>' + opLabel(o) + '</option>';
+                }).join('') + '</select></div>';
+        }
+        if (f.type === 'opBool') {
+            return '<div class="mb-3"><label class="text-xs text-slate-500 font-bold">' + f.label + '</label>' +
+                '<select data-field="' + f.id + '" data-type="op" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">' +
+                '<option value="=="' + (cur === '==' ? ' selected' : '') + '>等于</option>' +
+                '<option value="!="' + (cur === '!=' ? ' selected' : '') + '>不等于</option>' +
+                '</select></div>';
+        }
+        if (f.type === 'number') {
+            return '<div class="mb-3"><label class="text-xs text-slate-500 font-bold">' + f.label + '</label>' +
+                '<input data-field="' + f.id + '" data-type="number" type="number" value="' + cur + '" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">' +
+                (f.help ? '<p class="text-[10px] text-slate-400 mt-0.5">' + f.help + '</p>' : '') + '</div>';
+        }
+        if (f.type === 'text') {
+            return '<div class="mb-3"><label class="text-xs text-slate-500 font-bold">' + f.label + '</label>' +
+                '<input data-field="' + f.id + '" data-type="text" value="' + cur + '" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">' +
+                (f.help ? '<p class="text-[10px] text-slate-400 mt-0.5">' + f.help + '</p>' : '') + '</div>';
+        }
+        if (f.type === 'valueSelect') {
+            // 动态：根据 field 选择展示对应的可选值
+            var curField = editingForm.field;
+            var vals = getValueOptions(curField);
+            return '<div class="mb-3"><label class="text-xs text-slate-500 font-bold">' + f.label + '</label>' +
+                '<select data-field="' + f.id + '" data-type="text" class="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">' +
+                '<option value="">请选择...</option>' + vals.map(function(v) {
+                    return '<option value="' + v + '" ' + (cur === v ? 'selected' : '') + '>' + v + '</option>';
+                }).join('') + '</select></div>';
+        }
+        if (f.type === 'multiCond') {
+            return renderMultiCond(cur);
+        }
+        if (f.type === 'scoreRows') {
+            return renderScoreRows(cur);
+        }
+        if (f.type === 'linearParts') {
+            return renderLinearParts(cur);
+        }
+        return '';
+    }
+
+    function getValueOptions(fieldKey) {
+        var f = FIELD_MAP.find(function(x){ return x.key === fieldKey; });
+        if (!f) return ['是', '否', '全国前列', '区域前列', '省内前列'];
+        if (f.type === 'bool') return ['是', '否'];
+        if (f.type === 'enum' && f.options) return f.options;
+        return ['是', '否', '全国前列', '区域前列', '省内前列'];
+    }
+
+    function renderMultiCond(initial) {
+        var rows = (initial && initial.length) ? initial : [{ field: '', value: '是' }];
+        var html = '<div class="mb-3"><label class="text-xs text-slate-500 font-bold">条件列表（全部满足时达标）</label>' +
+            '<div id="multiCondContainer" class="mt-2 space-y-2">';
+        rows.forEach(function(r, i) {
+            html += '<div class="flex items-center gap-2"><select data-row="' + i + '" data-sub="field" data-container="multiCond" class="multi-field flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm">' +
+                '<option value="">选字段</option>' + fieldOptions('bool|enum|string').map(function(o) {
+                    return '<option value="' + o.value + '" ' + (r.field === o.value ? 'selected' : '') + '>' + o.label + '</option>';
+                }).join('') + '</select>' +
+                '<select data-row="' + i + '" data-sub="value" data-container="multiCond" class="multi-value w-28 px-3 py-2 border border-slate-200 rounded-lg text-sm">' +
+                getValueOptions(r.field).map(function(v) {
+                    return '<option value="' + v + '" ' + (r.value === v ? 'selected' : '') + '>' + v + '</option>';
+                }).join('') + '</select>' +
+                '<button type="button" onclick="removeMultiRow(this)" class="text-red-400 hover:text-red-600 px-2"><i class="fa fa-trash"></i></button></div>';
+        });
+        html += '</div><button type="button" onclick="addMultiRow()" class="mt-2 text-xs text-indigo-600 font-bold hover:text-indigo-800"><i class="fa fa-plus mr-1"></i>添加条件</button></div>';
+        return html;
+    }
+    function addMultiRow() {
+        var container = document.getElementById('multiCondContainer');
+        var idx = container.children.length;
+        container.insertAdjacentHTML('beforeend',
+            '<div class="flex items-center gap-2"><select data-row="' + idx + '" data-sub="field" data-container="multiCond" class="multi-field flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm">' +
+            '<option value="">选字段</option>' + fieldOptions('bool|enum|string').map(function(o) {
+                return '<option value="' + o.value + '">' + o.label + '</option>';
+            }).join('') + '</select>' +
+            '<select data-row="' + idx + '" data-sub="value" data-container="multiCond" class="multi-value w-28 px-3 py-2 border border-slate-200 rounded-lg text-sm"><option value="是">是</option><option value="否">否</option></select>' +
+            '<button type="button" onclick="removeMultiRow(this)" class="text-red-400 hover:text-red-600 px-2"><i class="fa fa-trash"></i></button></div>');
+        bindFieldChange();
+    }
+    function removeMultiRow(btn) { btn.parentElement.remove(); updateNLPreview(); }
+
+    function renderScoreRows(initial) {
+        var rows = (initial && initial.length) ? initial : [{ min: 0, max: 100, score: 0 }];
+        var html = '<div class="mb-3"><label class="text-xs text-slate-500 font-bold">得分区间（数值范围 → 得分）</label>' +
+            '<div class="text-[10px] text-slate-400 mb-2">例如：0-10 得0分、10-15 得15分、≥15 得满分</div>' +
+            '<div id="scoreRowsContainer" class="mt-2 space-y-2">';
+        html += '<div class="grid grid-cols-[100px_30px_100px_80px_40px] gap-2 items-center text-[10px] text-slate-400 font-bold"><span>下限（≥）</span><span></span><span>上限（<）</span><span>得分数</span><span></span></div>';
+        rows.forEach(function(r, i) {
+            html += '<div class="grid grid-cols-[100px_30px_100px_80px_40px] gap-2 items-center">' +
+                '<input data-row="' + i + '" data-sub="min" data-container="scoreRows" type="number" value="' + r.min + '" class="score-min px-2 py-1.5 border border-slate-200 rounded text-sm">' +
+                '<span class="text-xs text-slate-400">到</span>' +
+                '<input data-row="' + i + '" data-sub="max" data-container="scoreRows" type="number" placeholder="不填=及以上" value="' + (r.max || '') + '" class="score-max px-2 py-1.5 border border-slate-200 rounded text-sm">' +
+                '<input data-row="' + i + '" data-sub="score" data-container="scoreRows" type="number" value="' + r.score + '" class="score-score px-2 py-1.5 border border-slate-200 rounded text-sm">' +
+                '<button type="button" onclick="removeScoreRow(this)" class="text-red-400 hover:text-red-600"><i class="fa fa-trash"></i></button></div>';
+        });
+        html += '</div><button type="button" onclick="addScoreRow()" class="mt-2 text-xs text-indigo-600 font-bold hover:text-indigo-800"><i class="fa fa-plus mr-1"></i>添加区间</button></div>';
+        return html;
+    }
+    function addScoreRow() {
+        var container = document.getElementById('scoreRowsContainer');
+        var idx = container.querySelectorAll('[data-container="scoreRows"][data-sub="min"]').length;
+        container.insertAdjacentHTML('beforeend',
+            '<div class="grid grid-cols-[100px_30px_100px_80px_40px] gap-2 items-center">' +
+            '<input data-row="' + idx + '" data-sub="min" data-container="scoreRows" type="number" placeholder="下限" class="score-min px-2 py-1.5 border border-slate-200 rounded text-sm">' +
+            '<span class="text-xs text-slate-400">到</span>' +
+            '<input data-row="' + idx + '" data-sub="max" data-container="scoreRows" type="number" placeholder="不填=及以上" class="score-max px-2 py-1.5 border border-slate-200 rounded text-sm">' +
+            '<input data-row="' + idx + '" data-sub="score" data-container="scoreRows" type="number" placeholder="得分" class="score-score px-2 py-1.5 border border-slate-200 rounded text-sm">' +
+            '<button type="button" onclick="removeScoreRow(this)" class="text-red-400 hover:text-red-600"><i class="fa fa-trash"></i></button></div>');
+        bindFieldChange();
+    }
+    function removeScoreRow(btn) { btn.parentElement.remove(); updateNLPreview(); }
+
+    function renderLinearParts(initial) {
+        var rows = (initial && initial.length) ? initial : [{ field: '', coef: 1, bonusOnPass: false, bonusOp: '>=', bonusVal: 10, bonusScore: 20 }];
+        var html = '<div class="mb-3"><label class="text-xs text-slate-500 font-bold">计分组成（可多段叠加）</label>' +
+            '<div id="linearPartsContainer" class="mt-2 space-y-3">';
+        rows.forEach(function(r, i) {
+            html += '<div class="border border-slate-200 rounded-lg p-3">' +
+                '<div class="flex items-center gap-2 mb-2">' +
+                    '<span class="text-xs text-slate-500 font-bold">基础分</span>' +
+                    '<select data-row="' + i + '" data-sub="field" data-container="linearParts" class="linear-field flex-1 px-2 py-1.5 border border-slate-200 rounded text-sm">' +
+                        '<option value="">选字段</option>' + fieldOptions('number').map(function(o) {
+                            return '<option value="' + o.value + '" ' + (r.field === o.value ? 'selected' : '') + '>' + o.label + '</option>';
+                        }).join('') + '</select>' +
+                    '<span class="text-xs text-slate-500">每 ×</span>' +
+                    '<input data-row="' + i + '" data-sub="coef" data-container="linearParts" type="number" value="' + (r.coef || 1) + '" class="linear-coef w-16 px-2 py-1.5 border border-slate-200 rounded text-sm">' +
+                    '<span class="text-xs text-slate-500">分</span>' +
+                '</div>' +
+                '<label class="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">' +
+                    '<input data-row="' + i + '" data-sub="bonusOnPass" data-container="linearParts" type="checkbox" ' + (r.bonusOnPass ? 'checked' : '') + ' class="linear-bonus">' +
+                    '达标额外奖励：' +
+                    '<select data-row="' + i + '" data-sub="bonusOp" data-container="linearParts" class="linear-bonusOp px-1 py-0.5 border border-slate-200 rounded text-xs">' +
+                        opOptions().map(function(o) { return '<option value="' + o + '" ' + (r.bonusOp === o ? 'selected' : '') + '>' + opLabel(o) + '</option>'; }).join('') +
+                    '</select>' +
+                    '<input data-row="' + i + '" data-sub="bonusVal" data-container="linearParts" type="number" value="' + (r.bonusVal || 10) + '" class="linear-bonusVal w-16 px-1 py-0.5 border border-slate-200 rounded text-xs">' +
+                    ' 时 + ' +
+                    '<input data-row="' + i + '" data-sub="bonusScore" data-container="linearParts" type="number" value="' + (r.bonusScore || 20) + '" class="linear-bonusScore w-14 px-1 py-0.5 border border-slate-200 rounded text-xs">' +
+                    ' 分' +
+                '</label>' +
+            '</div>';
+        });
+        html += '</div><button type="button" onclick="addLinearRow()" class="mt-2 text-xs text-indigo-600 font-bold hover:text-indigo-800"><i class="fa fa-plus mr-1"></i>添加计分段</button></div>';
+        return html;
+    }
+    function addLinearRow() {
+        var container = document.getElementById('linearPartsContainer');
+        var idx = container.querySelectorAll('[data-container="linearParts"][data-sub="field"]').length;
+        container.insertAdjacentHTML('beforeend',
+            '<div class="border border-slate-200 rounded-lg p-3">' +
+                '<div class="flex items-center gap-2 mb-2">' +
+                    '<span class="text-xs text-slate-500 font-bold">基础分</span>' +
+                    '<select data-row="' + idx + '" data-sub="field" data-container="linearParts" class="linear-field flex-1 px-2 py-1.5 border border-slate-200 rounded text-sm"><option value="">选字段</option>' + fieldOptions('number').map(function(o) {
+                        return '<option value="' + o.value + '">' + o.label + '</option>';
+                    }).join('') + '</select>' +
+                    '<span class="text-xs text-slate-500">每 ×</span>' +
+                    '<input data-row="' + idx + '" data-sub="coef" data-container="linearParts" type="number" value="1" class="linear-coef w-16 px-2 py-1.5 border border-slate-200 rounded text-sm">' +
+                    '<span class="text-xs text-slate-500">分</span>' +
+                '</div>' +
+                '<label class="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">' +
+                    '<input data-row="' + idx + '" data-sub="bonusOnPass" data-container="linearParts" type="checkbox" class="linear-bonus">' +
+                    '达标额外奖励：' +
+                    '<select data-row="' + idx + '" data-sub="bonusOp" data-container="linearParts" class="linear-bonusOp px-1 py-0.5 border border-slate-200 rounded text-xs">' +
+                        opOptions().map(function(o) { return '<option value="' + o + '">' + opLabel(o) + '</option>'; }).join('') +
+                    '</select>' +
+                    '<input data-row="' + idx + '" data-sub="bonusVal" data-container="linearParts" type="number" value="10" class="linear-bonusVal w-16 px-1 py-0.5 border border-slate-200 rounded text-xs">' +
+                    ' 时 + ' +
+                    '<input data-row="' + idx + '" data-sub="bonusScore" data-container="linearParts" type="number" value="20" class="linear-bonusScore w-14 px-1 py-0.5 border border-slate-200 rounded text-xs">' +
+                    ' 分' +
+                '</label>' +
+            '</div>');
+        bindFieldChange();
+    }
+    function removeScoreRow(btn) { btn.parentElement.remove(); updateNLPreview(); }
+
+    function bindFieldChange() {
+        // 通用：data-field 属性
+        document.querySelectorAll('[data-field]').forEach(function(el) {
+            el.onchange = el.oninput = function() {
+                var key = el.getAttribute('data-field');
+                var type = el.getAttribute('data-type');
+                editingForm[key] = type === 'number' ? parseFloat(el.value) || 0 : el.value;
+                updateNLPreview();
+            };
+        });
+        // multiCond
+        document.querySelectorAll('#multiCondContainer [data-container]').forEach(function(el) {
+            var containerType = el.getAttribute('data-container');
+            if (containerType !== 'multiCond') return;
+            el.onchange = el.oninput = function() {
+                var rows = [];
+                document.querySelectorAll('#multiCondContainer > div').forEach(function(rowEl) {
+                    var fieldSel = rowEl.querySelector('.multi-field');
+                    var valueSel = rowEl.querySelector('.multi-value');
+                    if (fieldSel && fieldSel.value) rows.push({ field: fieldSel.value, value: valueSel.value });
+                });
+                editingForm.conditions = rows;
+                updateNLPreview();
+            };
+        });
+        // scoreRows
+        document.querySelectorAll('#scoreRowsContainer [data-container]').forEach(function(el) {
+            el.oninput = updateNLPreview;
+        });
+        // linearParts
+        document.querySelectorAll('#linearPartsContainer [data-container]').forEach(function(el) {
+            el.onchange = el.oninput = function() {
+                var rows = [];
+                document.querySelectorAll('#linearPartsContainer > div').forEach(function(panel) {
+                    var f = panel.querySelector('.linear-field');
+                    if (!f || !f.value) return;
+                    rows.push({
+                        field: f.value,
+                        coef: parseFloat(panel.querySelector('.linear-coef').value) || 1,
+                        bonusOnPass: panel.querySelector('.linear-bonus').checked,
+                        bonusOp: panel.querySelector('.linear-bonusOp').value,
+                        bonusVal: parseFloat(panel.querySelector('.linear-bonusVal').value) || 0,
+                        bonusScore: parseFloat(panel.querySelector('.linear-bonusScore').value) || 0
+                    });
+                });
+                editingForm.parts = rows;
+                updateNLPreview();
+            };
+        });
+    }
+
+    function collectFormData() {
+        var cfg = {};
+        if (editingTemplate === 'scoreRows' || editingTemplate === 'linear') {
+            cfg.max = parseFloat(document.getElementById('fMax').value) || 0;
+        }
+        // 通用字段回读
+        document.querySelectorAll('#templateConfig [data-field]').forEach(function(el) {
+            var key = el.getAttribute('data-field');
+            var type = el.getAttribute('data-type');
+            cfg[key] = type === 'number' ? parseFloat(el.value) || 0 : el.value;
+        });
+        // multiCond
+        if (editingTemplate === 'multiCondition') {
+            var rows = [];
+            document.querySelectorAll('#multiCondContainer > div').forEach(function(rowEl) {
+                var fieldSel = rowEl.querySelector('.multi-field');
+                var valueSel = rowEl.querySelector('.multi-value');
+                if (fieldSel && fieldSel.value) rows.push({ field: fieldSel.value, value: valueSel.value });
+            });
+            cfg.conditions = rows;
+        }
+        // scoreRows
+        if (editingTemplate === 'scoreMap') {
+            var rows2 = [];
+            document.querySelectorAll('#scoreRowsContainer > div').forEach(function(rowEl) {
+                var min = rowEl.querySelector('.score-min');
+                var max = rowEl.querySelector('.score-max');
+                var score = rowEl.querySelector('.score-score');
+                if (min) rows2.push({ min: parseFloat(min.value) || 0, max: parseFloat(max.value) || null, score: parseFloat(score.value) || 0 });
+            });
+            cfg.rows = rows2;
+        }
+        // linearParts
+        if (editingTemplate === 'linear') {
+            var rows3 = [];
+            document.querySelectorAll('#linearPartsContainer > div').forEach(function(panel) {
+                var f = panel.querySelector('.linear-field');
+                if (!f || !f.value) return;
+                rows3.push({
+                    field: f.value,
+                    coef: parseFloat(panel.querySelector('.linear-coef').value) || 1,
+                    bonusOnPass: panel.querySelector('.linear-bonus').checked,
+                    bonusOp: panel.querySelector('.linear-bonusOp').value,
+                    bonusVal: parseFloat(panel.querySelector('.linear-bonusVal').value) || 0,
+                    bonusScore: parseFloat(panel.querySelector('.linear-bonusScore').value) || 0
+                });
+            });
+            cfg.parts = rows3;
+        }
+        return cfg;
+    }
+
+    function updateNLPreview() {
+        var cfg = collectFormData();
+        editingForm = cfg;
+        var nl = '';
+        if (!editingTemplate) { nl = '请选择规则类型后查看'; }
+        else {
+            var t = TEMPLATES[editingTemplate];
+            try { nl = t.toNL(cfg); } catch(e) { nl = '配置中...'; }
+        }
+        // 基础信息补充
+        var name = document.getElementById('fName').value;
+        var prefix = name ? '<b style="color:#4f46e5">【' + name + '】</b> ' : '';
+        document.getElementById('nlPreview').innerHTML = prefix + nl;
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+        editingKind = null; editingIndex = -1;
+    }
+
+    function saveRule() {
+        var tpl = TEMPLATES[editingTemplate];
+        if (!tpl) { alert('请先选择规则类型'); return; }
+        var cfg = collectFormData();
+        var name = document.getElementById('fName').value.trim();
+        if (!name) { alert('请填写规则名称'); return; }
+
+        var tplOut = t.toDSL(cfg);
+        var base = { name: name };
+        if (editingKind === 'score') {
+            base.max = parseFloat(document.getElementById('fMax').value) || 0;
+            base.calc = tplOut.calc;
+            if (tplOut.basis) base.basis = tplOut.basis;
+            // basis 模板：运营自动生成
+            if (!base.basis) {
+                var basisFromName = name.replace(/（.+?）/g, '').trim();
+                base.basis = { template: '参考 ' + basisFromName };
+            }
+        } else {
+            base.check = tplOut.check;
+            base.value = tplOut.value;
+        }
+
+        // 保留原 key（编辑时不变）
+        if (editingIndex >= 0 && editingData && editingData.key) base.key = editingData.key;
+        else base.key = (name.match(/[\u4e00-\u9fa5]+|[a-zA-Z]+/) || ['rule'])[0].toLowerCase().replace(/\s+/g, '_');
+
+        var arr = CFG.rules[currentTab][editingKind === 'hard' ? 'hardMetrics' : 'scoreItems'];
+        if (editingIndex >= 0) arr[editingIndex] = base;
+        else arr.push(base);
+
+        closeEditModal();
+        renderTab();
+        renderSyncStatus(false);
+    }
+
+    function deleteRule(kind, idx) {
+        if (!confirm('确认删除该规则？')) return;
+        var arr = CFG.rules[currentTab][kind === 'hard' ? 'hardMetrics' : 'scoreItems'];
+        arr.splice(idx, 1);
+        renderTab();
+        renderSyncStatus(false);
+    }
+
+    // ============ 保存/重置 ============
+    function saveAll() {
+        if (!CFG) return;
+        var ok = DataBridge.saveDiagnosisRules(CFG);
+        if (!ok) { alert('保存失败'); return; }
+        renderSyncStatus(true);
+        alert('规则已保存，前端刷新即可生效');
+    }
+    function resetToDefault() {
+        if (!confirm('确认恢复全部默认规则？')) return;
+        DataBridge.resetDiagnosisRules();
+        CFG = DataBridge.loadDiagnosisRules();
+        renderTab();
+        renderSyncStatus(false); // 需要点保存才真正写
+    }
+
+    // 启动
+    init();
+    </script>
+</body>
+</html>

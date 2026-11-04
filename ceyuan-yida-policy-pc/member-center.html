@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会员中心 - 策源易答</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+        .left-sidebar { background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4); }
+        .scroll-thin::-webkit-scrollbar { width: 6px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 3px; }
+        .order-row { transition: all .15s ease; }
+        .order-row:hover { background: #f8fafc; }
+        @keyframes modalIn { from { opacity: 0; transform: translate(-50%, calc(-50% - 12px)) scale(0.97); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+        .animate-modal-in { animation: modalIn 0.18s cubic-bezier(0.4, 0, 0.2, 1) both; }
+        /* flex 居中容器专用入场动画：不需要 -50% 位移，避免与 translate 工具类叠加偏移 */
+        @keyframes modalInCenter { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .animate-modal-in-center { animation: modalInCenter 0.18s cubic-bezier(0.4, 0, 0.2, 1) both; }
+        input:focus { border-color: #818cf8 !important; outline: none; }
+        /* 次级左侧导航 */
+        .sub-nav-item { transition: all .15s ease; cursor: pointer; }
+        .sub-nav-item:hover { background: #eef2ff; color: #4f46e5; }
+        .sub-nav-item.active { background: linear-gradient(90deg, #eef2ff, #faf5ff); color: #4f46e5; border-left: 3px solid #6366f1; font-weight: 700; }
+        .sub-nav-item.active i { color: #6366f1; }
+        /* 用户下拉 */
+        #userDropdown { transition: all .15s ease; transform-origin: top right; }
+        #userDropdown.hide { opacity: 0; transform: scale(0.95) translateY(-4px); pointer-events: none; }
+        #userDropdown.show { opacity: 1; transform: scale(1) translateY(0); }
+        /* 卡片悬浮 */
+        .order-card:hover { box-shadow: 0 10px 24px -12px rgba(99,102,241,.18); }
+        /* 用量明细tab */
+        .usage-tab { transition: all .15s ease; }
+    </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="flex h-screen">
+        <!-- 左侧窄导航（全局） -->
+        <aside class="left-sidebar w-20 flex-shrink-0 flex flex-col items-center" style="background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 80%, #64b5f6 100%); border-right: 1px solid rgba(255,255,255,0.4);">
+            <div class="w-full pt-4 pb-3 border-b border-white/30 flex flex-col items-center">
+                <div style="position:relative;width:62px;height:28px;"><svg style="position:absolute;top:0;left:0;" width="62" height="14" viewBox="0 0 62 14"><path d="M3 13 C 18 1, 44 -1, 59 7" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round"/></svg><div style="position:absolute;top:5px;left:0;width:62px;text-align:center;font-size:17px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#1d4ed8;font-family:Arial,sans-serif;">ELHP</div></div><div class="text-[10px] font-black text-slate-800" style="margin-top:2px;">策源易答</div>
+            </div>
+            <div class="w-full pt-3 pb-3 flex flex-col items-center gap-1.5">
+                <button onclick="goPage('dashboard.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="智能政策问答">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-comments text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策问答</span>
+                </button>
+                <button onclick="goPage('policy-radar.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策雷达</span>
+                </button>
+                <button onclick="goPage('ability-diagnosis.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="科创能力评估">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-stethoscope text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">科创测评</span>
+                </button>
+                <button onclick="goPage('declaration-butler.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="申报材料自查">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-file-text-o text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">申报管家</span>
+                </button>
+                <button onclick="goPage('policy-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
+                <button onclick="goPage('service-market.html')" class="flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold text-orange-600">服务商城</span>
+                </button>
+            </div>
+            <div class="mt-auto w-full pt-2 pb-3 border-t border-white/30 flex flex-col items-center gap-1.5">
+                <button onclick="openPlanModal()" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="策能值充值">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-amber-400 to-orange-500"><i class="fa fa-bolt text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold">充值中心</span>
+                </button>
+                <button onclick="goPage('member-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="会员中心">
+                    <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center" style="background:#6366f1;"><i class="fa fa-user text-sm text-white"></i></span>
+                    <span class="text-[10px] font-bold" style="color:#4f46e5;">会员中心</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 flex flex-col overflow-hidden" style="background: linear-gradient(135deg, #eef2ff 0%, #e0f2fe 50%, #f5f3ff 100%);">
+            <!-- 顶栏：标题 + 当前登录用户下拉 -->
+            <div class="flex-shrink-0 flex items-center justify-between px-6 py-3 bg-white/60 backdrop-blur-md border-b border-white/50 relative z-20">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-md">
+                        <i class="fa fa-diamond text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-black text-slate-800 leading-tight" id="pageTitle">会员中心</h1>
+                        <p class="text-[11px] text-slate-500" id="pageSub">账号信息 · 策能值 · 订单与发票</p>
+                    </div>
+                </div>
+                <!-- 当前登录用户下拉 -->
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <button id="userBtn" onclick="toggleUserDropdown()" class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl bg-white/80 border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/40 transition-all">
+                            <span id="userAvatar" class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-black flex items-center justify-center shadow">用</span>
+                            <span class="flex flex-col items-start leading-tight">
+                                <span id="userName" class="text-xs font-bold text-slate-700 max-w-[120px] truncate">未登录</span>
+                                <span id="userTag" class="text-[10px] text-slate-400">点击登录</span>
+                            </span>
+                            <i class="fa fa-angle-down text-slate-400 text-xs ml-1"></i>
+                        </button>
+                        <div id="userDropdown" class="hide absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-30">
+                            <div class="px-4 py-2 border-b border-slate-100">
+                                <div id="ddName" class="text-xs font-bold text-slate-700 truncate">未登录</div>
+                                <div id="ddPhone" class="text-[10px] text-slate-400 mt-0.5">—</div>
+                            </div>
+                            <button onclick="switchSection('account');closeUserDropdown()" class="w-full px-4 py-2 text-left text-xs text-slate-600 hover:bg-indigo-50 hover:text-indigo-600"><i class="fa fa-cog mr-2 text-slate-400"></i>账号设置</button>
+                            <button onclick="openPlanModal();closeUserDropdown()" class="w-full px-4 py-2 text-left text-xs text-slate-600 hover:bg-amber-50 hover:text-amber-600"><i class="fa fa-bolt mr-2 text-amber-500"></i>充值策能值</button>
+                            <div class="border-t border-slate-100 my-1"></div>
+                            <button onclick="logout()" class="w-full px-4 py-2 text-left text-xs text-red-500 hover:bg-red-50"><i class="fa fa-sign-out mr-2"></i>退出登录</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主体：次级左侧导航 + 右侧内容 -->
+            <div class="flex-1 flex overflow-hidden">
+                <!-- 次级左侧导航 -->
+                <aside class="w-52 flex-shrink-0 bg-white/50 backdrop-blur border-r border-white/60 flex flex-col">
+                    <div class="px-4 pt-4 pb-2 text-[10px] font-black text-slate-400 uppercase tracking-wider">会员中心</div>
+                    <nav class="flex-1 px-2 space-y-1">
+                        <div class="sub-nav-item active flex items-center gap-3 px-3 py-2.5 rounded-r-lg text-xs text-slate-600" data-sec="usage" onclick="switchSection('usage')">
+                            <i class="fa fa-bolt w-4 text-center text-slate-400"></i><span>用量管理</span>
+                        </div>
+                        <div class="sub-nav-item flex items-center gap-3 px-3 py-2.5 rounded-r-lg text-xs text-slate-600" data-sec="reports" onclick="switchSection('reports')">
+                            <i class="fa fa-inbox w-4 text-center text-slate-400"></i><span>站内消息</span>
+                            <span id="navReportCnt" class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-red-500 text-white hidden"></span>
+                        </div>
+                        <div class="sub-nav-item flex items-center gap-3 px-3 py-2.5 rounded-r-lg text-xs text-slate-600" data-sec="orders" onclick="switchSection('orders')">
+                            <i class="fa fa-list-alt w-4 text-center text-slate-400"></i><span>订单管理</span>
+                            <span id="navOrderCnt" class="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-500 hidden"></span>
+                        </div>
+                        <div class="sub-nav-item flex items-center gap-3 px-3 py-2.5 rounded-r-lg text-xs text-slate-600" data-sec="account" onclick="switchSection('account')">
+                            <i class="fa fa-cog w-4 text-center text-slate-400"></i><span>账号设置</span>
+                        </div>
+                        <div class="sub-nav-item flex items-center gap-3 px-3 py-2.5 rounded-r-lg text-xs text-slate-600" onclick="openGuide('member-center.html')">
+                            <i class="fa fa-book w-4 text-center text-slate-400"></i><span>会员与策能值指南</span>
+                        </div>
+                    </nav>
+                    <!-- 底部会员状态迷你卡 -->
+                    <div class="m-3 p-3 rounded-xl text-white" id="navMemberMini" style="background:linear-gradient(135deg,#cbd5e1,#94a3b8);">
+                        <div class="text-[10px] font-bold opacity-80" id="miniPlan">未购买套餐</div>
+                        <div class="text-base font-black mt-0.5"><i class="fa fa-bolt mr-1"></i><span id="miniCredit">0</span></div>
+                        <div class="text-[10px] opacity-80" id="miniExpire">点击下方充值</div>
+                        <button onclick="openPlanModal()" class="w-full mt-2 py-1.5 rounded-lg text-[11px] font-black bg-white/90 text-slate-700 hover:bg-white">充值策能值</button>
+                    </div>
+                </aside>
+
+                <!-- 右侧内容（滚动） -->
+                <section class="flex-1 overflow-y-auto scroll-thin">
+                    <!-- ===== 用量管理页 ===== -->
+                    <div id="sec-usage" class="p-6 space-y-4">
+                        <!-- 会员状态条 -->
+                        <div id="usageMembershipBar"></div>
+
+                        <!-- 邀请横幅 -->
+                        <div class="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-100 px-5 py-3.5">
+                            <div class="text-xs text-slate-600"><i class="fa fa-gift text-emerald-500 mr-2"></i>邀请好友体验策源易答，最高得 <b class="text-slate-800">500</b> 策能值</div>
+                            <button onclick="inviteFriend()" class="px-4 py-1.5 rounded-lg text-[11px] font-bold text-emerald-700 bg-white border border-emerald-200 hover:bg-emerald-100 transition-all"><i class="fa fa-share-alt mr-1"></i>立即邀请</button>
+                        </div>
+
+                        <!-- 总可用策能值 -->
+                        <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-5">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="text-xs font-bold text-slate-500">总可用策能值 <i class="fa fa-info-circle text-slate-300" title="策能值可用于政策问答、雷达匹配、科创测评等AI服务，1策能值≈1次AI问答"></i></div>
+                                <button onclick="openPlanModal()" class="px-4 py-1.5 rounded-lg text-[11px] font-bold text-white bg-slate-800 hover:bg-slate-900 transition-all">充值策能值</button>
+                            </div>
+                            <div class="flex items-baseline gap-2 mb-4">
+                                <i class="fa fa-bolt text-2xl" style="color:#f59e0b;"></i>
+                                <span id="creditTotal" class="text-4xl font-black text-slate-800 tracking-tight">0</span>
+                                <span class="text-xs text-slate-400">策能值</span>
+                            </div>
+                            <div class="mt-3 text-[11px] text-slate-400">有策能值兑换码？<a class="text-indigo-500 font-bold cursor-pointer hover:text-indigo-700" onclick="redeemCode()">兑换策能值</a>
+                                <span class="text-slate-300 mx-1">·</span>
+                                <a class="text-amber-600 font-bold cursor-pointer hover:text-amber-700" onclick="openContribModal()"><i class="fa fa-upload mr-0.5"></i>贡献政策得积分</a>
+                                <span class="text-slate-300 mx-1">·</span>
+                                <a class="text-emerald-600 font-bold cursor-pointer hover:text-emerald-700" onclick="openGuide('member-center.html')"><i class="fa fa-book mr-0.5"></i>注册升级与获取攻略</a>
+                            </div>
+                        </div>
+
+                        <!-- 奖励策能值 -->
+                        <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-5">
+                            <div class="text-xs font-black text-slate-800 mb-3">奖励策能值</div>
+                            <div class="rounded-xl border border-slate-200 overflow-hidden" id="rewardList"></div>
+                        </div>
+
+                        <!-- 用量明细 -->
+                        <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-5">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="text-xs font-black text-slate-800">用量明细</div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="renderUsage('today')" class="usage-tab px-3 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-500">今天</button>
+                                    <button onclick="renderUsage('7d')" class="usage-tab px-3 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-white">7天</button>
+                                    <button onclick="renderUsage('30d')" class="usage-tab px-3 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-500">30天</button>
+                                </div>
+                            </div>
+                            <div id="usageList" class="space-y-1.5"></div>
+                        </div>
+                    </div>
+
+                    <!-- ===== 站内消息页（专属顾问站内下发的报告 / 政策收件区，可扩展订单/发票等系统通知） ===== -->
+                    <div id="sec-reports" class="p-6 space-y-4 hidden">
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs text-slate-500"><i class="fa fa-user-circle text-indigo-400 mr-1"></i>来自专属顾问 · 张销售的推送</div>
+                            <div class="text-[10px] text-slate-400">报告与政策匹配结果，点击可直接查看</div>
+                        </div>
+                        <div id="inboxList" class="space-y-3"></div>
+                    </div>
+
+                    <!-- ===== 订单管理页 ===== -->
+                    <div id="sec-orders" class="p-6 space-y-4 hidden">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2 bg-white p-1.5 rounded-2xl border border-slate-100">
+                                <button onclick="setOrderTab('all')" class="ord-tab active px-4 py-1.5 rounded-xl text-xs font-bold text-slate-600 transition-all" data-tab="all">全部</button>
+                                <button onclick="setOrderTab('unpaid')" class="ord-tab px-4 py-1.5 rounded-xl text-xs font-bold text-slate-600 transition-all" data-tab="unpaid">待付款 <span id="cntUnpaid" class="ml-0.5"></span></button>
+                                <button onclick="setOrderTab('serving')" class="ord-tab px-4 py-1.5 rounded-xl text-xs font-bold text-slate-600 transition-all" data-tab="serving">服务中</button>
+                                <button onclick="setOrderTab('done')" class="ord-tab px-4 py-1.5 rounded-xl text-xs font-bold text-slate-600 transition-all" data-tab="done">已完成</button>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="goPage('service-market.html')" class="px-3 py-2 rounded-xl text-[11px] font-bold text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-all"><i class="fa fa-shopping-bag mr-1"></i>继续选购</button>
+                                <button onclick="openInvoiceModal()" class="px-3 py-2 rounded-xl text-[11px] font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90 transition-all"><i class="fa fa-plus mr-1"></i>申请发票</button>
+                            </div>
+                        </div>
+                        <div id="orderList" class="space-y-3"></div>
+                    </div>
+
+                    <!-- ===== 账号设置页 ===== -->
+                    <div id="sec-account" class="p-6 space-y-4 hidden">
+                        <!-- 账号信息 -->
+                        <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-5">
+                            <div id="accountBody"></div>
+                        </div>
+
+                        <!-- 安全设置：修改密码 -->
+                        <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-5">
+                            <h3 class="text-sm font-black text-slate-800 mb-4"><i class="fa fa-lock text-indigo-500 mr-2"></i>安全设置</h3>
+                            <div class="grid grid-cols-3 gap-4 max-w-2xl">
+                                <div>
+                                    <label class="text-[11px] text-slate-400 font-bold block mb-1">原密码</label>
+                                    <input id="pwd_old" type="password" placeholder="请输入原密码" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white">
+                                </div>
+                                <div>
+                                    <label class="text-[11px] text-slate-400 font-bold block mb-1">新密码</label>
+                                    <input id="pwd_new" type="password" placeholder="6-20 位" maxlength="20" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white">
+                                </div>
+                                <div>
+                                    <label class="text-[11px] text-slate-400 font-bold block mb-1">确认新密码</label>
+                                    <input id="pwd_new2" type="password" placeholder="再次输入新密码" maxlength="20" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between mt-4">
+                                <p class="text-[10px] text-slate-400"><i class="fa fa-shield mr-1 text-green-500"></i>密码为 6-20 位，建议字母+数字组合</p>
+                                <button onclick="changePassword()" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90 transition-all"><i class="fa fa-key mr-1"></i>修改密码</button>
+                            </div>
+                        </div>
+
+                        <!-- 退出登录 -->
+                        <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-5">
+                            <h3 class="text-sm font-black text-slate-800 mb-3"><i class="fa fa-sign-out text-red-400 mr-2"></i>退出登录</h3>
+                            <button onclick="logout()" class="px-5 py-2 rounded-xl text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-all"><i class="fa fa-sign-out mr-1"></i>退出当前账号</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- 策能值充值弹窗 -->
+    <div id="planMask" class="hidden fixed inset-0 z-50 bg-slate-900/40" onclick="if(event.target===this)closePlanModal()">
+        <div class="animate-modal-in absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-2xl w-full mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 flex items-center justify-between" style="background:linear-gradient(120deg,#fdecc8,#f7d9a0);">
+                <div class="flex items-center gap-3">
+                    <div style="position:relative;width:62px;height:28px;"><svg style="position:absolute;top:0;left:0;" width="62" height="14" viewBox="0 0 62 14"><path d="M3 13 C 18 1, 44 -1, 59 7" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round"/></svg><div style="position:absolute;top:5px;left:0;width:62px;text-align:center;font-size:17px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#1d4ed8;font-family:Arial,sans-serif;">ELHP</div></div>
+                    <div>
+                        <div class="text-sm font-black text-slate-800">购买策能值套餐</div>
+                        <div class="text-[11px] text-slate-600">充值策能值 · 畅享全部 AI 政策服务</div>
+                    </div>
+                </div>
+                <button onclick="closePlanModal()" class="w-7 h-7 rounded-full bg-white/70 text-slate-500 hover:text-slate-700 flex items-center justify-center"><i class="fa fa-times text-xs"></i></button>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-3 gap-4" id="planCards"></div>
+                <div class="mt-5 rounded-xl bg-amber-50 border border-amber-100 p-4 text-[11px] text-amber-800 leading-relaxed">
+                    <p class="font-bold mb-1"><i class="fa fa-info-circle mr-1"></i>套餐说明</p>
+                    <p>VIP1：支付 8.9 元享有 300 策能值权益，有效期 3 个月；VIP2：19.9 元 / 700 策能值 / 6 个月；VIP3：29.9 元 / 1100 策能值 / 6 个月。策能值可用于政策问答、雷达精准匹配、科创测评、AI 政策解析等服务，有效期内用完即止。</p>
+                </div>
+                <button onclick="confirmBuyPlan()" class="w-full mt-4 py-3 rounded-xl text-sm font-black text-white transition-all hover:opacity-90" style="background:linear-gradient(90deg,#f87171,#ef4444);"><i class="fa fa-credit-card mr-1"></i>立即支付 ¥<span id="planPayAmount">8.9</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 贡献政策弹窗 -->
+    <div id="contribMask" class="hidden fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4" onclick="if(event.target===this)closeContribModal()">
+        <div class="animate-modal-in-center relative max-w-xl w-full bg-white rounded-2xl shadow-2xl max-h-[88vh] flex flex-col">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+                    <button onclick="switchContribTab('records')" id="contribTabRecords" class="px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1 transition-all">
+                        <i class="fa fa-list-ul"></i>我的贡献
+                    </button>
+                    <button onclick="switchContribTab('upload')" id="contribTabUpload" class="px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1 transition-all">
+                        <i class="fa fa-cloud-upload"></i>上传政策
+                    </button>
+                </div>
+                <button onclick="closeContribModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa fa-times text-xs"></i></button>
+            </div>
+            <div class="p-5 overflow-y-auto flex-1" id="contribBody">
+                <!-- Tab 1：贡献记录 -->
+                <div id="contribTabRecordsPanel">
+                    <div id="myContribList" class="space-y-2"></div>
+                    <div id="myContribEmpty" class="hidden text-center py-10 text-[11px] text-slate-400">
+                        <i class="fa fa-inbox text-3xl text-slate-200 mb-3 block"></i>
+                        还没有贡献过政策，上传即得策能值
+                        <button onclick="switchContribTab('upload')" class="mt-3 inline-block px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg">立即贡献</button>
+                    </div>
+                </div>
+                <!-- Tab 2：上传政策 -->
+                <div id="contribTabUploadPanel" class="hidden">
+                    <div class="mb-3 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg text-[11px] text-amber-700 leading-relaxed">
+                        <i class="fa fa-info-circle mr-1"></i>积分规则：国家级 50 · 省级 20 · 市级/通知 10；已入库或他人审核中的政策不可重复提交，最终以运营审核确认的层级发放
+                    </div>
+                    <!-- 贡献渠道切换：上传文件 / 政策链接 / 粘贴全文 -->
+                    <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1 mb-3">
+                        <button id="contribChFile" onclick="switchContribChannel('file')" class="contrib-ch-btn flex-1 px-2 py-1.5 rounded-md text-[11px] font-bold transition-all"><i class="fa fa-cloud-upload mr-1"></i>上传文件</button>
+                        <button id="contribChLink" onclick="switchContribChannel('link')" class="contrib-ch-btn flex-1 px-2 py-1.5 rounded-md text-[11px] font-bold transition-all"><i class="fa fa-link mr-1"></i>政策链接</button>
+                        <button id="contribChText" onclick="switchContribChannel('text')" class="contrib-ch-btn flex-1 px-2 py-1.5 rounded-md text-[11px] font-bold transition-all"><i class="fa fa-clipboard mr-1"></i>粘贴全文</button>
+                    </div>
+                    <!-- 渠道 1：上传文件 -->
+                    <div id="contribChFilePanel" class="mb-4">
+                        <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-amber-300 hover:bg-amber-50/30 transition-all cursor-pointer" onclick="document.getElementById('contribFile').click()">
+                            <input type="file" id="contribFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="hidden" onchange="handleContribFile(this)">
+                            <i class="fa fa-cloud-upload text-4xl text-amber-400 mb-3"></i>
+                            <div class="text-sm font-bold text-slate-700">点击选择文件 · 或拖入此处</div>
+                            <div class="text-[11px] text-slate-400 mt-1">支持 PDF · Word · 图片，单个文件 ≤ 10MB</div>
+                        </div>
+                        <button onclick="contribFillSampleFile()" class="mt-2 w-full py-2 border border-dashed border-slate-300 text-slate-500 rounded-xl text-[11px] font-bold hover:border-amber-400 hover:text-amber-600 transition-all"><i class="fa fa-magic mr-1"></i>使用测试样例（识别成功，可提交）</button>
+                    </div>
+                    <!-- 渠道 2：政策链接 -->
+                    <div id="contribChLinkPanel" class="mb-4 hidden">
+                        <div class="flex gap-2">
+                            <input id="contribLinkInput" type="url" placeholder="粘贴政策原文地址，如 https://www.most.gov.cn/..." class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                            <button onclick="contribParseLink()" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-xs font-bold hover:opacity-90 flex-shrink-0"><i class="fa fa-magic mr-1"></i>解析</button>
+                        </div>
+                        <div class="mt-2 text-[10px] text-slate-400">粘贴政府官网或政策发布页链接，系统自动抓取标题、文号与正文，来源更可信、审核更快</div>
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <button onclick="contribFillSampleLink(false)" class="py-2 border border-dashed border-slate-300 text-slate-500 rounded-xl text-[11px] font-bold hover:border-amber-400 hover:text-amber-600 transition-all truncate px-2"><i class="fa fa-magic mr-1"></i>样例 · 新政策可提交</button>
+                            <button onclick="contribFillSampleLink(true)" class="py-2 border border-dashed border-slate-300 text-slate-500 rounded-xl text-[11px] font-bold hover:border-rose-400 hover:text-rose-500 transition-all truncate px-2"><i class="fa fa-clone mr-1"></i>样例 · 命中已入库</button>
+                        </div>
+                    </div>
+                    <!-- 渠道 3：粘贴全文 -->
+                    <div id="contribChTextPanel" class="mb-4 hidden">
+                        <textarea id="contribTextInput" rows="6" placeholder="复制政策通知原文粘贴到此处（标题、发文单位、申报条件、支持方式等），系统自动识别关键字段" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"></textarea>
+                        <div class="flex items-center justify-between mt-2 gap-2">
+                            <div class="text-[10px] text-slate-400">排版不规范也没关系，系统自动整理</div>
+                            <div class="flex gap-2 flex-shrink-0">
+                                <button onclick="contribFillSampleText(false)" class="px-3 py-2 border border-dashed border-slate-300 text-slate-500 rounded-lg text-[11px] font-bold hover:border-amber-400 hover:text-amber-600 transition-all"><i class="fa fa-magic mr-1"></i>新政策样例</button>
+                                <button onclick="contribFillSampleText(true)" class="px-3 py-2 border border-dashed border-slate-300 text-slate-500 rounded-lg text-[11px] font-bold hover:border-rose-400 hover:text-rose-500 transition-all"><i class="fa fa-clone mr-1"></i>重复样例</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 识别 + 用户补盲（任一渠道解析后显示） -->
+                    <div id="contribOcrBlock" class="hidden border-t border-slate-100 pt-4">
+                        <!-- 重复校验结果 -->
+                        <div id="contribDupBanner" class="hidden mb-3 px-3 py-2 rounded-lg text-[11px] leading-relaxed"></div>
+                        <div class="mb-4 flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs"><i class="fa fa-check"></i></div>
+                            <div class="text-[11px] text-emerald-600 font-bold">识别完成，请核对并补全</div>
+                        </div>
+                        <div class="mb-4 p-3 bg-slate-50 rounded-lg text-xs">
+                            <div class="flex items-center gap-2">
+                                <i class="fa fa-file-pdf-o text-red-400"></i>
+                                <span class="font-bold text-slate-700" id="contribFileName">政策文件.pdf</span>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-xs font-bold text-slate-600 mb-1 flex items-center gap-1.5">政策名称</label>
+                                <input id="c_name" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-600 mb-1 flex items-center gap-1.5">发文文号</label>
+                                    <input id="c_docNo" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-slate-600 mb-1 flex items-center gap-1.5">发文部门</label>
+                                    <input id="c_dept" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-600 mb-1 flex items-center gap-1.5">生效日期</label>
+                                <input id="c_date" type="date" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-600 mb-1 flex items-center gap-1.5">原文链接 <span class="text-[9px] text-slate-400 font-normal px-1.5 py-0.5 bg-slate-100 rounded">选填</span></label>
+                                <input id="c_sourceLink" oninput="onContribSourceLinkInput(this.value)" placeholder="政府官网政策页地址，便于运营核对与后续引用" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                            </div>
+                            <div class="border-t border-slate-100 pt-3">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-600 mb-1 flex items-center gap-1.5">政策层级 <span class="text-rose-400">*</span> <span class="text-[9px] text-slate-400 font-normal px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded">自动预判，请确认</span></label>
+                                    <select id="c_level" class="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                                        <option value="国家级">国家级（预计 +50）</option>
+                                        <option value="省级">省级（预计 +20）</option>
+                                        <option value="市级">市级（预计 +10）</option>
+                                        <option value="区县级">区县级（预计 +10）</option>
+                                        <option value="通知公告">通知公告（预计 +10）</option>
+                                    </select>
+                                </div>
+                                <div class="mt-1.5 text-[10px] text-slate-400"><i class="fa fa-info-circle mr-0.5"></i>策能值在运营审核通过后发放，以审核确认的政策层级为准</div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-600 mb-1">备注（选填）</label>
+                                <textarea id="c_remark" rows="2" placeholder="这条政策最有价值的点是什么？帮助运营快速审核" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 提交成功提示（浮层） -->
+                <div id="contribSuccess" class="hidden text-center py-8">
+                    <i class="fa fa-check-circle text-5xl text-emerald-500 mb-3"></i>
+                    <div class="text-base font-black text-slate-800 mb-1">提交成功！</div>
+                    <div class="text-xs text-slate-500">运营审核通过后，按审核确认的政策层级发放策能值</div>
+                    <div class="mt-4 px-4 py-2 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700 inline-block">
+                        预计可得 <span id="contribPoints" class="font-black">20</span> 策能值
+                    </div>
+                </div>
+            </div>
+            <div class="px-5 py-3 border-t border-slate-100 flex justify-between items-center">
+                <button onclick="closeContribModal()" class="text-[11px] text-slate-400 hover:text-slate-600 font-bold">关闭</button>
+                <div class="flex gap-2">
+                    <button id="contribUploadSubmit" onclick="contribSubmit()" class="hidden px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg hover:opacity-90">提交贡献</button>
+                    <button onclick="switchContribTab('upload'); resetContribForm();" class="hidden px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg hover:opacity-90" id="contribUploadAgain">继续贡献</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 企业认证弹窗 -->
+    <div id="licenseMask" class="hidden fixed inset-0 z-50 bg-slate-900/40" onclick="if(event.target===this)closeLicenseModal()">
+        <div class="animate-modal-in absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md w-full mx-4 bg-white rounded-2xl shadow-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-black text-slate-800"><i class="fa fa-building text-amber-500 mr-2"></i>切换为企业版 · 营业执照认证</h3>
+                <button onclick="closeLicenseModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa fa-times text-xs"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold block mb-1">企业名称 <span class="text-red-400">*</span></label>
+                    <input id="lc_company" type="text" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200" placeholder="与营业执照一致">
+                </div>
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold block mb-1">统一社会信用代码 <span class="text-red-400">*</span></label>
+                    <input id="lc_code" type="text" maxlength="18" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200" placeholder="18 位统一社会信用代码">
+                </div>
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold block mb-1">联系人 <span class="text-red-400">*</span></label>
+                    <input id="lc_contact" type="text" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200" placeholder="姓名">
+                </div>
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold block mb-1">上传营业执照 <span class="text-red-400">*</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer border border-dashed border-slate-300 rounded-xl px-3 py-3 hover:border-amber-400 transition-all">
+                        <i class="fa fa-cloud-upload text-amber-500"></i>
+                        <span id="lc_fileName" class="text-[11px] text-slate-500">未选择文件</span>
+                        <span class="ml-auto px-3 py-1 rounded-lg text-[10px] font-bold text-amber-600 bg-amber-50">选择文件</span>
+                        <input id="lc_file" type="file" class="hidden" accept="image/*,.pdf" onchange="pickLicenseFile(this)">
+                    </label>
+                    <p class="text-[10px] text-slate-400 mt-1">支持jpg/png/pdf，仅用于企业实名认证，平台承诺保密</p>
+                </div>
+                <button onclick="submitLicense()" class="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 transition-all"><i class="fa fa-check-circle mr-1"></i>提交认证</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 发票弹窗 -->
+    <div id="invoiceMask" class="hidden fixed inset-0 z-50 bg-slate-900/40" onclick="if(event.target===this)closeInvoiceModal()">
+        <div class="animate-modal-in absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md w-full mx-4 bg-white rounded-2xl shadow-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-black text-slate-800"><i class="fa fa-file-text-o text-indigo-500 mr-2"></i>申请发票</h3>
+                <button onclick="closeInvoiceModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center"><i class="fa fa-times text-xs"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold block mb-1">选择订单（仅可开已支付订单）</label>
+                    <select id="inv_order" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white"></select>
+                </div>
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold block mb-1">发票抬头</label>
+                    <input id="inv_title" type="text" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200" placeholder="默认为企业名称">
+                </div>
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold block mb-1">纳税人识别号</label>
+                    <input id="inv_taxno" type="text" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200" placeholder="统一社会信用代码">
+                </div>
+                <div>
+                    <label class="text-[11px] text-slate-400 font-bold block mb-1">发票类型</label>
+                    <div class="flex gap-2" id="inv_type_group">
+                        <button onclick="pickInvType(this,'电子普通发票')" class="inv-type px-3 py-1.5 rounded-xl text-[11px] font-bold border border-indigo-400 text-indigo-600 bg-indigo-50">电子普通发票</button>
+                        <button onclick="pickInvType(this,'增值税专用发票')" class="inv-type px-3 py-1.5 rounded-xl text-[11px] font-bold border border-slate-200 text-slate-500">增值税专用发票</button>
+                    </div>
+                </div>
+                <button onclick="submitInvoice()" class="w-full py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90 transition-all"><i class="fa fa-check mr-1"></i>提交申请</button>
+                <p class="text-[10px] text-slate-400 text-center">提交后 1-3 个工作日内开具并发送至预留邮箱（演示）</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bridge.js?v=20261016g"></script>
+    <script>
+        function goPage(url) {
+            try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage(url, null); return; } } catch (e) {}
+            window.location.href = url;
+        }
+        // 打开会员指南，并记录来源页（存储不可用时不影响跳转）
+        function openGuide(from) {
+            try { sessionStorage.setItem('ceyuan_guide_from', from); } catch (e) {}
+            goPage('member-guide.html');
+        }
+        function toast(msg, ok) {
+            var t = document.createElement('div');
+            t.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg ' + (ok === false ? 'bg-red-500' : 'bg-slate-800');
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(function(){ t.remove(); }, 2200);
+        }
+
+        // ===== 次级导航切换 =====
+        var SECTION_META = {
+            usage:   { title: '用量管理', sub: '可用策能值 · 奖励 · 用量明细' },
+            reports: { title: '站内消息', sub: '政策报告 · 政策速递 · 顾问下发' },
+            orders:  { title: '订单管理', sub: '服务订单 · 发票申请' },
+            account: { title: '账号设置', sub: '账号信息 · 安全 · 退出登录' }
+        };
+        function switchSection(sec) {
+            document.querySelectorAll('.sub-nav-item').forEach(function(el) {
+                el.classList.toggle('active', el.dataset.sec === sec);
+            });
+            ['usage','reports','orders','account'].forEach(function(s) {
+                document.getElementById('sec-' + s).classList.toggle('hidden', s !== sec);
+            });
+            document.getElementById('pageTitle').textContent = SECTION_META[sec].title;
+            document.getElementById('pageSub').textContent = SECTION_META[sec].sub;
+            if (sec === 'reports') renderInbox();
+            if (sec === 'orders') renderOrders();
+            if (sec === 'account') renderAccountSection();
+            if (sec === 'usage') { renderCredits(); renderUsageBar(); }
+        }
+
+        // ===== 站内消息：专属顾问站内下发收件区（报告/政策速递，预留订单/发票/平台公告等类型扩展） =====
+        /** 汇总站内推送给当前登录客户的报告与政策（按推送时间倒序） */
+        function collectInbox() {
+            var p = loadProfile();
+            var items = [];
+            try {
+                // 报告推送：销售端「站内推送」写入各报告的 shares[]
+                (DataBridge.loadSalesReports() || []).forEach(function(r) {
+                (r.shares || []).forEach(function(s) {
+                    if (s.channel !== '站内推送') return;
+                    // 命中规则：推送对象 = 当前登录人（姓名/手机号/所在企业任一命中即视为本人消息）
+                    if (s.toName !== p.contact && s.toName !== p.company && s.toPhone !== p.phone && r.customerName !== p.company) return;
+                        items.push({
+                            kind: '报告', icon: 'fa-file-text-o', color: '#4f46e5', bg: '#eef2ff',
+                            title: r.title, batch: r.type || '政策匹配',
+                            date: s.createdAt || '', isNew: !(s.views || []).length,
+                            url: 'report-view.html?id=' + r.id + '&shareId=' + s.shareId,
+                        });
+                    });
+                });
+                // 政策推送：销售端「发起分享 · 政策 · 站内推送」写入 ceyuan_policy_shares
+                // （兜底：旧缓存版 data-bridge 缺 loadPolicyShares 时直连 localStorage，避免政策推送静默丢失）
+                var policyShares = [];
+                try {
+                    policyShares = (DataBridge.loadPolicyShares ? DataBridge.loadPolicyShares() : null)
+                        || JSON.parse(localStorage.getItem('ceyuan_policy_shares') || '[]');
+                } catch (e) { policyShares = []; }
+                (policyShares || []).forEach(function(s) {
+                    if (s.channel !== '站内推送') return;
+                    if (s.toName !== p.contact && s.toName !== p.company && s.toPhone !== p.phone) return;
+                    items.push({
+                        kind: '政策', icon: 'fa-university', color: '#6d28d9', bg: '#f5f3ff',
+                        title: s.policyName, batch: s.batchName || '政策速递',
+                        date: s.createdAt || '', isNew: !(s.views || []).length,
+                        url: 'policy-view.html?id=' + encodeURIComponent(s.policyId) + '&shareId=' + s.shareId
+                    });
+                });
+            } catch (e) {}
+            items.sort(function(a, b) { return String(b.date).localeCompare(String(a.date)); });
+            return items;
+        }
+        /** 渲染收件区列表 + 导航未读红点（无浏览记录视为未读） */
+        function renderInbox() {
+            var items = collectInbox();
+            var unread = items.filter(function(it) { return it.isNew; }).length;
+            var badge = document.getElementById('navReportCnt');
+            badge.textContent = unread;
+            badge.classList.toggle('hidden', unread === 0);
+            var box = document.getElementById('inboxList');
+            if (!items.length) {
+                box.innerHTML = '<div class="bg-white/80 rounded-2xl border border-white/60 p-10 text-center">' +
+                    '<i class="fa fa-inbox text-3xl text-slate-200 block mb-3"></i>' +
+                    '<p class="text-xs font-bold text-slate-500">暂无顾问推送</p>' +
+                    '<p class="text-[10px] text-slate-400 mt-1">专属顾问推送的政策报告与政策速递会出现在这里</p></div>';
+                return;
+            }
+            box.innerHTML = items.map(function(it) {
+                return '<div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-4 flex items-center gap-3 cursor-pointer hover:shadow-md transition-all" onclick="goPage(\'' + it.url + '\')">' +
+                    '<div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:' + it.bg + ';color:' + it.color + ';"><i class="fa ' + it.icon + '"></i></div>' +
+                    '<div class="flex-1" style="min-width:0;">' +
+                        '<div class="flex items-center gap-2">' +
+                            '<span class="text-xs font-black text-slate-800 truncate">' + it.title + '</span>' +
+                            (it.isNew ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500 text-white font-black flex-shrink-0">新</span>' : '') +
+                        '</div>' +
+                        '<div class="text-[10px] text-slate-400 mt-0.5">' + it.kind + ' · ' + it.batch + ' · 张销售推送于 ' + it.date + '</div>' +
+                    '</div>' +
+                    '<span class="text-[10px] font-bold flex-shrink-0" style="color:' + it.color + ';">查看详情 <i class="fa fa-angle-right"></i></span>' +
+                '</div>';
+            }).join('');
+        }
+
+        // ===== 用户下拉 =====
+        function toggleUserDropdown() {
+            var dd = document.getElementById('userDropdown');
+            dd.classList.toggle('hide');
+            dd.classList.toggle('show');
+        }
+        function closeUserDropdown() {
+            var dd = document.getElementById('userDropdown');
+            dd.classList.add('hide');
+            dd.classList.remove('show');
+        }
+        document.addEventListener('click', function(e) {
+            var btn = document.getElementById('userBtn');
+            var dd = document.getElementById('userDropdown');
+            if (btn && dd && !btn.contains(e.target) && !dd.contains(e.target)) {
+                dd.classList.add('hide');
+                dd.classList.remove('show');
+            }
+        });
+
+        // ===== 登录态 / 用户信息 =====
+        var PROFILE_KEY = 'ceyuan_member_profile';
+        var USERS_KEY = 'ceyuan_registered_users';
+        var DEFAULT_PROFILE = { company:'绿能新能源科技有限公司', code:'91330402MA2XXXX7Q', contact:'陈志远', phone:'139****8899', industry:'新能源（光伏储能）', region:'浙江省 嘉兴市 南湖区', accountType:'enterprise' };
+        function loadProfile() {
+            try {
+                var d = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
+                if (d && typeof d === 'object') {
+                    if (!d.accountType) d.accountType = d.company ? 'enterprise' : 'personal';
+                    return d;
+                }
+            } catch (e) {}
+            return DEFAULT_PROFILE;
+        }
+        function saveProfileData(p) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (e) {} }
+        function isEnterprise() { return loadProfile().accountType === 'enterprise'; }
+
+        // 当前登录用户（演示：取 ceyuan_member_profile，未登录时取最新注册用户，都没有则 DEFAULT_PROFILE）
+        function getLoginUser() {
+            var p = loadProfile();
+            // 判断是否真正登录：profile 中有 phone 且不是默认演示数据
+            var isDefault = (p.company === DEFAULT_PROFILE.company && p.contact === DEFAULT_PROFILE.contact);
+            var users = [];
+            try { users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch (e) {}
+            if (isDefault && users.length > 0) {
+                // 用最新注册用户覆盖演示
+                var u = users[0];
+                p = {
+                    company: u.company || '',
+                    code: u.code || '',
+                    contact: u.contact || '',
+                    phone: u.phone || '',
+                    industry: '',
+                    region: (u.province || '') + ' ' + (u.city || '') + ' ' + (u.district || ''),
+                    province: u.province || '',
+                    city: u.city || '',
+                    district: u.district || '',
+                    accountType: u.type || 'personal'
+                };
+            }
+            return p;
+        }
+        function isLoggedIn() {
+            var p = loadProfile();
+            var isDefault = (p.company === DEFAULT_PROFILE.company && p.contact === DEFAULT_PROFILE.contact);
+            var users = [];
+            try { users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch (e) {}
+            return !isDefault || users.length > 0;
+        }
+        function renderUserBox() {
+            var p = getLoginUser();
+            var ent = p.accountType === 'enterprise';
+            var name = ent ? (p.company || p.contact || '企业用户') : (p.contact || (p.phone ? p.phone.slice(0, 3) + '****' + p.phone.slice(-4) : '个人用户'));
+            var avatarChar = p.contact ? p.contact.slice(0, 1) : (ent ? '企' : '用');
+            document.getElementById('userAvatar').textContent = avatarChar;
+            document.getElementById('userName').textContent = name;
+            document.getElementById('userTag').textContent = ent ? '企业账号' : '个人账号';
+            document.getElementById('ddName').textContent = name;
+            document.getElementById('ddPhone').textContent = p.phone || '—';
+        }
+        function logout() {
+            if (!confirm('确定退出当前账号吗？')) return;
+            // 清除登录态：保留注册记录，清除 profile 让其回到未登录态
+            try { localStorage.removeItem(PROFILE_KEY); } catch (e) {}
+            toast('已退出登录，正在跳转登录页');
+            setTimeout(function(){ goPage('login.html'); }, 800);
+        }
+
+        // ===== 账号信息（个人 / 企业双形态） =====
+        function renderAccountSection() {
+            var p = getLoginUser();
+            var ent = p.accountType === 'enterprise';
+            var badge = ent
+                ? '<span class="text-[10px] px-2.5 py-1 rounded-full font-bold text-amber-700 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200"><i class="fa fa-diamond mr-1"></i>企业版会员 · 有效期至 2027-09-30</span>'
+                : '<span class="text-[10px] px-2.5 py-1 rounded-full font-bold text-slate-600 bg-slate-100 border border-slate-200"><i class="fa fa-user mr-1"></i>个人版会员</span>';
+            var formHtml;
+            if (ent) {
+                formHtml =
+                    '<div class="grid grid-cols-2 gap-4">' +
+                        field('企业名称', 'pf_company', p.company || '') +
+                        field('统一社会信用代码', 'pf_code', p.code || '') +
+                        field('联系人', 'pf_contact', p.contact || '') +
+                        field('手机号', 'pf_phone', p.phone || '') +
+                        field('所属行业', 'pf_industry', p.industry || '') +
+                        field('所在地区', 'pf_region', p.region || '', '如：四川省 成都市 高新区') +
+                    '</div>';
+            } else {
+                formHtml =
+                    '<div class="grid grid-cols-3 gap-4">' +
+                        field('联系人', 'pf_contact', p.contact || '') +
+                        field('手机号', 'pf_phone', p.phone || '') +
+                        field('所在地区', 'pf_region', p.region || '', '如：四川省 成都市 高新区') +
+                    '</div>' +
+                    '<div class="mt-4 rounded-xl border border-dashed border-indigo-300 bg-indigo-50/50 p-4 flex items-center justify-between">' +
+                        '<div class="text-[11px] text-slate-600 leading-relaxed"><i class="fa fa-building text-indigo-500 mr-1.5"></i><b>升级为企业版：</b>上传营业执照完成企业认证后，企业名称、统一社会信用代码、联系人与所属行业会存入账号资料，并可申请开具发票</div>' +
+                        '<button onclick="openLicenseModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 transition-all whitespace-nowrap ml-4 flex-shrink-0"><i class="fa fa-upload mr-1"></i>切换为企业版</button>' +
+                    '</div>';
+            }
+            document.getElementById('accountBody').innerHTML =
+                '<div class="flex items-center justify-between mb-4">' +
+                    '<h3 class="text-sm font-black text-slate-800"><i class="fa fa-id-card text-indigo-500 mr-2"></i>' + (ent ? '企业信息' : '账号信息') + '</h3>' +
+                    '<div class="flex items-center gap-2">' + badge +
+                    (ent
+                        ? '<button onclick="switchToPersonal()" class="text-[10px] text-slate-400 hover:text-indigo-500 font-bold transition-colors"><i class="fa fa-refresh mr-0.5"></i>切换为个人版</button>'
+                        : '<span class="text-[10px] text-slate-400"><i class="fa fa-lock mr-0.5"></i>开票需企业认证</span>') + '</div>' +
+                '</div>' + formHtml +
+                '<div class="flex items-center justify-between mt-4">' +
+                    '<p class="text-[10px] text-slate-400"><i class="fa fa-shield mr-1 text-green-500"></i>信息仅用于政策匹配与服务对接，平台承诺保密</p>' +
+                    '<button onclick="saveProfile()" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90 transition-all"><i class="fa fa-save mr-1"></i>保存信息</button>' +
+                '</div>';
+            fillProfile();
+        }
+        function field(label, id, val, ph) {
+            return '<div><label class="text-[11px] text-slate-400 font-bold block mb-1">' + label + '</label>' +
+                '<input id="' + id + '" type="text" value="' + String(val || '').replace(/"/g, '&quot;') + '" placeholder="' + (ph || '') + '" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white"></div>';
+        }
+        function fillProfile() {
+            var p = getLoginUser();
+            ['company','code','contact','phone','industry','region'].forEach(function(k) {
+                var el = document.getElementById('pf_' + k);
+                if (el) el.value = p[k] || '';
+            });
+        }
+        function saveProfile() {
+            var p = loadProfile();
+            p.contact = document.getElementById('pf_contact').value.trim();
+            p.phone = document.getElementById('pf_phone').value.trim();
+            p.region = document.getElementById('pf_region').value.trim();
+            if (p.accountType === 'enterprise') {
+                p.company = document.getElementById('pf_company').value.trim();
+                p.code = document.getElementById('pf_code').value.trim();
+                p.industry = document.getElementById('pf_industry').value.trim();
+                if (!p.company) { toast('请填写企业名称', false); return; }
+            }
+            if (p.province && p.city) {
+                try { localStorage.setItem('ceyuan_current_city', JSON.stringify({ name: p.city, province: p.province, district: p.district || '', t: Date.now() })); } catch (e) {}
+            }
+            saveProfileData(p);
+            renderUserBox();
+            toast('信息已保存' + (p.region ? '，政策中心将默认展示「' + p.region.split(/\s+/).slice(0, 2).join(' ') + '」的政策' : ''));
+        }
+
+        // 修改密码
+        function changePassword() {
+            var oldp = document.getElementById('pwd_old').value;
+            var newp = document.getElementById('pwd_new').value;
+            var newp2 = document.getElementById('pwd_new2').value;
+            if (!oldp) { toast('请输入原密码', false); return; }
+            if (newp.length < 6 || newp.length > 20) { toast('新密码需 6-20 位', false); return; }
+            if (newp !== newp2) { toast('两次输入的新密码不一致', false); return; }
+            document.getElementById('pwd_old').value = '';
+            document.getElementById('pwd_new').value = '';
+            document.getElementById('pwd_new2').value = '';
+            toast('密码修改成功，下次登录请使用新密码');
+        }
+
+        // 切换为个人版（演示用：企业版可切回个人版，便于体验升级流程）
+        function switchToPersonal() {
+            if (!confirm('确定切换为个人版吗？\n切换后将无法开具发票，已获赠的策能值保留。')) return;
+            var p = loadProfile();
+            p.accountType = 'personal';
+            p.company = '';
+            p.code = '';
+            p.industry = '';
+            delete p.licenseFile;
+            delete p.licenseTime;
+            saveProfileData(p);
+            renderUserBox();
+            renderAccountSection();
+            renderUsageBar();
+            toast('已切换为个人版，可在「账号信息」处上传营业执照重新认证为企业版');
+        }
+
+        // ===== 企业认证 =====
+        function openLicenseModal() {
+            var p = getLoginUser();
+            document.getElementById('lc_company').value = p.company || '';
+            document.getElementById('lc_code').value = p.code || '';
+            document.getElementById('lc_contact').value = p.contact || '';
+            document.getElementById('lc_file').value = '';
+            document.getElementById('lc_fileName').textContent = '未选择文件';
+            document.getElementById('licenseMask').classList.remove('hidden');
+        }
+        function closeLicenseModal() { document.getElementById('licenseMask').classList.add('hidden'); }
+        function pickLicenseFile(input) {
+            document.getElementById('lc_fileName').textContent = (input.files && input.files[0]) ? input.files[0].name : '未选择文件';
+        }
+        function submitLicense() {
+            var company = document.getElementById('lc_company').value.trim();
+            var code = document.getElementById('lc_code').value.trim();
+            var contact = document.getElementById('lc_contact').value.trim();
+            var fileName = document.getElementById('lc_fileName').textContent;
+            if (!company) { toast('请填写企业名称', false); return; }
+            if (!/^[0-9A-Z]{18}$/.test(code)) { toast('统一社会信用代码需为 18 位数字/大写字母', false); return; }
+            if (!contact) { toast('请填写联系人', false); return; }
+            if (fileName === '未选择文件') { toast('请上传营业执照照片或扫描件', false); return; }
+            var p = loadProfile();
+            // 前置校验：同一营业执照（统一社会信用代码）不可重复注册 / 认证
+            var users = [];
+            try { users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch (e) {}
+            if (users.some(function (u) { return u.code === code && u.phone !== (p.phone || ''); })) { toast('该营业执照已注册，不可重复提交', false); return; }
+            // 兼容未持久化的注册用户：保留 province/city/district
+            p.accountType = 'enterprise';
+            p.company = company;
+            p.code = code;
+            p.contact = contact;
+            p.licenseFile = fileName;
+            p.licenseTime = new Date().toISOString().slice(0, 10);
+            saveProfileData(p);
+            closeLicenseModal();
+            addEntCredit(200, '企业认证奖励');
+            renderUserBox();
+            renderAccountSection();
+            renderUsageBar();
+            renderCredits();
+            toast('企业认证成功，已切换为企业版，赠送 200 策能值，可开具发票');
+        }
+
+        // ===== 会员状态与策能值 =====
+        var MEMBER_KEY = 'ceyuan_member_v2';
+        var PLANS = [
+            { id:'vip1', name:'VIP1', credits:300, price:8.9, months:3 },
+            { id:'vip2', name:'VIP2', credits:700, price:19.9, months:6 },
+            { id:'vip3', name:'VIP3', credits:1100, price:29.9, months:6 }
+        ];
+        var PLAN_RANK = { none:0, vip1:1, vip2:2, vip3:3 };
+        function defaultMember() {
+            var monthEnd = new Date(); monthEnd.setMonth(monthEnd.getMonth() + 1, 0);
+            return {
+                plan: 'none', general: 0, ent: 0, expire: '',
+                rewards: [
+                    { key:'welcome', name:'注册福利', note:'注册即得，共 1 笔', cur: 0, total: 100, claimable: true },
+                    { key:'signin', name:'每日签到', note:'每日签到领取', cur: 0, total: 300, claimable: true },
+                    { key:'monthly', name:'每月登录赠送', note: monthEnd.toISOString().slice(0,10) + ' 23:59 到期', cur: 0, total: 500, claimable: false }
+                ],
+                usage: []
+            };
+        }
+        function loadMember() {
+            try {
+                var d = JSON.parse(localStorage.getItem(MEMBER_KEY) || 'null');
+                if (d && typeof d === 'object') {
+                    if (!d.rewards) d.rewards = defaultMember().rewards;
+                    if (!d.usage) d.usage = [];
+                    return d;
+                }
+            } catch (e) {}
+            return defaultMember();
+        }
+        function saveMember(d) { try { localStorage.setItem(MEMBER_KEY, JSON.stringify(d)); } catch (e) {} }
+        function addGeneralCredit(n) { var m = loadMember(); m.general += n; saveMember(m); }
+        function addEntCredit(n, reason) { var m = loadMember(); m.ent += n; m.usage.unshift({ date: new Date().toISOString().slice(0,10), item: reason, cost: -n }); saveMember(m); }
+        function daysLeft(expire) {
+            if (!expire) return 0;
+            var d = Math.ceil((new Date(expire + 'T23:59:59') - new Date()) / 86400000);
+            return d > 0 ? d : 0;
+        }
+
+        // 用量管理页顶部会员状态条
+        function renderUsageBar() {
+            var m = loadMember();
+            var ent = isEnterprise();
+            var active = m.plan !== 'none' && daysLeft(m.expire) > 0;
+            var html;
+            if (!active) {
+                html =
+                    '<div class="rounded-2xl p-5 flex items-center justify-between" style="background:linear-gradient(120deg,#e2e8f0,#cbd5e1);">' +
+                        '<div class="flex items-center gap-4">' +
+                            '<div class="w-14 h-14 rounded-2xl bg-white/60 flex items-center justify-center"><i class="fa fa-lock text-2xl text-slate-400"></i></div>' +
+                            '<div>' +
+                                '<div class="text-base font-black text-slate-700">暂未购买策能值套餐</div>' +
+                                '<div class="text-[11px] text-slate-500 mt-0.5">购买后政策问答 · 雷达匹配 · 科创测评畅用</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<button onclick="openPlanModal()" class="px-5 py-2.5 rounded-xl text-xs font-black text-white shadow-lg" style="background:linear-gradient(90deg,#f59e0b,#f97316);"><i class="fa fa-bolt mr-1"></i>充值策能值 · 低至 8.9 元</button>' +
+                    '</div>';
+            } else {
+                var plan = PLANS.filter(function(p){ return p.id === m.plan; })[0] || PLANS[0];
+                html =
+                    '<div class="rounded-2xl p-5 flex items-center justify-between text-white" style="background:linear-gradient(120deg,#fbbf24,#f59e0b 55%,#d97706);">' +
+                        '<div class="flex items-center gap-4">' +
+                            '<div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center"><i class="fa fa-diamond text-2xl text-white"></i></div>' +
+                            '<div>' +
+                                '<div class="flex items-center gap-2">' +
+                                    '<span class="text-base font-black">' + plan.name + ' 套餐</span>' +
+                                    '<span class="text-[10px] px-2 py-0.5 rounded-full bg-white/25 font-bold">' + (ent ? '企业账号' : '个人账号') + '</span>' +
+                                '</div>' +
+                                '<div class="text-[11px] text-white/90 mt-0.5">剩余 <b class="text-white">' + (m.general + m.ent) + '</b> 策能值 · 有效期至 ' + m.expire + ' · 剩 ' + daysLeft(m.expire) + ' 天</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<button onclick="openPlanModal()" class="px-5 py-2.5 rounded-xl text-xs font-black bg-white text-amber-600 hover:bg-amber-50 transition-all"><i class="fa fa-bolt mr-1"></i>充值 / 加购</button>' +
+                    '</div>';
+            }
+            document.getElementById('usageMembershipBar').innerHTML = html;
+
+            // 同步左侧迷你卡
+            var mini = document.getElementById('navMemberMini');
+            if (!active) {
+                mini.style.background = 'linear-gradient(135deg,#cbd5e1,#94a3b8)';
+                document.getElementById('miniPlan').textContent = '未购买套餐';
+                document.getElementById('miniCredit').textContent = '0';
+                document.getElementById('miniExpire').textContent = '点击下方充值';
+            } else {
+                mini.style.background = 'linear-gradient(135deg,#fbbf24,#d97706)';
+                document.getElementById('miniPlan').textContent = plan.name + ' 套餐';
+                document.getElementById('miniCredit').textContent = (m.general + m.ent);
+                document.getElementById('miniExpire').textContent = '有效期至 ' + m.expire;
+            }
+        }
+
+        // 套餐弹窗
+        var selectedPlan = 'vip1';
+        function openPlanModal() {
+            document.getElementById('planCards').innerHTML = PLANS.map(function(p) {
+                var sel = p.id === selectedPlan;
+                return '<div onclick="selectPlan(\'' + p.id + '\')" class="relative cursor-pointer rounded-xl border-2 p-4 text-center transition-all ' + (sel ? 'border-amber-400 bg-amber-50' : 'border-slate-200 hover:border-amber-300') + '">' +
+                    (sel ? '<span class="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center"><i class="fa fa-check text-[10px]"></i></span>' : '') +
+                    '<div class="text-lg font-black text-slate-800">' + p.credits + '<span class="text-xs font-bold text-slate-400 ml-0.5">答</span></div>' +
+                    '<div class="text-xl font-black text-slate-900 my-1.5">' + p.price + '<span class="text-xs">元</span></div>' +
+                    '<div class="text-[11px] text-slate-400 font-bold">' + p.months + '个月</div>' +
+                '</div>';
+            }).join('');
+            var cur = PLANS.filter(function(p){ return p.id === selectedPlan; })[0];
+            document.getElementById('planPayAmount').textContent = cur.price;
+            document.getElementById('planMask').classList.remove('hidden');
+        }
+        function selectPlan(id) { selectedPlan = id; openPlanModal(); }
+        function closePlanModal() { document.getElementById('planMask').classList.add('hidden'); }
+        function confirmBuyPlan() {
+            var plan = PLANS.filter(function(p){ return p.id === selectedPlan; })[0];
+            var m = loadMember();
+            var base = daysLeft(m.expire) > 0 ? new Date(m.expire + 'T23:59:59') : new Date();
+            base.setMonth(base.getMonth() + plan.months);
+            m.expire = base.toISOString().slice(0, 10);
+            m.general += plan.credits;
+            if (PLAN_RANK[plan.id] > PLAN_RANK[m.plan]) m.plan = plan.id;
+            m.usage.unshift({ date: new Date().toISOString().slice(0,10), item: '购买' + plan.name + '套餐（' + plan.price + '元）', cost: -plan.credits });
+            saveMember(m);
+            closePlanModal();
+            renderUsageBar();
+            renderCredits();
+            toast('支付成功，' + plan.credits + ' 策能值已到账，有效期至 ' + m.expire);
+        }
+
+        // 策能值主区块
+        function renderCredits() {
+            var m = loadMember();
+            document.getElementById('creditTotal').textContent = (m.general + m.ent).toLocaleString();
+            document.getElementById('rewardList').innerHTML = m.rewards.map(function(r, i) {
+                var pct = Math.min(100, Math.round(r.cur / r.total * 100));
+                var action = r.claimable && r.cur < r.total
+                    ? '<button onclick="claimReward(' + i + ')" class="text-[11px] font-bold text-amber-600 hover:text-amber-700 whitespace-nowrap">领取 <i class="fa fa-angle-right"></i></button>'
+                    : '<span class="text-[11px] font-bold text-slate-400">' + (r.cur >= r.total ? '已领完' : '未开始') + '</span>';
+                return '<div class="flex items-center justify-between px-5 py-3.5 ' + (i > 0 ? 'border-t border-slate-100' : '') + '">' +
+                    '<div>' +
+                        '<div class="flex items-center gap-2 text-xs font-bold text-slate-700">' + r.name + ' <i class="fa fa-angle-right text-slate-300"></i></div>' +
+                        '<div class="text-[10px] text-slate-400 mt-0.5">策能值 · ' + r.note + '</div>' +
+                        '<div class="h-1 bg-slate-100 rounded-full mt-1.5" style="width:160px;"><div class="h-full rounded-full" style="width:' + pct + '%;background:#f59e0b;"></div></div>' +
+                    '</div>' +
+                    '<div class="text-right">' +
+                        '<div class="text-xs font-black text-slate-700">' + r.cur + ' / ' + r.total + '</div>' +
+                        '<div class="mt-1">' + action + '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+            renderUsage('7d');
+        }
+
+        var REWARD_GAIN = { welcome: 100, signin: 10, monthly: 500 };
+        function claimReward(i) {
+            var m = loadMember();
+            var r = m.rewards[i];
+            if (!r || !r.claimable || r.cur >= r.total) return;
+            var gain = r.key === 'signin' ? 10 : (REWARD_GAIN[r.key] || r.total);
+            gain = Math.min(gain, r.total - r.cur);
+            r.cur += gain;
+            m.general += gain;
+            m.usage.unshift({ date: new Date().toISOString().slice(0,10), item: r.name + '到账', cost: -gain });
+            saveMember(m);
+            renderCredits();
+            renderUsageBar();
+            toast('已领取 ' + gain + ' 策能值');
+        }
+        function inviteFriend() {
+            var code = null;
+            try { code = localStorage.getItem('ceyuan_invite_code'); } catch (e) {}
+            if (!code) {
+                var chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+                code = 'CY';
+                for (var i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+                try { localStorage.setItem('ceyuan_invite_code', code); } catch (e) {}
+            }
+            toast('邀请链接已生成（邀请码 ' + code + '），好友注册后双方各得 50 策能值');
+        }
+        // ============ 贡献政策弹窗 ============
+        var _contribState = { channel: 'file', fileName: '', sourceLink: '', ocr: {}, dup: null };
+
+        function openContribModal() {
+            _contribState = { channel: 'file', fileName: '', sourceLink: '', ocr: {}, dup: null };
+            document.getElementById('contribMask').classList.remove('hidden');
+            switchContribChannel('file');
+            switchContribTab('records'); // 默认打开记录 tab
+        }
+        function closeContribModal() { document.getElementById('contribMask').classList.add('hidden'); }
+
+        // ============ 贡献渠道切换：上传文件 / 政策链接 / 粘贴全文 ============
+        function switchContribChannel(ch) {
+            _contribState.channel = ch;
+            var map = { file: 'contribChFilePanel', link: 'contribChLinkPanel', text: 'contribChTextPanel' };
+            Object.keys(map).forEach(function(k) {
+                document.getElementById(map[k]).classList.toggle('hidden', k !== ch);
+            });
+            var btnMap = { file: 'contribChFile', link: 'contribChLink', text: 'contribChText' };
+            Object.keys(btnMap).forEach(function(k) {
+                var btn = document.getElementById(btnMap[k]);
+                btn.className = 'contrib-ch-btn flex-1 px-2 py-1.5 rounded-md text-[11px] font-bold transition-all ' +
+                    (k === ch ? 'bg-white shadow-sm text-amber-600' : 'text-slate-500 hover:text-slate-700');
+            });
+        }
+
+        function switchContribTab(tab) {
+            var isRecords = tab === 'records';
+            document.getElementById('contribTabRecordsPanel').classList.toggle('hidden', !isRecords);
+            document.getElementById('contribTabUploadPanel').classList.toggle('hidden', isRecords);
+            document.getElementById('contribSuccess').classList.add('hidden');
+            // tab 按钮样式
+            var recBtn = document.getElementById('contribTabRecords');
+            var upBtn = document.getElementById('contribTabUpload');
+            if (isRecords) {
+                recBtn.className = 'px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1 bg-white shadow-sm text-amber-600';
+                upBtn.className = 'px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1 text-slate-500 hover:text-slate-700';
+                renderContribRecords();
+                document.getElementById('contribUploadSubmit').classList.add('hidden');
+                document.getElementById('contribUploadAgain').classList.add('hidden');
+            } else {
+                upBtn.className = 'px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1 bg-white shadow-sm text-amber-600';
+                recBtn.className = 'px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1 text-slate-500 hover:text-slate-700';
+                var ocrReady = !!(_contribState.ocr && _contribState.ocr.name);
+                var dupBlocked = !!(_contribState.dup && _contribState.dup.block);
+                document.getElementById('contribUploadSubmit').classList.toggle('hidden', !ocrReady || dupBlocked);
+                document.getElementById('contribUploadAgain').classList.add('hidden');
+            }
+        }
+
+        function resetContribForm() {
+            _contribState = { channel: _contribState.channel, fileName: '', sourceLink: '', ocr: {}, dup: null };
+            document.getElementById('contribFile').value = '';
+            document.getElementById('contribLinkInput').value = '';
+            document.getElementById('contribTextInput').value = '';
+            document.getElementById('c_sourceLink').value = '';
+            document.getElementById('contribOcrBlock').classList.add('hidden');
+            document.getElementById('contribDupBanner').classList.add('hidden');
+            document.getElementById('contribUploadSubmit').classList.add('hidden');
+        }
+
+        function handleContribFile(input) {
+            var f = input.files && input.files[0];
+            if (!f) return;
+            _contribState.fileName = f.name;
+            _contribState.sourceLink = '';
+            var baseName = f.name.replace(/\.[^.]+$/, '');
+            // 演示：文件名含「高新/高企」时模拟命中已入库政策，其余为新政策
+            var isDupDemo = /高新|高企/.test(baseName);
+            var ocr = contribFakeOcr(baseName, isDupDemo);
+            document.getElementById('contribFileName').textContent = f.name;
+            contribShowOcr(ocr);
+        }
+
+        // 渠道 2：政策链接解析
+        function contribParseLink() {
+            var url = document.getElementById('contribLinkInput').value.trim();
+            if (!url || !/^(https?:\/\/|www\.|[\w-]+\.(gov\.cn|com|cn))/i.test(url)) { toast('请粘贴有效的政策原文地址', false); return; }
+            var seg = url.split('/').filter(Boolean).pop() || '';
+            var guess = decodeURIComponent(seg.replace(/\.[a-z]+$/i, '')).replace(/[-_]/g, ' ').slice(0, 40);
+            // 演示：链接含 gaoxin/most.gov.cn 时模拟命中已入库政策
+            var isDupDemo = /gaoxin|most\.gov\.cn|高新/i.test(url);
+            var ocr = contribFakeOcr(isDupDemo ? '高新技术企业认定管理办法' : (guess || '关于开展2026年度中小企业特色产业集群申报的通知'), isDupDemo);
+            _contribState.fileName = '';
+            _contribState.sourceLink = url;
+            document.getElementById('contribFileName').innerHTML = '<i class="fa fa-link text-blue-400 mr-1"></i>' + url;
+            contribShowOcr(ocr);
+        }
+
+        // 渠道 3：粘贴全文解析
+        function contribParseText() {
+            var txt = document.getElementById('contribTextInput').value.trim();
+            if (txt.length < 30) { toast('请粘贴政策正文（至少 30 字）', false); return; }
+            var name = '';
+            var lines = txt.split(/\n+/).map(function(s) { return s.trim(); }).filter(Boolean);
+            for (var i = 0; i < lines.length; i++) {
+                var t = lines[i].replace(/^[#\s《》]+|》$/g, '');
+                if (t.length >= 8) { name = t.slice(0, 60); break; }
+            }
+            if (!name) name = lines[0] || '未命名政策';
+            // 演示：正文含「高新技术企业认定管理办法」时模拟命中已入库政策
+            var isDupDemo = /高新技术企业认定管理办法|国科发火〔2016〕32号/.test(txt);
+            var ocr = contribFakeOcr(isDupDemo ? '高新技术企业认定管理办法' : name, isDupDemo);
+            _contribState.fileName = '';
+            _contribState.sourceLink = '';
+            document.getElementById('contribFileName').innerHTML = '<i class="fa fa-file-text-o text-slate-400 mr-1"></i>粘贴文本 · ' + txt.length + ' 字';
+            contribShowOcr(ocr);
+        }
+
+        // ============ 测试样例（免手动输入，快速演示三条链路） ============
+        function contribFillSampleFile() {
+            var fakeName = '关于开展2026年度中小企业特色产业集群申报工作的通知.pdf';
+            _contribState.fileName = fakeName;
+            _contribState.sourceLink = '';
+            var ocr = contribFakeOcr(fakeName.replace(/\.[^.]+$/, ''), false);
+            document.getElementById('contribFileName').textContent = fakeName;
+            contribShowOcr(ocr);
+            toast('测试样例已识别（新政策，可提交）');
+        }
+        function contribFillSampleLink(dup) {
+            var url = dup
+                ? 'https://www.most.gov.cn/xxgk/xinxifenlei/fgzc/gfxwj/gfx/gaoxin-dingban.html'
+                : 'https://kjt.zj.gov.cn/art/2026/10/11/art_1229.html';
+            document.getElementById('contribLinkInput').value = url;
+            contribParseLink();
+            toast(dup ? '样例链接已解析（命中已入库政策）' : '样例链接已解析（新政策，可提交）');
+        }
+        function contribFillSampleText(dup) {
+            var txt = dup
+                ? '高新技术企业认定管理办法\n\n国科发火〔2016〕32号\n\n科技部、财政部、国家税务总局联合发布。第一条 为扶持和鼓励高新技术企业的发展，根据《中华人民共和国企业所得税法》有关规定，制定本办法。第二条 本办法所称的高新技术企业是指：在《国家重点支持的高新技术领域》内，持续进行研究开发与技术成果转化，形成企业核心自主知识产权，并以此为基础开展经营活动，在中国境内（不包括港、澳、台地区）注册一年以上的居民企业。'
+                : '成都市温江区2026年度企业上云用云补贴申报指南\n\n成温经信〔2026〕36号\n\n成都市温江区经济和信息化局\n\n一、支持对象：注册地在温江区、上年度营业收入1000万元以上的制造业企业。\n二、支持标准：按企业上云实际支出的50%给予补贴，单个企业年度最高不超过20万元。\n三、申报时间：2026年10月10日至2026年11月30日。\n四、申报方式：登录区企业服务云平台在线填报，并提交上云服务合同及发票复印件。';
+            document.getElementById('contribTextInput').value = txt;
+            contribParseText();
+            toast(dup ? '样例文本已解析（命中已入库政策）' : '样例文本已解析（新政策，可提交）');
+        }
+
+        // 模拟解析识别（真实系统由后端解析接口返回；level 为按文号/部门的自动预判）
+        function contribFakeOcr(name, isDupDemo) {
+            var fakeDepts = ['科技部', '财政部', '工信部', '发改委', '四川省经信厅', '上海市财政局', '广东省科技厅', '北京市科委'];
+            var today = new Date();
+            var fakeDate = (today.getFullYear() - Math.floor(Math.random() * 3 + 1)) + '-' + String(Math.floor(Math.random() * 12 + 1)).padStart(2, '0') + '-' + String(Math.floor(Math.random() * 28 + 1)).padStart(2, '0');
+            var dept = /高新技术企业认定管理办法/.test(name) ? '科技部 / 财政部 / 税务总局' : fakeDepts[Math.floor(Math.random() * fakeDepts.length)];
+            return {
+                name: name,
+                docNo: isDupDemo ? '国科发火〔2016〕32号' : '〔' + (today.getFullYear() - Math.floor(Math.random() * 3)) + '〕' + Math.floor(Math.random() * 900 + 100) + '号',
+                dept: dept,
+                date: fakeDate,
+                level: contribInferLevel(name, dept)
+            };
+        }
+
+        // 层级自动预判：按发文部门关键词推断（真实系统由后端规则给出，此处规则演示）
+        function contribInferLevel(name, dept) {
+            var s = (name || '') + (dept || '');
+            if (/科技部|财政部|工信部|发改委|税务总局|国家/.test(s)) return '国家级';
+            if (/省|自治区|直辖市/.test(s)) return '省级';
+            if (/市/.test(s)) return '市级';
+            if (/区|县|开发区|高新区/.test(s)) return '区县级';
+            return '通知公告';
+        }
+
+        // 解析结果回填 + 触发重复校验
+        function contribShowOcr(ocr) {
+            _contribState.ocr = ocr;
+            document.getElementById('c_name').value = ocr.name;
+            document.getElementById('c_docNo').value = ocr.docNo;
+            document.getElementById('c_dept').value = ocr.dept;
+            document.getElementById('c_date').value = ocr.date;
+            document.getElementById('c_sourceLink').value = _contribState.sourceLink || '';
+            if (ocr.level) document.getElementById('c_level').value = ocr.level;
+            document.getElementById('contribOcrBlock').classList.remove('hidden');
+            contribRunDupCheck();
+        }
+
+        // 原文链接改动后同步查重口径（链接一致属重复提交）
+        function onContribSourceLinkInput(v) {
+            _contribState.sourceLink = (v || '').trim();
+            if (_contribState.ocr) contribRunDupCheck();
+        }
+
+        // ============ 重复校验：文号 / 来源链接 / 名称相似度 三重比对 ============
+        function contribNorm(s) { return (s || '').replace(/[\s《》〈〉（）()〔〕\[\]·、，,。：:;；\-—_]/g, '').toLowerCase(); }
+
+        function contribRunDupCheck() {
+            var ocr = _contribState.ocr;
+            var banner = document.getElementById('contribDupBanner');
+            var myId = loadProfile().accountType + '_' + (loadProfile().company || loadProfile().name || 'anon').slice(0, 6);
+            var nDocNo = contribNorm(ocr.docNo);
+            var nName = contribNorm(ocr.name);
+            var link = (_contribState.sourceLink || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
+            var dup = null;
+            // 1) 与政策库比对（权威数据源：DataBridge，降级读 localStorage）
+            var lib = [];
+            try { lib = DataBridge.loadPolicyLibrary() || []; } catch (e) { try { lib = JSON.parse(localStorage.getItem('ceyuan_policy_library') || '[]'); } catch (e2) {} }
+            for (var i = 0; i < lib.length; i++) {
+                var p = lib[i];
+                var pDocNo = contribNorm(p.docNo);
+                var pName = contribNorm(p.title || p.name);
+                var pLink = contribNorm(p.source && p.source.link);
+                var pDept = contribNorm(p.dept);
+                var myDept = contribNorm(ocr.dept);
+                var nameOk = nName.length >= 4 && pName && (pName.indexOf(nName) > -1 || nName.indexOf(pName) > -1);
+                var deptOk = myDept && pDept && (pDept.indexOf(myDept) > -1 || myDept.indexOf(pDept) > -1);
+                if (nDocNo && pDocNo && nDocNo === pDocNo) {
+                    // 文号一致需名称或发文单位佐证；否则仅提示“文号冲突”，提交后由运营核实
+                    if (nameOk || deptOk) { dup = { block: true, kind: 'lib', label: '该政策已在政策库', match: p.title || p.name, why: '文号一致且名称/发文单位可佐证' }; break; }
+                    if (!dup) dup = { block: false, kind: 'conflict', label: '文号与库内政策相同，但名称/发文单位差异较大', match: p.title || p.name, why: '可能为换版重发或编号撞码，提交后由运营核实' };
+                }
+                if (link && pLink && contribNorm(link) === pLink) { dup = { block: true, kind: 'lib', label: '该政策已在政策库', match: p.title || p.name, why: '来源链接一致' }; break; }
+                if (nName.length >= 6 && pName && (pName.indexOf(nName) > -1 || nName.indexOf(pName) > -1)) { dup = { block: true, kind: 'lib', label: '该政策已在政策库', match: p.title || p.name, why: '名称高度相似' }; break; }
+            }
+            // 2) 与贡献队列比对（他人审核中 / 自己已提交）
+            if (!dup || !dup.block) {
+                var list = [];
+                try { list = JSON.parse(localStorage.getItem('ceyuan_policy_contrib') || '[]'); } catch (e) {}
+                for (var j = 0; j < list.length; j++) {
+                    var c = list[j];
+                    if (c.status === 'rejected' || c.status === 'duplicate') continue;
+                    var cDocNo = contribNorm(c.ocr && c.ocr.docNo);
+                    var cName = contribNorm(c.ocr && c.ocr.name);
+                    var hitDoc = nDocNo && cDocNo && nDocNo === cDocNo;
+                    var hitName = nName.length >= 6 && cName && (cName.indexOf(nName) > -1 || nName.indexOf(cName) > -1);
+                    if (hitDoc || hitName) {
+                        if (c.uploaderId === myId) dup = { block: true, kind: 'self', label: '你已提交过该政策，正在审核中', match: (c.ocr && c.ocr.name) || '', why: hitDoc ? '文号一致' : '名称相似' };
+                        else dup = { block: true, kind: 'pending', label: '其他用户已提交该政策，正在审核中', match: (c.ocr && c.ocr.name) || '', why: hitDoc ? '文号一致' : '名称相似' };
+                        break;
+                    }
+                }
+            }
+            _contribState.dup = dup;
+            // 渲染结果条
+            if (!dup) {
+                banner.className = 'mb-3 px-3 py-2 rounded-lg text-[11px] leading-relaxed bg-emerald-50 border border-emerald-200 text-emerald-700';
+                banner.innerHTML = '<i class="fa fa-check-circle mr-1"></i><b>未发现重复</b> · 政策库与贡献队列中均无相同文号、链接或相似名称，可提交';
+            } else if (dup.kind === 'conflict') {
+                banner.className = 'mb-3 px-3 py-2 rounded-lg text-[11px] leading-relaxed bg-amber-50 border border-amber-200 text-amber-700';
+                banner.innerHTML = '<i class="fa fa-question-circle mr-1"></i><b>文号冲突 · 提交后由运营核实</b>：与库内「' + dup.match + '」' + dup.why + '，仍可提交';
+            } else if (dup.kind === 'lib') {
+                banner.className = 'mb-3 px-3 py-2 rounded-lg text-[11px] leading-relaxed bg-rose-50 border border-rose-200 text-rose-700';
+                banner.innerHTML = '<i class="fa fa-ban mr-1"></i><b>' + dup.label + '</b>（' + dup.why + '）：' + dup.match + '，不可重复提交';
+            } else {
+                banner.className = 'mb-3 px-3 py-2 rounded-lg text-[11px] leading-relaxed bg-amber-50 border border-amber-200 text-amber-700';
+                banner.innerHTML = '<i class="fa fa-clock-o mr-1"></i><b>' + dup.label + '</b>（' + dup.why + '）：首报审核通过后计积分，不可重复提交';
+            }
+            banner.classList.remove('hidden');
+            // 重复时禁止提交
+            document.getElementById('contribUploadSubmit').classList.toggle('hidden', !!dup);
+        }
+
+        function contribSubmit() {
+            var name = document.getElementById('c_name').value.trim();
+            if (!name) { toast('请填写政策名称', false); return; }
+            // 提交前最终查重（防止解析后政策库被并发更新）
+            contribRunDupCheck();
+            if (_contribState.dup && _contribState.dup.block) { toast('该政策已存在或正在审核中，不可重复提交', false); return; }
+            var cLevel = document.getElementById('c_level').value;
+            var payload = {
+                uploaderName: (loadProfile().company || loadProfile().name || '匿名用户'),
+                uploaderId: loadProfile().accountType + '_' + (loadProfile().company || loadProfile().name || 'anon').slice(0, 6),
+                channel: _contribState.channel,
+                fileName: _contribState.fileName,
+                sourceLink: _contribState.sourceLink,
+                textContent: _contribState.channel === 'text' ? document.getElementById('contribTextInput').value.trim() : '',
+                ocr: {
+                    name: name,
+                    docNo: document.getElementById('c_docNo').value.trim(),
+                    dept: document.getElementById('c_dept').value.trim(),
+                    date: document.getElementById('c_date').value,
+                    level: cLevel
+                },
+                level: cLevel, // 自动预判 + 用户确认；运营审核时按确认层级结算并可修正
+                remark: document.getElementById('c_remark').value.trim()
+            };
+            try {
+                DataBridge.submitContribution(payload);
+            } catch (e) {
+                var list = JSON.parse(localStorage.getItem('ceyuan_policy_contrib') || '[]');
+                list.unshift({ id:'ctb_'+Date.now(), uploaderId:payload.uploaderId, uploaderName:payload.uploaderName,
+                    channel:payload.channel, fileName:payload.fileName, sourceLink:payload.sourceLink, textContent:payload.textContent, ocr:payload.ocr,
+                    level:payload.level, remark:payload.remark, points:DataBridge.CONTRIB_POINTS[payload.level]||10,
+                    status:'pending', createdAt:new Date().toISOString().slice(0,16) });
+                localStorage.setItem('ceyuan_policy_contrib', JSON.stringify(list));
+            }
+            document.getElementById('contribPoints').textContent = DataBridge.CONTRIB_POINTS[payload.level] || 10;
+            // 隐藏上传区，显示成功提示
+            document.getElementById('contribTabUploadPanel').classList.add('hidden');
+            document.getElementById('contribSuccess').classList.remove('hidden');
+            document.getElementById('contribUploadSubmit').classList.add('hidden');
+            document.getElementById('contribUploadAgain').classList.remove('hidden');
+            toast('提交成功！审核通过后按确认层级发放策能值');
+        }
+
+        // 我的贡献记录（弹窗内）
+        // 演示用固定记录：覆盖 已通过/审核中/已驳回 三种状态与 文件/链接/粘贴全文 三种渠道，始终与真实提交合并展示
+        var MY_CONTRIB_DEMO = [
+            { id:'demo_ctb_1', fileName:'浙江省制造业中小企业研发费用补贴实施细则.pdf', channel:'file',
+              ocr:{ name:'浙江省制造业中小企业研发费用补贴实施细则', docNo:'浙经信〔2026〕45号', dept:'浙江省经济和信息化厅', date:'2026-09-01' },
+              province:'浙江省', industry:'制造业', level:'省级', points:20, status:'approved', createdAt:'2026-10-21 14:32' },
+            { id:'demo_ctb_2', fileName:'嘉兴市企业上云用云补贴申领通知（网页链接）', channel:'link',
+              sourceLink:'https://www.jiaxing.gov.cn/rsj/cy-subsidy-2026.html',
+              ocr:{ name:'嘉兴市企业上云用云补贴申领通知', docNo:'嘉经信〔2026〕18号', dept:'嘉兴市经济和信息化局', date:'2026-10-10' },
+              province:'浙江省', industry:'信息技术', level:'市级', points:10, status:'pending', createdAt:'2026-10-26 09:47' },
+            { id:'demo_ctb_3', fileName:'高新技术企业认定管理工作指引（粘贴全文）', channel:'text',
+              ocr:{ name:'高新技术企业认定管理工作指引（2026 年修订）', docNo:'国科发火〔2026〕6号', dept:'科技部 税务总局', date:'2026-08-15' },
+              province:'全国', industry:'全行业', level:'国家级', points:50, status:'approved', createdAt:'2026-10-15 16:08' },
+            { id:'demo_ctb_4', fileName:'分布式光伏发电项目电价补贴政策.docx', channel:'file',
+              ocr:{ name:'分布式光伏发电项目电价补贴政策（节选）', docNo:'浙发改能源〔2026〕9号', dept:'浙江省发展和改革委员会', date:'2026-07-20' },
+              province:'浙江省', industry:'新能源', level:'省级', points:20, status:'rejected', rejectReason:'政策正文不完整，仅包含目录与摘要，请补充完整全文后再提交',
+              createdAt:'2026-10-12 11:20' },
+            { id:'demo_ctb_5', fileName:'科技型中小企业研发费用加计扣除公告（网页链接）', channel:'link',
+              sourceLink:'https://most.gov.cn/qiyi/cy2026/notice.html',
+              ocr:{ name:'科技型中小企业研发费用加计扣除比例提升公告', docNo:'国科发政〔2026〕22号', dept:'科技部 财政部', date:'2026-09-28' },
+              province:'全国', industry:'全行业', level:'国家级', points:50, status:'pending', createdAt:'2026-10-28 10:05' }
+        ];
+        function renderContribRecords() {
+            var profile = loadProfile();
+            var myId = profile.accountType + '_' + (profile.company || profile.name || 'anon').slice(0, 6);
+            var list = [];
+            try {
+                list = DataBridge.loadUserContributions(myId);
+            } catch (e) {
+                var all = JSON.parse(localStorage.getItem('ceyuan_policy_contrib') || '[]');
+                list = all.filter(function(c) { return c.uploaderId === myId; });
+            }
+            list = list.concat(MY_CONTRIB_DEMO);
+            var box = document.getElementById('myContribList');
+            var empty = document.getElementById('myContribEmpty');
+            if (!list.length) { box.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            var statusMap = {
+                pending:  { label:'审核中',   cls:'bg-amber-50 text-amber-600',   icon:'fa-clock-o' },
+                approved: { label:'已通过',   cls:'bg-emerald-50 text-emerald-600', icon:'fa-check-circle' },
+                rejected: { label:'已驳回',   cls:'bg-rose-50 text-rose-600',     icon:'fa-times-circle' },
+                duplicate:{ label:'重复被拒', cls:'bg-slate-100 text-slate-500',  icon:'fa-clone' }
+            };
+            var summaryText = '';
+            if (list.length > 1) {
+                var approvedCnt = list.filter(function(c){ return c.status === 'approved'; }).length;
+                var pendingCnt = list.filter(function(c){ return c.status === 'pending'; }).length;
+                var totalPoints = list.filter(function(c){ return c.status === 'approved'; }).reduce(function(a,b){ return a + (b.points||0); }, 0);
+                summaryText = '<div class="text-[10px] text-slate-400 mb-3 px-1">共 ' + list.length + ' 条 · 已通过 ' + approvedCnt + ' · 审核中 ' + pendingCnt + ' · 累计到账 <b class="text-emerald-600">' + totalPoints + '</b> 策能值</div>';
+            }
+            box.innerHTML = summaryText + list.map(function(c) {
+                var s = statusMap[c.status] || statusMap.pending;
+                var ocr = c.ocr || {};
+                var pointsText = c.status === 'approved' ? '<span class="text-emerald-600 font-black text-xs">+' + c.points + ' 已到账</span>'
+                    : c.status === 'pending' ? '<span class="text-amber-500 text-[11px]">预计 +' + c.points + '</span>'
+                    : '<span class="text-rose-400 text-[11px]">未获得积分</span>';
+                var rejectInfo = c.status === 'rejected' && c.rejectReason
+                    ? '<div class="mt-1 text-[11px] text-rose-500 bg-rose-50 rounded px-2 py-1"><i class="fa fa-info-circle mr-1"></i>驳回原因：' + c.rejectReason + '</div>' : '';
+                var srcIcon = c.channel === 'link' ? '<i class="fa fa-link text-blue-400 text-xs"></i>'
+                    : c.channel === 'text' ? '<i class="fa fa-file-text-o text-slate-400 text-xs"></i>'
+                    : '<i class="fa fa-file-pdf-o text-red-400 text-xs"></i>';
+                var srcLink = c.sourceLink
+                    ? '<div class="mt-1 text-[10px] text-blue-500 truncate"><i class="fa fa-link mr-1"></i>' + c.sourceLink + '</div>' : '';
+                return '<div class="rounded-xl border border-slate-100 p-3 hover:bg-slate-50 transition-all">' +
+                    '<div class="flex items-start justify-between gap-2">' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<div class="flex items-center gap-2 mb-1">' +
+                                srcIcon +
+                                '<span class="text-xs font-bold text-slate-700 truncate">' + (ocr.name || c.fileName) + '</span>' +
+                            '</div>' +
+                            '<div class="text-[10px] text-slate-400 truncate">' +
+                                (ocr.docNo || '') + ' · ' + c.level + ' · ' + c.province +
+                            '</div>' +
+                            srcLink +
+                        '</div>' +
+                        '<div class="flex flex-col items-end gap-1 flex-shrink-0">' +
+                            '<span class="px-2 py-0.5 text-[10px] font-bold rounded-md ' + s.cls + '"><i class="fa ' + s.icon + ' mr-0.5"></i>' + s.label + '</span>' +
+                            pointsText +
+                        '</div>' +
+                    '</div>' +
+                    rejectInfo +
+                    '<div class="mt-1 text-[10px] text-slate-300">提交于 ' + c.createdAt + '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        // ===== 兑换码（与销售端「兑换码管理」共用同一数据源：模板 + 分发记录，每张码限用 1 次） =====
+        var REDEEM_KEY = (window.DataBridge && DataBridge.KEYS && DataBridge.KEYS.REDEEM_CODES) || 'ceyuan_redeem_codes';
+        var REDEEM_SEED = [
+            { id:'T1', code:'CY888',   name:'演示码（内置）', value:88, note:'会员指南演示用，未指定客户', status:'active', createdAt:'2026-10-01',
+              records:[ { code:'CY888',      assignTo:'',                                     assignAt:'',           usedBy:'',            usedAt:'',           voided:false } ] },
+            { id:'T2', code:'CY2026',  name:'9 月园区活动券', value:200, note:'9 月园区活动现场发放', status:'active', createdAt:'2026-09-20',
+              records:[ { code:'CY2026-01',  assignTo:'绿能新能源科技有限公司 · 陈志远',       assignAt:'2026-09-21', usedBy:'139****8899', usedAt:'2026-09-28', voided:false },
+                        { code:'CY2026-02',  assignTo:'康泰生物制药有限公司 · 李建国',         assignAt:'2026-09-21', usedBy:'',            usedAt:'',           voided:false } ] },
+            { id:'T3', code:'CYTRIAL', name:'渠道合作券', value:500, note:'渠道代理自行发放', status:'active', createdAt:'2026-10-08',
+              records:[ { code:'CYTRIAL-01', assignTo:'星河智造科技有限公司 · 王明华',         assignAt:'2026-10-09', usedBy:'',            usedAt:'',           voided:false },
+                        { code:'CYTRIAL-02', assignTo:'锐达新材料股份公司 · 陈晓敏',           assignAt:'2026-10-10', usedBy:'',            usedAt:'',           voided:true  } ] },
+            { id:'T4', code:'CYOLD',   name:'8 月活动券', value:88, note:'活动已下线，模板停用', status:'stopped', createdAt:'2026-08-01',
+              records:[ { code:'CYOLD-01',   assignTo:'康泰生物制药有限公司 · 李建国',         assignAt:'2026-08-02', usedBy:'139****2266', usedAt:'2026-08-05', voided:false } ] }
+        ];
+        function normRedeemRec(r) {
+            return {
+                code: r.code || '',
+                assignTo: r.assignTo || '',
+                assignAt: r.assignAt || '',
+                usedBy: r.usedBy || '',
+                usedAt: r.usedAt || '',
+                voided: !!r.voided
+            };
+        }
+        function loadRedeemPool() {
+            var d = null;
+            try { d = JSON.parse(localStorage.getItem(REDEEM_KEY) || 'null'); } catch (e) {}
+            if (Array.isArray(d)) {
+                // 兼容旧结构（一码一条记录）：升级为「模板 + 分发记录」
+                if (d.length && d.some(function (x) { return x && !Array.isArray(x.records); })) {
+                    d = d.map(function (x, i) {
+                        return {
+                            id: 'T' + (i + 1),
+                            code: x.code || '',
+                            name: x.note || x.code || ('模板 ' + (i + 1)),
+                            value: x.value || 0,
+                            note: x.note || '',
+                            status: x.status === 'void' ? 'stopped' : 'active',
+                            createdAt: x.createdAt || '',
+                            records: [ normRedeemRec({
+                                code: x.code,
+                                assignTo: x.assignTo,
+                                assignAt: x.assignAt,
+                                usedBy: x.usedBy || (x.status === 'used' ? '（历史兑换记录）' : ''),
+                                usedAt: x.usedAt,
+                                voided: x.status === 'void'
+                            }) ]
+                        };
+                    });
+                    saveRedeemPool(d);
+                } else {
+                    d = d.map(function (t) {
+                        return {
+                            id: t.id || ('T' + Math.random().toString(36).slice(2, 8)),
+                            code: t.code || '',
+                            name: t.name || '未命名模板',
+                            value: t.value || 0,
+                            note: t.note || '',
+                            status: t.status === 'stopped' ? 'stopped' : 'active',
+                            createdAt: t.createdAt || '',
+                            records: (t.records || []).map(normRedeemRec)
+                        };
+                    });
+                }
+                return d;
+            }
+            try { localStorage.setItem(REDEEM_KEY, JSON.stringify(REDEEM_SEED)); } catch (e) {}
+            return JSON.parse(JSON.stringify(REDEEM_SEED));
+        }
+        function saveRedeemPool(list) { try { localStorage.setItem(REDEEM_KEY, JSON.stringify(list)); } catch (e) {} }
+
+        function redeemCode() {
+            var input = prompt('请输入策能值兑换码（演示码：CY888）');
+            if (input === null) return;
+            var code = input.trim().toUpperCase();
+            if (!code) return;
+
+            var pool = loadRedeemPool();
+            var tpl = null, rec = null;
+            pool.forEach(function (t) {
+                (t.records || []).forEach(function (r) {
+                    if (r.code === code) { tpl = t; rec = r; }
+                });
+            });
+            if (!rec) { toast('兑换码无效', false); return; }
+            // 停用模板不影响已发出的码，只拦截这张码本身的状态
+            if (rec.voided) { toast('该兑换码已作废', false); return; }
+            if (rec.usedBy) { toast('该兑换码已被使用', false); return; }
+
+            // 核销这张码，销售端「兑换码管理 → 分发记录」可追踪使用者与使用时间
+            var today = new Date().toISOString().slice(0, 10);
+            rec.usedBy = loadProfile().phone || '——';
+            rec.usedAt = today;
+            saveRedeemPool(pool);
+
+            var amount = tpl.value || 0;
+            var m = loadMember();
+            m.general += amount;
+            m.usage.unshift({ date: today, item: '兑换码兑换', cost: -amount });
+            saveMember(m);
+            renderCredits(); renderUsageBar();
+            toast('兑换成功，' + amount + ' 策能值已到账');
+        }
+
+        // 用量明细
+        var USAGE_SEED = [
+            { item:'AI 政策问答', icon:'fa-comments', cost:1 },
+            { item:'雷达精准匹配', icon:'fa-sitemap', cost:3 },
+            { item:'科创测评', icon:'fa-stethoscope', cost:8 },
+            { item:'AI 政策解析', icon:'fa-magic', cost:2 },
+            { item:'政策关键词订阅', icon:'fa-bell-o', cost:1 }
+        ];
+        function seedUsage(range) {
+            var days = range === 'today' ? 0 : (range === '7d' ? 6 : 29);
+            var list = [];
+            for (var d = days; d >= 0; d--) {
+                var date = new Date(); date.setDate(date.getDate() - d);
+                var ds = date.toISOString().slice(0, 10);
+                var n = (d * 7 + 3) % 4;
+                for (var k = 0; k < n; k++) {
+                    var u = USAGE_SEED[(d + k) % USAGE_SEED.length];
+                    list.push({ date: ds, item: u.item, icon: u.icon, cost: u.cost });
+                }
+            }
+            return list;
+        }
+        function renderUsage(range) {
+            document.querySelectorAll('.usage-tab').forEach(function(b) {
+                b.className = 'usage-tab px-3 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-500';
+            });
+            var idx = range === 'today' ? 0 : range === '7d' ? 1 : 2;
+            var tabs = document.querySelectorAll('.usage-tab');
+            if (tabs[idx]) tabs[idx].className = 'usage-tab px-3 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-white';
+            var m = loadMember();
+            var all = seedUsage(range).concat(m.usage.map(function(u){ u.icon = 'fa-bolt'; return u; }));
+            if (range === 'today') {
+                var today = new Date().toISOString().slice(0,10);
+                all = all.filter(function(u){ return u.date === today; });
+            }
+            var total = all.reduce(function(s, u){ return s + (u.cost > 0 ? u.cost : 0); }, 0);
+            var html = '<div class="text-[10px] text-slate-400 mb-1">该周期共消耗 <b class="text-slate-600">' + total + '</b> 策能值 · ' + all.length + ' 笔</div>';
+            if (!all.length) {
+                html += '<div class="text-center text-[11px] text-slate-300 py-4"><i class="fa fa-inbox mr-1"></i>暂无用量记录</div>';
+            } else {
+                html += all.slice(0, 20).map(function(u) {
+                    var income = u.cost < 0;
+                    return '<div class="flex items-center justify-between rounded-lg bg-slate-50 px-4 py-2">' +
+                        '<div class="flex items-center gap-2 text-[11px] text-slate-600"><i class="fa ' + (u.icon || 'fa-bolt') + ' text-slate-400"></i>' + u.item + '</div>' +
+                        '<div class="flex items-center gap-4"><span class="text-[10px] text-slate-400">' + u.date.slice(5) + '</span>' +
+                        '<span class="text-[11px] font-black ' + (income ? 'text-green-600' : 'text-slate-700') + '">' + (income ? '+' : '-') + Math.abs(u.cost) + '</span></div>' +
+                    '</div>';
+                }).join('');
+            }
+            document.getElementById('usageList').innerHTML = html;
+        }
+
+        // ===== 订单管理 =====
+        var STATUS_BADGE = {
+            unpaid:   ['待付款', '#dc2626', '#fef2f2'],
+            serving:  ['服务中', '#2563eb', '#eff6ff'],
+            done:     ['已完成', '#059669', '#ecfdf5'],
+            reviewed: ['已评价', '#7c3aed', '#f5f3ff']
+        };
+        var FALLBACK_STEPS = ['签订合同', '需求评估', '方案制定', '材料准备', '审核提交', '完成交付'];
+        var PRODUCT_CACHE = null;
+        function getOrderSteps(o) {
+            if (PRODUCT_CACHE === null) {
+                try { PRODUCT_CACHE = (typeof DataBridge !== 'undefined' && DataBridge.loadServiceProducts) ? (DataBridge.loadServiceProducts() || []) : []; }
+                catch (e) { PRODUCT_CACHE = []; }
+            }
+            var p = PRODUCT_CACHE.filter(function(x){ return x.id === o.svcId; })[0];
+            if (p && Array.isArray(p.process) && p.process.length) return p.process.map(function(s){ return s.t; });
+            return FALLBACK_STEPS;
+        }
+        var INVOICE_KEY = 'ceyuan_invoices';
+        function loadInvoices() { try { return JSON.parse(localStorage.getItem(INVOICE_KEY) || '[]'); } catch (e) { return []; } }
+        function saveInvoices(list) { try { localStorage.setItem(INVOICE_KEY, JSON.stringify(list)); } catch (e) {} }
+
+        var curOrderTab = 'all';
+        function setOrderTab(t) {
+            curOrderTab = t;
+            document.querySelectorAll('.ord-tab').forEach(function(b) {
+                var on = b.dataset.tab === t;
+                b.classList.toggle('active', on);
+                b.className = 'ord-tab px-4 py-1.5 rounded-xl text-xs font-bold transition-all ' + (on ? 'bg-indigo-500 text-white' : 'text-slate-600');
+            });
+            renderOrders();
+        }
+        function renderOrders() {
+            var orders = (typeof DataBridge !== 'undefined') ? DataBridge.loadServiceOrders() : [];
+            // 更新导航角标
+            var navCnt = document.getElementById('navOrderCnt');
+            if (orders.length > 0) {
+                navCnt.textContent = orders.length;
+                navCnt.classList.remove('hidden');
+            } else {
+                navCnt.classList.add('hidden');
+            }
+            // 待付款计数
+            var unpaidCnt = orders.filter(function(o){ return o.status === 'unpaid'; }).length;
+            document.getElementById('cntUnpaid').textContent = unpaidCnt ? '(' + unpaidCnt + ')' : '';
+
+            // 过滤
+            var list = orders;
+            if (curOrderTab === 'unpaid') list = orders.filter(function(o){ return o.status === 'unpaid'; });
+            else if (curOrderTab === 'serving') list = orders.filter(function(o){ return o.status === 'serving'; });
+            else if (curOrderTab === 'done') list = orders.filter(function(o){ return o.status === 'done' || o.status === 'reviewed'; });
+
+            var box = document.getElementById('orderList');
+            if (!list.length) {
+                box.innerHTML = '<div class="bg-white rounded-2xl border border-slate-100 py-12 text-center text-slate-400"><i class="fa fa-inbox text-4xl block mb-3"></i><p class="text-sm">暂无相关订单</p><button onclick="goPage(\'service-market.html\')" class="mt-4 px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-bold">去商城看看</button></div>';
+                return;
+            }
+            var invoices = loadInvoices();
+            var invoicedMap = {};
+            invoices.forEach(function(v){ invoicedMap[v.orderId] = v.status; });
+
+            box.innerHTML = list.map(function(o) {
+                var st = STATUS_BADGE[o.status] || STATUS_BADGE.unpaid;
+                var head = '<div class="px-5 py-3 bg-slate-50/70 flex items-center justify-between border-b border-slate-100"><div class="flex items-center gap-3 text-xs text-slate-400"><span>订单号：' + o.id + '</span><span>' + (o.createTime || '') + '</span>' + (o.payMethod ? '<span class="text-slate-300">|</span><span><i class="fa fa-credit-card mr-1"></i>' + o.payMethod + '</span>' : '') + '</div><span class="px-2.5 py-1 rounded-md text-xs font-bold" style="color:' + st[1] + ';background:' + st[2] + ';">' + st[0] + '</span></div>';
+                var body = '';
+                if (o.status === 'serving') {
+                    var steps = getOrderSteps(o);
+                    var stepIdx = Math.min(steps.length - 1, Math.floor(((o.progress||0) + 5) * steps.length / 100));
+                    body = '<div class="px-5 pb-3"><div class="flex justify-between text-[11px] text-slate-400 mb-1.5"><span class="text-blue-600 font-bold"><i class="fa fa-circle-o-notch fa-spin mr-1"></i>服务进行中 · ' + steps[stepIdx] + '</span><span>' + (o.progress||0) + '%</span></div><div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-indigo-400 to-purple-600 rounded-full" style="width:' + (o.progress||0) + '%"></div></div><div class="flex justify-between mt-2 text-[10px] text-slate-400 gap-1">' + steps.map(function(s, i){ return '<span class="' + (i <= stepIdx ? 'text-indigo-600 font-bold' : '') + ' text-center leading-tight">' + s + '</span>'; }).join('') + '</div></div>';
+                } else if (o.status === 'done') {
+                    body = '<div class="px-5 pb-3"><div class="flex items-center text-[11px] text-emerald-600 font-bold"><i class="fa fa-check-circle mr-1"></i>服务已完成，期待您的评价</div></div>';
+                } else if (o.status === 'reviewed') {
+                    var starIcons = '';
+                    for (var i = 0; i < 5; i++) starIcons += '<i class="fa fa-star ' + (i < (o.rating||5) ? 'text-amber-400' : 'text-slate-200') + '"></i>';
+                    body = '<div class="px-5 pb-3"><div class="p-3 bg-orange-50/50 rounded-xl border border-orange-100"><div class="flex items-center gap-2 mb-1"><div class="flex items-center gap-0.5 text-sm">' + starIcons + '</div><span class="text-xs text-slate-400">' + (o.rating||5) + '.0 分</span></div>' + (o.reviewText ? '<p class="text-xs text-slate-600">' + o.reviewText + '</p>' : '') + '</div></div>';
+                }
+
+                // 发票状态
+                var invCell = '';
+                if (o.status !== 'unpaid') {
+                    if (invoicedMap[o.id]) {
+                        invCell = '<span class="text-[10px] px-2 py-0.5 rounded-full font-bold" style="color:#059669;background:#ecfdf5;">' + invoicedMap[o.id] + '</span>';
+                    } else if (!isEnterprise()) {
+                        invCell = '<span class="text-[10px] px-2 py-0.5 rounded-full font-bold text-slate-400 bg-slate-100" title="个人版需切换为企业版后可开票">需企业认证</span>';
+                    } else {
+                        invCell = '<button onclick="openInvoiceModal(\'' + o.id + '\')" class="text-[10px] px-2 py-0.5 rounded-full font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100">申请开票</button>';
+                    }
+                }
+
+                // 操作按钮
+                var acts = '';
+                if (o.status === 'unpaid') {
+                    acts = '<button onclick="goPage(\'service-orders.html\')" class="px-4 py-1.5 bg-white border border-slate-200 text-slate-500 rounded-lg text-xs font-bold hover:bg-slate-50">去支付</button>';
+                } else if (o.status === 'serving') {
+                    acts = '<button onclick="goPage(\'service-orders.html\')" class="px-4 py-1.5 bg-white border border-slate-200 text-slate-500 rounded-lg text-xs font-bold hover:bg-slate-50">查看进度</button>';
+                } else if (o.status === 'done') {
+                    acts = '<button onclick="goPage(\'service-orders.html\')" class="px-4 py-1.5 bg-white border border-orange-200 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-50"><i class="fa fa-star mr-1"></i>去评价</button>';
+                } else {
+                    acts = '<button onclick="goPage(\'service-orders.html\')" class="px-4 py-1.5 bg-white border border-slate-200 text-slate-500 rounded-lg text-xs font-bold hover:bg-slate-50">查看详情</button>';
+                }
+
+                return '<div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden order-card transition-all">' + head +
+                    '<div class="p-5 flex items-center gap-4">' +
+                        '<div class="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);"><i class="fa ' + (o.icon||'fa-file-text-o') + ' text-2xl text-orange-500"></i></div>' +
+                        '<div class="flex-1 min-w-0"><p class="font-bold text-slate-800 truncate">' + o.svcName + '</p><p class="text-xs text-slate-400 mt-1"><i class="fa fa-building-o mr-1"></i>' + (o.provider||'—') + (o.category ? ' · ' + o.category : '') + '</p></div>' +
+                        '<div class="text-right flex-shrink-0"><p class="text-indigo-600 font-black">¥' + ((o.amount||0).toLocaleString()) + '</p>' + (invCell ? '<div class="mt-1">' + invCell + '</div>' : '') + '</div>' +
+                    '</div>' + body +
+                    '<div class="px-5 py-3 border-t border-slate-50 flex items-center justify-end gap-2">' + acts + '<button onclick="goPage(\'service-market.html\')" class="px-4 py-1.5 bg-white border border-slate-200 text-slate-500 rounded-lg text-xs font-bold hover:bg-slate-50">再次购买</button></div>' +
+                '</div>';
+            }).join('');
+        }
+
+        var INV_TYPE = '电子普通发票';
+        function pickInvType(btn, t) {
+            INV_TYPE = t;
+            document.querySelectorAll('.inv-type').forEach(function(b) {
+                b.className = 'inv-type px-3 py-1.5 rounded-xl text-[11px] font-bold border border-slate-200 text-slate-500';
+            });
+            btn.className = 'inv-type px-3 py-1.5 rounded-xl text-[11px] font-bold border border-indigo-400 text-indigo-600 bg-indigo-50';
+        }
+        function openInvoiceModal(orderId) {
+            if (!isEnterprise()) { toast('个人版暂不支持开票，请先在「账号设置」中切换为企业版', false); return; }
+            var orders = DataBridge.loadServiceOrders().filter(function(o){ return o.status !== 'unpaid'; });
+            var invoices = loadInvoices();
+            var invoicedIds = invoices.map(function(v){ return v.orderId; });
+            orders = orders.filter(function(o){ return invoicedIds.indexOf(o.id) < 0; });
+            var sel = document.getElementById('inv_order');
+            if (!orders.length) { toast('暂无可开票的已支付订单', false); return; }
+            sel.innerHTML = orders.map(function(o){ return '<option value="' + o.id + '">' + o.id + ' · ' + o.svcName + '（¥' + (o.amount||0).toLocaleString() + '）</option>'; }).join('');
+            if (orderId) sel.value = orderId;
+            var p = getLoginUser();
+            document.getElementById('inv_title').value = p.company || '';
+            document.getElementById('inv_taxno').value = p.code || '';
+            document.getElementById('invoiceMask').classList.remove('hidden');
+        }
+        function closeInvoiceModal() { document.getElementById('invoiceMask').classList.add('hidden'); }
+        function submitInvoice() {
+            var orderId = document.getElementById('inv_order').value;
+            var title = document.getElementById('inv_title').value.trim();
+            var taxno = document.getElementById('inv_taxno').value.trim();
+            if (!orderId) { toast('请选择订单', false); return; }
+            if (!title) { toast('请填写发票抬头', false); return; }
+            if (!taxno) { toast('请填写纳税人识别号', false); return; }
+            var list = loadInvoices();
+            list.unshift({ orderId: orderId, title: title, taxno: taxno, type: INV_TYPE, status: '开票中', applyTime: new Date().toISOString().slice(0, 10) });
+            saveInvoices(list);
+            closeInvoiceModal();
+            renderOrders();
+            toast('发票申请已提交，1-3 个工作日内开具');
+        }
+
+        // ===== 初始化 =====
+        renderUserBox();
+        renderUsageBar();
+        renderCredits();
+        // 收件区未读红点（不点进「站内消息」页也可见）
+        (function(){ try { var n = collectInbox().filter(function(it){ return it.isNew; }).length; var b = document.getElementById('navReportCnt'); b.textContent = n; b.classList.toggle('hidden', n === 0); } catch(e){} })();
+        // 默认显示用量管理页；URL 参数 ?sec=reports 直达「站内消息」（从 report-view / policy-view 返回时）
+        try {
+            var _sp = new URLSearchParams(window.location.search).get('sec');
+            switchSection(_sp === 'reports' ? 'reports' : 'usage');
+        } catch (e) { switchSection('usage'); }
+        // URL 参数 ?action=plan 自动打开策能值充值弹窗
+        try {
+            var _p = new URLSearchParams(window.location.search);
+            if (_p.get('action') === 'plan') setTimeout(openPlanModal, 300);
+        } catch (e) {}
+    </script>
+</body>
+</html>

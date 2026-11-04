@@ -22,7 +22,7 @@
             background-color:var(--color-blue-600);color:var(--color-white);--tw-shadow:0 10px 15px -3px var(--tw-shadow-color,#0000001a),0 4px 6px -4px var(--tw-shadow-color,#0000001a);box-shadow:var(--tw-inset-shadow),var(--tw-inset-ring-shadow),var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow);--tw-shadow-color:oklch(54.6% .245 262.881 / 0.2);
         }
         .main-content {
-            height: calc(100vh - 64px);
+            height: 100vh;
             background-color: #f0f2f5;
         }
         iframe {
@@ -48,11 +48,23 @@
         .menu-group-header.collapsed .fa-angle-down {
             transform: rotate(-90deg);
         }
-        /* 服务商城沉浸式模式：隐藏外壳侧边栏与顶栏，商城全屏 */
+        /* 服务商城沉浸式模式：隐藏外壳侧边栏，商城全屏 */
         body.mall-mode aside { display: none; }
-        body.mall-mode header { display: none; }
         body.mall-mode .main-content { height: 100vh; }
     </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
 </head>
 <body class="bg-slate-50 flex h-screen">
     <!-- 左侧侧边栏 -->
@@ -70,10 +82,10 @@
         </div>
 
         <nav class="flex-1 px-4 space-y-1 overflow-y-auto">
-            <!-- 模块一：企业政策服务平台 -->
+            <!-- 前端：企业政策服务平台 -->
             <div class="mt-4 mb-2">
-                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest px-4">模块一</p>
-                <p class="text-xs text-blue-400 px-4 font-medium">企业政策服务平台</p>
+                <p class="text-xs text-slate-500 uppercase font-bold tracking-widest px-4">前端</p>
+                <p class="text-sm text-blue-400 px-4 font-medium">企业政策服务平台</p>
             </div>
             <a href="javascript:void(0)" onclick="switchPage('dashboard.html', this)" class="sidebar-item active flex items-center px-4 py-3 rounded-xl transition-all group">
                 <i class="fa fa-comments w-8 text-lg group-hover:scale-110 transition-transform"></i>
@@ -85,25 +97,110 @@
             </a>
             <a href="javascript:void(0)" onclick="switchPage('ability-diagnosis.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
                 <i class="fa fa-stethoscope w-8 text-lg group-hover:scale-110 transition-transform"></i>
-                <span class="font-medium text-sm">科创能力诊断</span>
+                <span class="font-medium text-sm">科创测评</span>
             </a>
             <a href="javascript:void(0)" onclick="switchPage('declaration-butler.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
                 <i class="fa fa-file-text-o w-8 text-lg group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium text-sm">申报管家</span>
             </a>
-            <a href="javascript:void(0)" onclick="switchPage('policy-calculator.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
-                <i class="fa fa-calculator w-8 text-lg group-hover:scale-110 transition-transform"></i>
-                <span class="font-medium text-sm">政策计算器</span>
+            <a href="javascript:void(0)" onclick="switchPage('policy-center.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
+                <i class="fa fa-university w-8 text-lg group-hover:scale-110 transition-transform"></i>
+                <span class="font-medium text-sm">政策中心</span>
             </a>
             <a href="javascript:void(0)" onclick="switchPage('service-market.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
                 <i class="fa fa-shopping-bag w-8 text-lg group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium text-sm">服务商城</span>
             </a>
 
-            <!-- 模块二：销售赋能中心 -->
+            <!-- 后端：运营管理 -->
             <div class="mt-6 mb-2">
-                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest px-4">模块二</p>
-                <p class="text-xs text-green-400 px-4 font-medium">销售赋能中心</p>
+                <p class="text-xs text-slate-500 uppercase font-bold tracking-widest px-4">后端</p>
+                <p class="text-sm text-purple-400 px-4 font-medium">运营管理</p>
+            </div>
+            <!-- 二级菜单：政策库管理（三级菜单并列展示） -->
+            <div class="mt-4">
+                <button onclick="toggleSubGroup('policyCfgGroup', this)" class="w-full flex items-center justify-between px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">
+                    <span class="text-[11px] font-bold tracking-widest">政策库管理</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-200" data-arrow></i>
+                </button>
+                <div id="policyCfgGroup" class="space-y-1">
+                    <a href="javascript:void(0)" onclick="switchPage('policy-library.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-database w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">政策库</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('diagnosis-rules.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-gavel w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">测评规则引擎</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('declaration-config.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-cogs w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">申报项目配置</span>
+                    </a>
+                </div>
+            </div>
+            <!-- 二级菜单：客户管理 -->
+            <div class="mt-4">
+                <button onclick="toggleSubGroup('customerCfgGroup', this)" class="w-full flex items-center justify-between px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">
+                    <span class="text-[11px] font-bold tracking-widest">客户管理</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-200" data-arrow></i>
+                </button>
+                <div id="customerCfgGroup" class="space-y-1">
+                    <a href="javascript:void(0)" onclick="switchPage('enterprise-profile.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-folder-open-o w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">企业档案</span>
+                    </a>
+                </div>
+            </div>
+            <!-- 二级菜单：商城管理（三级菜单并列展示） -->
+            <div class="mt-4">
+                <button onclick="toggleSubGroup('mallCfgGroup', this)" class="w-full flex items-center justify-between px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">
+                    <span class="text-[11px] font-bold tracking-widest">商城管理</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-200" data-arrow></i>
+                </button>
+                <div id="mallCfgGroup" class="space-y-1">
+                    <a href="javascript:void(0)" onclick="switchPage('service-product.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-shopping-bag w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">服务商品管理</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('order-management.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-list-alt w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">订单管理</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('evaluation-system.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-star-half-o w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">评价管理</span>
+                    </a>
+                </div>
+            </div>
+            <!-- 二级菜单：基础配置（三级菜单为具体配置项） -->
+            <div class="mt-4">
+                <button onclick="toggleSubGroup('basicCfgGroup', this)" class="w-full flex items-center justify-between px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">
+                    <span class="text-[11px] font-bold tracking-widest">基础配置</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-200" data-arrow></i>
+                </button>
+                <div id="basicCfgGroup" class="space-y-1">
+                    <a href="javascript:void(0)" onclick="switchPage('hot-search-config.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-fire w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">热搜配置</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('profile-config.html?type=industry', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-sitemap w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">企业所属产业</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('profile-config.html?type=qualification', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-certificate w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">企业资质</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('redeem-code-management.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-ticket w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">兑换码管理</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 销售管理 -->
+            <div class="mt-6 mb-2">
+                <p class="text-sm text-green-400 px-4 font-medium">销售管理</p>
             </div>
             <a href="javascript:void(0)" onclick="switchPage('customer-management.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
                 <i class="fa fa-users w-8 text-lg group-hover:scale-110 transition-transform"></i>
@@ -125,125 +222,23 @@
                 <i class="fa fa-bar-chart w-8 text-lg group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium text-sm">业绩看板</span>
             </a>
+            <!-- 移动端 H5：单个入口，内含 5 模块底栏 TabBar（不拆成 5 个菜单项，避免与上面 PC 端菜单重复） -->
+            <a href="javascript:void(0)" onclick="switchPage('sales-mobile-h5.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
+                <i class="fa fa-mobile w-8 text-lg group-hover:scale-110 transition-transform"></i>
+                <span class="font-medium text-sm">销售赋能中心 H5</span>
+                <span style="margin-left:auto;font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px;background:rgba(16,185,129,.18);color:#6ee7b7;white-space:nowrap">移动端</span>
+            </a>
 
-            <!-- 模块三：运营管理平台（按业务域分组） -->
-            <div class="mt-6 mb-2">
-                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest px-4">模块三</p>
-                <p class="text-xs text-purple-400 px-4 font-medium">运营管理平台</p>
-            </div>
-
-            <!-- 1. 智能政策问答运营 -->
+            <!-- 系统管理（二级菜单，与运营管理同色系） -->
             <div class="mb-1">
-                <div class="menu-group-header flex items-center justify-between px-4 py-2 rounded-xl cursor-pointer hover:bg-white/5 transition-all" onclick="toggleMenuGroup('qaGroup')">
-                    <div class="flex items-center gap-2">
-                        <i class="fa fa-comments text-blue-400 text-xs"></i>
-                        <span class="text-[11px] font-bold text-slate-300">智能政策问答运营</span>
+                <div class="menu-group-header flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer hover:bg-white/5 transition-all" onclick="toggleMenuGroup('sysGroup')">
+                    <div class="flex items-center gap-3">
+                        <i class="fa fa-cogs text-purple-400 text-lg w-8"></i>
+                        <span class="font-medium text-sm text-purple-400">系统管理</span>
                     </div>
-                    <i class="fa fa-angle-down text-slate-500 text-[10px] transition-transform" id="qaGroupIcon"></i>
+                    <i class="fa fa-angle-down text-purple-300 text-[10px] transition-transform" id="sysGroupIcon"></i>
                 </div>
-                <div class="menu-group-items pl-4 space-y-1" id="qaGroup">
-                    <a href="javascript:void(0)" onclick="switchPage('policy-library.html', this)" class="sidebar-item flex items-center px-3 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-database w-6 text-sm group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-xs">政策库管理</span>
-                    </a>
-                </div>
-            </div>
-
-
-            <!-- 3. 科创能力诊断运营 -->
-            <div class="mb-1">
-                <div class="menu-group-header flex items-center justify-between px-4 py-2 rounded-xl cursor-pointer hover:bg-white/5 transition-all" onclick="toggleMenuGroup('diagGroup')">
-                    <div class="flex items-center gap-2">
-                        <i class="fa fa-stethoscope text-orange-400 text-xs"></i>
-                        <span class="text-[11px] font-bold text-slate-300">科创能力诊断运营</span>
-                    </div>
-                    <i class="fa fa-angle-down text-slate-500 text-[10px] transition-transform" id="diagGroupIcon"></i>
-                </div>
-                <div class="menu-group-items pl-4 space-y-1" id="diagGroup">
-                    <a href="javascript:void(0)" onclick="switchPage('diagnosis-config.html', this)" class="sidebar-item flex items-center px-3 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-sliders w-6 text-sm group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-xs">诊断维度配置</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- 4. 申报管家运营 -->
-            <div class="mb-1">
-                <div class="menu-group-header flex items-center justify-between px-4 py-2 rounded-xl cursor-pointer hover:bg-white/5 transition-all" onclick="toggleMenuGroup('butlerGroup')">
-                    <div class="flex items-center gap-2">
-                        <i class="fa fa-file-text-o text-pink-400 text-xs"></i>
-                        <span class="text-[11px] font-bold text-slate-300">申报管家运营</span>
-                    </div>
-                    <i class="fa fa-angle-down text-slate-500 text-[10px] transition-transform" id="butlerGroupIcon"></i>
-                </div>
-                <div class="menu-group-items pl-4 space-y-1" id="butlerGroup">
-                    <a href="javascript:void(0)" onclick="switchPage('declaration-config.html', this)" class="sidebar-item flex items-center px-3 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-cogs w-6 text-sm group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-xs">申报项目配置</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- 5. 服务交易运营（接单/交付/评价闭环） -->
-            <div class="mb-1">
-                <div class="menu-group-header flex items-center justify-between px-4 py-2 rounded-xl cursor-pointer hover:bg-white/5 transition-all" onclick="toggleMenuGroup('tradeGroup')">
-                    <div class="flex items-center gap-2">
-                        <i class="fa fa-handshake-o text-amber-400 text-xs"></i>
-                        <span class="text-[11px] font-bold text-slate-300">服务交易运营</span>
-                    </div>
-                    <i class="fa fa-angle-down text-slate-500 text-[10px] transition-transform" id="tradeGroupIcon"></i>
-                </div>
-                <div class="menu-group-items pl-4 space-y-1" id="tradeGroup">
-                    <a href="javascript:void(0)" onclick="switchPage('service-product.html', this)" class="sidebar-item flex items-center px-3 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-shopping-bag w-6 text-sm group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-xs">服务商品管理</span>
-                    </a>
-                    <a href="javascript:void(0)" onclick="switchPage('order-management.html', this)" class="sidebar-item flex items-center px-3 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-list-alt w-6 text-sm group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-xs">订单管理</span>
-                    </a>
-                    <a href="javascript:void(0)" onclick="switchPage('evaluation-system.html', this)" class="sidebar-item flex items-center px-3 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-star-half-o w-6 text-sm group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-xs">评价体系</span>
-                    </a>
-                    <a href="javascript:void(0)" onclick="switchPage('service-monitor.html', this)" class="sidebar-item flex items-center px-3 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-eye w-6 text-sm group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-xs">服务订单监控</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- 6. 政策计算器运营 -->
-            <div class="mb-1">
-                <div class="menu-group-header flex items-center justify-between px-4 py-2 rounded-xl cursor-pointer hover:bg-white/5 transition-all" onclick="toggleMenuGroup('calcGroup')">
-                    <div class="flex items-center gap-2">
-                        <i class="fa fa-calculator text-cyan-400 text-xs"></i>
-                        <span class="text-[11px] font-bold text-slate-300">政策计算器运营</span>
-                    </div>
-                    <i class="fa fa-angle-down text-slate-500 text-[10px] transition-transform" id="calcGroupIcon"></i>
-                </div>
-                <div class="menu-group-items pl-4 space-y-1" id="calcGroup">
-                    <a href="javascript:void(0)" onclick="switchPage('policy-revenue-model.html', this)" class="sidebar-item flex items-center px-3 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-cubes w-6 text-sm group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-xs">政策收益模型</span>
-                    </a>
-                    <a href="javascript:void(0)" onclick="switchPage('calc-scheme-management.html', this)" class="sidebar-item flex items-center px-3 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-file-text-o w-6 text-sm group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-xs">测算方案管理</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- 平台公共 -->
-            <div class="mb-1">
-                <div class="menu-group-header flex items-center justify-between px-4 py-2 rounded-xl cursor-pointer hover:bg-white/5 transition-all" onclick="toggleMenuGroup('commonGroup')">
-                    <div class="flex items-center gap-2">
-                        <i class="fa fa-cogs text-slate-400 text-xs"></i>
-                        <span class="text-[11px] font-bold text-slate-300">平台公共</span>
-                    </div>
-                    <i class="fa fa-angle-down text-slate-500 text-[10px] transition-transform" id="commonGroupIcon"></i>
-                </div>
-                <div class="menu-group-items pl-4 space-y-1" id="commonGroup">
+                <div class="menu-group-items pl-4 space-y-1" id="sysGroup">
                     <a href="javascript:void(0)" onclick="switchPage('data-dashboard.html', this)" class="sidebar-item flex items-center px-3 py-2 rounded-lg transition-all group">
                         <i class="fa fa-tachometer w-6 text-sm group-hover:scale-110 transition-transform"></i>
                         <span class="font-medium text-xs">数据驾驶舱</span>
@@ -261,7 +256,7 @@
 
             <!-- 核心闭环流程 -->
             <div class="mt-6 mb-2">
-                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest px-4">核心业务流程</p>
+                <p class="text-xs text-slate-500 uppercase font-bold tracking-widest px-4">核心业务流程</p>
             </div>
             <a href="javascript:void(0)" onclick="switchPage('core-flow.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
                 <i class="fa fa-code-fork w-8 text-lg group-hover:scale-110 transition-transform"></i>
@@ -285,42 +280,6 @@
 
     <!-- 右侧内容区 -->
     <div class="flex-1 flex flex-col">
-        <!-- 顶部 Header -->
-        <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between z-20">
-            <div class="flex items-center space-x-4">
-                <i class="fa fa-bars text-slate-400 cursor-pointer"></i>
-                <h1 id="pageTitle" class="text-base font-bold text-slate-800">智能政策问答</h1>
-                <div class="flex items-center bg-slate-50 rounded-lg p-1">
-                    <button class="px-4 py-1.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-all">首页 <i class="fa fa-times-circle ml-1 opacity-0 hover:opacity-100"></i></button>
-                    <button class="px-4 py-1.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-all">项目管理 <i class="fa fa-times-circle ml-1 opacity-0 hover:opacity-100"></i></button>
-                    <button class="px-4 py-1.5 bg-white shadow-sm rounded-md text-xs font-bold text-blue-600 border border-slate-100">项目监控 <i class="fa fa-times-circle ml-1"></i></button>
-                </div>
-            </div>
-            
-            <div class="flex items-center space-x-6">
-                <div class="flex items-center space-x-4 text-slate-400 text-lg">
-                    <i class="fa fa-th-large cursor-pointer hover:text-blue-600"></i>
-                    <i class="fa fa-commenting-o cursor-pointer hover:text-blue-600"></i>
-                    <div class="relative">
-                        <i class="fa fa-bell-o cursor-pointer hover:text-blue-600"></i>
-                        <span class="absolute top-0 right-0 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
-                    </div>
-                    <i class="fa fa-expand cursor-pointer hover:text-blue-600"></i>
-                    <i class="fa fa-bug cursor-pointer hover:text-blue-600"></i>
-                    <i class="fa fa-cog cursor-pointer hover:text-blue-600"></i>
-                </div>
-                <div class="h-6 w-px bg-slate-200"></div>
-                <div class="flex items-center space-x-3 cursor-pointer group">
-                    <div class="text-right">
-                        <p class="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-all">主管名称123</p>
-                        <p class="text-[8px] text-slate-400 uppercase tracking-widest">主管理员</p>
-                    </div>
-                    <img src="https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&h=100&fit=crop" class="w-8 h-8 rounded-full object-cover ring-2 ring-slate-100 group-hover:ring-blue-100 transition-all">
-                    <i class="fa fa-caret-down text-slate-300"></i>
-                </div>
-            </div>
-        </header>
-
         <!-- 内容 iframe -->
         <main class="main-content">
             <iframe id="contentFrame" src="dashboard.html"></iframe>
@@ -348,12 +307,20 @@
             header.classList.toggle('collapsed');
         }
 
+        // 二级菜单展开 / 收起
+        function toggleSubGroup(id, btn) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            var hidden = el.classList.toggle('hidden');
+            var arrow = btn.querySelector('[data-arrow]');
+            if (arrow) arrow.style.transform = hidden ? 'rotate(-90deg)' : '';
+        }
+
         function switchPage(url, el) {
-            document.getElementById('contentFrame').src = url;
+            document.getElementById('contentFrame').src = url + (url.indexOf('?') > -1 ? '&' : '?') + '_t=' + Date.now();
 
             var urlOnly = url.split('/').pop();
 
-            // 保留左侧深色侧边栏：所有页面（含服务商城/我的订单）均在 iframe 内显示，不切换沉浸式全屏
             document.body.classList.remove('mall-mode');
 
             if (!el) {
@@ -365,41 +332,6 @@
                     }
                 }
             }
-
-            var titleMap = {
-                'dashboard.html': '智能政策问答',
-                'policy-radar.html': '精准政策雷达',
-                'ability-diagnosis.html': '科创能力诊断',
-                'declaration-butler.html': '申报管家',
-                'policy-calculator.html': '政策计算器',
-                'customer-management.html': '客户管理',
-                'sales-report.html': '智能报告',
-                'share-management.html': '分享管理',
-                'clue-management.html': '线索管理',
-                'sales-dashboard.html': '业绩看板',
-                'policy-library.html': '政策库管理',
-                'qualification-rules.html': '资质判定规则',
-                'service-market.html': '服务商城',
-                'service-product.html': '服务商品管理',
-                'service-orders.html': '我的订单',
-                'order-management.html': '订单管理',
-                'evaluation-system.html': '评价体系',
-                'service-monitor.html': '服务订单监控',
-                'policy-revenue-model.html': '政策收益模型',
-                'cost-config.html': '申报成本配置',
-                'cashflow-config.html': '到账周期配置',
-                'calc-scheme-management.html': '测算方案管理',
-                'data-dashboard.html': '数据驾驶舱',
-                'user-permission.html': '用户与权限',
-                'system-settings.html': '系统设置',
-                'core-flow.html': '核心闭环设计总览'
-            };
-            var title = titleMap[urlOnly] || '策源易答 2.0';
-            if (el) {
-                var span = el.querySelector('span');
-                if (span) title = span.innerText;
-            }
-            document.getElementById('pageTitle').innerText = title;
 
             document.querySelectorAll('.sidebar-item').forEach(function(item) {
                 item.classList.remove('active', 'bg-blue-600', 'text-white', 'shadow-lg', 'shadow-blue-200');

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 策源易答</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        input:focus { border-color: #818cf8 !important; outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+        .step-dot { transition: all .3s ease; }
+        .field-err { border-color: #f87171 !important; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fadeUp .35s ease both; }
+    </style>
+</head>
+<body class="min-h-screen" style="background: linear-gradient(135deg, #eef2ff 0%, #e0f2fe 50%, #f5f3ff 100%);">
+    <div class="min-h-screen flex items-center justify-center px-4 py-8">
+        <div class="w-full grid grid-cols-2 gap-6 items-stretch" style="min-height: calc(100vh - 64px);">
+            <!-- 左侧品牌区 -->
+            <div class="relative rounded-2xl p-8 text-white overflow-hidden shadow-2xl flex flex-col justify-between" style="background: radial-gradient(130% 130% at 0% 0%, #6366f1 0%, #4f46e5 30%, #6d28d9 65%, #1e2a78 100%);">
+                <!-- 右上光斑 -->
+                <div class="pointer-events-none absolute w-80 h-80 rounded-full" style="top:-7rem; right:-6rem; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.45) 0%, rgba(255,255,255,0) 65%);"></div>
+                <!-- 左下光斑 -->
+                <div class="pointer-events-none absolute w-72 h-72 rounded-full" style="bottom:-6rem; left:-5rem; background: radial-gradient(circle at 50% 50%, rgba(34,211,238,.45) 0%, rgba(34,211,238,0) 70%);"></div>
+                <!-- 细网格 -->
+                <div class="pointer-events-none absolute inset-0" style="opacity:.12; background-image: linear-gradient(rgba(255,255,255,.35) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.35) 1px, transparent 1px); background-size: 30px 30px;"></div>
+                <!-- 水印 -->
+                <div class="pointer-events-none absolute font-black leading-none select-none" style="right:-1rem; bottom:.5rem; font-size:150px; color: rgba(255,255,255,.055);">策</div>
+
+                <div class="relative">
+                    <span class="inline-flex items-center rounded-full text-[10px] font-bold" style="gap:.4rem; padding:.3rem .8rem; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25);">
+                        <span class="rounded-full" style="width:6px;height:6px;background:#6ee7b7;"></span>AI + 政策服务 · 政策智能引擎
+                    </span>
+                    <h1 class="text-3xl font-black leading-snug mt-5 mb-3">注册策源账号<br>让<span class="relative inline-block">政策红利<span class="absolute left-0 w-full rounded" style="bottom:-2px;height:4px;background:linear-gradient(90deg,#fbbf24,#f472b6);"></span></span>主动找到你</h1>
+                    <p class="text-xs leading-relaxed" style="color: rgba(255,255,255,.72); max-width:34rem;">依托自然语言处理、知识图谱与深度学习技术，为您提供政策搜索、精准匹配、科创测评、申报管家一站式服务。</p>
+                </div>
+
+                <div class="relative mt-8" style="display:flex;flex-direction:column;gap:.6rem;">
+                    <div class="flex items-center rounded-xl" style="gap:.75rem;padding:.6rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(6px);">
+                        <span class="flex items-center justify-center rounded-lg" style="width:28px;height:28px;background:rgba(110,231,183,.18);"><i class="fa fa-database text-xs" style="color:#6ee7b7;"></i></span>
+                        <span class="text-xs" style="color:rgba(255,255,255,.92);">政策库 · 国家到区县四级政策全覆盖</span>
+                    </div>
+                    <div class="flex items-center rounded-xl" style="gap:.75rem;padding:.6rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(6px);">
+                        <span class="flex items-center justify-center rounded-lg" style="width:28px;height:28px;background:rgba(147,197,253,.2);"><i class="fa fa-comments text-xs" style="color:#93c5fd;"></i></span>
+                        <span class="text-xs" style="color:rgba(255,255,255,.92);">AI 问答 · 智能解析给出申报结论</span>
+                    </div>
+                    <div class="flex items-center rounded-xl" style="gap:.75rem;padding:.6rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(6px);">
+                        <span class="flex items-center justify-center rounded-lg" style="width:28px;height:28px;background:rgba(253,230,138,.2);"><i class="fa fa-gauge-high text-xs" style="color:#fde68a;"></i></span>
+                        <span class="text-xs" style="color:rgba(255,255,255,.92);">精准匹配 · 六维测评锁定可申报项</span>
+                    </div>
+                    <div class="flex items-center rounded-xl" style="gap:.75rem;padding:.6rem .85rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(6px);">
+                        <span class="flex items-center justify-center rounded-lg" style="width:28px;height:28px;background:rgba(196,181,253,.2);"><i class="fa fa-clipboard-check text-xs" style="color:#c4b5fd;"></i></span>
+                        <span class="text-xs" style="color:rgba(255,255,255,.92);">申报管家 · 材料清单与进度一站管理</span>
+                    </div>
+                </div>
+
+                <div class="relative mt-6 pt-4 flex items-center text-[10px]" style="border-top:1px solid rgba(255,255,255,.16);gap:1.1rem;color:rgba(255,255,255,.6);">
+                    <span><i class="fa fa-shield-alt mr-1" style="color:#6ee7b7;"></i>政策源自官方公开渠道</span>
+                    <span>每日同步更新</span>
+                    <span>支持个人与企业账号</span>
+                </div>
+            </div>
+
+            <!-- 右侧注册表单 -->
+            <div class="flex flex-col">
+                <!-- 顶部品牌标题 -->
+                <div class="relative flex items-center justify-center mb-5">
+                    <div class="flex items-center space-x-3.5">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0" style="background: linear-gradient(160deg, #4f46e5 0%, #7c3aed 100%);">
+                            <span class="text-white font-black text-2xl">策</span>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-black tracking-tight text-slate-800">策源易答</div>
+                            <div class="text-[11px] text-slate-400 uppercase tracking-[0.2em] mt-0.5">AI + 政策服务</div>
+                        </div>
+                    </div>
+                    <button onclick="openGuide('register.html')" class="absolute right-0 top-1/2 -translate-y-1/2 text-[11px] text-amber-600 hover:text-amber-700 font-bold"><i class="fa fa-book mr-1"></i>会员与策能值指南</button>
+                </div>
+                <div class="bg-white/85 backdrop-blur rounded-2xl border border-white/60 shadow-2xl p-6 animate-fade-up flex-1">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 id="rgTitle" class="text-lg font-black text-slate-800">个人注册</h2>
+                        <p id="rgSub" class="text-[11px] text-slate-400 mt-0.5">手机号快速注册，30 秒完成</p>
+                    </div>
+                </div>
+
+                <!-- 注册类型切换 -->
+                <div class="flex bg-slate-100 rounded-xl p-1 mb-4">
+                    <button id="tabPersonal" onclick="switchRegType('personal')" class="flex-1 py-2 rounded-lg text-xs font-bold bg-white text-indigo-600 shadow-sm transition-all"><i class="fa fa-user mr-1"></i>个人注册</button>
+                    <button id="tabEnterprise" onclick="switchRegType('enterprise')" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all"><i class="fa fa-building mr-1"></i>企业注册</button>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- 企业注册专属字段 -->
+                    <div id="entFields" class="space-y-3" style="display:none;">
+                        <div>
+                            <label class="text-[11px] text-slate-500 font-bold block mb-1">企业名称 <span class="text-red-400">*</span></label>
+                            <input id="rg_company" type="text" placeholder="与营业执照一致" value="深圳市策源数字科技有限公司" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-500 font-bold block mb-1">统一社会信用代码 <span class="text-red-400">*</span></label>
+                            <input id="rg_code" type="text" placeholder="18 位统一社会信用代码" maxlength="18" value="91440300MA5F8X2K9D" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-500 font-bold block mb-1">联系人 <span class="text-red-400">*</span></label>
+                            <input id="rg_contact" type="text" placeholder="姓名" value="张策源" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-500 font-bold block mb-1">所在地区 <span class="text-slate-300 font-normal text-[10px]">（选填）</span></label>
+                        <div class="flex gap-2">
+                            <select id="rg_province" onchange="onRegProvinceChange()" class="flex-1 px-2 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all text-slate-700">
+                                <option value="">省份</option>
+                            </select>
+                            <select id="rg_city" onchange="onRegCityChange()" class="flex-1 px-2 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all text-slate-700">
+                                <option value="">城市</option>
+                            </select>
+                            <select id="rg_district" class="flex-1 px-2 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all text-slate-700">
+                                <option value="">区县</option>
+                            </select>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1"><i class="fa fa-map-marker mr-0.5"></i>选填；未选择时，注册成功后可再补充所在地区</p>
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-500 font-bold block mb-1">手机号 <span class="text-red-400">*</span></label>
+                        <input id="rg_phone" type="text" placeholder="11 位手机号" maxlength="11" value="13800138000" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-500 font-bold block mb-1">短信验证码 <span class="text-red-400">*</span></label>
+                        <div class="flex gap-2">
+                            <input id="rg_sms" type="text" placeholder="6 位验证码" maxlength="6" value="123456" class="flex-1 px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                            <button id="smsBtn" onclick="sendSms()" class="px-3 py-2 rounded-xl text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all whitespace-nowrap flex-shrink-0">获取验证码</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-500 font-bold block mb-1">设置密码 <span class="text-red-400">*</span></label>
+                        <div class="relative">
+                            <input id="rg_pwd" type="password" placeholder="6-20 位，建议字母+数字组合" maxlength="20" value="Demo123456" class="w-full px-3 py-2.5 pr-9 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                            <i id="eye_pwd" onclick="togglePwd('rg_pwd','eye_pwd')" class="fa fa-eye-slash absolute right-3 top-3 cursor-pointer text-slate-400 hover:text-indigo-500 text-xs"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-500 font-bold block mb-1">确认密码 <span class="text-red-400">*</span></label>
+                        <div class="relative">
+                            <input id="rg_pwd2" type="password" placeholder="请再次输入密码" maxlength="20" value="Demo123456" class="w-full px-3 py-2.5 pr-9 text-xs rounded-xl border border-slate-200 bg-white transition-all">
+                            <i id="eye_pwd2" onclick="togglePwd('rg_pwd2','eye_pwd2')" class="fa fa-eye-slash absolute right-3 top-3 cursor-pointer text-slate-400 hover:text-indigo-500 text-xs"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-500 font-bold block mb-1">邀请码 <span class="text-slate-300 font-normal text-[10px]">（选填）</span></label>
+                        <div class="relative">
+                            <input id="rg_invite" type="text" placeholder="填写邀请人的 8 位邀请码，如 CY8K2M9Q" maxlength="8" class="w-full px-3 py-2.5 pl-9 text-xs rounded-xl border border-slate-200 bg-white transition-all uppercase tracking-widest">
+                            <i class="fa fa-gift absolute left-3 top-3 text-slate-300 text-xs"></i>
+                        </div>
+                    </div>
+                    <label class="flex items-start gap-2 cursor-pointer pt-1">
+                        <input id="rg_agree" type="checkbox" class="mt-0.5 accent-indigo-600" checked>
+                        <span class="text-[11px] text-slate-500 leading-relaxed">我已阅读并同意<a class="text-indigo-500 font-bold" onclick="event.preventDefault();alert('演示环境：《用户服务协议》内容页建设中')">《用户服务协议》</a>与<a class="text-indigo-500 font-bold" onclick="event.preventDefault();alert('演示环境：《隐私政策》内容页建设中')">《隐私政策》</a></span>
+                    </label>
+                    <button onclick="submitRegister()" class="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90 transition-all shadow-lg">
+                        <i class="fa fa-rocket mr-1"></i>立即注册
+                    </button>
+                    <p class="text-center text-[11px] text-slate-400">已有账号？<a onclick="goPage('login.html')" class="text-indigo-500 font-bold cursor-pointer hover:text-indigo-700">直接登录</a></p>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+var REGION_DATA = {"provinces":["北京市","广东省","上海市","重庆市","天津市","福建省","浙江省","江苏省","江西省","湖北省","湖南省","山东省","安徽省","河南省","河北省","山西省","内蒙古自治区","辽宁省","吉林省","黑龙江省","广西壮族自治区","海南省","四川省","贵州省","云南省","西藏自治区","陕西省","甘肃省","青海省","宁夏回族自治区","新疆维吾尔自治区","台湾省","香港特别行政区","澳门特别行政区","钓鱼岛"],"cityMap":{"北京市":["北京市"],"上海市":["上海市"],"天津市":["天津市"],"重庆市":["重庆市"],"安徽省":["合肥市","芜湖市","蚌埠市","淮南市","马鞍山市","淮北市","铜陵市","安庆市","黄山市","滁州市","阜阳市","宿州市","六安市","亳州市","池州市","宣城市"],"福建省":["福州市","厦门市","莆田市","三明市","泉州市","漳州市","南平市","龙岩市","宁德市"],"甘肃省":["兰州市","嘉峪关市","金昌市","白银市","天水市","酒泉市","张掖市","武威市","定西市","陇南市"],"广东省":["广州市","深圳市","珠海市","汕头市","佛山市","韶关市","湛江市","肇庆市","江门市","茂名市","惠州市","梅州市","汕尾市","河源市","阳江市","清远市","东莞市","中山市","潮州市","揭阳市"],"广西壮族自治区":["南宁市","柳州市","桂林市","梧州市","北海市","防城港市","钦州市","贵港市","玉林市","百色市","贺州市","河池市","来宾市","崇左市"],"贵州省":["贵阳市","六盘水市","遵义市","安顺市","毕节市","铜仁市"],"海南省":["海口市","三亚市","三沙市","儋州市"],"河北省":["石家庄市","唐山市","秦皇岛市","邯郸市","邢台市","保定市","张家口市","承德市","沧州市","廊坊市","衡水市"],"河南省":["郑州市","开封市","洛阳市","平顶山市","安阳市","鹤壁市","新乡市","焦作市","濮阳市","许昌市","漯河市","三门峡市","南阳市","商丘市","信阳市","周口市","驻马店市"],"黑龙江省":["哈尔滨市","齐齐哈尔市","鸡西市","鹤岗市","双鸭山市","大庆市","伊春市","佳木斯市","七台河市","牡丹江市","黑河市","绥化市"],"湖北省":["武汉市","黄石市","十堰市","宜昌市","襄阳市","鄂州市","荆门市","孝感市","荆州市","黄冈市","咸宁市","随州市"],"湖南省":["长沙市","株洲市","湘潭市","衡阳市","邵阳市","岳阳市","常德市","张家界市","益阳市","郴州市","永州市","怀化市","娄底市"],"吉林省":["长春市","吉林市","四平市","辽源市","通化市","白山市","松原市","白城市"],"江苏省":["南京市","无锡市","徐州市","常州市","苏州市","南通市","连云港市","淮安市","盐城市","扬州市","镇江市","泰州市","宿迁市"],"江西省":["南昌市","景德镇市","萍乡市","九江市","新余市","鹰潭市","赣州市","吉安市","宜春市","抚州市","上饶市"],"辽宁省":["沈阳市","大连市","鞍山市","抚顺市","本溪市","丹东市","锦州市","营口市","阜新市","辽阳市","盘锦市","铁岭市","朝阳市","葫芦岛市"],"内蒙古自治区":["呼和浩特市","包头市","乌海市","赤峰市","通辽市","鄂尔多斯市","呼伦贝尔市","巴彦淖尔市","乌兰察布市"],"宁夏回族自治区":["银川市","石嘴山市","吴忠市","固原市","中卫市"],"青海省":["西宁市","海东市"],"山东省":["济南市","青岛市","淄博市","枣庄市","东营市","烟台市","潍坊市","济宁市","泰安市","威海市","日照市","临沂市","德州市","聊城市","滨州市","菏泽市"],"山西省":["太原市","大同市","阳泉市","长治市","晋城市","朔州市","晋中市","运城市","忻州市","临汾市","吕梁市"],"陕西省":["西安市","铜川市","宝鸡市","咸阳市","渭南市","延安市","汉中市","榆林市","安康市","商洛市"],"四川省":["成都市","自贡市","攀枝花市","泸州市","德阳市","绵阳市","广元市","遂宁市","内江市","乐山市","南充市","眉山市","宜宾市","广安市","达州市","雅安市","巴中市","资阳市"],"台湾省":["台北市","高雄市","台中市"],"西藏自治区":["拉萨市","日喀则市","昌都市","林芝市","山南市","那曲市"],"新疆维吾尔自治区":["乌鲁木齐市","克拉玛依市","吐鲁番市","哈密市","昌吉市","伊宁市","库尔勒市"],"云南省":["昆明市","曲靖市","玉溪市","保山市","昭通市","丽江市","普洱市","临沧市"],"浙江省":["杭州市","宁波市","温州市","嘉兴市","湖州市","绍兴市","金华市","衢州市","舟山市","台州市","丽水市"],"香港特别行政区":["香港岛","九龙","新界"],"澳门特别行政区":["澳门半岛","氹仔","路环"],"钓鱼岛":["钓鱼岛"]},"districtMap":{"北京市":["东城区","西城区","朝阳区","海淀区","丰台区","石景山区","通州区","昌平区","大兴区","顺义区","房山区","门头沟区","平谷区","密云区","怀柔区","延庆区"],"上海市":["黄浦区","徐汇区","长宁区","静安区","普陀区","虹口区","杨浦区","浦东新区","闵行区","宝山区","嘉定区","金山区","松江区","青浦区","奉贤区","崇明区"],"天津市":["和平区","河东区","河西区","南开区","河北区","红桥区","东丽区","西青区","津南区","北辰区","武清区","宝坻区","滨海新区","宁河区","静海区","蓟州区"],"重庆市":["渝中区","大渡口区","江北区","沙坪坝区","九龙坡区","南岸区","北碚区","綦江区","大足区","渝北区","巴南区","万州区","涪陵区","永川区","江津区","合川区"],"成都市":["锦江区","青羊区","金牛区","武侯区","成华区","龙泉驿区","青白江区","新都区","温江区","双流区","郫都区","都江堰市","彭州市","邛崃市","崇州市","简阳市","金堂县","大邑县","蒲江县","新津县"],"绵阳市":["涪城区","游仙区","安州区","江油市","三台县","盐亭县","梓潼县","北川羌族自治县","平武县"],"广州市":["荔湾区","越秀区","海珠区","天河区","白云区","黄埔区","番禺区","花都区","南沙区","从化区","增城区"],"深圳市":["罗湖区","福田区","南山区","宝安区","龙岗区","盐田区","龙华区","坪山区","光明区","大鹏新区"],"杭州市":["上城区","下城区","江干区","拱墅区","西湖区","滨江区","萧山区","余杭区","富阳区","临安区","桐庐县","淳安县","建德市"],"武汉市":["江岸区","江汉区","硚口区","汉阳区","武昌区","青山区","洪山区","东西湖区","汉南区","蔡甸区","江夏区","黄陂区","新洲区"],"南京市":["玄武区","秦淮区","建邺区","鼓楼区","浦口区","栖霞区","雨花台区","江宁区","六合区","溧水区","高淳区"],"西安市":["新城区","碑林区","莲湖区","灞桥区","未央区","雁塔区","阎良区","临潼区","长安区","高陵区","鄠邑区","蓝田县","周至县"],"苏州市":["姑苏区","虎丘区","吴中区","相城区","吴江区","常熟市","张家港市","昆山市","太仓市"],"青岛市":["市南区","市北区","黄岛区","崂山区","李沧区","城阳区","即墨区","胶州市","平度市","莱西市"],"沈阳市":["和平区","沈河区","大东区","皇姑区","铁西区","苏家屯区","浑南区","沈北新区","于洪区","辽中区","新民市","康平县","法库县"],"大连市":["中山区","西岗区","沙河口区","甘井子区","旅顺口区","金州区","普兰店区","瓦房店市","庄河市","长海县"],"长沙市":["芙蓉区","天心区","岳麓区","开福区","雨花区","望城区","长沙县","浏阳市","宁乡市"],"郑州市":["中原区","二七区","管城回族区","金水区","上街区","惠济区","中牟县","巩义市","荥阳市","新密市","新郑市","登封市"],"福州市":["鼓楼区","台江区","仓山区","马尾区","晋安区","长乐区","闽侯县","连江县","罗源县","闽清县","永泰县","平潭县","福清市"],"厦门市":["思明区","海沧区","湖里区","集美区","同安区","翔安区"]},"genericDistricts":["市辖区","县级市","县","自治县"]};
+function initRegionSelects() {
+    var pSel = document.getElementById('rg_province');
+    REGION_DATA.provinces.forEach(function(p) {
+        var o = document.createElement('option'); o.value = p; o.textContent = p; pSel.appendChild(o);
+    });
+}
+function onRegProvinceChange() {
+    var prov = document.getElementById('rg_province').value;
+    var cSel = document.getElementById('rg_city');
+    var dSel = document.getElementById('rg_district');
+    cSel.innerHTML = '<option value="">城市</option>';
+    dSel.innerHTML = '<option value="">区县</option>';
+    (REGION_DATA.cityMap[prov] || []).forEach(function(c) {
+        var o = document.createElement('option'); o.value = c; o.textContent = c; cSel.appendChild(o);
+    });
+}
+function onRegCityChange() {
+    var city = document.getElementById('rg_city').value;
+    var dSel = document.getElementById('rg_district');
+    dSel.innerHTML = '<option value="">区县</option>';
+    (REGION_DATA.districtMap[city] || REGION_DATA.genericDistricts).forEach(function(d) {
+        var o = document.createElement('option'); o.value = d; o.textContent = d; dSel.appendChild(o);
+    });
+}
+initRegionSelects();
+        function goPage(url) {
+            try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage(url, null); return; } } catch (e) {}
+            window.location.href = url;
+        }
+        // 打开会员指南，并记录来源页（存储不可用时不影响跳转）
+        function openGuide(from) {
+            try { sessionStorage.setItem('ceyuan_guide_from', from); } catch (e) {}
+            goPage('member-guide.html');
+        }
+        function toast(msg, ok) {
+            var t = document.createElement('div');
+            t.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg ' + (ok === false ? 'bg-red-500' : 'bg-slate-800');
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(function(){ t.remove(); }, 2200);
+        }
+
+        var SMS_CODE = '123456'; // 演示环境：默认匹配预填验证码，不点获取也能提交
+        var REG_TYPE = 'personal'; // personal | enterprise
+        function togglePwd(inputId, eyeId) {
+            var input = document.getElementById(inputId);
+            var eye = document.getElementById(eyeId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.classList.remove('fa-eye-slash');
+                eye.classList.add('fa-eye');
+            } else {
+                input.type = 'password';
+                eye.classList.remove('fa-eye');
+                eye.classList.add('fa-eye-slash');
+            }
+        }
+        function switchRegType(t) {
+            REG_TYPE = t;
+            var isEnt = t === 'enterprise';
+            document.getElementById('entFields').style.display = isEnt ? '' : 'none';
+            document.getElementById('rgTitle').textContent = isEnt ? '企业注册' : '个人注册';
+            document.getElementById('rgSub').textContent = isEnt ? '填写企业信息，30 秒完成注册' : '手机号快速注册，30 秒完成';
+            var on = 'flex-1 py-2 rounded-lg text-xs font-bold bg-white text-indigo-600 shadow-sm transition-all';
+            var off = 'flex-1 py-2 rounded-lg text-xs font-bold text-slate-500 transition-all';
+            document.getElementById('tabPersonal').className = isEnt ? off : on;
+            document.getElementById('tabEnterprise').className = isEnt ? on : off;
+        }
+        function sendSms() {
+            var phone = document.getElementById('rg_phone').value.trim();
+            if (!/^1\d{10}$/.test(phone)) { toast('请先填写正确的 11 位手机号', false); markErr('rg_phone'); return; }
+            clearErr('rg_phone');
+            SMS_CODE = String(Math.floor(100000 + Math.random() * 900000));
+            // 演示环境：自动填入验证码，省去手工输入
+            document.getElementById('rg_sms').value = SMS_CODE;
+            clearErr('rg_sms');
+            var btn = document.getElementById('smsBtn');
+            var sec = 60;
+            btn.disabled = true;
+            btn.textContent = sec + 's 后重发';
+            btn.classList.add('opacity-50');
+            var timer = setInterval(function() {
+                sec--;
+                if (sec <= 0) { clearInterval(timer); btn.disabled = false; btn.textContent = '获取验证码'; btn.classList.remove('opacity-50'); }
+                else btn.textContent = sec + 's 后重发';
+            }, 1000);
+            toast('验证码已发送并自动填入：' + SMS_CODE + '（演示环境）');
+        }
+
+        function markErr(id) { document.getElementById(id).classList.add('field-err'); }
+        function clearErr(id) { document.getElementById(id).classList.remove('field-err'); }
+        // 演示环境密码散列（仅用于避免明文存储，非真实加密），与 login.html 保持一致
+        function hashPwd(s) {
+            var h = 5381;
+            for (var i = 0; i < s.length; i++) { h = ((h << 5) + h) ^ s.charCodeAt(i); }
+            return (h >>> 0).toString(16);
+        }
+
+        function submitRegister() {
+            var isEnt = REG_TYPE === 'enterprise';
+            var company = document.getElementById('rg_company').value.trim();
+            var code = document.getElementById('rg_code').value.trim();
+            var contact = document.getElementById('rg_contact').value.trim();
+            var phone = document.getElementById('rg_phone').value.trim();
+            var sms = document.getElementById('rg_sms').value.trim();
+            var pwd = document.getElementById('rg_pwd').value;
+            var pwd2 = document.getElementById('rg_pwd2').value;
+            var inviteCode = document.getElementById('rg_invite').value.trim().toUpperCase();
+            var agree = document.getElementById('rg_agree').checked;
+            ['rg_company','rg_code','rg_contact','rg_phone','rg_sms','rg_pwd','rg_pwd2','rg_invite'].forEach(clearErr);
+            var prov = document.getElementById('rg_province').value;
+            var city = document.getElementById('rg_city').value;
+            var district = document.getElementById('rg_district').value;
+            var regionFilled = !!(prov && city && district);
+
+            if (isEnt) {
+                if (!company) { toast('请填写企业名称', false); markErr('rg_company'); return; }
+                if (!/^[0-9A-Z]{18}$/.test(code)) { toast('统一社会信用代码需为 18 位数字/大写字母', false); markErr('rg_code'); return; }
+                if (!contact) { toast('请填写联系人', false); markErr('rg_contact'); return; }
+            }
+            if (!/^1\d{10}$/.test(phone)) { toast('请填写正确的 11 位手机号', false); markErr('rg_phone'); return; }
+            if (!SMS_CODE || sms !== SMS_CODE) { toast('验证码不正确，请先获取验证码', false); markErr('rg_sms'); return; }
+            if (pwd.length < 6) { toast('密码至少 6 位', false); markErr('rg_pwd'); return; }
+            if (pwd !== pwd2) { toast('两次输入的密码不一致，请重新确认', false); markErr('rg_pwd2'); return; }
+            if (inviteCode && !/^CY[0-9A-Z]{6}$/.test(inviteCode)) { toast('邀请码格式不正确，应为 8 位字母数字（CY 开头）', false); markErr('rg_invite'); return; }
+            if (!agree) { toast('请先勾选并同意服务协议', false); return; }
+
+            var users = [];
+            try { users = JSON.parse(localStorage.getItem('ceyuan_registered_users') || '[]'); } catch (e) {}
+            // 演示环境：同手机号/同信用代码已存在时覆盖旧记录，方便反复演示，不阻断注册
+            users = users.filter(function(u){ return u.phone !== phone && !(isEnt && u.code && u.code === code); });
+            var rec = { type: REG_TYPE, phone: phone, pwdHash: hashPwd(pwd), province: regionFilled ? prov : '', city: regionFilled ? city : '', district: regionFilled ? district : '', regTime: new Date().toISOString().slice(0, 19).replace('T', ' ') };
+            if (isEnt) { rec.company = company; rec.code = code; rec.contact = contact; }
+            users.unshift(rec);
+            try { localStorage.setItem('ceyuan_registered_users', JSON.stringify(users)); } catch (e) {}
+            // 同步会员中心信息（所在地区选填，未选时留空，注册成功页可补充）
+            try {
+                var regionText = regionFilled ? (prov + ' ' + city + ' ' + district) : '';
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify(isEnt
+                    ? { company: company, code: code, contact: contact, phone: phone, industry: '', region: regionText, province: regionFilled ? prov : '', city: regionFilled ? city : '', district: regionFilled ? district : '', accountType: 'enterprise' }
+                    : { company: '', code: '', contact: '', phone: phone, industry: '', region: regionText, province: regionFilled ? prov : '', city: regionFilled ? city : '', district: regionFilled ? district : '', accountType: 'personal' }));
+                if (regionFilled) {
+                    localStorage.setItem('ceyuan_current_city', JSON.stringify({ name: city, province: prov, district: district, t: Date.now() }));
+                }
+            } catch (e) {}
+
+            // 邀请码奖励：邀请人获 100 策能值（写入 ceyuan_member_v2）
+            var inviteOk = false;
+            if (inviteCode) {
+                try {
+                    var mb = JSON.parse(localStorage.getItem('ceyuan_member_v2') || '{}');
+                    if (typeof mb.general !== 'number') mb.general = 0;
+                    mb.general += 100;
+                    if (!Array.isArray(mb.rewards)) mb.rewards = [];
+                    mb.rewards.unshift({ id:'invite_' + Date.now(), type:'invite', title:'邀请好友注册奖励', desc:'邀请码 ' + inviteCode + ' 邀请 ' + phone + ' 注册成功', credit:100, time:new Date().toISOString().slice(0,10), claimed:true });
+                    localStorage.setItem('ceyuan_member_v2', JSON.stringify(mb));
+                    inviteOk = true;
+                } catch (e) {}
+                rec.invitedBy = inviteCode;
+            }
+
+            if (regionFilled) {
+                // 已选地区：注册成功后直接进入首页
+                toast(inviteOk ? '注册成功！邀请码有效，邀请人已获 100 策能值，正在进入首页...' : '注册成功！正在进入首页...');
+                setTimeout(function(){ goPage('dashboard.html'); }, 900);
+            } else {
+                // 未选地区：进入登录成功页，引导选择所在地区
+                toast(inviteOk ? '注册成功！邀请码有效，邀请人已获 100 策能值' : '注册成功！请选择所在地区，获取更精准的政策服务');
+                setTimeout(function(){ goPage('login-success.html'); }, 900);
+            }
+        }
+    </script>
+</body>
+</html>

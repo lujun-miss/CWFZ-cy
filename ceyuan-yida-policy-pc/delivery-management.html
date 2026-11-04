@@ -14,6 +14,19 @@
         .timeline-dot { transition: all 0.2s; }
         .modal-mask { background: rgba(15,23,42,0.5); backdrop-filter: blur(2px); }
     </style>
+    <script>
+        // 登录拦截：未登录时强制跳转到登录页
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (!p) { window.location.href = 'login.html'; return; }
+                var d = JSON.parse(p);
+                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
 </head>
 <body class="text-slate-800">
 
@@ -136,7 +149,7 @@
             <div class="p-6 space-y-4">
                 <div>
                     <p class="text-xs font-bold text-slate-600 mb-1.5">记录内容 <span class="text-rose-500">*</span></p>
-                    <textarea id="noteText" rows="4" placeholder="如：已完成需求沟通，方案制定中，预计1月10日完成方案初稿。" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white"></textarea>
+                    <textarea id="noteText" rows="4" placeholder="如：已完成需求评估，方案制定中，预计1月10日完成方案初稿。" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white"></textarea>
                 </div>
             </div>
             <div class="px-6 py-4 border-t border-slate-100 flex justify-end space-x-2 bg-slate-50/60">
@@ -153,25 +166,53 @@
         let uploadMsIdx = null;
         let noteMsIdx = null;
 
-        // 5 个交付里程碑（与订单管理的 STEPS 一致，但这里关注"交付物"）
-        const MILESTONES = [
-            { name: '需求沟通', deliv: '需求确认书' },
+        // 交付里程碑跟随商品配置的服务流程（每个服务项目流程不同）
+        const FALLBACK_STEPS = [
+            { name: '签订合同', deliv: '服务合同（双方盖章）' },
+            { name: '需求评估', deliv: '需求确认书' },
             { name: '方案制定', deliv: '服务方案书' },
             { name: '材料准备', deliv: '申报材料/审计底稿' },
             { name: '审核提交', deliv: '受理回执/审查意见' },
             { name: '完成交付', deliv: '最终成果报告' }
         ];
+        let PRODUCT_CACHE = null;
+        function getMilestones(o) {
+            if (PRODUCT_CACHE === null) {
+                try { PRODUCT_CACHE = (typeof DataBridge !== 'undefined' && DataBridge.loadServiceProducts) ? (DataBridge.loadServiceProducts() || []) : []; }
+                catch (e) { PRODUCT_CACHE = []; }
+            }
+            const p = PRODUCT_CACHE.find(x => x.id === o.svcId);
+            if (p && Array.isArray(p.process) && p.process.length) return p.process.map(s => ({ name: s.t, deliv: s.d }));
+            return FALLBACK_STEPS;
+        }
 
-        // 每个里程碑的交付物种子（演示用）
-        const SEED_DELIVERABLES = {
-            0: [{ name: '需求确认书.pdf', type: 'pdf', date: '2026-09-01' }],
-            1: [{ name: '高企申报方案.pptx', type: 'ppt', date: '2026-09-02' }],
-            2: [], // 进行中，待上传
-            3: [],
-            4: []
-        };
+        // 已完成里程碑的种子交付物（演示用；真实场景由运营在时间轴上传）
+        function seedFileName(st) {
+            if (st.name.indexOf('合同') >= 0) return '服务合同_双方盖章.pdf';
+            return st.name + '_交付材料.pdf';
+        }
+        function seedDeliverablesFor(o) {
+            const steps = getMilestones(o);
+            const cur = curMsIdx(o);
+            const d0 = (o.createTime || '').slice(0, 10);
+            const out = [];
+            // 高企认定演示订单：更贴近真实的交付物
+            if (o.svcId === 'SVC001') {
+                const fixed = [
+                    { name: '服务合同_双方盖章.pdf', type: 'pdf', date: d0 },
+                    { name: '需求确认书.pdf', type: 'pdf', date: d0 },
+                    { name: '高企申报方案.pptx', type: 'ppt', date: d0 },
+                    { name: '高企申报材料包.zip', type: 'word', date: d0 },
+                    { name: '受理回执.pdf', type: 'pdf', date: d0 }
+                ];
+                for (let i = 0; i < cur; i++) if (fixed[i]) out.push({ msIdx: i, ...fixed[i] });
+                return out;
+            }
+            for (let i = 0; i < cur; i++) out.push({ msIdx: i, name: seedFileName(steps[i]), type: 'pdf', date: d0 });
+            return out;
+        }
         const SEED_NOTES = [
-            { who: '李专家（运营）', avatar: '李', color: 'blue', time: '2026-09-01 14:25', text: '已完成需求沟通，企业知识产权情况已确认，进入方案制定阶段。' },
+            { who: '李专家（运营）', avatar: '李', color: 'blue', time: '2026-09-01 14:25', text: '已完成需求评估，企业知识产权情况已确认，进入方案制定阶段。' },
             { who: '张经理（企业）', avatar: '张', color: 'orange', time: '2026-09-01 15:30', text: '收到，方案中知识产权布局部分请重点关注，我们专利数量较少。' }
         ];
 
@@ -188,7 +229,8 @@
         }
 
         function curMsIdx(o) {
-            return Math.min(MILESTONES.length - 1, Math.floor((o.progress || 0) / 20));
+            const n = getMilestones(o).length;
+            return Math.min(n - 1, Math.floor((o.progress || 0) * n / 100));
         }
 
         function render() {
@@ -207,7 +249,7 @@
             }
             tb.innerHTML = list.map(o => {
                 const msIdx = curMsIdx(o);
-                const ms = MILESTONES[msIdx];
+                const ms = getMilestones(o)[msIdx];
                 const delivs = (deliverables[o.id] || []).filter(d => d.msIdx === msIdx);
                 const delivBadge = delivs.length > 0
                     ? `<span class="text-xs text-emerald-600 font-bold"><i class="fa fa-paperclip mr-1"></i>${delivs.length} 份</span>`
@@ -228,7 +270,7 @@
                     </td>
                     <td class="px-6 py-4">
                         <span class="text-xs font-medium ${isDone ? 'text-emerald-600' : 'text-orange-600'}">${isDone ? '✓ ' : ''}${ms.name}</span>
-                        <span class="text-[10px] text-slate-400 block">第 ${msIdx + 1}/${MILESTONES.length} 步</span>
+                        <span class="text-[10px] text-slate-400 block">第 ${msIdx + 1}/${getMilestones(o).length} 步</span>
                     </td>
                     <td class="px-6 py-4">
                         <div class="w-28">
@@ -256,23 +298,16 @@
             const o = ORDERS.find(x => x.id === id);
             if (!o) return;
             detailId = id;
-            // 初始化该订单的交付物和记录
-            if (!deliverables[id]) {
-                deliverables[id] = [];
-                // 种子：已完成的里程碑自动带交付物
-                const msIdx = curMsIdx(o);
-                for (let i = 0; i <= msIdx; i++) {
-                    const seed = SEED_DELIVERABLES[i] || [];
-                    seed.forEach(d => deliverables[id].push({ msIdx: i, name: d.name, type: d.type, date: d.date }));
-                }
-            }
+            // 初始化该订单的交付物和记录（种子：已完成里程碑自动带交付物）
+            if (!deliverables[id]) deliverables[id] = seedDeliverablesFor(o);
             if (!notes[id]) notes[id] = [...SEED_NOTES];
 
+            const steps = getMilestones(o);
             const msIdx = curMsIdx(o);
             const isDone = o.status === 'done' || o.status === 'reviewed';
 
-            // 里程碑时间轴
-            const stepsHtml = MILESTONES.map((m, i) => {
+            // 里程碑时间轴（跟随商品配置的服务流程）
+            const stepsHtml = steps.map((m, i) => {
                 const done = isDone || i < msIdx;
                 const cur = !isDone && i === msIdx;
                 const delivs = (deliverables[id] || []).filter(d => d.msIdx === i);
@@ -306,7 +341,7 @@
                             <h4 class="font-bold text-sm ${done || cur ? '' : 'text-slate-500'}">${m.name}</h4>
                             ${badge}
                         </div>
-                        <p class="text-[10px] text-slate-400 mb-2">交付物：${m.deliv}</p>
+                        <p class="text-[10px] text-slate-400 mb-2">节点说明：${m.deliv}</p>
                         ${delivHtml}
                         ${actions}
                     </div>
@@ -379,7 +414,7 @@
         function advanceProgress() {
             const o = ORDERS.find(x => x.id === detailId);
             if (!o) return;
-            o.progress = Math.min(100, o.progress + 20);
+            o.progress = Math.min(100, o.progress + Math.round(100 / getMilestones(o).length));
             if (o.progress >= 100) o.status = 'done';
             persist();
             // 刷新详情弹窗
@@ -391,7 +426,8 @@
         // ===== 上传交付物 =====
         function openUpload(msIdx) {
             uploadMsIdx = msIdx;
-            document.getElementById('uploadMilestone').textContent = MILESTONES[msIdx].name + ' · ' + MILESTONES[msIdx].deliv;
+            const st = getMilestones(ORDERS.find(x => x.id === detailId))[msIdx];
+            document.getElementById('uploadMilestone').textContent = st.name + ' · ' + st.deliv;
             document.getElementById('uploadName').value = '';
             const m = document.getElementById('uploadModal');
             m.classList.remove('hidden'); m.classList.add('flex');
