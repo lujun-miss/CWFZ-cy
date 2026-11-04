@@ -340,7 +340,7 @@
                             <div class="card" v-if="archiveReports.length && !condOpen && !report">
                                 <div class="card-title"><i class="fa fa-folder-open-o"></i>报告存档<span class="extra">共 {{ archiveReports.length }} 份 · 点击客户展开</span></div>
                                 <!-- 按客户名称搜索存档 -->
-                                <van-field v-model="arcKeyword" placeholder="搜索客户名称" clearable style="background:#f8fafc;border-radius:10px;margin-bottom:6px" />
+                                <van-field v-model="arcKeyword" placeholder="搜索客户名称" clearable style="background:#f8fafc;border-radius:10px;margin-bottom:6px"></van-field>
                                 <!-- 按客户分组：每个客户一行，展开后显示该客户的历史报告 -->
                                 <div v-for="g in archiveGroups" :key="g.name">
                                     <div class="arc-row" @click="toggleArcGroup(g.name)">
