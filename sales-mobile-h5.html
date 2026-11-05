@@ -292,11 +292,10 @@
 
                                     <div class="muted" style="font-size:10.5px;margin:12px 0 8px 0"><i class="fa fa-bar-chart" style="color:#8b5cf6"></i> 科创指标（企业档案实测值）</div>
                                     <div style="background:#faf5ff;border-radius:10px;padding:12px">
-                                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" v-if="condAssess.gaoxinScore || condAssess.zhuanjingScore || condAssess.jurenScore || (condAssess.weak || []).length">
+                                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" v-if="condAssess.gaoxinScore || condAssess.zhuanjingScore || condAssess.jurenScore">
                                             <span class="tag t-green" v-if="condAssess.gaoxinScore"><i class="fa fa-check"></i>高企测评 {{ condAssess.gaoxinScore }} 分</span>
                                             <span class="tag t-green" v-if="condAssess.zhuanjingScore"><i class="fa fa-check"></i>专精特新测评 {{ condAssess.zhuanjingScore }} 分</span>
                                             <span class="tag t-green" v-if="condAssess.jurenScore"><i class="fa fa-check"></i>小巨人测评 {{ condAssess.jurenScore }} 分</span>
-                                            <span class="tag t-orange" v-for="w in (condAssess.weak || [])" :key="w">短板：{{ w }}</span>
                                         </div>
                                         <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11.5px;color:#475569">
                                             <div>研发费用占比：<b v-if="condAssess.rdRatio != null">{{ condAssess.rdRatio }}%</b><span v-else style="color:#b45309">—</span></div>
@@ -304,7 +303,6 @@
                                             <div>科技人员占比：<b v-if="condAssess.sciStaffRatio != null">{{ condAssess.sciStaffRatio }}%</b><span v-else style="color:#b45309">—</span></div>
                                             <div>高品收入占比：<b v-if="condAssess.hiTechRatio != null">{{ condAssess.hiTechRatio }}%</b><span v-else style="color:#b45309">—</span></div>
                                         </div>
-                                        <p v-if="!condAssess.__entHit" style="font-size:10px;color:#92400e;margin:8px 0 0 0">该企业无档案，指标需在下一步由销售补充</p>
                                     </div>
                                 </div>
 
