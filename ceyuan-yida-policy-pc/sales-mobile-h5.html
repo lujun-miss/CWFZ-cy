@@ -263,20 +263,19 @@
                                 </div>
                             </div>
 
-                            <!-- ======== Step 1-3：政策匹配条件采集（三步式） ======== -->
+                            <!-- ======== 条件采集（两步式：企业档案 → 销售补充） ======== -->
                             <div class="card" v-if="condOpen">
                                 <van-steps :active="condStep" style="margin-bottom:14px">
-                                    <van-step>自动补齐</van-step>
-                                    <van-step>测评回填</van-step>
+                                    <van-step>企业档案</van-step>
                                     <van-step>销售补充</van-step>
                                 </van-steps>
 
-                                <!-- Step 1：自动补齐（企业档案优先，缺失字段提示销售补充） -->
+                                <!-- Step 1：企业档案（全部字段自动读取，含四项核心指标） -->
                                 <div v-show="condStep === 0">
                                     <div class="muted" style="font-size:10.5px;margin-bottom:8px">
                                         <i class="fa fa-check-circle" style="color:#10b981"></i>
-                                        <template v-if="condAssess.__entHit">以下条件已从<b>企业档案</b>自动读取（数据来自科创测评 / 精准政策雷达），灰底只读</template>
-                                        <template v-else>客户尚未建立企业档案，以下为「客户管理」录入的基础信息；缺失项请在 Step3 补充</template>
+                                        <template v-if="condAssess.__entHit">以下信息均从<b>企业档案</b>读取（数据来源：科创测评 / 精准政策雷达），只读</template>
+                                        <template v-else>该企业尚无档案，以下为「客户管理」录入的基础信息；缺失项请在下一步补充</template>
                                     </div>
                                     <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:11.5px;color:#475569;background:#f0fdf4;border-radius:10px;padding:12px">
                                         <div>所属行业：<b>{{ condAuto.industry || '—' }}</b></div>
@@ -284,68 +283,33 @@
                                         <div>已有资质：<b>{{ (condAuto.quals || []).length ? condAuto.quals.join('、') : '—' }}</b></div>
                                         <div>年营收：<b>{{ condAuto.revenue ? (condAuto.revenue / 100).toFixed(0) + ' 百万元' : '—' }}</b></div>
                                         <div>员工人数：<b>{{ condAuto.employees ? condAuto.employees + ' 人' : '—' }}</b></div>
-                                        <div>成立年限：<b v-if="condAuto.foundedYears != null">{{ condAuto.foundedYears }} 年</b><span v-else style="color:#dc2626">待 Step3 补充</span></div>
-                                        <div>社保人数：<b v-if="condAuto.socialStaff != null">{{ condAuto.socialStaff }} 人</b><span v-else style="color:#dc2626">待 Step3 补充</span></div>
+                                        <div>成立年限：<b v-if="condAuto.foundedYears != null">{{ condAuto.foundedYears }} 年</b><span v-else style="color:#b45309">档案未填</span></div>
+                                        <div>社保人数：<b v-if="condAuto.socialStaff != null">{{ condAuto.socialStaff }} 人</b><span v-else style="color:#b45309">档案未填</span></div>
                                         <div>客户来源：<b>{{ condAuto.source || '—' }}</b></div>
                                     </div>
-                                    <div v-if="condAuto.coreProduct" style="font-size:10.5px;color:#166534;background:#dcfce7;border-radius:6px;padding:6px 10px;margin-top:6px">核心产品/赛道：<b>{{ condAuto.coreProduct }}</b></div>
-                                    <div v-else style="font-size:10.5px;color:#92400e;background:#fef3c7;border-radius:6px;padding:6px 10px;margin-top:6px">核心产品/赛道：<b>档案未填写，请在 Step3 补充</b></div>
-                                </div>
+                                    <div style="font-size:10.5px;color:#166534;background:#dcfce7;border-radius:6px;padding:6px 10px;margin-top:6px" v-if="condAuto.coreProduct">核心产品/赛道：<b>{{ condAuto.coreProduct }}</b></div>
+                                    <div style="font-size:10.5px;color:#b45309;background:#fef3c7;border-radius:6px;padding:6px 10px;margin-top:6px" v-else>核心产品/赛道：<b>档案未填</b></div>
 
-                                <!-- Step 2：测评回填（企业档案真实得分优先 + AI 推算兜底） -->
-                                <div v-show="condStep === 1">
-                                    <div class="muted" style="font-size:10.5px;margin-bottom:8px">
-                                        <i class="fa fa-flask" style="color:#8b5cf6"></i>
-                                        <template v-if="condAssess.gaoxinScore || condAssess.zhuanjingScore || condAssess.jurenScore">企业档案已读取{{ condAssess.gaoxinScore ? '高企' : '' }}{{ condAssess.zhuanjingScore ? '专精特新' : '' }}{{ condAssess.jurenScore ? '小巨人' : '' }}测评的真实得分</template>
-                                        <template v-else-if="condAssess.__entHit && condAssess.score != null">四项指标均由企业档案实测值推算（研发费用占比、有效知识产权、研发人员占比、高品收入占比）</template>
-                                        <template v-else-if="condAssess.score != null">AI 基于当前条件推算的科创得分（非真实引擎结果，仅供参考）</template>
-                                        <template v-else><b style="color:#dc2626">企业档案与客户档案均无测评指标</b>——请在 Step3 补充关键指标后用 AI 推算，或让客户先跑一次科创测评</template>
-                                    </div>
-                                    <div v-if="condMeasuring" style="background:#faf5ff;border-radius:10px;padding:14px;margin-bottom:8px;text-align:center">
-                                        <i class="fa fa-spinner fa-spin" style="color:#8b5cf6;font-size:18px"></i>
-                                        <p class="muted" style="margin-top:6px;font-size:11px">AI 正在基于当前条件推算科创得分…</p>
-                                    </div>
-                                    <!-- 有真实测评得分（企业档案存的）：分类型展示 -->
-                                    <div v-else-if="condAssess.gaoxinScore || condAssess.zhuanjingScore || condAssess.jurenScore" style="background:#faf5ff;border-radius:10px;padding:12px">
-                                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+                                    <div class="muted" style="font-size:10.5px;margin:12px 0 8px 0"><i class="fa fa-bar-chart" style="color:#8b5cf6"></i> 科创指标（企业档案实测值）</div>
+                                    <div style="background:#faf5ff;border-radius:10px;padding:12px">
+                                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" v-if="condAssess.gaoxinScore || condAssess.zhuanjingScore || condAssess.jurenScore || (condAssess.weak || []).length">
                                             <span class="tag t-green" v-if="condAssess.gaoxinScore"><i class="fa fa-check"></i>高企测评 {{ condAssess.gaoxinScore }} 分</span>
                                             <span class="tag t-green" v-if="condAssess.zhuanjingScore"><i class="fa fa-check"></i>专精特新测评 {{ condAssess.zhuanjingScore }} 分</span>
                                             <span class="tag t-green" v-if="condAssess.jurenScore"><i class="fa fa-check"></i>小巨人测评 {{ condAssess.jurenScore }} 分</span>
                                             <span class="tag t-orange" v-for="w in (condAssess.weak || [])" :key="w">短板：{{ w }}</span>
                                         </div>
                                         <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11.5px;color:#475569">
-                                            <div>研发费用占比：<b>{{ condAssess.rdRatio != null ? condAssess.rdRatio + '%' : '—' }}</b></div>
-                                            <div>核心知识产权：<b>{{ condAssess.ipCount != null ? condAssess.ipCount + ' 项' : '—' }}</b></div>
-                                            <div>科技人员占比：<b>{{ condAssess.sciStaffRatio != null ? condAssess.sciStaffRatio + '%' : '—' }}</b></div>
-                                            <div>高品收入占比：<b>{{ condAssess.hiTechRatio != null ? condAssess.hiTechRatio + '%' : '—' }}</b></div>
+                                            <div>研发费用占比：<b v-if="condAssess.rdRatio != null">{{ condAssess.rdRatio }}%</b><span v-else style="color:#b45309">—</span></div>
+                                            <div>核心知识产权：<b v-if="condAssess.ipCount != null">{{ condAssess.ipCount }} 项</b><span v-else style="color:#b45309">—</span></div>
+                                            <div>科技人员占比：<b v-if="condAssess.sciStaffRatio != null">{{ condAssess.sciStaffRatio }}%</b><span v-else style="color:#b45309">—</span></div>
+                                            <div>高品收入占比：<b v-if="condAssess.hiTechRatio != null">{{ condAssess.hiTechRatio }}%</b><span v-else style="color:#b45309">—</span></div>
                                         </div>
+                                        <p v-if="!condAssess.__entHit" style="font-size:10px;color:#92400e;margin:8px 0 0 0">该企业无档案，指标需在下一步由销售补充</p>
                                     </div>
-                                    <!-- 有条件但无真实得分：AI 推算（标注"推算"） -->
-                                    <div v-else-if="condAssess.score != null" style="background:#faf5ff;border-radius:10px;padding:12px">
-                                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-                                            <span class="tag t-purple">科创得分 {{ condAssess.score }} · {{ condAssess.grade || '—' }} 级 <span style="opacity:.6;font-size:9px">（AI 推算）</span></span>
-                                            <span class="tag t-orange" v-for="w in (condAssess.weak || [])" :key="w">短板：{{ w }}</span>
-                                        </div>
-                                        <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11.5px;color:#475569">
-                                            <div>研发费用占比：<b>{{ condAssess.rdRatio != null ? condAssess.rdRatio + '%' : '—' }}</b></div>
-                                            <div>核心知识产权：<b>{{ condAssess.ipCount != null ? condAssess.ipCount + ' 项' : '—' }}</b></div>
-                                            <div>科技人员占比：<b>{{ condAssess.sciStaffRatio != null ? condAssess.sciStaffRatio + '%' : '—' }}</b></div>
-                                            <div>高品收入占比：<b>{{ condAssess.hiTechRatio != null ? condAssess.hiTechRatio + '%' : '—' }}</b></div>
-                                        </div>
-                                    </div>
-                                    <!-- 无任何数据：空态引导 -->
-                                    <div v-else style="background:#fef9c3;border-radius:10px;padding:16px;text-align:center">
-                                        <i class="fa fa-flask" style="color:#ca8a04;font-size:28px"></i>
-                                        <p style="font-size:11.5px;color:#854d0e;margin:8px 0 4px 0">暂无可展示的测评数据</p>
-                                        <p style="font-size:10.5px;color:#a16207;margin:0">① 让客户去科创测评模块先跑一次高企/专精特新测评（结果会自动存到企业档案）<br>② 在 Step3 手动填入关键指标后点下方按钮用 AI 推算<br>③ 跳过此步直接生成报告（匹配准确度会受影响）</p>
-                                    </div>
-                                    <van-button size="mini" round plain type="primary" icon="replay" style="margin-top:10px" @click="rerunAssessment()">
-                                        {{ condMeasuring ? 'AI 推算中…' : (condAssess.score != null || condAssess.gaoxinScore ? 'AI 重新推算（基于当前条件）' : '手动填完条件后用 AI 推算') }}
-                                    </van-button>
                                 </div>
 
-                                <!-- Step 3：销售补充（关键条件） -->
-                                <div v-show="condStep === 2">
+                                <!-- Step 2：销售补充（关键条件） -->
+                                <div v-show="condStep === 1">
                                     <div class="muted" style="font-size:10.5px;margin-bottom:8px"><i class="fa fa-pencil" style="color:#f59e0b"></i> 销售可在此补充/覆盖关键条件，补充后匹配精度更高</div>
                                     <van-cell-group inset>
                                         <van-field v-model="condAssess.loss3yStr" label="近三年是否有亏损" readonly is-link
@@ -383,7 +347,7 @@
                                 <!-- 步骤底部操作 -->
                                 <div style="display:flex;gap:8px;margin-top:14px">
                                     <van-button size="small" round block plain :disabled="condStep===0" @click="condStep--">上一步</van-button>
-                                    <van-button v-if="condStep < 2" size="small" round block type="primary" @click="goNextStep">下一步</van-button>
+                                    <van-button v-if="condStep < 1" size="small" round block type="primary" @click="goNextStep">下一步</van-button>
                                     <van-button v-else size="small" round block type="primary" @click="doMatch()" :loading="reportLoading" loading-text="匹配中…">开始匹配 · 生成报告</van-button>
                                 </div>
                             </div>
@@ -440,7 +404,7 @@
                                     <div class="card-title"><i class="fa fa-sliders"></i>本次匹配条件<span class="extra">共 {{ Object.keys(report.matchConditions).length }} 项</span></div>
                                     <div style="display:flex;flex-wrap:wrap;gap:6px">
                                         <span v-for="(v, k) in report.matchConditions" :key="k" class="tag"
-                                              :class="String(k).indexOf('自动补齐') === 0 ? 't-green' : (String(k).indexOf('测评回填') === 0 ? 't-purple' : 't-orange')">
+                                              :class="String(k).indexOf('企业档案') === 0 ? 't-green' : 't-orange'">
                                             {{ k }}：{{ v }}
                                         </span>
                                     </div>
@@ -463,7 +427,8 @@
                                     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
                                         <span v-for="q in report.company.quals" :key="q" class="tag t-green"><i class="fa fa-check"></i>{{ q }}</span>
                                         <span v-if="report.company.growthStage" class="tag t-blue">成长阶段 · {{ report.company.growthStage }}</span>
-                                        <span class="tag t-orange">科创得分 {{ report.diagnosis.avg }} · {{ report.diagnosis.grade }} 级</span>
+                                        <span v-if="report.diagnosis.avg" class="tag t-orange">科创测评 {{ report.diagnosis.avg }} 分 · {{ report.diagnosis.grade }} 级</span>
+                                        <span v-else class="tag t-gray">暂未做科创测评</span>
                                     </div>
                                     <div style="font-size:11px;color:#64748b;line-height:1.7;margin-top:10px">{{ report.profile }}</div>
                                 </div>
@@ -493,7 +458,7 @@
                                 <!-- 补充数据表单（可重新生成） -->
                                 <div class="card">
                                     <div class="card-title"><i class="fa fa-sliders"></i>补充条件后重新生成</div>
-                                    <van-button size="small" round block plain @click="condOpen = true; condStep = 2">打开条件采集面板</van-button>
+                                    <van-button size="small" round block plain @click="condOpen = true; condStep = 1">打开条件采集面板</van-button>
                                 </div>
 
                                 <!-- 联动占位 -->
@@ -733,20 +698,22 @@
                                     </div>
                                     <p style="font-size:11px;color:#64748b;line-height:1.6;margin:6px 0 0">{{ r.summary }}</p>
 
-                                    <!-- 科创得分与短板 -->
+                                    <!-- 科创测评得分与短板 -->
                                     <div v-if="r.diagnosis" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-                                        <span class="tag t-purple">科创得分 {{ r.diagnosis.avg }} · {{ r.diagnosis.grade }} 级</span>
+                                        <span v-if="r.diagnosis.avg" class="tag t-purple">科创测评 {{ r.diagnosis.avg }} 分 · {{ r.diagnosis.grade }} 级</span>
+                                        <span v-else class="tag t-gray">暂未做科创测评</span>
                                         <span class="tag t-orange" v-for="w in (r.diagnosis.weak || [])" :key="w">短板：{{ w }}</span>
                                     </div>
 
-                                    <!-- 本次匹配条件（自动补齐 / 测评回填 / 销售补充 三类来源） -->
+                                    <!-- 本次匹配条件（企业档案 / 销售补充 两类来源） -->
+
                                     <div v-if="r.matchConditions" style="margin-top:8px">
                                         <p style="font-size:10.5px;color:#94a3b8;margin:0 0 4px">
                                             <i class="fa fa-sliders"></i>本次匹配条件（{{ Object.keys(r.matchConditions).length }} 项）
                                         </p>
                                         <div style="display:flex;flex-wrap:wrap;gap:6px">
                                             <span v-for="(v, k) in r.matchConditions" :key="k" class="tag"
-                                                  :class="String(k).indexOf('自动补齐') === 0 ? 't-green' : (String(k).indexOf('测评回填') === 0 ? 't-purple' : 't-orange')">{{ k }}：{{ v }}</span>
+                                                  :class="String(k).indexOf('企业档案') === 0 ? 't-green' : 't-orange'">{{ k }}：{{ v }}</span>
                                         </div>
                                     </div>
 
@@ -1563,14 +1530,13 @@
                 const quickCompanies = rawCustomers.slice(0, 3).map(c => c.type === 'personal' ? (c.realName || '') : c.name).filter(Boolean);
 
                 // ============================================================
-                // 政策匹配条件采集（多步骤）
-                // condStep: 0=自动补齐, 1=测评回填, 2=销售补充
-                // condAuto: Step1 自动补齐的客户档案字段（只读）
-                // condAssess: Step2+3 的测评回填 + 销售补充条件（与 data-bridge assessmentConditions 对齐）
+                // 政策匹配条件采集（两步）
+                // condStep: 0=企业档案（自动读取）, 1=销售补充
+                // condAuto: 企业档案基础字段（只读展示）
+                // condAssess: 科创指标 + 销售补充条件（与 data-bridge assessmentConditions 对齐）
                 // ============================================================
                 const condOpen = ref(false);
                 const condStep = ref(0);
-                const condMeasuring = ref(false);
                 const condAuto = ref({ industry: '', region: '', quals: [], revenue: 0, employees: 0, foundedYears: null, coreProduct: '', socialStaff: null, source: '' });
                 const condAssess = reactive({
                     score: null, grade: '', weak: [],
@@ -1730,8 +1696,9 @@
                     condAssess.industryUniStr = condAssess.industryUni === null ? '' : (condAssess.industryUni ? '是' : '否');
                     condAssess.windowPrefStr = condAssess.windowPref || '';
                     condAssess.growthStageStr = condAssess.growthStage || '';
-                    // 科创测评得分/短板：基于企业档案实测值（rdRatio+ipCount+sciStaffRatio+hiTechRatio）计算
-                    condAssess.score = calcScore(ac);
+                    // 科创得分：只取企业档案里的真实测评结果，未测评则留空
+                    condAssess.score = condAssess.gaoxinScore != null ? condAssess.gaoxinScore
+                        : (condAssess.zhuanjingScore != null ? condAssess.zhuanjingScore : (condAssess.jurenScore != null ? condAssess.jurenScore : null));
                     condAssess.grade = condAssess.score == null ? '' : (condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D')));
                     condAssess.weak = calcWeak(ac);
 
@@ -1740,21 +1707,7 @@
                     report.value = null;
                 }
 
-                /** 根据测评条件算科创得分（0-100）；四个核心指标全空时返回 null 表示"未采集" */
-                function calcScore(ac) {
-                    if (!ac) return null;
-                    const hasAny = ac.rdRatio != null || ac.ipCount != null || ac.sciStaffRatio != null || ac.hiTechRatio != null;
-                    if (!hasAny) return null; // 四个核心指标全空 → 不算分
-                    let s = 50;
-                    if (ac.rdRatio >= 5) s += 20; else if (ac.rdRatio >= 3) s += 10; else if (ac.rdRatio != null) s -= 5;
-                    if (ac.ipCount >= 5) s += 15; else if (ac.ipCount >= 3) s += 8; else if (ac.ipCount != null) s -= 5;
-                    if (ac.sciStaffRatio >= 10) s += 10; else if (ac.sciStaffRatio >= 7) s += 5; else if (ac.sciStaffRatio != null) s -= 3;
-                    if (ac.hiTechRatio >= 60) s += 15; else if (ac.hiTechRatio >= 40) s += 5; else if (ac.hiTechRatio != null) s -= 5;
-                    if (ac.loss3y === true) s -= 10;
-                    return Math.max(30, Math.min(95, s));
-                }
-
-                /** 根据条件算短板列表；四个指标全空时返回空数组 */
+                /** 根据企业档案指标算短板列表；四个指标全空时返回空数组 */
                 function calcWeak(ac) {
                     if (!ac) return [];
                     const hasAny = ac.rdRatio != null || ac.ipCount != null || ac.sciStaffRatio != null || ac.hiTechRatio != null;
@@ -1768,30 +1721,8 @@
                     return w;
                 }
 
-                /** 基于当前面板值 AI 推算科创得分；全空则保持 null 空态 */
-                function rerunAssessment() {
-                    condMeasuring.value = true;
-                    setTimeout(function () {
-                        const ac = { rdRatio: condAssess.rdRatio, ipCount: condAssess.ipCount, sciStaffRatio: condAssess.sciStaffRatio, hiTechRatio: condAssess.hiTechRatio, loss3y: condAssess.loss3y };
-                        let base = calcScore(ac);
-                        if (base == null) {
-                            condAssess.score = null;
-                            condAssess.grade = '';
-                            condAssess.weak = [];
-                            tip('未采集到核心指标，无法 AI 推算，请先补数据');
-                        } else {
-                            base += (Math.random() > 0.5 ? 3 : -3);
-                            condAssess.score = Math.max(30, Math.min(95, Math.round(base)));
-                            condAssess.grade = condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D'));
-                            condAssess.weak = calcWeak(ac);
-                        }
-                        condAssess.__measured = true;
-                        condMeasuring.value = false;
-                    }, 1500);
-                }
-
                 function goNextStep() {
-                    if (condStep.value < 2) condStep.value++;
+                    if (condStep.value < 1) condStep.value++;
                 }
 
                 // --- 选择器回调 ---
@@ -1830,14 +1761,17 @@
                         __measured: condAssess.__measured
                     };
                     // 生成前按最新条件重算得分（企业档案真实高企得分优先，否则按四项指标推算）
+                    // 科创得分只取企业档案里的真实测评结果（高企优先），未测评则为空，不做推算
                     if (condAssess.gaoxinScore != null) {
                         condAssess.score = condAssess.gaoxinScore;
-                        condAssess.grade = condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D'));
+                    } else if (condAssess.zhuanjingScore != null) {
+                        condAssess.score = condAssess.zhuanjingScore;
+                    } else if (condAssess.jurenScore != null) {
+                        condAssess.score = condAssess.jurenScore;
                     } else {
-                        const s = calcScore(ac);
-                        condAssess.score = s;
-                        condAssess.grade = s == null ? '' : (s >= 80 ? 'A' : (s >= 65 ? 'B' : (s >= 50 ? 'C' : 'D')));
+                        condAssess.score = null;
                     }
+                    condAssess.grade = condAssess.score == null ? '' : (condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D')));
                     condAssess.weak = calcWeak(ac);
 
                     setTimeout(function () {
@@ -1904,25 +1838,31 @@
 
                         // 组装 matchConditions 展示用
                         const condDisplay = {};
-                        condAuto.value.quals.forEach(function (q) { condDisplay['自动补齐 · 资质'] = q; });
-                        condDisplay['自动补齐 · 行业'] = condAuto.value.industry || '—';
-                        condDisplay['自动补齐 · 成立年限'] = ac.years != null ? ac.years + ' 年' : '未填';
-                        if (ac.coreProduct) condDisplay['自动补齐 · 核心产品'] = ac.coreProduct;
-                        if (ac.socialStaff != null) condDisplay['自动补齐 · 社保人数'] = ac.socialStaff + ' 人';
-                        condDisplay['测评回填 · 科创得分'] = (condAssess.score || '—') + ' · ' + (condAssess.grade || '—');
-                        condDisplay['测评回填 · 研发占比'] = (ac.rdRatio != null ? ac.rdRatio + '%' : '未填');
-                        condDisplay['测评回填 · 知识产权'] = (ac.ipCount != null ? ac.ipCount + ' 项' : '未填');
+                        condAuto.value.quals.forEach(function (q) { condDisplay['企业档案 · 资质'] = q; });
+                        condDisplay['企业档案 · 行业'] = condAuto.value.industry || '—';
+                        condDisplay['企业档案 · 成立年限'] = ac.years != null ? ac.years + ' 年' : '未填';
+                        if (ac.coreProduct) condDisplay['企业档案 · 核心产品'] = ac.coreProduct;
+                        if (ac.socialStaff != null) condDisplay['企业档案 · 社保人数'] = ac.socialStaff + ' 人';
+                        if (condAssess.gaoxinScore != null) condDisplay['企业档案 · 高企测评'] = condAssess.gaoxinScore + ' 分';
+                        if (condAssess.zhuanjingScore != null) condDisplay['企业档案 · 专精特新测评'] = condAssess.zhuanjingScore + ' 分';
+                        if (condAssess.jurenScore != null) condDisplay['企业档案 · 小巨人测评'] = condAssess.jurenScore + ' 分';
+                        condDisplay['企业档案 · 研发占比'] = (ac.rdRatio != null ? ac.rdRatio + '%' : '未填');
+                        condDisplay['企业档案 · 知识产权'] = (ac.ipCount != null ? ac.ipCount + ' 项' : '未填');
+                        if (ac.sciStaffRatio != null) condDisplay['企业档案 · 科技人员占比'] = ac.sciStaffRatio + '%';
+                        if (ac.hiTechRatio != null) condDisplay['企业档案 · 高品收入占比'] = ac.hiTechRatio + '%';
                         if (ac.loss3y != null) condDisplay['销售补充 · 近三年亏损'] = ac.loss3y ? '是' : '否';
                         if (ac.rndProject != null) condDisplay['销售补充 · 在研项目'] = ac.rndProject ? '有' : '无';
+                        if (ac.industryUni != null) condDisplay['销售补充 · 产学研'] = ac.industryUni ? '有' : '无';
                         if (condAssess.fundPref) condDisplay['销售补充 · 扶持偏好'] = condAssess.fundPref;
                         if (condAssess.windowPref) condDisplay['销售补充 · 申报窗口'] = condAssess.windowPref;
                         if (ac.growthStage) condDisplay['销售补充 · 成长阶段'] = ac.growthStage;
                         if (ac.subsidyHist) condDisplay['销售补充 · 已获补贴/资质'] = ac.subsidyHist;
 
                         // 组装报告
+                        const scoreText = condAssess.score != null ? ('科创测评得分 ' + condAssess.score + ' · ' + condAssess.grade + ' 级，') : '暂未做科创测评，';
                         const summary = (c && c._displayName) + '（' + (condAuto.value.industry || '—') + '，' + (ac.years != null ? ac.years + '年' : '成立年限未知') + '）经多维度政策匹配引擎分析：' +
                             policies.filter(function (p) { return p.level !== '不可匹配'; }).length + ' 项可申报政策，' +
-                            '科创得分 ' + (condAssess.score || '—') + ' · ' + (condAssess.grade || '—') + ' 级，' +
+                            scoreText +
                             (condAssess.weak && condAssess.weak.length ? '短板：' + condAssess.weak.join('、') + '。' : '');
 
                         const advice = policies.filter(function (p) { return p.level !== '不可匹配'; }).slice(0, 3).map(function (p, i) {
@@ -2437,8 +2377,8 @@
                     showFileInput, downloadTemplate, parsedImported, confirmImportCustomers,
                     reportKeyword, reportLoading, report, quickCompanies, generateReport, exportPDF, createShare,
                     // 政策匹配条件采集
-                    condOpen, condStep, condMeasuring, condAuto, condAssess,
-                    openConditions, goNextStep, rerunAssessment, doMatch, calcScore, calcWeak,
+                    condOpen, condStep, condAuto, condAssess,
+                    openConditions, goNextStep, doMatch, calcWeak,
                     showLossPicker, showRndPicker, showUniPicker, showFundPicker, showWindowPicker, showGrowthPicker,
                     BOOL_ACTIONS, FUND_ACTIONS, WINDOW_ACTIONS, GROWTH_ACTIONS,
                     onLossSelect, onRndSelect, onUniSelect, onFundSelect, onWindowSelect, onGrowthSelect,
