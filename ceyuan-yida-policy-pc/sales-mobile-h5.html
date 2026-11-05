@@ -271,20 +271,25 @@
                                     <van-step>销售补充</van-step>
                                 </van-steps>
 
-                                <!-- Step 1：自动补齐（客户档案） -->
+                                <!-- Step 1：自动补齐（企业档案优先，缺失字段提示销售补充） -->
                                 <div v-show="condStep === 0">
-                                    <div class="muted" style="font-size:10.5px;margin-bottom:8px"><i class="fa fa-check-circle" style="color:#10b981"></i> 以下条件已从{{ condAssess.__entHit ? '企业档案（科创测评/政策雷达沉淀）' : '客户档案' }}自动读取，灰底只读</div>
+                                    <div class="muted" style="font-size:10.5px;margin-bottom:8px">
+                                        <i class="fa fa-check-circle" style="color:#10b981"></i>
+                                        <template v-if="condAssess.__entHit">以下条件已从<b>企业档案</b>自动读取（数据来自科创测评 / 精准政策雷达），灰底只读</template>
+                                        <template v-else>客户尚未建立企业档案，以下为「客户管理」录入的基础信息；缺失项请在 Step3 补充</template>
+                                    </div>
                                     <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:11.5px;color:#475569;background:#f0fdf4;border-radius:10px;padding:12px">
                                         <div>所属行业：<b>{{ condAuto.industry || '—' }}</b></div>
                                         <div>所在地区：<b>{{ condAuto.region || '—' }}</b></div>
                                         <div>已有资质：<b>{{ (condAuto.quals || []).length ? condAuto.quals.join('、') : '—' }}</b></div>
                                         <div>年营收：<b>{{ condAuto.revenue ? (condAuto.revenue / 100).toFixed(0) + ' 百万元' : '—' }}</b></div>
                                         <div>员工人数：<b>{{ condAuto.employees ? condAuto.employees + ' 人' : '—' }}</b></div>
-                                        <div>成立年限：<b>{{ condAuto.foundedYears != null ? condAuto.foundedYears + ' 年' : '—' }}</b></div>
-                                        <div>社保人数：<b>{{ condAuto.socialStaff != null ? condAuto.socialStaff + ' 人' : '—' }}</b></div>
+                                        <div>成立年限：<b v-if="condAuto.foundedYears != null">{{ condAuto.foundedYears }} 年</b><span v-else style="color:#dc2626">待 Step3 补充</span></div>
+                                        <div>社保人数：<b v-if="condAuto.socialStaff != null">{{ condAuto.socialStaff }} 人</b><span v-else style="color:#dc2626">待 Step3 补充</span></div>
                                         <div>客户来源：<b>{{ condAuto.source || '—' }}</b></div>
                                     </div>
                                     <div v-if="condAuto.coreProduct" style="font-size:10.5px;color:#166534;background:#dcfce7;border-radius:6px;padding:6px 10px;margin-top:6px">核心产品/赛道：<b>{{ condAuto.coreProduct }}</b></div>
+                                    <div v-else style="font-size:10.5px;color:#92400e;background:#fef3c7;border-radius:6px;padding:6px 10px;margin-top:6px">核心产品/赛道：<b>档案未填写，请在 Step3 补充</b></div>
                                 </div>
 
                                 <!-- Step 2：测评回填（企业档案真实得分优先 + AI 推算兜底） -->
@@ -292,8 +297,9 @@
                                     <div class="muted" style="font-size:10.5px;margin-bottom:8px">
                                         <i class="fa fa-flask" style="color:#8b5cf6"></i>
                                         <template v-if="condAssess.gaoxinScore || condAssess.zhuanjingScore || condAssess.jurenScore">企业档案已读取{{ condAssess.gaoxinScore ? '高企' : '' }}{{ condAssess.zhuanjingScore ? '专精特新' : '' }}{{ condAssess.jurenScore ? '小巨人' : '' }}测评的真实得分</template>
-                                        <template v-else-if="condAssess.score != null">AI 基于当前条件推算的科创测评得分（非真实引擎结果，仅供参考）</template>
-                                        <template v-else><b style="color:#dc2626">该客户未采集任何测评数据</b>——建议让客户先跑一次科创测评（高企/专精特新），或在 Step3 手动补充后用 AI 推算</template>
+                                        <template v-else-if="condAssess.__entHit && condAssess.score != null">四项指标均由企业档案实测值推算（研发费用占比、有效知识产权、研发人员占比、高品收入占比）</template>
+                                        <template v-else-if="condAssess.score != null">AI 基于当前条件推算的科创得分（非真实引擎结果，仅供参考）</template>
+                                        <template v-else><b style="color:#dc2626">企业档案与客户档案均无测评指标</b>——请在 Step3 补充关键指标后用 AI 推算，或让客户先跑一次科创测评</template>
                                     </div>
                                     <div v-if="condMeasuring" style="background:#faf5ff;border-radius:10px;padding:14px;margin-bottom:8px;text-align:center">
                                         <i class="fa fa-spinner fa-spin" style="color:#8b5cf6;font-size:18px"></i>
@@ -362,6 +368,15 @@
                                                    :placeholder="condAuto.socialStaff != null ? ('自动读取 ' + condAuto.socialStaff + ' 人，可覆盖') : '如：120'" />
                                         <van-field v-model="condAssess.subsidyHist" label="已获补贴/资质（避免重复）"
                                                    placeholder="如：已拿过高企、专精特新，2025年获研发补贴 50万" />
+                                        <!-- 企业档案缺失时的四类核心指标补录 -->
+                                        <van-field v-model.number="condAssess.rdRatio" type="number" label="研发费用占比（%）"
+                                                   :placeholder="condAssess.__entHit ? '企业档案已带出，可覆盖' : '档案无数据，请手动填写'" />
+                                        <van-field v-model.number="condAssess.ipCount" type="number" label="有效知识产权（项）"
+                                                   :placeholder="condAssess.__entHit ? '企业档案已带出，可覆盖' : '档案无数据，请手动填写'" />
+                                        <van-field v-model.number="condAssess.sciStaffRatio" type="number" label="科技人员占比（%）"
+                                                   :placeholder="condAssess.__entHit ? '企业档案已带出，可覆盖' : '档案无数据，请手动填写'" />
+                                        <van-field v-model.number="condAssess.hiTechRatio" type="number" label="高品收入占比（%）"
+                                                   :placeholder="condAssess.__entHit ? '企业档案已带出，可覆盖' : '档案无数据，请手动填写'" />
                                     </van-cell-group>
                                 </div>
 
@@ -1600,42 +1615,80 @@
                     const entHit = !!(ent && ent.id);
                     const entItems = [];
                     if (entHit) (ent.fields || []).forEach(function (g) { (g.items || []).forEach(function (it) { entItems.push(it); }); });
-                    const fv = function (label) { const it = entItems.filter(function (x) { return (x.label || '').indexOf(label) >= 0; })[0]; return it ? String(it.value || '').trim() : ''; };
+                    // 企业档案取值：标签包含匹配（优先精确短标签），取不到返回 ''
+                    const fvAll = function (label) { return entItems.filter(function (x) { return (x.label || '').indexOf(label) >= 0; }); };
+                    const fv = function (label) { const it = fvAll(label)[0]; return it ? String(it.value || '').trim() : ''; };
                     const fvNum = function (label) { const n = parseFloat(fv(label).replace(/[^\d.]/g, '')); return isNaN(n) ? null : n; };
-                    // 成立年限：从"成立日期"或类似字段推算，找不到则回退空
-                    const fvFounded = fv('成立') || fv('注册时间') || fv('成立日期');
+                    // 从「财务指标」合并串里解析某科目的最后一年数值，如「高新技术产品/服务收入：2023年3400、2024年4600、2025年6100」
+                    const finText = fv('财务指标') || fv('财务数据（单位');
+                    const pickYearly = function (kw) {
+                        if (!finText) return null;
+                        const seg = finText.split(/[；;]/).filter(function (s) { return s.indexOf(kw) >= 0; })[0];
+                        if (!seg) return null;
+                        const re = /\d{4}\s*年\s*([\d.]+)/g;
+                        let m, last = null;
+                        while ((m = re.exec(seg)) !== null) last = m[1];
+                        if (last == null) return null;
+                        const n = parseFloat(last);
+                        return isNaN(n) ? null : n;
+                    };
+                    // 成立年限：从「企业的成立时间」推算
+                    const fvFounded = fv('成立时间') || fv('成立日期') || fv('注册时间') || fv('成立');
                     let foundedYears = null;
                     if (fvFounded) {
-                        const d = new Date(fvFounded.replace(/年|月|日/g, '-'));
+                        const d = new Date(fvFounded.replace(/年|月/g, '-').replace(/日/g, ''));
                         if (!isNaN(d.getTime())) {
                             const now = new Date();
-                            foundedYears = Math.max(0, Math.round((now - d) / (365.25 * 86400000)));
+                            foundedYears = Math.max(0, Math.floor((now - d) / (365.25 * 86400000)));
                         }
                     }
-                    // 社保人数：优先取专门字段，没有则用职工总数兜底
-                    const socialStaff = fvNum('社保') || fvNum('参保') || fvNum('职工总数');
+                    // 三大财务/研发指标全部从企业档案推算（兼容高企测评/雷达两种字段命名）
+                    const entStaff = fvNum('职工总数') != null ? fvNum('职工总数') : fvNum('企业员工总数');
+                    const entRdStaff = fvNum('研发人员数量') != null ? fvNum('研发人员数量') : fvNum('研发人员');
+                    const sciStaffRatio = (entRdStaff != null && entStaff) ? Math.round(entRdStaff / entStaff * 100) : null;
+                    const entHiTechRevenue = pickYearly('高新技术产品');
+                    const entRevenueRaw = fvNum('近一年营业收入') != null ? fvNum('近一年营业收入') : pickYearly('营业收入');
+                    const hiTechRatio = (entHiTechRevenue != null && entRevenueRaw) ? Math.round(entHiTechRevenue / entRevenueRaw * 100) : null;
+                    // 研发费用占比：优先直接字段，否则用财务表最新一年 研发费用/营业收入 推算
+                    const rdFeeRaw = pickYearly('研发费用');
+                    const entRdPct = fvNum('研发费用占比') != null ? fvNum('研发费用占比')
+                        : ((rdFeeRaw != null && entRevenueRaw) ? Math.round(rdFeeRaw / entRevenueRaw * 100) : null);
+                    // 知识产权：优先「有效知识产权」，否则 Ⅰ类 + Ⅱ类 求和
+                    const ipDirect = fvNum('有效知识产权');
+                    const ipI = fvNum('Ⅰ类知识产权');
+                    const ipII = fvNum('Ⅱ类知识产权');
+                    const entIpCount = ipDirect != null ? ipDirect : ((ipI != null || ipII != null) ? (ipI || 0) + (ipII || 0) : null);
+                    // 社保人数：优先社保/参保字段，没有则用职工总数作为口径兜底
+                    const socialStaff = fvNum('社保') || fvNum('参保') || entStaff;
                     // 核心产品/赛道
-                    const coreProduct = fv('核心产品') || fv('主营产品') || fv('主营业务') || fv('核心技术所属产业') || '';
+                    const coreProduct = fv('核心产品') || fv('主导产品') || fv('主营产品') || fv('主营业务') || fv('核心技术所属产业') || '';
+                    // 产学研
+                    const entUni = fv('产学研');
+                    // 成长阶段：按成立年限自动推断（销售可在 Step3 覆盖）
+                    const autoGrowth = foundedYears == null ? '' :
+                        (foundedYears < 1 ? '种子期（<1年）' : foundedYears < 2 ? '天使/Pre-A（1-2年）' :
+                        foundedYears < 4 ? 'A轮/B轮（2-4年）' : foundedYears <= 8 ? '成长期（4-8年）' : '成熟期（>8年）');
                     // Step1：自动补齐（企业档案 > 客户档案）
                     const entQuals = fv('已获资质') ? fv('已获资质').split(/[、,，\/\s]+/).filter(Boolean) : null;
-                    const entRevenue = fvNum('近一年营业收入');
                     condAuto.value = {
                         industry: fv('所属行业') || (c && c.industry) || '',
                         region: fv('注册地') || (c && c.region) || '',
                         quals: entQuals || (c && c.quals) || [],
-                        revenue: entRevenue != null ? Math.round(entRevenue / 100 * 10) / 10 : ((c && c.revenue) || 0),
-                        employees: fvNum('职工总数') || (c && c.employees) || 0,
+                        revenue: entRevenueRaw != null ? Math.round(entRevenueRaw / 100 * 10) / 10 : ((c && c.revenue) || 0),
+                        employees: entStaff || (c && c.employees) || 0,
                         foundedYears: foundedYears,
                         coreProduct: coreProduct,
                         socialStaff: socialStaff,
                         source: entHit ? '企业档案' : ((c && c._source) || '')
                     };
-                    // Step2：测评回填（企业档案字段优先覆盖客户 assessmentConditions）
+                    // Step2：测评回填（企业档案实测值优先，覆盖客户 assessmentConditions）
                     const ac = Object.assign({}, (c && c.assessmentConditions) || {});
-                    const entRd = fvNum('研发费用占比'), entIp = fvNum('有效知识产权'), entUni = fv('产学研');
-                    if (entRd != null) ac.rdRatio = entRd;
-                    if (entIp != null) ac.ipCount = entIp;
+                    if (entRdPct != null) ac.rdRatio = entRdPct;
+                    if (entIpCount != null) ac.ipCount = entIpCount;
+                    if (sciStaffRatio != null) ac.sciStaffRatio = sciStaffRatio;
+                    if (hiTechRatio != null) ac.hiTechRatio = hiTechRatio;
                     if (entUni === '是') ac.industryUni = true; else if (entUni === '否') ac.industryUni = false;
+                    if (autoGrowth) ac.growthStage = autoGrowth;
                     if (entHit) ac.__measured = true;
                     // 企业档案里的各测评类型独立得分（从 buildProfileFields 存入的 label 查找）
                     const findEntScore = function (kw) {
@@ -1676,9 +1729,10 @@
                     condAssess.rndProjectStr = condAssess.rndProject === null ? '' : (condAssess.rndProject ? '是' : '否');
                     condAssess.industryUniStr = condAssess.industryUni === null ? '' : (condAssess.industryUni ? '是' : '否');
                     condAssess.windowPrefStr = condAssess.windowPref || '';
-                    // 科创测评得分/短板：根据 rdRatio+ipCount+sciStaffRatio+hiTechRatio 计算一个 mock 值
+                    condAssess.growthStageStr = condAssess.growthStage || '';
+                    // 科创测评得分/短板：基于企业档案实测值（rdRatio+ipCount+sciStaffRatio+hiTechRatio）计算
                     condAssess.score = calcScore(ac);
-                    condAssess.grade = condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D'));
+                    condAssess.grade = condAssess.score == null ? '' : (condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D')));
                     condAssess.weak = calcWeak(ac);
 
                     condStep.value = 0;
@@ -1775,6 +1829,16 @@
                         growthStage: condAssess.growthStage,
                         __measured: condAssess.__measured
                     };
+                    // 生成前按最新条件重算得分（企业档案真实高企得分优先，否则按四项指标推算）
+                    if (condAssess.gaoxinScore != null) {
+                        condAssess.score = condAssess.gaoxinScore;
+                        condAssess.grade = condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D'));
+                    } else {
+                        const s = calcScore(ac);
+                        condAssess.score = s;
+                        condAssess.grade = s == null ? '' : (s >= 80 ? 'A' : (s >= 65 ? 'B' : (s >= 50 ? 'C' : 'D')));
+                    }
+                    condAssess.weak = calcWeak(ac);
 
                     setTimeout(function () {
                         const c = locateCustomerByKeyword();
