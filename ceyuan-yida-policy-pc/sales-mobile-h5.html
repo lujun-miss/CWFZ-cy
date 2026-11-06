@@ -420,18 +420,22 @@
 
                                 <div class="card">
                                     <div class="card-title"><i class="fa fa-lightbulb-o"></i>政策机会（{{ report.policies.length }}）</div>
+                                    <p v-if="!report.policies.length" class="empty" style="padding:20px 0">
+                                        <i class="fa fa-search"></i>政策库暂无匹配结果<br>请补齐企业档案中的成立年限、研发占比等条件后重新生成
+                                    </p>
                                     <div v-for="p in report.policies" :key="p.title" style="padding:10px 0;border-bottom:1px dashed #e2e8f0">
                                         <div style="display:flex;align-items:center;justify-content:space-between">
                                             <span style="font-size:12.5px;font-weight:700;color:#0f172a">{{ p.title }}</span>
-                                            <span class="tag" :class="p.level === '高匹配' ? 't-green' : (p.level === '不可匹配' ? 't-gray' : 't-orange')"
-                                                  :style="p.level === '不可匹配' ? 'text-decoration:line-through;opacity:.6' : ''">{{ p.level }}</span>
+                                            <span class="tag" :class="p.level === '高匹配' ? 't-green' : (p.level === '待确认' ? 't-orange' : 't-blue')">{{ p.level }}</span>
                                         </div>
-                                        <div v-if="p.reason" style="font-size:10.5px;color:#9ca3af;margin-top:4px">⚠ {{ p.reason }}</div>
+                                        <div v-if="p.dept" style="font-size:10.5px;color:#94a3b8;margin-top:4px">{{ p.dept }}<span v-if="p.levelTag"> · {{ p.levelTag }}</span></div>
+                                        <div v-if="p.reason" style="font-size:10.5px;color:#dc2626;margin-top:4px">⚠ 未满足：{{ p.reason }}</div>
+                                        <div v-if="p.pending" style="font-size:10.5px;color:#b45309;margin-top:4px">待确认：{{ p.pending }}</div>
                                         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
-                                            <span style="font-size:11px;color:#64748b">预期权益：{{ p.benefit }}</span>
-                                            <span style="font-size:11px;color:#4f46e5;font-weight:700">{{ p.level === '不可匹配' ? '不适用' : ('匹配度 ' + p.match + '%') }}</span>
+                                            <span style="font-size:11px;color:#64748b">命中 {{ p.hit }}/{{ p.total }} 项条件</span>
+                                            <span style="font-size:11px;color:#4f46e5;font-weight:700">匹配度 {{ p.match }}%</span>
                                         </div>
-                                        <van-progress v-if="p.level !== '不可匹配'" :percentage="p.match" :show-pivot="false" stroke-width="4" color="#6366f1" style="margin-top:6px"></van-progress>
+                                        <van-progress :percentage="p.match" :show-pivot="false" stroke-width="4" color="#6366f1" style="margin-top:6px"></van-progress>
                                     </div>
                                 </div>
 
@@ -702,11 +706,10 @@
                                         </div>
                                     </div>
 
-                                    <!-- 政策机会（高匹配 / 中匹配 / 不可匹配） -->
+                                    <!-- 政策机会（高匹配 / 待确认 / 部分匹配） -->
                                     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
                                         <span v-for="p in r.policies" :key="p.title" class="tag"
-                                              :class="p.level === '高匹配' ? 't-green' : (p.level === '不可匹配' ? 't-gray' : 't-orange')"
-                                              :style="p.level === '不可匹配' ? 'text-decoration:line-through;opacity:.65' : ''">{{ p.title }} · {{ p.level === '不可匹配' ? '不适用' : p.match + '%' }}</span>
+                                              :class="p.level === '高匹配' ? 't-green' : (p.level === '待确认' ? 't-orange' : 't-blue')">{{ p.title }} · {{ p.match }}%</span>
                                     </div>
                                     <p v-if="unmatchedText(r)" style="font-size:10.5px;color:#94a3b8;margin:6px 0 0;line-height:1.6">
                                         <i class="fa fa-info-circle"></i>{{ unmatchedText(r) }}
@@ -836,7 +839,7 @@
                         <div class="pdf-page">
                             <p class="pdf-h">{{ report.title }}</p>
                             <p class="pdf-sub">{{ report.summary }}</p>
-                            <p class="pdf-line" v-for="p in report.policies" :key="p.title">· {{ p.title }}（{{ p.level }} · 匹配 {{ p.match }}%）{{ p.benefit }}</p>
+                            <p class="pdf-line" v-for="p in report.policies" :key="p.title">· {{ p.title }}（{{ p.level }} · 命中 {{ p.hit }}/{{ p.total }} 项 · 匹配 {{ p.match }}%）{{ p.reason ? '｜未满足：' + p.reason : '' }}{{ p.pending ? '｜待确认：' + p.pending : '' }}</p>
                             <p class="pdf-line" style="margin-top:8px;white-space:pre-line">{{ report.advice }}</p>
                         </div>
                         <p class="muted" style="text-align:center;margin:10px 0 14px">PDF 为原型占位预览，对接后端渲染服务后替换为真实文件</p>
@@ -1225,9 +1228,9 @@
                     generateReport();
                 }
 
-                /** 列出「不可匹配」政策及原因，用于详情卡片灰显提示（无则返回空串） */
+                /** 列出「部分匹配」政策及未满足条件，用于详情卡片提示（无则返回空串） */
                 function unmatchedText(r) {
-                    return (r.policies || []).filter(function (p) { return p.level === '不可匹配'; })
+                    return (r.policies || []).filter(function (p) { return p.level === '部分匹配'; })
                         .map(function (p) { return p.title + '：' + (p.reason || '条件不满足'); }).join('；');
                 }
 
@@ -1630,6 +1633,10 @@
                         foundedYears: foundedYears,
                         coreProduct: coreProduct,
                         socialStaff: socialStaff,
+                        // 雷达匹配引擎口径（万元）
+                        revenueWan: entRevenueRaw != null ? entRevenueRaw : ((c && c.revenue) ? Math.round(c.revenue * 100) : null),
+                        rdInvestWan: rdFeeRaw,
+                        netAssetsWan: pickYearly('净资产'),
                         source: entHit ? '企业档案' : ((c && c._source) || '')
                     };
                     // Step2：测评回填（企业档案实测值优先，覆盖客户 assessmentConditions）
@@ -1761,65 +1768,52 @@
 
                     setTimeout(function () {
                         const c = locateCustomerByKeyword();
-                        // ========== 政策匹配引擎（条件感知的 Mock） ==========
-                        // 基础政策库（演示用 4 条，每条带硬条件门槛 + 软条件加分项）
-                        const POLICY_RULES = [
-                            // 高企：成立年限≥1, rdRatio≥5, ipCount≥3, sciStaffRatio≥10, hiTechRatio≥60, loss3y=false
-                            { title: '国家高新技术企业认定', benefit: '补贴 30万 + 15% 所得税优惠', hard: [{k:'years',op:'>=',v:1},{k:'rdRatio',op:'>=',v:5},{k:'ipCount',op:'>=',v:3},{k:'sciStaffRatio',op:'>=',v:10},{k:'hiTechRatio',op:'>=',v:60},{k:'loss3y',op:'===',v:false}], soft: [{k:'quals',v:'国家高新',bonus:20}], baseMatch: 70 },
-                            // 专精特新：成立年限≥2, rdRatio≥3, ipCount≥2, loss3y=false, 建议先入库
-                            { title: '省级专精特新中小企业', benefit: '补贴 50万', hard: [{k:'years',op:'>=',v:2},{k:'rdRatio',op:'>=',v:3},{k:'ipCount',op:'>=',v:2},{k:'loss3y',op:'===',v:false}], soft: [{k:'industryUni',v:true,bonus:10}], baseMatch: 72 },
-                            // 研发加计扣除：rdRatio≥1（低门槛但收入占比要对）
-                            { title: '研发费用加计扣除', benefit: '100% 加计扣除', hard: [{k:'rdRatio',op:'>=',v:1}], soft: [{k:'rndProject',v:true,bonus:15}], baseMatch: 85 },
-                            // 省新能源专项：行业+资质匹配
-                            { title: '省新能源产业发展专项', benefit: '最高 300万', hard: [{k:'industry',op:'contains',v:'新能源'}], soft: [{k:'rndProject',v:true,bonus:15},{k:'industryUni',v:true,bonus:10}], baseMatch: 65 }
-                        ];
-
-                        function checkHard(rules, autoFilled) {
-                            const fails = [];
-                            rules.forEach(function (rule) {
-                                let val;
-                                if (rule.k === 'industry') val = autoFilled.industry;
-                                else val = ac[rule.k];
-                                if (val == null) { fails.push({rule: rule, reason: rule.k + ' 未填'}); return; }
-                                let pass = false;
-                                if (rule.op === '>=') pass = Number(val) >= Number(rule.v);
-                                else if (rule.op === '===') pass = val === rule.v;
-                                else if (rule.op === 'contains') pass = String(val).indexOf(rule.v) >= 0;
-                                if (!pass) fails.push({rule: rule, reason: rule.k + ' 不满足门槛（需 ' + rule.k + (rule.op === '>=' ? '≥' : '=') + rule.v + '，实际 ' + val + '）'});
-                            });
-                            return fails;
-                        }
-                        function addSoft(rules, autoFilled) {
-                            let bonus = 0;
-                            rules.forEach(function (rule) {
-                                let val;
-                                if (rule.k === 'quals') val = (autoFilled.quals || []).indexOf(rule.v) >= 0;
-                                else val = ac[rule.k];
-                                if (val === rule.v) bonus += rule.bonus;
-                            });
-                            return bonus;
-                        }
-
-                        const policies = POLICY_RULES.map(function (rule) {
-                            const fails = checkHard(rule.hard, condAuto.value);
-                            if (fails.length) {
-                                return {
-                                    title: rule.title, benefit: rule.benefit, level: '不可匹配', match: 0,
-                                    reason: fails.map(function (f) { return f.reason; }).join('；')
-                                };
-                            }
-                            const soft = addSoft(rule.soft, condAuto.value);
-                            // 基础分 + 软条件加分 + 测评得分影响
-                            const measuredBoost = condAssess.score ? Math.round((condAssess.score - 65) * 0.3) : 0;
-                            const rawMatch = Math.max(40, Math.min(100, rule.baseMatch + soft + measuredBoost));
+                        // ========== 政策匹配：复用正式政策库 + 雷达匹配引擎 ==========
+                        // 与 PC「精准政策雷达」完全同一份政策数据、同一套条件判定逻辑
+                        // 企业档案缺条件时，引擎返回 unknown（待确认），不会直接判为不可匹配
+                        const COND_LABEL = {
+                            duration: '成立年限', rdRatio: '研发费用占比', hiTechRatio: '高品收入占比',
+                            employees: '员工人数', rdInvest: '研发投入', revenue: '营业收入',
+                            netAssets: '净资产', capital: '注册资本', profit: '净利润',
+                            exportRatio: '出口占比', projectInvest: '项目投入', ipOwned: '拥有知识产权',
+                            ipCount: '知识产权数量', qualification: '已有资质', industry: '所属行业', region: '所属地区'
+                        };
+                        const profile = {
+                            duration: ac.years,
+                            industry: condAuto.value.industry || '',
+                            rdRatio: ac.rdRatio,
+                            hiTechRatio: ac.hiTechRatio,
+                            employees: condAuto.value.employees || null,
+                            revenue: condAuto.value.revenueWan,
+                            rdInvest: condAuto.value.rdInvestWan,
+                            netAssets: condAuto.value.netAssetsWan,
+                            ipOwned: ac.ipCount == null ? null : (ac.ipCount > 0),
+                            ipCount: ac.ipCount,
+                            qualification: (condAuto.value.quals || []).join(','),
+                            region: condAuto.value.region
+                        };
+                        const engineResults = (DB.matchPoliciesForEnterprise ? DB.matchPoliciesForEnterprise(profile) : []) || [];
+                        const policies = engineResults.filter(function (r) {
+                            const st = (r.policy && r.policy.status) || 'published';
+                            return st === 'published';
+                        }).map(function (r) {
+                            const p = r.policy || {};
+                            const fails = r.details.filter(function (d) { return d.status === 'fail'; });
+                            const unknowns = r.details.filter(function (d) { return d.status === 'unknown'; });
+                            const fmt = function (d) {
+                                return (COND_LABEL[d.type] || d.type) + '需' + d.op + ' ' + d.val;
+                            };
                             return {
-                                title: rule.title, benefit: rule.benefit, match: rawMatch,
-                                level: rawMatch >= 85 ? '高匹配' : '中匹配'
+                                title: p.name || '未命名政策',
+                                dept: p.dept || '',
+                                levelTag: p.level || '',
+                                match: r.score,
+                                total: r.total, hit: r.hit, fail: r.fail, unknown: r.unknown,
+                                level: fails.length ? '部分匹配' : (unknowns.length ? '待确认' : '高匹配'),
+                                reason: fails.map(fmt).join('；'),
+                                pending: unknowns.map(function (d) { return COND_LABEL[d.type] || d.type; }).join('、')
                             };
                         });
-
-                        // 按匹配度排序，过滤掉完全不可匹配的
-                        policies.sort(function (a, b) { return b.match - a.match; });
 
                         // 组装 matchConditions 展示用
                         const condDisplay = {};
@@ -1845,26 +1839,18 @@
 
                         // 组装报告
                         const scoreText = condAssess.score != null ? ('科创测评得分 ' + condAssess.score + ' · ' + condAssess.grade + ' 级，') : '暂未做科创测评，';
-                        const summary = (c && c._displayName) + '（' + (condAuto.value.industry || '—') + '，' + (ac.years != null ? ac.years + '年' : '成立年限未知') + '）经多维度政策匹配引擎分析：' +
-                            policies.filter(function (p) { return p.level !== '不可匹配'; }).length + ' 项可申报政策，' +
+                        const summary = (c && c._displayName) + '（' + (condAuto.value.industry || '—') + '，' + (ac.years != null ? ac.years + '年' : '成立年限未知') + '）经政策雷达引擎匹配正式政策库：' +
+                            policies.length + ' 项政策机会，' +
                             scoreText +
                             (condAssess.weak && condAssess.weak.length ? '短板：' + condAssess.weak.join('、') + '。' : '');
 
-                        const advice = policies.filter(function (p) { return p.level !== '不可匹配'; }).slice(0, 3).map(function (p, i) {
+                        const advice = policies.length ? policies.slice(0, 3).map(function (p, i) {
                             var tip = '';
-                            if (p.title.indexOf('高企') >= 0) {
-                                if (ac.years != null && ac.years < 1) tip = '⚠ 成立不满 1 年，暂不满足高企硬性条件，建议先申报科技型中小企业入库';
-                                else if (ac.rdRatio != null && ac.rdRatio < 5) tip = '⚠ 研发费用占比不足 5%，需先加大研发投入或调整归集口径';
-                                else tip = '注意知识产权布局与研发费用辅助账口径一致性，提前 3 个月准备材料';
-                            }
-                            else if (p.title.indexOf('专精特新') >= 0) {
-                                if (ac.years != null && ac.years < 2) tip = '⚠ 成立不满 2 年，建议先入库创新型中小企业，满 2 年再申报专精特新';
-                                else tip = '建议先入库创新型中小企业再申报，同期整理产学研合作证明与主导产品市场占有率数据';
-                            }
-                            else if (p.title.indexOf('加计扣除') >= 0) tip = '可与专项申报同步推进，注意留存项目立项书、工时记录、费用分配表';
-                            else if (p.title.indexOf('新能源') >= 0) tip = '建议关注 Q' + (condAssess.windowPref ? condAssess.windowPref.charAt(1) : '3') + ' 申报窗口，提前准备项目可研报告';
-                            return (i + 1) + '. 优先申报「' + p.title + '」（匹配度 ' + p.match + '%）：' + p.benefit + '。' + tip;
-                        }).join('\n');
+                            if (p.fail > 0) tip = '⚠ 需补强：' + p.reason + '（当前满足 ' + p.hit + '/' + p.total + ' 项）';
+                            else if (p.unknown > 0) tip = '⚠ 待确认：' + p.pending + '（补齐档案后复核）';
+                            else tip = '条件已全部满足，建议尽快准备申报材料';
+                            return (i + 1) + '. 优先申报「' + p.title + '」（' + (p.dept ? p.dept + ' · ' : '') + '匹配度 ' + p.match + '%）：' + tip;
+                        }).join('\n') : '政策库中暂无与该企业条件相符的政策，建议先补全企业档案条件后重新生成。';
 
                         report.value = {
                             id: 'R' + Date.now(), title: (c && c._displayName) + ' 政策匹配分析报告',
