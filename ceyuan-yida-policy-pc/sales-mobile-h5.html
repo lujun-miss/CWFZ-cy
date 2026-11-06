@@ -274,8 +274,8 @@
                                 <div v-show="condStep === 0">
                                     <div class="muted" style="font-size:10.5px;margin-bottom:8px">
                                         <i class="fa fa-check-circle" style="color:#10b981"></i>
-                                        <template v-if="condAssess.__entHit">以下信息均从<b>企业档案</b>读取（数据来源：科创测评 / 精准政策雷达），只读</template>
-                                        <template v-else>该企业尚无档案，以下为「客户管理」录入的基础信息；缺失项请在下一步补充</template>
+                                        <template v-if="condAssess.__entHit">以下信息均从<b>企业档案</b>读取（数据来源：科创测评 / 精准政策雷达）；档案缺失项可直接在此补充</template>
+                                        <template v-else>该企业尚无档案，以下为「客户管理」录入的基础信息；缺失的可变字段可直接在此补充</template>
                                     </div>
                                     <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:11.5px;color:#475569;background:#f0fdf4;border-radius:10px;padding:12px">
                                         <div>所属行业：<b>{{ condAuto.industry || '—' }}</b></div>
@@ -283,14 +283,16 @@
                                         <div>已有资质：<b>{{ (condAuto.quals || []).length ? condAuto.quals.join('、') : '—' }}</b></div>
                                         <div>年营收：<b>{{ condAuto.revenue ? (condAuto.revenue / 100).toFixed(0) + ' 百万元' : '—' }}</b></div>
                                         <div>员工人数：<b>{{ condAuto.employees ? condAuto.employees + ' 人' : '—' }}</b></div>
-                                        <div>成立年限：<b v-if="condAuto.foundedYears != null">{{ condAuto.foundedYears }} 年</b><span v-else style="color:#b45309">档案未填</span></div>
-                                        <div>社保人数：<b v-if="condAuto.socialStaff != null">{{ condAuto.socialStaff }} 人</b><span v-else style="color:#b45309">档案未填</span></div>
+                                        <div>成立年限：<b v-if="condAuto.foundedYears != null">{{ condAuto.foundedYears }} 年</b><span v-else><input v-model.number="condAssess.yearsOverride" type="number" placeholder="补充" style="width:56px;border:1px solid #f59e0b;border-radius:4px;padding:1px 4px;font-size:11px" /> 年</span></div>
+                                        <div>社保人数：<b v-if="condAuto.socialStaff != null">{{ condAuto.socialStaff }} 人</b><span v-else><input v-model.number="condAssess.socialStaffOverride" type="number" placeholder="补充" style="width:56px;border:1px solid #f59e0b;border-radius:4px;padding:1px 4px;font-size:11px" /> 人</span></div>
                                         <div>客户来源：<b>{{ condAuto.source || '—' }}</b></div>
                                     </div>
                                     <div style="font-size:10.5px;color:#166534;background:#dcfce7;border-radius:6px;padding:6px 10px;margin-top:6px" v-if="condAuto.coreProduct">核心产品/赛道：<b>{{ condAuto.coreProduct }}</b></div>
-                                    <div style="font-size:10.5px;color:#b45309;background:#fef3c7;border-radius:6px;padding:6px 10px;margin-top:6px" v-else>核心产品/赛道：<b>档案未填</b></div>
+                                    <div style="font-size:10.5px;color:#b45309;background:#fef3c7;border-radius:6px;padding:6px 10px;margin-top:6px" v-else>
+                                        核心产品/赛道：<input v-model="condAssess.coreProductOverride" type="text" placeholder="如：AI医疗影像 / 半导体封测" style="width:70%;border:1px solid #f59e0b;border-radius:4px;padding:2px 6px;font-size:11px;background:#fff" />
+                                    </div>
 
-                                    <div class="muted" style="font-size:10.5px;margin:12px 0 8px 0"><i class="fa fa-bar-chart" style="color:#8b5cf6"></i> 科创指标（企业档案实测值）</div>
+                                    <div class="muted" style="font-size:10.5px;margin:12px 0 8px 0"><i class="fa fa-bar-chart" style="color:#8b5cf6"></i> 科创指标（企业档案实测值，缺失可直接补充）</div>
                                     <div style="background:#faf5ff;border-radius:10px;padding:12px">
                                         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" v-if="condAssess.gaoxinScore || condAssess.zhuanjingScore || condAssess.jurenScore">
                                             <span class="tag t-green" v-if="condAssess.gaoxinScore"><i class="fa fa-check"></i>高企测评 {{ condAssess.gaoxinScore }} 分</span>
@@ -298,17 +300,17 @@
                                             <span class="tag t-green" v-if="condAssess.jurenScore"><i class="fa fa-check"></i>小巨人测评 {{ condAssess.jurenScore }} 分</span>
                                         </div>
                                         <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:11.5px;color:#475569">
-                                            <div>研发费用占比：<b v-if="condAssess.rdRatio != null">{{ condAssess.rdRatio }}%</b><span v-else style="color:#b45309">—</span></div>
-                                            <div>核心知识产权：<b v-if="condAssess.ipCount != null">{{ condAssess.ipCount }} 项</b><span v-else style="color:#b45309">—</span></div>
-                                            <div>科技人员占比：<b v-if="condAssess.sciStaffRatio != null">{{ condAssess.sciStaffRatio }}%</b><span v-else style="color:#b45309">—</span></div>
-                                            <div>高品收入占比：<b v-if="condAssess.hiTechRatio != null">{{ condAssess.hiTechRatio }}%</b><span v-else style="color:#b45309">—</span></div>
+                                            <div>研发费用占比：<b v-if="condAssess.__entHit && condAssess.rdRatio != null">{{ condAssess.rdRatio }}%</b><span v-else><input v-model.number="condAssess.rdRatio" type="number" placeholder="补充" style="width:56px;border:1px solid #f59e0b;border-radius:4px;padding:1px 4px;font-size:11px" /> %</span></div>
+                                            <div>核心知识产权：<b v-if="condAssess.__entHit && condAssess.ipCount != null">{{ condAssess.ipCount }} 项</b><span v-else><input v-model.number="condAssess.ipCount" type="number" placeholder="补充" style="width:56px;border:1px solid #f59e0b;border-radius:4px;padding:1px 4px;font-size:11px" /> 项</span></div>
+                                            <div>科技人员占比：<b v-if="condAssess.__entHit && condAssess.sciStaffRatio != null">{{ condAssess.sciStaffRatio }}%</b><span v-else><input v-model.number="condAssess.sciStaffRatio" type="number" placeholder="补充" style="width:56px;border:1px solid #f59e0b;border-radius:4px;padding:1px 4px;font-size:11px" /> %</span></div>
+                                            <div>高品收入占比：<b v-if="condAssess.__entHit && condAssess.hiTechRatio != null">{{ condAssess.hiTechRatio }}%</b><span v-else><input v-model.number="condAssess.hiTechRatio" type="number" placeholder="补充" style="width:56px;border:1px solid #f59e0b;border-radius:4px;padding:1px 4px;font-size:11px" /> %</span></div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Step 2：销售补充（关键条件） -->
                                 <div v-show="condStep === 1">
-                                    <div class="muted" style="font-size:10.5px;margin-bottom:8px"><i class="fa fa-pencil" style="color:#f59e0b"></i> 销售可在此补充/覆盖关键条件，补充后匹配精度更高</div>
+                                    <div class="muted" style="font-size:10.5px;margin-bottom:8px"><i class="fa fa-pencil" style="color:#f59e0b"></i> 以下为销售判断类条件，补充后匹配精度更高</div>
                                     <van-cell-group inset>
                                         <van-field v-model="condAssess.loss3yStr" label="近三年是否有亏损" readonly is-link
                                                    placeholder="请选择" @click="showLossPicker = true"></van-field>
@@ -322,23 +324,8 @@
                                                    placeholder="请选择" @click="showFundPicker = true"></van-field>
                                         <van-field v-model="condAssess.windowPrefStr" label="预期申报窗口期" readonly is-link
                                                    placeholder="请选择" @click="showWindowPicker = true"></van-field>
-                                        <van-field v-model="condAssess.coreProductOverride" label="核心产品/赛道"
-                                                   placeholder="如：AI医疗影像 / 半导体封测" />
-                                        <van-field v-model.number="condAssess.yearsOverride" type="number" label="成立年限（年）"
-                                                   :placeholder="condAuto.foundedYears != null ? ('自动读取 ' + condAuto.foundedYears + ' 年，可覆盖') : '如：3'" />
-                                        <van-field v-model.number="condAssess.socialStaffOverride" type="number" label="社保缴纳人数"
-                                                   :placeholder="condAuto.socialStaff != null ? ('自动读取 ' + condAuto.socialStaff + ' 人，可覆盖') : '如：120'" />
                                         <van-field v-model="condAssess.subsidyHist" label="已获补贴/资质（避免重复）"
                                                    placeholder="如：已拿过高企、专精特新，2025年获研发补贴 50万" />
-                                        <!-- 企业档案缺失时的四类核心指标补录 -->
-                                        <van-field v-model.number="condAssess.rdRatio" type="number" label="研发费用占比（%）"
-                                                   :placeholder="condAssess.__entHit ? '企业档案已带出，可覆盖' : '档案无数据，请手动填写'" />
-                                        <van-field v-model.number="condAssess.ipCount" type="number" label="有效知识产权（项）"
-                                                   :placeholder="condAssess.__entHit ? '企业档案已带出，可覆盖' : '档案无数据，请手动填写'" />
-                                        <van-field v-model.number="condAssess.sciStaffRatio" type="number" label="科技人员占比（%）"
-                                                   :placeholder="condAssess.__entHit ? '企业档案已带出，可覆盖' : '档案无数据，请手动填写'" />
-                                        <van-field v-model.number="condAssess.hiTechRatio" type="number" label="高品收入占比（%）"
-                                                   :placeholder="condAssess.__entHit ? '企业档案已带出，可覆盖' : '档案无数据，请手动填写'" />
                                     </van-cell-group>
                                 </div>
 
