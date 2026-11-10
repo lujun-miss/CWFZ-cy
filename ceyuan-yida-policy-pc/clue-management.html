@@ -6,13 +6,12 @@
     <title>线索管理 - 策源易达政策销售平台</title>
     <link href="libs/css/tailwind.css" rel="stylesheet">
     <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <script src="data-bridge.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
         .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
         .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
-        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
         .drawer-transition { transition: transform 0.3s ease-in-out; }
-        /* brand 主题色（本地预编译 tailwind.css 不含 brand 色板，在此补齐） */
         :root { --brand-50:#f0fdf4; --brand-100:#dcfce7; --brand-500:#22c55e; --brand-600:#16a34a; --brand-700:#15803d; }
         .bg-brand-50 { background-color: var(--brand-50); }
         .bg-brand-100 { background-color: var(--brand-100); }
@@ -26,8 +25,11 @@
         .hover\:text-brand-700:hover { color: var(--brand-700); }
         .border-brand-600 { border-color: var(--brand-600); }
         .focus\:ring-brand-500:focus { --tw-ring-color: var(--brand-500); }
-        .from-brand-500 { --tw-gradient-from: #22c55e var(--tw-gradient-from-position); --tw-gradient-to: rgb(34 197 94 / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
-        .to-brand-700 { --tw-gradient-to: #15803d var(--tw-gradient-to-position); }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; padding: 10px 20px; border-radius: 10px; font-size: 13px; color: #fff; background: #0f172a; box-shadow: 0 8px 20px rgba(0,0,0,.15); opacity: 0; transition: opacity .25s; pointer-events: none; }
+        .toast.show { opacity: 1; }
+        .modal-mask { position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 60; align-items: center; justify-content: center; padding: 20px; }
+        .modal-mask:not(.hidden) { display: flex; }
+        .modal-card { width: 560px; max-width: 100%; max-height: 82vh; overflow-y: auto; background: #fff; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.2); }
     </style>
     <script>
         // 登录拦截：未登录时强制跳转到登录页
@@ -53,10 +55,11 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-gray-800">线索管理</h1>
-                    <p class="text-xs text-gray-500">追踪政策查询、问答、诊断来源线索</p>
+                    <p class="text-xs text-gray-500">基于客户行为自动识别高意向线索 · 与销售端 H5 同一份数据</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
+                <button onclick="openRules()" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium"><i class="fa fa-info-circle mr-1"></i>判定规则</button>
                 <button class="text-gray-600 hover:text-brand-600"><i class="fa fa-bell"></i></button>
                 <div class="flex items-center space-x-2">
                     <div class="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold">张</div>
@@ -67,29 +70,31 @@
     </header>
 
     <main class="max-w-[1600px] mx-auto px-6 py-6">
-        <!-- 线索列表 -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
-                <h2 class="font-semibold text-gray-800">线索列表</h2>
-                <div class="flex items-center space-x-3">
+            <!-- 阶段页签（含数量） -->
+            <div class="px-6 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center bg-gray-100 rounded-lg p-0.5 text-sm flex-wrap" id="stageTabs"></div>
+                <div class="flex items-center space-x-2">
                     <div class="relative">
                         <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                        <input type="text" placeholder="搜索企业名称..." class="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 w-48">
+                        <input id="q" oninput="renderClues()" type="text" placeholder="搜索企业名称..." class="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 w-48">
                     </div>
-                    <select class="px-3 py-1.5 border border-gray-200 rounded-md text-sm text-gray-600">
-                        <option>全部来源</option>
+                    <select id="srcFilter" onchange="renderClues()" class="px-3 py-1.5 border border-gray-200 rounded-md text-sm text-gray-600">
+                        <option value="">全部来源</option>
                         <option>政策查询</option>
                         <option>问答触发</option>
                         <option>诊断触发</option>
+                        <option>雷达触发</option>
+                        <option>预约申领</option>
                     </select>
-                    <button class="px-3 py-1.5 bg-brand-600 text-white rounded-md text-sm hover:bg-brand-700"><i class="fa fa-plus mr-1"></i>录入线索</button>
+                    <button onclick="addLead()" class="px-3 py-1.5 bg-brand-600 text-white rounded-md text-sm hover:bg-brand-700"><i class="fa fa-plus mr-1"></i>录入线索</button>
                 </div>
             </div>
-            <!-- 状态流转与字段口径备注 -->
+            <!-- 口径说明 -->
             <div class="px-6 py-3 bg-brand-50/60 border-b border-gray-100 flex items-start gap-2">
                 <i class="fa fa-info-circle text-brand-600 mt-0.5 flex-shrink-0"></i>
                 <p class="text-xs text-gray-600 leading-relaxed">
-                    <span class="font-semibold text-gray-700">状态流转：</span>待跟进 → 跟进中 → <span class="text-brand-700 font-medium">已转化</span>（自动转入「客户管理」成为跟踪客户：潜在客户 → 意向客户 → 成交客户）；客户明确拒绝或长期无响应则标记<span class="text-red-600 font-medium">已流失</span>（线索关闭，不进入客户管理）。
+                    <span class="font-semibold text-gray-700">数据来源：</span>线索基于客户行为自动识别（频繁查看某政策、使用测评工具、高频 AI 问答、在线咨询等），以及在政策雷达提交「预约申领」的客户，自动打标并提醒销售跟进。状态流转：待跟进 → 跟进中（认领后自动变更）→ 已转化 / 已流失。<span class="font-semibold text-gray-700">认领规则：</span>一条线索同一时间只有一位负责人，先认领先得；已被认领的线索不再出现在「待跟进」中，需换人由主管在 PC 端转派。
                 </p>
             </div>
             <div class="overflow-x-auto scrollbar-thin">
@@ -104,144 +109,84 @@
                             <th class="px-6 py-3 font-medium text-right">操作</th>
                         </tr>
                     </thead>
-                    <tbody id="clueTbody" class="divide-y divide-gray-100">
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer()">
-                            <td class="px-6 py-4">
-                                <p class="font-medium text-gray-800">星河智造科技有限公司</p>
-                                <p class="text-xs text-gray-400">2 小时前进入</p>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs"><i class="fa fa-search mr-1"></i>政策查询</span>
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">高企认定复审</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs">张</div>
-                                    <span class="text-gray-700">张销售</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">跟进中</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer()">
-                            <td class="px-6 py-4">
-                                <p class="font-medium text-gray-800">康泰生物制药有限公司</p>
-                                <p class="text-xs text-gray-400">5 小时前进入</p>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-0.5 bg-orange-50 text-orange-700 rounded text-xs"><i class="fa fa-comments mr-1"></i>问答触发</span>
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">临床试验加速</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs">张</div>
-                                    <span class="text-gray-700">张销售</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">跟进中</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer()">
-                            <td class="px-6 py-4">
-                                <p class="font-medium text-gray-800">蓝海智能科技有限公司</p>
-                                <p class="text-xs text-gray-400">2 小时前进入</p>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs"><i class="fa fa-search mr-1"></i>政策查询</span>
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">人工智能专项</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-6 h-6 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center text-xs">-</div>
-                                    <span class="text-gray-400">未分配</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">待跟进</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer()">
-                            <td class="px-6 py-4">
-                                <p class="font-medium text-gray-800">锐达新材料股份公司</p>
-                                <p class="text-xs text-gray-400">1 天前进入</p>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-0.5 bg-purple-50 text-purple-700 rounded text-xs"><i class="fa fa-stethoscope mr-1"></i>诊断触发</span>
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">新材料专项</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-6 h-6 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-xs">王</div>
-                                    <span class="text-gray-700">王销售</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">跟进中</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer()">
-                            <td class="px-6 py-4">
-                                <p class="font-medium text-gray-800">云图信息技术有限公司</p>
-                                <p class="text-xs text-gray-400">3 天前进入</p>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs"><i class="fa fa-search mr-1"></i>政策查询</span>
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">软件退税</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs">张</div>
-                                    <span class="text-gray-700">张销售</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs">已转化</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer()">
-                            <td class="px-6 py-4">
-                                <p class="font-medium text-gray-800">远东贸易有限公司</p>
-                                <p class="text-xs text-gray-400">流失于 07-15</p>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs"><i class="fa fa-search mr-1"></i>政策查询</span>
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">出口退税</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-6 h-6 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-xs">王</div>
-                                    <span class="text-gray-700">王销售</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4"><span class="px-2 py-0.5 bg-red-50 text-red-600 rounded text-xs">已流失</span></td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="text-brand-600 hover:text-brand-700 mr-2"><i class="fa fa-eye"></i></button>
-                                <button class="text-gray-500 hover:text-brand-600 mr-2"><i class="fa fa-edit"></i></button>
-                                <button class="text-gray-500 hover:text-red-500"><i class="fa fa-ellipsis-h"></i></button>
-                            </td>
-                        </tr>
-                    </tbody>
+                    <tbody id="clueTbody" class="divide-y divide-gray-100"></tbody>
                 </table>
             </div>
         </div>
     </main>
+
+    <!-- 判定规则弹层 -->
+    <div class="modal-mask hidden" id="rulesMask" onclick="if(event.target===this)closeRules()">
+        <div class="modal-card">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
+                <h3 class="font-semibold text-gray-800">线索判定与认领规则</h3>
+                <button onclick="closeRules()" class="text-gray-400 hover:text-gray-600"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-5 space-y-4 text-sm">
+                <div>
+                    <p class="font-semibold text-gray-800 mb-2"><i class="fa fa-bolt text-brand-600 mr-1"></i>一、什么行为算高意向</p>
+                    <ul class="text-xs text-gray-600 leading-relaxed space-y-1 list-disc pl-4">
+                        <li><b>频繁查看某政策</b>：同一政策 24 小时内查看 ≥3 次，或 7 天内 ≥5 次</li>
+                        <li><b>频繁浏览政策</b>：7 天内查看 ≥8 条不同政策，或政策详情累计停留 ≥10 分钟</li>
+                        <li><b>使用测评工具</b>：启动测评并完成 ≥1 个模块（只打开未完成不计入）</li>
+                        <li><b>高频 AI 问答</b>：24 小时内 ≥5 轮有效提问，或连续 3 轮追问同一政策</li>
+                        <li><b>在线咨询 / 提交委托</b>：单次提交即触发线索</li>
+                        <li><b>预约申领</b>：在政策雷达点击「预约申领」并提交姓名、手机、企业，单次提交即生成待跟进线索</li>
+                        <li class="text-gray-400">同一客户同类行为 24 小时内只生成一条线索事件，避免重复提醒</li>
+                    </ul>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-800 mb-2"><i class="fa fa-refresh text-brand-600 mr-1"></i>二、线索状态怎么变</p>
+                    <p class="text-xs text-gray-600 leading-relaxed">待跟进 → 跟进中（销售认领后自动变更）→ 已转化 / 已流失（销售标记结果）。待跟进列表按生成时间倒序展示，不单独维护超时状态。</p>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-800 mb-2"><i class="fa fa-users text-brand-600 mr-1"></i>三、多个销售看到同一条线索怎么办</p>
+                    <p class="text-xs text-gray-600 leading-relaxed">一条线索同一时间只有一位负责人，<b>先认领先得</b>，认领后状态自动置为「跟进中」并从「待跟进」移除；其他销售仅可在「跟进中」查看该线索与负责人。需要换人跟进时由主管在 PC 端执行转派。</p>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-800 mb-2"><i class="fa fa-database text-brand-600 mr-1"></i>四、数据来源与同步</p>
+                    <p class="text-xs text-gray-600 leading-relaxed">行为来源：政策库浏览、政策雷达、科创测评、AI 问答、在线咨询、预约申领、委托申报。PC 端与销售端 H5 使用同一份数据，认领与标记结果实时同步。政策计算器已下线，不再作为线索来源统计。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 标记结果弹层 -->
+    <div class="modal-mask hidden" id="resultMask" onclick="if(event.target===this)closeResult()">
+        <div class="modal-card" style="width:420px">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800">标记跟进结果</h3>
+                <button onclick="closeResult()" class="text-gray-400 hover:text-gray-600"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-5">
+                <p class="text-sm text-gray-600 mb-4" id="resultSub"></p>
+                <label class="flex items-center gap-2 p-3 border border-gray-200 rounded-lg mb-2 cursor-pointer hover:border-brand-600">
+                    <input type="radio" name="resultRadio" value="已转化" checked>
+                    <span class="text-sm text-gray-700"><b>已转化</b>：客户确认合作，转入客户管理</span>
+                </label>
+                <label class="flex items-center gap-2 p-3 border border-gray-200 rounded-lg mb-4 cursor-pointer hover:border-brand-600">
+                    <input type="radio" name="resultRadio" value="已流失">
+                    <span class="text-sm text-gray-700"><b>已流失</b>：客户明确拒绝或长期无响应，线索关闭</span>
+                </label>
+                <button onclick="confirmResult()" class="w-full py-2.5 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700">确认标记</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 转派弹层 -->
+    <div class="modal-mask hidden" id="assignMask" onclick="if(event.target===this)closeAssign()">
+        <div class="modal-card" style="width:400px">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800">转派线索</h3>
+                <button onclick="closeAssign()" class="text-gray-400 hover:text-gray-600"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-5">
+                <p class="text-sm text-gray-600 mb-3" id="assignSub"></p>
+                <select id="assignSales" class="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-700 mb-4"></select>
+                <button onclick="confirmAssign()" class="w-full py-2.5 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700">确认转派</button>
+            </div>
+        </div>
+    </div>
 
     <!-- 线索详情抽屉 -->
     <div id="overlay" class="fixed inset-0 bg-black/30 z-40 hidden" onclick="closeDrawer()"></div>
@@ -252,130 +197,204 @@
                 <i class="fa fa-times"></i>
             </button>
         </div>
-        <div class="p-6">
-            <!-- 线索概览 -->
-            <div class="mb-6">
-                <div class="mb-3">
-                    <h4 class="text-lg font-bold text-gray-800">星河智造科技有限公司</h4>
-                    <p class="text-sm text-gray-500 mt-0.5">2 小时前由政策查询触发</p>
-                </div>
-                <div class="grid grid-cols-2 gap-3 text-sm">
-                    <div class="bg-gray-50 rounded-lg p-3">
-                        <p class="text-xs text-gray-500">线索来源</p>
-                        <p class="font-medium text-gray-800 mt-0.5">政策查询</p>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-3">
-                        <p class="text-xs text-gray-500">意向政策</p>
-                        <p class="font-medium text-gray-800 mt-0.5">高企认定复审</p>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-3">
-                        <p class="text-xs text-gray-500">分配销售</p>
-                        <p class="font-medium text-gray-800 mt-0.5">张销售</p>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-3">
-                        <p class="text-xs text-gray-500">当前阶段</p>
-                        <p class="font-medium text-brand-700 mt-0.5">跟进中</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 转化路径 -->
-            <div class="mb-6">
-                <h5 class="text-sm font-semibold text-gray-700 mb-3"><i class="fa fa-random text-brand-600 mr-1"></i>转化路径</h5>
-                <div class="relative pl-6">
-                    <div class="absolute left-2 top-2 bottom-2 w-0.5 bg-gray-200"></div>
-                    <div class="relative mb-4">
-                        <div class="absolute -left-6 top-0 w-4 h-4 bg-brand-600 rounded-full border-2 border-white"></div>
-                        <p class="text-sm font-medium text-gray-800">线索生成</p>
-                        <p class="text-xs text-gray-400 mt-0.5">2026-08-03 08:15 · 政策查询"高企认定"</p>
-                    </div>
-                    <div class="relative mb-4">
-                        <div class="absolute -left-6 top-0 w-4 h-4 bg-brand-600 rounded-full border-2 border-white"></div>
-                        <p class="text-sm font-medium text-gray-800">销售接洽</p>
-                        <p class="text-xs text-gray-400 mt-0.5">2026-08-03 09:30 · 张销售已联系</p>
-                    </div>
-                    <div class="relative mb-4">
-                        <div class="absolute -left-6 top-0 w-4 h-4 bg-blue-500 rounded-full border-2 border-white animate-pulse"></div>
-                        <p class="text-sm font-medium text-blue-600">需求确认（进行中）</p>
-                        <p class="text-xs text-gray-400 mt-0.5">2026-08-03 10:45 · 客户确认复审需求</p>
-                    </div>
-                    <div class="relative">
-                        <div class="absolute -left-6 top-0 w-4 h-4 bg-gray-200 rounded-full border-2 border-white"></div>
-                        <p class="text-sm text-gray-400">成交转化（待完成）</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 跟进记录 -->
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <h5 class="text-sm font-semibold text-gray-700"><i class="fa fa-comments text-brand-600 mr-1"></i>跟进记录</h5>
-                    <button class="text-xs text-brand-600 hover:text-brand-700"><i class="fa fa-plus mr-0.5"></i>添加</button>
-                </div>
-                <div class="space-y-3">
-                    <div class="border border-gray-100 rounded-lg p-3">
-                        <div class="flex items-center justify-between mb-1">
-                            <p class="text-sm font-medium text-gray-800">电话沟通</p>
-                            <span class="text-xs text-gray-400">10:45</span>
-                        </div>
-                        <p class="text-xs text-gray-500">客户表示急需办理高企复审，已发送材料清单，约定明天上门详谈。</p>
-                    </div>
-                    <div class="border border-gray-100 rounded-lg p-3">
-                        <div class="flex items-center justify-between mb-1">
-                            <p class="text-sm font-medium text-gray-800">线索接入</p>
-                            <span class="text-xs text-gray-400">09:30</span>
-                        </div>
-                        <p class="text-xs text-gray-500">系统自动分配线索，张销售已接单。</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="sticky bottom-0 bg-white border-t border-gray-100 p-4 flex space-x-3">
-            <button class="flex-1 py-2.5 border border-brand-600 text-brand-600 rounded-lg text-sm hover:bg-brand-50">
-                <i class="fa fa-times mr-1"></i>标记流失
-            </button>
-            <button class="flex-1 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700">
-                <i class="fa fa-check mr-1"></i>标记转化
-            </button>
-        </div>
+        <div class="p-6" id="drawerBody"></div>
     </aside>
 
-    <script src="data-bridge.js"></script>
+    <div class="toast" id="toast"></div>
+
     <script>
-        // 渲染线索列表（从 DataBridge 读取，企业端问答/雷达/诊断行为自动回流写入）
+        var ME = '张销售';
+        var activeStage = '全部';
+        var activeClueId = null;
+
+        function toast(msg) {
+            var el = document.getElementById('toast');
+            el.textContent = msg; el.classList.add('show');
+            clearTimeout(el._t);
+            el._t = setTimeout(function() { el.classList.remove('show'); }, 2200);
+        }
+        function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+        var SRC_BG = { blue:'bg-blue-50 text-blue-700', orange:'bg-orange-50 text-orange-700', purple:'bg-purple-50 text-purple-700', brand:'bg-brand-50 text-brand-700' };
+        var STAGE_BG = { blue:'bg-blue-50 text-blue-700', gray:'bg-gray-100 text-gray-600', brand:'bg-brand-50 text-brand-700', red:'bg-red-50 text-red-600' };
+        var STAGES = [
+            { key:'全部', label:'全部' },
+            { key:'待跟进', label:'待跟进' },
+            { key:'跟进中', label:'跟进中' },
+            { key:'已转化', label:'已转化' },
+            { key:'已流失', label:'已流失' }
+        ];
+
+        function loadAll() {
+            if (!window.DataBridge || !DataBridge.loadClues) return [];
+            return DataBridge.loadClues() || [];
+        }
+        function saveAll(list) { if (DataBridge.saveClues) DataBridge.saveClues(list); }
+
+        function renderTabs() {
+            var list = loadAll();
+            var counts = { '全部': list.length, '待跟进':0, '跟进中':0, '已转化':0, '已流失':0 };
+            list.forEach(function(c) { if (counts[c.stage] != null) counts[c.stage]++; });
+            document.getElementById('stageTabs').innerHTML = STAGES.map(function(s) {
+                var on = s.key === activeStage;
+                return '<button onclick="switchStage(' + "'" + s.key + "'" + ')" class="px-3 py-1.5 rounded-md ' +
+                    (on ? 'bg-white shadow-sm text-gray-800 font-medium' : 'text-gray-500') + '">' +
+                    s.label + ' <span class="' + (on ? 'text-brand-600' : 'text-gray-400') + '">' + counts[s.key] + '</span></button>';
+            }).join('');
+        }
+        function switchStage(k) { activeStage = k; renderTabs(); renderClues(); }
+
         function renderClues() {
             var tbody = document.getElementById('clueTbody');
             if (!tbody) return;
-            if (!window.DataBridge || !DataBridge.loadClues) return;
-            var list = DataBridge.loadClues();
-            if (!Array.isArray(list) || list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-400"><i class="fa fa-inbox text-2xl mb-2 block"></i>暂无线索</td></tr>';
+            var q = (document.getElementById('q').value || '').trim().toLowerCase();
+            var src = document.getElementById('srcFilter').value;
+            var list = loadAll().filter(function(c) {
+                if (activeStage !== '全部' && c.stage !== activeStage) return false;
+                if (src && c.source !== src) return false;
+                if (q && (c.company || '').toLowerCase().indexOf(q) < 0) return false;
+                return true;
+            });
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center text-gray-400"><i class="fa fa-inbox text-2xl mb-2 block"></i>当前筛选条件下暂无线索</td></tr>';
                 return;
             }
-            // 来源→样式映射（与原种子配色对齐）
-            var SRC_BG = { blue:'bg-blue-50 text-blue-700', orange:'bg-orange-50 text-orange-700', purple:'bg-purple-50 text-purple-700', indigo:'bg-indigo-50 text-indigo-700' };
-            var STAGE_BG = { blue:'bg-blue-50 text-blue-700', gray:'bg-gray-100 text-gray-600', brand:'bg-brand-50 text-brand-700', red:'bg-red-50 text-red-600' };
             tbody.innerHTML = list.map(function(c) {
                 var srcCls = SRC_BG[c.sourceColor] || SRC_BG.blue;
                 var stageCls = STAGE_BG[c.stageColor] || STAGE_BG.gray;
                 var salesCell = c.sales
-                    ? '<div class="flex items-center space-x-2"><div class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs">' + c.salesInitial + '</div><span class="text-gray-700">' + c.sales + '</span></div>'
+                    ? '<div class="flex items-center space-x-2"><div class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs">' + esc(c.salesInitial) + '</div><span class="text-gray-700">' + esc(c.sales) + '</span></div>'
                     : '<div class="flex items-center space-x-2"><div class="w-6 h-6 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center text-xs">-</div><span class="text-gray-400">未分配</span></div>';
-                return '<tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer()">' +
-                    '<td class="px-6 py-4"><p class="font-medium text-gray-800">' + (c.company || '') + '</p><p class="text-xs text-gray-400">' + (c.enterTime || '') + '</p></td>' +
-                    '<td class="px-6 py-4"><span class="px-2 py-0.5 ' + srcCls + ' rounded text-xs"><i class="fa ' + (c.sourceIcon || 'fa-search') + ' mr-1"></i>' + (c.source || '') + '</span></td>' +
-                    '<td class="px-6 py-4 text-gray-600">' + (c.intent || '-') + '</td>' +
+                // 操作按状态条件渲染（与 H5 一致）
+                var ops = '<button class="text-brand-600 hover:text-brand-700 mr-2" title="查看详情" onclick="event.stopPropagation();openDrawer(' + "'" + c.id + "'" + ')"><i class="fa fa-eye"></i></button>';
+                if (c.stage === '待跟进') {
+                    ops += '<button class="text-white bg-brand-600 hover:bg-brand-700 rounded px-2 py-1 text-xs mr-2" onclick="event.stopPropagation();claimLead(' + "'" + c.id + "'" + ')">认领并跟进</button>';
+                    ops += '<button class="text-gray-600 hover:text-brand-600 text-xs border border-gray-200 rounded px-2 py-1" onclick="event.stopPropagation();openResult(' + "'" + c.id + "'" + ')">标记结果</button>';
+                } else if (c.stage === '跟进中') {
+                    ops += '<button class="text-gray-600 hover:text-brand-600 text-xs border border-gray-200 rounded px-2 py-1 mr-2" onclick="event.stopPropagation();openResult(' + "'" + c.id + "'" + ')">标记结果</button>';
+                    ops += '<button class="text-indigo-600 hover:text-indigo-700 text-xs border border-indigo-200 rounded px-2 py-1" onclick="event.stopPropagation();openAssign(' + "'" + c.id + "'" + ')">转派</button>';
+                }
+                return '<tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer(' + "'" + c.id + "'" + ')">' +
+                    '<td class="px-6 py-4"><p class="font-medium text-gray-800">' + esc(c.company) + '</p><p class="text-xs text-gray-400">' + esc(c.enterTime || c.createTime) + '</p></td>' +
+                    '<td class="px-6 py-4"><span class="px-2 py-0.5 ' + srcCls + ' rounded text-xs"><i class="fa ' + (c.sourceIcon || 'fa-search') + ' mr-1"></i>' + esc(c.source) + '</span></td>' +
+                    '<td class="px-6 py-4 text-gray-600">' + esc(c.intent || '-') + '</td>' +
                     '<td class="px-6 py-4">' + salesCell + '</td>' +
-                    '<td class="px-6 py-4"><span class="px-2 py-0.5 ' + stageCls + ' rounded text-xs">' + (c.stage || '待跟进') + '</span></td>' +
-                    '<td class="px-6 py-4 text-right">' +
-                        '<button class="text-brand-600 hover:text-brand-700 mr-2"><i class="fa fa-eye"></i></button>' +
-                        '<button class="text-gray-500 hover:text-brand-600 mr-2"><i class="fa fa-edit"></i></button>' +
-                        '<button class="text-gray-500 hover:text-red-500"><i class="fa fa-ellipsis-h"></i></button>' +
-                    '</td>' +
-                '</tr>';
+                    '<td class="px-6 py-4"><span class="px-2 py-0.5 ' + stageCls + ' rounded text-xs">' + esc(c.stage) + '</span></td>' +
+                    '<td class="px-6 py-4 text-right whitespace-nowrap">' + ops + '</td>' +
+                    '</tr>';
             }).join('');
         }
-        function openDrawer() {
+
+        // ---- 认领：先认领先得，认领后自动转跟进中 ----
+        function claimLead(id) {
+            var list = loadAll();
+            var c = list.filter(function(x) { return x.id === id; })[0];
+            if (!c) return;
+            if (c.sales) { toast('该线索已由「' + c.sales + '」认领，无法重复认领'); return; }
+            c.sales = ME; c.salesInitial = ME.charAt(0); c.stage = '跟进中'; c.stageColor = 'blue';
+            saveAll(list); renderTabs(); renderClues();
+            toast('已认领并转入跟进中，其他销售不再出现在待跟进列表');
+        }
+
+        // ---- 标记结果 ----
+        function openResult(id) {
+            activeClueId = id;
+            var c = loadAll().filter(function(x) { return x.id === id; })[0];
+            document.getElementById('resultSub').textContent = c ? '客户：' + c.company + '（当前阶段：' + c.stage + '）' : '';
+            document.getElementById('resultMask').classList.remove('hidden');
+        }
+        function closeResult() { document.getElementById('resultMask').classList.add('hidden'); }
+        function confirmResult() {
+            var val = document.querySelector('input[name="resultRadio"]:checked').value;
+            var list = loadAll();
+            var c = list.filter(function(x) { return x.id === activeClueId; })[0];
+            if (!c) return;
+            c.stage = val;
+            c.stageColor = val === '已转化' ? 'brand' : 'red';
+            if (val === '已流失') c.lostTime = new Date().toISOString().slice(0, 10);
+            saveAll(list); closeResult(); closeDrawer(); renderTabs(); renderClues();
+            toast('已标记为「' + val + '」');
+        }
+
+        // ---- 转派（主管视角） ----
+        function allSalesNames() {
+            var names = {};
+            loadAll().forEach(function(c) { if (c.sales) names[c.sales] = true; });
+            names[ME] = true;
+            return Object.keys(names);
+        }
+        function openAssign(id) {
+            activeClueId = id;
+            var c = loadAll().filter(function(x) { return x.id === id; })[0];
+            document.getElementById('assignSub').textContent = c ? '客户：' + c.company + '（当前负责人：' + (c.sales || '未分配') + '）' : '';
+            document.getElementById('assignSales').innerHTML = allSalesNames().map(function(n) {
+                return '<option value="' + esc(n) + '"' + (c && c.sales === n ? ' selected' : '') + '>' + esc(n) + '</option>';
+            }).join('');
+            document.getElementById('assignMask').classList.remove('hidden');
+        }
+        function closeAssign() { document.getElementById('assignMask').classList.add('hidden'); }
+        function confirmAssign() {
+            var name = document.getElementById('assignSales').value;
+            var list = loadAll();
+            var c = list.filter(function(x) { return x.id === activeClueId; })[0];
+            if (!c) return;
+            c.sales = name; c.salesInitial = name.charAt(0); c.stage = '跟进中'; c.stageColor = 'blue';
+            saveAll(list); closeAssign(); closeDrawer(); renderTabs(); renderClues();
+            toast('已转派给「' + name + '」');
+        }
+
+        // ---- 录入线索 ----
+        function addLead() {
+            var company = prompt('请输入企业名称');
+            if (!company) return;
+            var list = loadAll();
+            list.unshift({
+                id: 'XS' + Date.now().toString().slice(-8), company: company,
+                source: '政策查询', sourceIcon: 'fa-search', sourceColor: 'blue',
+                intent: '待确认', sales: '', salesInitial: '-', stage: '待跟进', stageColor: 'gray',
+                enterTime: '刚刚进入', createTime: new Date().toISOString().slice(0, 16).replace('T', ' ')
+            });
+            saveAll(list); renderTabs(); renderClues();
+            toast('线索已录入');
+        }
+
+        // ---- 详情抽屉 ----
+        function openDrawer(id) {
+            activeClueId = id;
+            var c = loadAll().filter(function(x) { return x.id === id; })[0];
+            if (!c) return;
+            var stepHtml = [
+                { t: '线索生成', d: (c.createTime || '') + ' · ' + c.source + '「' + (c.intent || '') + '」', on: true },
+                { t: '销售接洽', d: c.sales ? '负责人 ' + c.sales + ' 已认领并跟进' : '尚未认领', on: !!c.sales },
+                { t: '需求确认', d: c.stage === '跟进中' ? '跟进中' : (c.stage === '已转化' ? '已完成' : '—'), on: c.stage !== '待跟进' },
+                { t: '成交转化', d: c.stage === '已转化' ? '已转化，转入客户管理' : (c.stage === '已流失' ? '已流失' : '待完成'), on: c.stage === '已转化' }
+            ].map(function(s) {
+                return '<div class="relative mb-4"><div class="absolute -left-6 top-0 w-4 h-4 ' + (s.on ? 'bg-brand-600' : 'bg-gray-200') + ' rounded-full border-2 border-white"></div>' +
+                    '<p class="text-sm font-medium ' + (s.on ? 'text-gray-800' : 'text-gray-400') + '">' + s.t + '</p><p class="text-xs text-gray-400 mt-0.5">' + esc(s.d) + '</p></div>';
+            }).join('');
+            var ops = '';
+            if (c.stage === '待跟进') {
+                ops = '<button onclick="claimLead(' + "'" + c.id + "'" + ')" class="flex-1 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700"><i class="fa fa-hand-o-right mr-1"></i>认领并跟进</button>' +
+                    '<button onclick="openResult(' + "'" + c.id + "'" + ')" class="flex-1 py-2.5 border border-brand-600 text-brand-600 rounded-lg text-sm hover:bg-brand-50">标记结果</button>';
+            } else if (c.stage === '跟进中') {
+                ops = '<button onclick="openResult(' + "'" + c.id + "'" + ')" class="flex-1 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700"><i class="fa fa-check mr-1"></i>标记结果</button>' +
+                    '<button onclick="openAssign(' + "'" + c.id + "'" + ')" class="px-4 py-2.5 border border-indigo-200 text-indigo-600 rounded-lg text-sm hover:bg-indigo-50">转派</button>';
+            }
+            document.getElementById('drawerBody').innerHTML =
+                '<div class="mb-5"><h4 class="text-lg font-bold text-gray-800">' + esc(c.company) + '</h4>' +
+                '<p class="text-sm text-gray-500 mt-0.5">' + esc(c.enterTime || '') + ' · 由' + esc(c.source) + '触发</p></div>' +
+                '<div class="grid grid-cols-2 gap-3 text-sm mb-6">' +
+                    '<div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-500">线索来源</p><p class="font-medium text-gray-800 mt-0.5">' + esc(c.source) + '</p></div>' +
+                    '<div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-500">意向政策</p><p class="font-medium text-gray-800 mt-0.5">' + esc(c.intent || '-') + '</p></div>' +
+                    ((c.contact || c.phone) ? '<div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-500">联系人 / 电话</p><p class="font-medium text-gray-800 mt-0.5">' + esc(c.contact || '-') + ' · ' + esc(c.phone || '-') + '</p></div>' : '') +
+                    '<div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-500">负责人</p><p class="font-medium text-gray-800 mt-0.5">' + esc(c.sales || '未分配') + '</p></div>' +
+                    '<div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-500">当前阶段</p><p class="font-medium text-brand-700 mt-0.5">' + esc(c.stage) + '</p></div>' +
+                '</div>' +
+                '<h5 class="text-sm font-semibold text-gray-700 mb-3"><i class="fa fa-random text-brand-600 mr-1"></i>转化路径</h5>' +
+                '<div class="relative pl-6 mb-5">' + stepHtml + '</div>' +
+                (c.note ? '<h5 class="text-sm font-semibold text-gray-700 mb-2">跟进备注</h5><p class="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">' + esc(c.note) + '</p>' : '');
+            document.getElementById('drawerBody').insertAdjacentHTML('beforeend',
+                ops ? '<div class="sticky bottom-0 -mx-6 -mb-6 mt-6 px-6 py-4 bg-white border-t border-gray-100 flex gap-3">' + ops + '</div>' : '');
             document.getElementById('overlay').classList.remove('hidden');
             document.getElementById('drawer').classList.remove('translate-x-full');
         }
@@ -383,7 +402,11 @@
             document.getElementById('overlay').classList.add('hidden');
             document.getElementById('drawer').classList.add('translate-x-full');
         }
-        // 初始化：从 DataBridge 渲染线索列表（覆盖原 HTML 种子，确保与 localStorage 最新数据一致）
+
+        function openRules() { document.getElementById('rulesMask').classList.remove('hidden'); }
+        function closeRules() { document.getElementById('rulesMask').classList.add('hidden'); }
+
+        renderTabs();
         renderClues();
     </script>
 </body>

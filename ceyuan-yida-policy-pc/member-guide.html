@@ -66,7 +66,7 @@
                 <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-black">1</span>
                 <h2 class="text-lg font-black text-slate-800">先搞懂：平台有两套相互独立的会员概念</h2>
             </div>
-            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5" id="s1Body">
                 <p class="text-xs text-slate-500 leading-relaxed mb-4">很多用户会混淆「账号类型」和「VIP 套餐」，它们是两件事，可以自由组合：</p>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="rounded-xl border border-slate-200 p-4">
@@ -107,7 +107,7 @@
             </div>
             <div class="bg-white rounded-2xl border border-slate-200 p-5">
                 <!-- 流程图 -->
-                <div class="flex items-stretch gap-2 mb-5 overflow-x-auto scroll-thin pb-2">
+                <div class="flex items-stretch gap-2 mb-5 overflow-x-auto scroll-thin pb-2" id="s2Flow">
                     <div class="flow-node flex-shrink-0 w-40 rounded-xl border border-slate-200 p-3 text-center">
                         <div class="w-8 h-8 mx-auto rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-black mb-2">1</div>
                         <div class="text-xs font-bold text-slate-800 mb-1">进入注册页</div>
@@ -150,7 +150,7 @@
                                     <th class="text-left px-3 py-2 font-bold">说明</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-100 text-slate-600">
+                            <tbody class="divide-y divide-slate-100 text-slate-600" id="s2Fields">
                                 <tr><td class="px-3 py-2 font-bold">所在地区</td><td class="px-3 py-2 text-red-400">必填</td><td class="px-3 py-2">省 / 市 / 区县三级选择，注册后平台默认推送该地区政策，可在会员中心修改</td></tr>
                                 <tr><td class="px-3 py-2 font-bold">手机号</td><td class="px-3 py-2 text-red-400">必填</td><td class="px-3 py-2">即登录账号，一个手机号只能注册一次</td></tr>
                                 <tr><td class="px-3 py-2 font-bold">短信验证码</td><td class="px-3 py-2 text-red-400">必填</td><td class="px-3 py-2">点击「获取验证码」，演示环境验证码会直接提示；正式环境发送至手机，5 分钟内有效</td></tr>
@@ -177,7 +177,7 @@
                         <h3 class="text-sm font-black text-slate-800">注册时直接选「企业注册」</h3>
                     </div>
                     <p class="text-[11px] text-slate-500 leading-relaxed mb-3">适合还没有账号、首次入驻的企业。在注册页顶部切换到「企业注册」标签，一步到位。</p>
-                    <ol class="space-y-2">
+                    <ol class="space-y-2" id="s3PathA">
                         <li class="flex gap-2 text-[11px] text-slate-600"><span class="w-5 h-5 flex-shrink-0 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold">1</span>切换「企业注册」标签</li>
                         <li class="flex gap-2 text-[11px] text-slate-600"><span class="w-5 h-5 flex-shrink-0 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold">2</span>填写企业名称（与营业执照一致）</li>
                         <li class="flex gap-2 text-[11px] text-slate-600"><span class="w-5 h-5 flex-shrink-0 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold">3</span>填写 18 位统一社会信用代码</li>
@@ -193,7 +193,7 @@
                         <h3 class="text-sm font-black text-slate-800">个人账号补传营业执照升级</h3>
                     </div>
                     <p class="text-[11px] text-slate-500 leading-relaxed mb-3">已经注册了个人账号？不用重新注册，在会员中心完成企业认证即可升级，原有策能值全部保留。</p>
-                    <ol class="space-y-2">
+                    <ol class="space-y-2" id="s3PathB">
                         <li class="flex gap-2 text-[11px] text-slate-600"><span class="w-5 h-5 flex-shrink-0 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] font-bold">1</span>进入「会员中心 → 账号信息」</li>
                         <li class="flex gap-2 text-[11px] text-slate-600"><span class="w-5 h-5 flex-shrink-0 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] font-bold">2</span>点击「切换为企业版 / 上传营业执照」</li>
                         <li class="flex gap-2 text-[11px] text-slate-600"><span class="w-5 h-5 flex-shrink-0 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] font-bold">3</span>核对企业名称、信用代码、联系人</li>
@@ -206,13 +206,13 @@
             <!-- 审核说明 -->
             <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                 <h3 class="text-xs font-black text-slate-700 mb-2"><i class="fa fa-shield text-blue-500 mr-1.5"></i>认证审核说明</h3>
-                <div class="grid grid-cols-2 gap-3 text-[11px]">
+                <div class="grid grid-cols-2 gap-3 text-[11px]" id="s3Audit">
                     <div class="flex items-start gap-2"><i class="fa fa-check-circle text-emerald-500 mt-0.5"></i><p class="text-slate-600 leading-relaxed"><b class="text-slate-800">审核通过：</b>账号自动转为企业版，短信通知联系人，企业名称、统一社会信用代码、联系人与所属行业存入账号资料，并可开具发票，200 策能值到账。</p></div>
                     <div class="flex items-start gap-2"><i class="fa fa-id-card text-blue-500 mt-0.5"></i><p class="text-slate-600 leading-relaxed"><b class="text-slate-800">提交前置校验：</b>同一手机号、同一营业执照（统一社会信用代码）仅可注册 / 认证一个账号，重复提交会被即时拦截。</p></div>
                 </div>
                 <div class="mt-3 flex items-start gap-2 rounded-xl bg-slate-50 p-3">
                     <i class="fa fa-info-circle text-slate-400 mt-0.5"></i>
-                    <p class="text-[11px] text-slate-500 leading-relaxed">演示环境中提交后即时通过；正式环境由运营核验后生效。企业版如需切回个人版（如演示体验），可在账号信息页操作，策能值保留，但将无法再开具发票。</p>
+                    <p class="text-[11px] text-slate-500 leading-relaxed" id="s3NoteText">演示环境中提交后即时通过；正式环境由运营核验后生效。企业版如需切回个人版（如演示体验），可在账号信息页操作，策能值保留，但将无法再开具发票。</p>
                 </div>
             </div>
         </section>
@@ -232,7 +232,7 @@
                             <th class="text-center px-4 py-3 font-bold w-32 text-amber-700"><i class="fa fa-building mr-1 text-amber-500"></i>企业会员</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 text-slate-600">
+                    <tbody class="divide-y divide-slate-100 text-slate-600" id="s4Rows">
                         <tr><td class="px-4 py-2.5">AI 政策问答（自然语言提问、秒级结论）</td><td class="text-center"><i class="fa fa-check text-emerald-500"></i></td><td class="text-center"><i class="fa fa-check text-emerald-500"></i></td></tr>
                         <tr><td class="px-4 py-2.5">政策库浏览、搜索、收藏</td><td class="text-center"><i class="fa fa-check text-emerald-500"></i></td><td class="text-center"><i class="fa fa-check text-emerald-500"></i></td></tr>
                         <tr><td class="px-4 py-2.5">政策雷达精准匹配与推送</td><td class="text-center"><i class="fa fa-check text-emerald-500"></i></td><td class="text-center"><i class="fa fa-check text-emerald-500"></i></td></tr>
@@ -255,7 +255,7 @@
                 <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-black">5</span>
                 <h2 class="text-lg font-black text-slate-800">VIP 付费套餐（在会员中心开通）</h2>
             </div>
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-3 gap-4" id="vipGrid">
                 <div class="bg-white rounded-2xl border border-slate-200 p-5 text-center flow-node">
                     <div class="text-xs font-black text-slate-400 mb-1">VIP1</div>
                     <div class="text-2xl font-black text-slate-800">¥8.9</div>
@@ -298,8 +298,8 @@
                 <h2 class="text-lg font-black text-slate-800">什么是策能值？能用在哪里？</h2>
             </div>
             <div class="bg-white rounded-2xl border border-slate-200 p-5">
-                <p class="text-xs text-slate-500 leading-relaxed mb-4">策能值是平台 AI 服务的统一用量单位，<b class="text-slate-700">1 策能值 ≈ 1 次 AI 问答</b>。任务奖励、套餐、兑换码、企业认证奖励获得的都是同一种策能值，在会员中心合并为「总可用策能值」，所有 AI 功能统一扣减。</p>
-                <div class="grid grid-cols-2 gap-3">
+                <p class="text-xs text-slate-500 leading-relaxed mb-4" id="s6Intro">策能值是平台 AI 服务的统一用量单位，<b class="text-slate-700">1 策能值 ≈ 1 次 AI 问答</b>。任务奖励、套餐、兑换码、企业认证奖励获得的都是同一种策能值，在会员中心合并为「总可用策能值」，所有 AI 功能统一扣减。</p>
+                <div class="grid grid-cols-2 gap-3" id="s6Uses">
                     <div class="rounded-xl border border-slate-100 p-3.5 flex items-start gap-3">
                         <div class="w-9 h-9 flex-shrink-0 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center"><i class="fa fa-comments"></i></div>
                         <div><div class="text-xs font-bold text-slate-800">AI 政策问答</div><p class="text-[10px] text-slate-400 mt-0.5 leading-relaxed">自然语言提问，每次问答消耗策能值</p></div>
@@ -317,7 +317,7 @@
                         <div><div class="text-xs font-bold text-slate-800">AI 政策解析 / 申报辅助</div><p class="text-[10px] text-slate-400 mt-0.5 leading-relaxed">政策深度解读、申报书 AI 辅助生成</p></div>
                     </div>
                 </div>
-                <p class="text-[10px] text-slate-400 mt-3"><i class="fa fa-info-circle mr-1"></i>政策库浏览、收藏、服务商城购物等不消耗策能值；只有调用 AI 能力时才扣减。所有收支可在「会员中心 → 用量明细」中按周 / 月查询。</p>
+                <p class="text-[10px] text-slate-400 mt-3" id="s6Note"><i class="fa fa-info-circle mr-1"></i>政策库浏览、收藏、服务商城购物等不消耗策能值；只有调用 AI 能力时才扣减。所有收支可在「会员中心 → 用量明细」中按周 / 月查询。</p>
             </div>
         </section>
 
@@ -343,7 +343,7 @@
                             <th class="text-left px-4 py-2.5 font-bold">在哪里操作</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 text-slate-600">
+                    <tbody class="divide-y divide-slate-100 text-slate-600" id="freeTbody">
                         <tr>
                             <td class="px-4 py-2.5 font-bold text-slate-700">新用户注册福利</td>
                             <td class="px-3 py-2.5 text-center font-black text-emerald-600">+100</td>
@@ -410,7 +410,7 @@
                             <th class="text-left px-4 py-2.5 font-bold">折合单价</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 text-slate-600">
+                    <tbody class="divide-y divide-slate-100 text-slate-600" id="paidTbody">
                         <tr><td class="px-4 py-2.5 font-bold text-slate-700">VIP1</td><td class="px-3 py-2.5 text-center">¥8.9</td><td class="px-3 py-2.5 text-center">300</td><td class="px-3 py-2.5 text-center">3 个月</td><td class="px-4 py-2.5">约 0.030 元 / 策能值</td></tr>
                         <tr class="bg-amber-50/40"><td class="px-4 py-2.5 font-bold text-amber-700">VIP2（推荐）</td><td class="px-3 py-2.5 text-center">¥19.9</td><td class="px-3 py-2.5 text-center">700</td><td class="px-3 py-2.5 text-center">6 个月</td><td class="px-4 py-2.5">约 0.028 元 / 策能值</td></tr>
                         <tr><td class="px-4 py-2.5 font-bold text-slate-700">VIP3</td><td class="px-3 py-2.5 text-center">¥29.9</td><td class="px-4 py-2.5 text-center">1100</td><td class="px-3 py-2.5 text-center">6 个月</td><td class="px-4 py-2.5">约 0.027 元 / 策能值</td></tr>
@@ -431,7 +431,7 @@
                 <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-black">8</span>
                 <h2 class="text-lg font-black text-slate-800">常见问题</h2>
             </div>
-            <div class="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">
+            <div class="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100" id="faqBox">
                 <details class="group" open>
                     <summary class="flex items-center justify-between px-5 py-3.5 cursor-pointer list-none">
                         <span class="text-xs font-bold text-slate-700">个人会员必须升级企业会员吗？</span>
@@ -532,6 +532,181 @@
         }
         window.addEventListener('scroll', onScroll, { passive: true });
         onScroll();
+
+        // ===== 读取运营后台「会员指南维护」配置（未配置时沿用页面默认内容） =====
+        (function renderGuideFromCfg() {
+            var raw = null;
+            try { raw = localStorage.getItem('ceyuan_member_guide_cfg'); } catch (e) {}
+            if (!raw) return;
+            var cfg;
+            try { cfg = JSON.parse(raw); } catch (e) { return; }
+            if (!cfg) return;
+
+            function esc(s) {
+                return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            // s1 账号体系：引言 + 概念卡 + 举例
+            var s1Body = document.getElementById('s1Body');
+            if (s1Body && cfg.s1 && Array.isArray(cfg.s1.concepts) && cfg.s1.concepts.length) {
+                s1Body.innerHTML = '<p class="text-xs text-slate-500 leading-relaxed mb-4">' + esc(cfg.s1.intro || '') + '</p>' +
+                    '<div class="grid grid-cols-2 gap-4">' + cfg.s1.concepts.map(function (c) {
+                        return '<div class="rounded-xl border border-slate-200 p-4">' +
+                            '<div class="flex items-center gap-2 mb-2"><i class="fa ' + esc(c.icon || 'fa-id-card') + ' ' + esc(c.iconColor || 'text-indigo-500') + '"></i>' +
+                            '<span class="text-sm font-black text-slate-800">' + esc(c.title || '') + '</span></div>' +
+                            '<p class="text-[11px] text-slate-500 leading-relaxed mb-2">' + esc(c.desc || '') + '</p>' +
+                            '<div class="flex flex-col gap-1.5 text-[11px]">' + (c.items || []).map(function (it) {
+                                return '<span class="px-2.5 py-1.5 rounded-lg font-bold ' + esc(it.cls || 'bg-slate-100 text-slate-700') + '">' + esc(it.text || '') + '</span>';
+                            }).join('') + '</div></div>';
+                    }).join('') + '</div>' +
+                    '<div class="mt-4 flex items-start gap-2 rounded-xl bg-indigo-50 border border-indigo-100 p-3"><i class="fa fa-lightbulb-o text-indigo-500 mt-0.5"></i>' +
+                    '<p class="text-[11px] text-indigo-700 leading-relaxed">' + esc(cfg.s1.example || '') + '</p></div>';
+            }
+
+            // s2 个人注册流程：流程节点（末节点为成功样式）+ 字段说明表
+            var s2Flow = document.getElementById('s2Flow');
+            if (s2Flow && cfg.s2 && Array.isArray(cfg.s2.steps) && cfg.s2.steps.length) {
+                var nodes = [];
+                cfg.s2.steps.forEach(function (st, i) {
+                    var last = i === cfg.s2.steps.length - 1;
+                    nodes.push('<div class="flow-node flex-shrink-0 w-40 rounded-xl p-3 text-center ' + (last ? 'border-2 border-emerald-300 bg-emerald-50' : 'border border-slate-200') + '">' +
+                        '<div class="w-8 h-8 mx-auto rounded-full flex items-center justify-center text-xs font-black mb-2 ' + (last ? 'bg-emerald-500 text-white' : 'bg-indigo-100 text-indigo-600') + '">' + (last ? '<i class="fa fa-check"></i>' : (i + 1)) + '</div>' +
+                        '<div class="text-xs font-bold mb-1 ' + (last ? 'text-emerald-800' : 'text-slate-800') + '">' + esc(st.title || '') + '</div>' +
+                        '<div class="text-[10px] leading-relaxed ' + (last ? 'text-emerald-600' : 'text-slate-400') + '">' + esc(st.desc || '') + '</div></div>');
+                    if (!last) nodes.push('<div class="flex items-center text-slate-300"><i class="fa fa-angle-right"></i></div>');
+                });
+                s2Flow.innerHTML = nodes.join('');
+            }
+            var s2Fields = document.getElementById('s2Fields');
+            if (s2Fields && cfg.s2 && Array.isArray(cfg.s2.fields) && cfg.s2.fields.length) {
+                s2Fields.innerHTML = cfg.s2.fields.map(function (f) {
+                    return '<tr><td class="px-3 py-2 font-bold">' + esc(f.name || '') + '</td>' +
+                        '<td class="px-3 py-2 ' + (f.required ? 'text-red-400' : 'text-slate-400') + '">' + (f.required ? '必填' : '选填') + '</td>' +
+                        '<td class="px-3 py-2">' + esc(f.desc || '') + '</td></tr>';
+                }).join('');
+            }
+
+            // s3 企业注册/升级：路径A/B 步骤 + 审核说明 + 底部备注
+            function renderGuidePath(elId, steps, numCls) {
+                var el = document.getElementById(elId);
+                if (!el || !Array.isArray(steps) || !steps.length) return;
+                el.innerHTML = steps.map(function (t, i) {
+                    var last = i === steps.length - 1;
+                    return '<li class="flex gap-2 text-[11px] ' + (last ? 'text-emerald-700 font-bold' : 'text-slate-600') + '">' +
+                        '<span class="w-5 h-5 flex-shrink-0 rounded-full flex items-center justify-center text-[10px] ' + (last ? 'bg-emerald-500 text-white' : numCls + ' font-bold') + '">' +
+                        (last ? '<i class="fa fa-check"></i>' : (i + 1)) + '</span>' + esc(t || '') + '</li>';
+                }).join('');
+            }
+            if (cfg.s3) {
+                renderGuidePath('s3PathA', cfg.s3.pathA, 'bg-indigo-100 text-indigo-600');
+                renderGuidePath('s3PathB', cfg.s3.pathB, 'bg-amber-100 text-amber-600');
+                var s3Audit = document.getElementById('s3Audit');
+                if (s3Audit && Array.isArray(cfg.s3.audit) && cfg.s3.audit.length) {
+                    s3Audit.innerHTML = cfg.s3.audit.map(function (a) {
+                        return '<div class="flex items-start gap-2"><i class="fa ' + esc(a.icon || 'fa-check-circle') + ' ' + esc(a.color || 'text-emerald-500') + ' mt-0.5"></i>' +
+                            '<p class="text-slate-600 leading-relaxed"><b class="text-slate-800">' + esc(a.title || '') + '：</b>' + esc(a.text || '') + '</p></div>';
+                    }).join('');
+                }
+                var s3Note = document.getElementById('s3NoteText');
+                if (s3Note && cfg.s3.note) s3Note.textContent = cfg.s3.note;
+            }
+
+            // s4 权益对比表
+            var s4Rows = document.getElementById('s4Rows');
+            if (s4Rows && Array.isArray(cfg.s4) && cfg.s4.length) {
+                s4Rows.innerHTML = cfg.s4.map(function (r) {
+                    function cell(v) {
+                        if (v === 'yes') return '<i class="fa fa-check text-emerald-500"></i>';
+                        if (v === 'no') return '<i class="fa fa-times text-slate-300"></i>';
+                        if (v === 'none') return '<span class="text-slate-300">—</span>';
+                        return '<span class="font-black text-amber-600">' + esc(v) + '</span>';
+                    }
+                    return '<tr' + (r.diff ? ' class="bg-amber-50/40"' : '') + '><td class="px-4 py-2.5' + (r.bold ? ' font-bold text-slate-700' : '') + '">' + esc(r.name || '') + '</td>' +
+                        '<td class="text-center">' + cell(r.personal) + '</td><td class="text-center">' + cell(r.enterprise) + '</td></tr>';
+                }).join('');
+            }
+
+            // s6 策能值用途：引言 + 用途卡 + 底部说明
+            if (cfg.s6) {
+                var s6Intro = document.getElementById('s6Intro');
+                if (s6Intro && cfg.s6.intro) s6Intro.textContent = cfg.s6.intro;
+                var s6Uses = document.getElementById('s6Uses');
+                if (s6Uses && Array.isArray(cfg.s6.uses) && cfg.s6.uses.length) {
+                    s6Uses.innerHTML = cfg.s6.uses.map(function (u) {
+                        return '<div class="rounded-xl border border-slate-100 p-3.5 flex items-start gap-3">' +
+                            '<div class="w-9 h-9 flex-shrink-0 rounded-lg ' + esc(u.color || 'bg-indigo-50 text-indigo-500') + ' flex items-center justify-center"><i class="fa ' + esc(u.icon || 'fa-star') + '"></i></div>' +
+                            '<div><div class="text-xs font-bold text-slate-800">' + esc(u.name || '') + '</div>' +
+                            '<p class="text-[10px] text-slate-400 mt-0.5 leading-relaxed">' + esc(u.desc || '') + '</p></div></div>';
+                    }).join('');
+                }
+                var s6Note = document.getElementById('s6Note');
+                if (s6Note && cfg.s6.note) s6Note.innerHTML = '<i class="fa fa-info-circle mr-1"></i>' + esc(cfg.s6.note);
+            }
+
+            // VIP 套餐卡片
+            var vipGrid = document.getElementById('vipGrid');
+            if (vipGrid && Array.isArray(cfg.vip) && cfg.vip.length) {
+                vipGrid.innerHTML = cfg.vip.map(function (v) {
+                    var hot = !!v.hot;
+                    return '<div class="bg-white rounded-2xl p-5 text-center flow-node ' +
+                        (hot ? 'border-2 border-amber-400 relative shadow-lg shadow-amber-100' : 'border border-slate-200') + '">' +
+                        (hot ? '<span class="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-black">最受欢迎</span>' : '') +
+                        '<div class="text-xs font-black mb-1 ' + (hot ? 'text-amber-600' : 'text-slate-400') + '">' + esc(v.name) + '</div>' +
+                        '<div class="text-2xl font-black text-slate-800">' + esc(v.price) + '</div>' +
+                        '<div class="mt-3 space-y-1.5 text-[11px] text-slate-500">' +
+                        '<p><b class="text-slate-700">' + esc(v.energy) + '</b> 策能值</p>' +
+                        '<p>有效期 <b class="text-slate-700">' + esc(v.months) + ' 个月</b></p>' +
+                        '<p>' + esc(v.desc) + '</p>' +
+                        '</div></div>';
+                }).join('');
+            }
+
+            // 免费获取途径
+            var freeTb = document.getElementById('freeTbody');
+            if (freeTb && Array.isArray(cfg.free)) {
+                var rows = cfg.free.filter(function (f) { return f.enabled !== false; });
+                freeTb.innerHTML = rows.map(function (f) {
+                    return '<tr>' +
+                        '<td class="px-4 py-2.5 font-bold text-slate-700">' + esc(f.name) + '</td>' +
+                        '<td class="px-3 py-2.5 text-center font-black text-emerald-600">' + esc(f.reward) + '</td>' +
+                        '<td class="px-3 py-2.5 text-center">' + esc(f.limit) + '</td>' +
+                        '<td class="px-3 py-2.5">' + esc(f.where) + '</td>' +
+                        '</tr>';
+                }).join('') || '<tr><td colspan="4" class="px-4 py-4 text-center text-slate-400">运营暂未配置获取途径</td></tr>';
+            }
+
+            // 付费途径（与 VIP 套餐联动）
+            var paidTb = document.getElementById('paidTbody');
+            if (paidTb && Array.isArray(cfg.vip)) {
+                paidTb.innerHTML = cfg.vip.map(function (v) {
+                    var p = parseFloat(String(v.price).replace(/[^\d.]/g, ''));
+                    var e = parseFloat(String(v.energy).replace(/[^\d.]/g, ''));
+                    var unit = (p > 0 && e > 0) ? ('约 ' + (p / e).toFixed(3) + ' 元 / 策能值') : '—';
+                    var hot = !!v.hot;
+                    return '<tr' + (hot ? ' class="bg-amber-50/40"' : '') + '>' +
+                        '<td class="px-4 py-2.5 font-bold ' + (hot ? 'text-amber-700' : 'text-slate-700') + '">' + esc(v.name) + (hot ? '（推荐）' : '') + '</td>' +
+                        '<td class="px-3 py-2.5 text-center">' + esc(v.price) + '</td>' +
+                        '<td class="px-3 py-2.5 text-center">' + esc(v.energy) + '</td>' +
+                        '<td class="px-3 py-2.5 text-center">' + esc(v.months) + ' 个月</td>' +
+                        '<td class="px-4 py-2.5">' + unit + '</td>' +
+                        '</tr>';
+                }).join('');
+            }
+
+            // 常见问题
+            var faqBox = document.getElementById('faqBox');
+            if (faqBox && Array.isArray(cfg.faq) && cfg.faq.length) {
+                faqBox.innerHTML = cfg.faq.map(function (f, i) {
+                    return '<details class="group"' + (i === 0 ? ' open' : '') + '>' +
+                        '<summary class="flex items-center justify-between px-5 py-3.5 cursor-pointer list-none">' +
+                        '<span class="text-xs font-bold text-slate-700">' + esc(f.q) + '</span>' +
+                        '<i class="fa fa-angle-right faq-arrow text-slate-400"></i>' +
+                        '</summary>' +
+                        '<p class="px-5 pb-4 text-[11px] text-slate-500 leading-relaxed">' + esc(f.a) + '</p>' +
+                        '</details>';
+                }).join('');
+            }
+        })();
     </script>
 </body>
 </html>

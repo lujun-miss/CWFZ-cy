@@ -353,7 +353,6 @@
         const fieldMap = {
             'f_name':'name','f_level':'level','f_type':'type','f_status':'status',
             'f_dept':'dept','f_deadline':'deadline','f_subsidy':'subsidy',
-            'f_icon':'icon','f_iconColor':'iconColor',
             'f_province':'__region_province','f_city':'__region_city','f_district':'__region_district'
         };
         const key = fieldMap[id];
@@ -468,8 +467,6 @@
                 ${field('项目级别', 'f_level', p.level, 'select', {options:LEVEL_OPTIONS})}
                 ${field('政策类型', 'f_type', p.type, 'select', {options:TYPE_OPTIONS})}
                 ${field('申报状态', 'f_status', p.status, 'select', {options:statusOpts})}
-                ${field('项目图标', 'f_icon', p.icon, 'select', {options:['fa-star','fa-rocket','fa-bolt','fa-flask','fa-building','fa-file-text-o','fa-shield','fa-lightbulb-o','fa-cogs','fa-area-chart']})}
-                ${field('图标颜色', 'f_iconColor', p.iconColor, 'select', {options:ICON_COLORS})}
                 <div class="col-span-2">${field('预计扶持金额', 'f_subsidy', p.subsidy, 'textarea', {rows:2})}</div>
                 ${isNational ? '<div class="col-span-2 text-[11px] text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2"><i class="fa fa-info-circle text-blue-400 mr-1"></i>当前为全国通用项目，无需选择城市和区县。取消"全国"后可选择具体省份。</div>' : ''}
             </div>
@@ -1028,7 +1025,7 @@
         const id = 'new_' + Date.now().toString(36);
         const newP = {
             id, name:'新增申报项目', level:'国家级', type:'资金补贴', status:'待申报', statusColor:'blue',
-            icon:'fa-star', iconColor:'blue', dept:'', deadline:'', subsidy:'', progress:0,
+            dept:'', deadline:'', subsidy:'', progress:0,
             region: { province:'全国', city:'', district:'' },
             groups:[], regionOverrides:{}
         };

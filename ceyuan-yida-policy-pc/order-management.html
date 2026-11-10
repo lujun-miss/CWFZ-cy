@@ -321,6 +321,13 @@
                             <i class="fa ${st.icon}"></i><span>${st.text}</span>
                         </span>
                         ${o.status === 'serving' ? `<div class="text-[10px] text-slate-400 mt-1">进度 ${o.progress}%</div>` : ''}
+                        ${o.status === 'paid' || o.status === 'serving' || o.status === 'done' || o.status === 'reviewed' ? (() => {
+                            const m = o.payMethod || '';
+                            const isOffline = m.indexOf('线下') >= 0 || m.indexOf('现金') >= 0;
+                            const cls = isOffline ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600';
+                            const label = isOffline ? '线下支付' : '线上支付';
+                            return `<div class="text-[10px] mt-1"><span class="inline-block px-1.5 py-0.5 rounded ${cls}">${label} · ${m || '—'}</span></div>`;
+                        })() : ''}
                     </td>
                     <td class="px-6 py-4"><div class="flex items-center justify-center space-x-2">${acts}</div></td>
                 </tr>`;

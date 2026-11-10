@@ -77,8 +77,8 @@
         .border-3 { border-width: 3px; }
         /* 预约弹窗动画 */
         @keyframes modalIn {
-            from { opacity: 0; transform: translate(-50%, calc(-50% - 12px)) scale(0.97); }
-            to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            from { opacity: 0; transform: scale(0.97); }
+            to   { opacity: 1; transform: scale(1); }
         }
         .animate-modal-in { animation: modalIn 0.18s cubic-bezier(0.4, 0, 0.2, 1) both; }
         /* 输入框聚焦蓝色高亮对齐参考图 */
@@ -1421,7 +1421,36 @@
             localStorage.setItem(key, JSON.stringify(list));
         } catch (e) {}
 
-        // 3) 控制台打印，便于开发联调
+        // 3) 同步写入销售线索池：运营/销售在「线索管理」（PC 端与 H5）中可见，来源标记为「预约申领」
+        try {
+            if (window.DataBridge && DataBridge.loadClues && DataBridge.saveClues) {
+                var clues = DataBridge.loadClues() || [];
+                var isDup = clues.some(function(c) {
+                    return c.phone === phone && c.intent === policyName && c.stage !== '已转化' && c.stage !== '已流失';
+                });
+                if (!isDup) {
+                    var now = new Date();
+                    var p2 = function(n) { return n < 10 ? '0' + n : '' + n; };
+                    var day = '' + now.getFullYear() + p2(now.getMonth() + 1) + p2(now.getDate());
+                    var seq = 1;
+                    clues.forEach(function(c) { if (String(c.id).indexOf('XS' + day) === 0) seq++; });
+                    clues.unshift({
+                        id: 'XS' + day + 'A' + p2(seq),
+                        company: company,
+                        source: '预约申领', sourceIcon: 'fa-calendar-check-o', sourceColor: 'brand',
+                        intent: policyName,
+                        contact: name, phone: phone,
+                        sales: '', salesInitial: '-',
+                        stage: '待跟进', stageColor: 'gray',
+                        enterTime: '刚刚进入',
+                        createTime: now.getFullYear() + '-' + p2(now.getMonth() + 1) + '-' + p2(now.getDate()) + ' ' + p2(now.getHours()) + ':' + p2(now.getMinutes())
+                    });
+                    DataBridge.saveClues(clues);
+                }
+            }
+        } catch (e) {}
+
+        // 4) 控制台打印，便于开发联调
         console.log('[运营端][预约申领] 已生成预约：', payload);
 
         // 兜底定时：如果fetch没响应，2秒后强制完成

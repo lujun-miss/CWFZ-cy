@@ -45,6 +45,20 @@
         /* 生成中动画 */
         @keyframes pulse-ai { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
         .ai-loading { animation: pulse-ai 1s infinite; }
+        /* 二维码占位（与 H5 一致的纯前端图案，对接后替换真实二维码） */
+        .qr { width: 132px; height: 132px; margin: 0 auto; border-radius: 10px; border: 1px solid #e2e8f0; padding: 8px; display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; background: #fff; }
+        .qr i { background: #0f172a; border-radius: 1px; }
+        .qr i.off { background: transparent; }
+        /* 打印 / 另存为 PDF：仅输出当前报告内容 */
+        @media print {
+            @page { size: A4; margin: 12mm; }
+            header, #panel1, #panel2, #reportSide, .no-print, .toast, #shareOverlay, #stepbar { display: none !important; }
+            body { background: #fff !important; }
+            main { padding: 0 !important; max-width: none !important; margin: 0 !important; }
+            #panel3 { position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; }
+            #panel3 .p-6 { padding: 0 !important; }
+            textarea { border: none !important; background: #fff !important; resize: none !important; }
+        }
     </style>
     <script>
         // 登录拦截：未登录时强制跳转到登录页
@@ -85,7 +99,7 @@
 
     <main class="max-w-[1600px] mx-auto px-6 py-6">
         <!-- 步骤条 -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-8 py-4 mb-6">
+        <div id="stepbar" class="bg-white rounded-xl shadow-sm border border-gray-100 px-8 py-4 mb-6">
             <div class="flex items-center justify-between max-w-2xl mx-auto">
                 <div class="flex items-center space-x-3">
                     <div class="step-dot active" id="dot1">1</div>
@@ -125,56 +139,81 @@
                             <datalist id="customerList"></datalist>
                             <p class="text-xs text-gray-400 mt-1.5"><i class="fa fa-database mr-1"></i>已有客户将自动获取画像与匹配数据；新企业将自动建档</p>
                         </div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">报告类型</label>
-                        <select id="selType" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm mb-5">
-                            <option value="政策匹配">企业分析报告（企业画像 + 政策机会 + 申报建议）</option>
-                            <option value="能力诊断">科创测评报告</option>
-                        </select>
+                        <div class="mb-5 px-4 py-3 bg-brand-50 border border-gray-200 rounded-lg">
+                            <p class="text-xs text-gray-500"><i class="fa fa-file-text-o text-brand-600 mr-1"></i>报告内容：企业画像 + 政策机会 + 申报建议</p>
+                        </div>
                         <button onclick="generateDraft()" id="btnGen" class="w-full py-3 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700 flex items-center justify-center">
-                            <i class="fa fa-magic mr-2"></i>AI 生成报告草稿
+                            下一步 <i class="fa fa-arrow-right ml-2"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- Step 2: 补充企业数据 -->
+                <!-- Step 2: 采集匹配条件（企业档案 + 销售补充，与 H5 智能报告同口径） -->
                 <div id="panel2" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
                     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                        <h2 class="font-semibold text-gray-800"><i class="fa fa-pencil-square-o text-brand-600 mr-2"></i>补充企业数据</h2>
-                        <span class="text-xs text-gray-400">AI 将根据以下数据重新分析生成报告</span>
+                        <h2 class="font-semibold text-gray-800"><i class="fa fa-sliders text-brand-600 mr-2"></i>采集匹配条件</h2>
+                        <span class="text-xs text-gray-400">企业档案自动读取 · 缺失项可直接补充</span>
                     </div>
                     <div class="p-6">
-                        <p class="rep-label">基本信息</p>
-                        <div class="grid grid-cols-2 gap-4 mb-5">
+                        <p class="rep-label">一、企业档案 <span class="text-xs font-normal text-emerald-600 ml-2" id="entSourceTip">（数据来源：科创测评 / 精准政策雷达）</span></p>
+                        <div class="grid grid-cols-3 gap-4 mb-5">
                             <div><label class="text-xs text-gray-500 mb-1 block">企业名称</label><input id="cName" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
-                            <div><label class="text-xs text-gray-500 mb-1 block">统一社会信用代码</label><input id="cCode" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
                             <div><label class="text-xs text-gray-500 mb-1 block">所属行业</label>
                                 <select id="cIndustry" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
                                     <option>电子信息</option><option>生物医药</option><option>新材料</option><option>高端装备</option><option>新能源</option><option>其他</option>
                                 </select>
                             </div>
-                            <div><label class="text-xs text-gray-500 mb-1 block">所属区域</label><input id="cRegion" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">所在地区</label><input id="cRegion" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">员工人数（人）</label><input id="cEmployees" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">年营收（万元）</label><input id="cRevenue" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">成立年限（年）</label><input id="cYears" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="档案缺失可补充"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">社保人数（人）</label><input id="cSocialStaff" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="档案缺失可补充"></div>
                             <div><label class="text-xs text-gray-500 mb-1 block">联系人</label><input id="cContact" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
                             <div><label class="text-xs text-gray-500 mb-1 block">手机号</label><input id="cPhone" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
-                        </div>
-                        <p class="rep-label">经营与资质</p>
-                        <div class="grid grid-cols-2 gap-4 mb-5">
-                            <div><label class="text-xs text-gray-500 mb-1 block">员工人数</label><input id="cEmployees" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
-                            <div><label class="text-xs text-gray-500 mb-1 block">年营收（万元）</label><input id="cRevenue" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
-                            <div class="col-span-2"><label class="text-xs text-gray-500 mb-1 block">已获资质（逗号分隔，如：国家高新,专精特新）</label><input id="cQuals" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
-                        </div>
-                        <p class="rep-label">科创测评 <span class="text-xs font-normal text-gray-400 ml-2">（已有诊断数据自动带入，可修正）</span></p>
-                        <div class="grid grid-cols-3 gap-4 mb-6">
-                            <div><label class="text-xs text-gray-500 mb-1 block">综合得分</label><input id="cScore" type="number" min="0" max="100" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
-                            <div><label class="text-xs text-gray-500 mb-1 block">评级</label>
-                                <select id="cGrade" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
-                                    <option value="">未诊断</option><option>A+</option><option>A</option><option>B</option><option>C</option><option>D</option>
+                            <div class="col-span-2"><label class="text-xs text-gray-500 mb-1 block">已有资质（逗号分隔）</label><input id="cQuals" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">成长阶段</label>
+                                <select id="cGrowthStage" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option value="">请选择</option><option>种子期（&lt;1年）</option><option>天使/Pre-A（1-2年）</option><option>A轮/B轮（2-4年）</option><option>成长期（4-8年）</option><option>成熟期（&gt;8年）</option>
                                 </select>
                             </div>
-                            <div><label class="text-xs text-gray-500 mb-1 block">待补短板（逗号分隔）</label><input id="cWeak" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div class="col-span-3"><label class="text-xs text-gray-500 mb-1 block">核心产品 / 赛道</label><input id="cCoreProduct" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="如：AI医疗影像 / 半导体封测"></div>
                         </div>
+
+                        <p class="rep-label">二、科创指标 <span class="text-xs font-normal text-gray-400 ml-2">企业档案实测值，缺失可直接补充</span></p>
+                        <div class="grid grid-cols-4 gap-4 mb-5">
+                            <div><label class="text-xs text-gray-500 mb-1 block">研发费用占比（%）</label><input id="cRdRatio" type="number" min="0" step="0.1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">核心知识产权（项）</label><input id="cIpCount" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">科技人员占比（%）</label><input id="cSciStaffRatio" type="number" min="0" step="0.1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">高品收入占比（%）</label><input id="cHiTechRatio" type="number" min="0" step="0.1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
+                        </div>
+
+                        <p class="rep-label">三、投入类指标 <span class="text-xs font-normal text-gray-400 ml-2">政策高频门槛</span></p>
+                        <div class="grid grid-cols-2 gap-4 mb-5">
+                            <div><label class="text-xs text-gray-500 mb-1 block">研发投入（万元）</label><input id="cRdInvest" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="如 120"></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">项目投入（万元）</label><input id="cProjectInvest" type="number" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="如 260"></div>
+                        </div>
+
+                        <p class="rep-label">四、运营指标 <span class="text-xs font-normal text-gray-400 ml-2">可多选，与政策雷达同口径；已按企业档案自动勾选</span></p>
+                        <div class="bg-gray-50 rounded-lg p-4 mb-5" id="tagGroups"></div>
+
+                        <p class="rep-label">五、销售补充 <span class="text-xs font-normal text-gray-400 ml-2">销售判断类条件，补充后匹配精度更高</span></p>
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div><label class="text-xs text-gray-500 mb-1 block">近三年是否有亏损</label>
+                                <select id="cLoss3y" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"><option value="">请选择</option><option value="是">是</option><option value="否">否</option></select></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">是否有在研项目</label>
+                                <select id="cRndProject" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"><option value="">请选择</option><option value="是">是</option><option value="否">否</option></select></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">是否有产学研合作</label>
+                                <select id="cIndustryUni" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"><option value="">请选择</option><option value="是">是</option><option value="否">否</option></select></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">扶持方式偏好</label>
+                                <select id="cFundPref" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"><option value="">请选择</option><option>现金补贴</option><option>税收减免</option><option>资质认定</option><option>贷款贴息</option><option>补贴+减免</option><option>补贴+资质认定</option></select></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">预期申报窗口期</label>
+                                <select id="cWindowPref" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"><option value="">请选择</option><option>Q1（1-3月）</option><option>Q2（4-6月）</option><option>Q3（7-9月）</option><option>Q4（10-12月）</option><option>全年</option></select></div>
+                            <div><label class="text-xs text-gray-500 mb-1 block">已获补贴 / 资质（避免重复）</label><input id="cSubsidyHist" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="如：已拿高企、2025年获研发补贴50万"></div>
+                        </div>
+
                         <div class="flex justify-between">
                             <button onclick="gotoStep(1)" class="px-5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"><i class="fa fa-arrow-left mr-1"></i>上一步</button>
-                            <button onclick="saveCompanyAndNext()" class="px-6 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 font-bold">AI 重新分析并生成 <i class="fa fa-arrow-right ml-1"></i></button>
+                            <button onclick="saveCompanyAndNext()" class="px-6 py-2.5 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700 font-bold"><i class="fa fa-magic mr-1"></i>开始匹配 · 生成报告</button>
                         </div>
                     </div>
                 </div>
@@ -183,7 +222,7 @@
                 <div id="panel3" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
                     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
                         <h2 class="font-semibold text-gray-800"><i class="fa fa-edit text-brand-600 mr-2"></i>报告微调</h2>
-                        <div class="flex items-center space-x-2">
+                        <div class="flex items-center space-x-2 no-print">
                             <button onclick="gotoStep(2)" class="px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50"><i class="fa fa-arrow-left mr-1"></i>上一步</button>
                             <button onclick="saveReport()" class="px-3 py-1.5 border border-brand-600 text-brand-600 rounded-lg text-xs hover:bg-brand-50 font-bold"><i class="fa fa-save mr-1"></i>保存报告</button>
                             <button onclick="exportPDF()" class="px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 font-bold"><i class="fa fa-file-pdf-o mr-1"></i>一键生成 PDF</button>
@@ -197,19 +236,18 @@
                         </div>
                         <div class="grid grid-cols-4 gap-3" id="kpiRow"></div>
                         <div>
-                            <label class="rep-label">报告摘要 <span class="text-xs font-normal text-gray-400 ml-2">（可直接编辑微调）</span></label>
-                            <textarea id="rSummary" rows="4" class="rep-textarea"></textarea>
+                            <label class="rep-label">本次匹配条件 <span class="text-xs font-normal text-gray-400 ml-2">（来自企业档案与销售补充，与 H5 智能报告同口径）</span></label>
+                            <div id="rConditions" class="flex flex-wrap gap-1.5"></div>
                         </div>
                         <div>
                             <label class="rep-label">一、企业画像</label>
-                            <textarea id="rProfile" rows="4" class="rep-textarea"></textarea>
+                            <div id="rProfileBox" class="border border-gray-100 rounded-lg p-4 bg-gray-50/60"></div>
                         </div>
                         <div>
                             <label class="rep-label">二、政策机会 <span class="text-xs font-normal text-gray-400 ml-2">（点击 × 可移除，数据来源于政策匹配）</span></label>
                             <div id="rPolicies" class="space-y-2 mb-2"></div>
                             <div class="flex items-center gap-2">
-                                <input id="npTitle" type="text" placeholder="政策名称" class="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-brand-500">
-                                <input id="npBenefit" type="text" placeholder="权益，如 补贴 30万" class="w-36 px-2 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-brand-500">
+                                <input id="npTitle" type="text" placeholder="手动补充政策名称" class="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-brand-500">
                                 <button onclick="addPolicy()" class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs hover:bg-gray-200"><i class="fa fa-plus mr-1"></i>添加</button>
                             </div>
                         </div>
@@ -217,12 +255,16 @@
                             <label class="rep-label">三、申报建议 <span class="text-xs font-normal text-gray-400 ml-2">（每行一条）</span></label>
                             <textarea id="rAdvice" rows="5" class="rep-textarea"></textarea>
                         </div>
+                        <div>
+                            <label class="rep-label">四、下一步待补齐 <span class="text-xs font-normal text-gray-400 ml-2">（销售跟进时向企业确认）</span></label>
+                            <div id="rTodo" class="text-xs text-gray-500 leading-relaxed bg-amber-50 border border-amber-100 rounded-lg p-3"></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- 右侧：已生成报告 -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-fit">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-fit" id="reportSide">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-semibold text-gray-800">已生成报告</h2>
                     <span class="text-xs text-gray-400" id="reportCount"></span>
@@ -233,6 +275,45 @@
     </main>
 
     <div class="toast" id="toast"></div>
+
+    <!-- 分享弹窗（站内推送 / 外链 + 二维码 + 追踪链接，与 H5 一致） -->
+    <div id="shareOverlay" class="fixed inset-0 bg-black/40 z-[60] hidden items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-[480px] shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800">分享报告</h3>
+                <button onclick="closeShare()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6">
+                <label class="text-xs text-gray-500 mb-1 block">分享给（客户 / 对接人）</label>
+                <input id="shareTo" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500 mb-4" placeholder="客户名称或联系人">
+                <label class="text-xs text-gray-500 mb-1.5 block">分享渠道</label>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button type="button" id="chInternal" onclick="pickShareChannel('站内推送')" class="px-3 py-2.5 rounded-lg border text-left text-xs transition-colors border-brand-600 bg-brand-50 text-brand-700">
+                        <span class="font-bold block">站内推送</span>
+                        <span class="text-[10px] opacity-70">客户在会员中心直接查看</span>
+                    </button>
+                    <button type="button" id="chExternal" onclick="pickShareChannel('外链')" class="px-3 py-2.5 rounded-lg border text-left text-xs transition-colors border-gray-200 text-gray-600">
+                        <span class="font-bold block">生成外链 / 二维码</span>
+                        <span class="text-[10px] opacity-70">微信发送，免登录打开，浏览可追踪</span>
+                    </button>
+                </div>
+                <input id="shareChannel" type="hidden" value="站内推送">
+                <div id="shareResult" class="hidden border-t border-gray-100 pt-4">
+                    <div class="qr mb-3" id="qrBox"></div>
+                    <p class="text-[10px] text-gray-400 text-center mb-3" id="qrHint">二维码为原型占位，对接时替换为真实二维码</p>
+                    <div class="flex items-center gap-2 mb-2">
+                        <input id="shareUrl" type="text" readonly class="flex-1 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-[11px] text-gray-600 outline-none">
+                        <button onclick="copyShareUrl()" class="px-3 py-1.5 bg-brand-600 text-white rounded text-xs hover:bg-brand-700">复制</button>
+                    </div>
+                    <p class="text-[11px] text-emerald-600"><i class="fa fa-check-circle mr-1"></i><span id="shareNote"></span></p>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-3">
+                <button onclick="closeShare()" class="px-5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">取消</button>
+                <button id="btnShare" onclick="confirmShare()" class="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700"><i class="fa fa-paper-plane mr-1"></i>生成分享</button>
+            </div>
+        </div>
+    </div>
 
     <script src="data-bridge.js"></script>
     <script>
@@ -262,6 +343,168 @@
         }
         // 从权益文本提取金额（万）
         function parseWan(s) { var m = String(s || '').match(/([\d.]+)\s*万/); return m ? parseFloat(m[1]) : 0; }
+
+        // ===== 政策雷达（与 H5 同一引擎/同一企业档案口径） =====
+        var COND_LABEL = {
+            duration: '成立年限', rdRatio: '研发费用占比', hiTechRatio: '高品收入占比', employees: '员工人数',
+            rdInvest: '研发投入', revenue: '营业收入', netAssets: '净资产', capital: '注册资本', profit: '净利润',
+            exportRatio: '出口占比', projectInvest: '项目投入', ipOwned: '拥有知识产权', ipCount: '知识产权数量',
+            qualification: '已有资质', industry: '所属行业', region: '所属地区'
+        };
+        // 取当前申报批次：优先「申报中」，否则最近一个「未开始」
+        function currentBatch(p) {
+            var list = p.batches || [];
+            var now = new Date();
+            var t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            var open = null, up = null, upStart = null;
+            list.forEach(function(b) {
+                var s = new Date(String(b.start || '').replace(/-/g, '/'));
+                var e = new Date(String(b.end || '').replace(/-/g, '/'));
+                if (isNaN(s.getTime()) || isNaN(e.getTime())) return;
+                if (s <= t0 && t0 <= e) open = b;
+                else if (s > t0 && (!upStart || s < upStart)) { up = b; upStart = s; }
+            });
+            var b = open || up;
+            if (!b) return null;
+            var end = new Date(String(b.end).replace(/-/g, '/'));
+            return { name: b.name, end: b.end, open: !!open, days: Math.ceil((end - t0) / 86400000) };
+        }
+        // 企业档案（科创测评/政策雷达沉淀）优先，缺失字段回退客户档案
+        function buildRadarPolicies(c) {
+            if (!DataBridge.matchPoliciesForEnterprise) return [];
+            var ent = DataBridge.buildRadarProfileFromEnterprise ? DataBridge.buildRadarProfileFromEnterprise(c.name)
+                : { hit: false, profile: {}, meta: {} };
+            var p = ent.hit ? Object.assign({}, ent.profile) : {};
+            if (!p.industry) p.industry = c.industry || '';
+            if (!p.region) p.region = c.region || '';
+            if (p.employees == null) p.employees = c.employees || null;
+            if (p.revenue == null) p.revenue = c.revenue || null;
+            if (!p.qualification && (c.quals || []).length) p.qualification = c.quals.join(',');
+            // 销售补充条件覆盖档案缺失字段（与 H5「档案有值只读、缺失就地补充」同逻辑）
+            var over = condProfile();
+            Object.keys(over).forEach(function(k) { p[k] = over[k]; });
+            DRAFT_ENT_META = ent.meta || {};
+            var res = (DataBridge.matchPoliciesForEnterprise(p) || []).filter(function(r) {
+                return ((r.policy && r.policy.status) || 'published') === 'published';
+            });
+            return res.map(function(r) {
+                var fails = r.details.filter(function(d) { return d.status === 'fail'; });
+                var unks = r.details.filter(function(d) { return d.status === 'unknown'; });
+                var pol = r.policy || {};
+                return {
+                    title: pol.name, dept: pol.dept || '', levelTag: pol.level || '',
+                    match: r.score, total: r.total, hit: r.hit, fail: r.fail, unknown: r.unknown,
+                    level: fails.length ? '部分匹配' : (unks.length ? '待确认' : '高匹配'),
+                    unmet: fails.map(function(d) { return (COND_LABEL[d.type] || d.type) + '需 ' + d.op + ' ' + d.val; }),
+                    pending: unks.map(function(d) { return COND_LABEL[d.type] || d.type; }),
+                    batch: currentBatch(pol),
+                    benefit: ''
+                };
+            });
+        }
+        var DRAFT_ENT_META = {};
+
+        // ===== 运营指标（与 H5 智能报告 / PC 政策雷达完全同口径） =====
+        var TAG_GROUPS = [
+            { key: 'basic', name: '基本情况', items: ['初创企业', '注册资本1000万以上', '外资实缴', '研发场所100平以上', '上市企业'] },
+            { key: 'finance', name: '财务状况', items: ['一般纳税人', '收入100万以上', '收入200万以上', '收入500万以上', '收入1000万以上', '收入1500万以上', '收入2000万以上', '收入3000万以上', '收入5000万以上', '收入1亿以上', '收入3亿以上', '收入4亿以上', '收入5亿以上', '收入10亿以上', '收入15亿以上', '收入20亿以上', '收入递增', '收入增长5%以上', '收入增长10%以上', '收入增长15%以上', '收入增长20%以上', '净利润500万元以上', '净利润1000万元以上', '净利润2000万元以上', '纳税500万以上', '资产总额300万+', '资产负债率70%以下', '资产负债率60%以下', '已归集研发费用', '研发费100万以上', '研发费500万以上', '研发费3000万以上', '购买软件和数字化服务', '数字化转型投入10万以上', '数字化转型投入50万以上', '数字化转型投入100万以上', '数字化转型投入200万以上', '数字化转型投入500万以上', '上年度已购置设备仪器', '设备投资300万以上', '设备投资500万以上', '设备投资1000万以上', '设备投资2000万以上', '获得股权融资', '股权融资2000万以上', '股权融资8000万以上', '获得贷款融资'] },
+            { key: 'hr', name: '人力资源', items: ['研发人员10人以上', '研发人员20人以上', '研发人员占10%以上', '研发人员占20%以上', '研发人员占30%以上', '研发人员占50%以上', '具有留学人员', '具有人才职称', '中级以上职称', '博士', '高级职称', '高层次人才'] },
+            { key: 'ip', name: '知识产权', items: ['知识产权10件以上', '知识产权50件以上', '知识产权100件以上', '拥有高价值专利', '具有涉外专利', '拥有地理标志产品', '知识产权贯标企业', '知识产权示范企业', '知识产权优势企业', '获得专利奖'] },
+            { key: 'qual', name: '企业资质', items: ['高新技术企业', '专精特新中小企业', '专精特新"小巨人"企业', '科技型中小企业', '创新型中小企业', '单项冠军', '技术中心', '工业设计中心', '工程技术中心', '工程实验室', '重点实验室', '院士专家工作站', '博士后工作站', '制造业创新中心', '技术创新示范企业', '获得科研立项/大赛奖励', '参展企业', '总部企业', '参与标准化工作', '技术先进型服务企业', '工业设计奖', '重点软件企业', '工业互联网企业', '中小企业公共服务示范平台', '市科学技术奖', '中国500强', '世界500强', '著名商标', '驰名商标', '知名品牌', '老字号'] }
+        ];
+        var COND_TAGS = { basic: [], finance: [], hr: [], ip: [], qual: [] };
+        var TAG_OPEN = { basic: false, finance: false, hr: false, ip: false, qual: false };
+        var COND = {
+            years: null, socialStaff: null, coreProduct: '', growth: '',
+            rdRatio: null, ipCount: null, sciStaffRatio: null, hiTechRatio: null,
+            rdInvest: null, projectInvest: null,
+            loss3y: '', rndProject: '', industryUni: '', fundPref: '', windowPref: '', subsidyHist: ''
+        };
+
+        function resetCond() {
+            COND_TAGS = { basic: [], finance: [], hr: [], ip: [], qual: [] };
+            TAG_OPEN = { basic: false, finance: false, hr: false, ip: false, qual: false };
+            COND = {
+                years: null, socialStaff: null, coreProduct: '', growth: '',
+                rdRatio: null, ipCount: null, sciStaffRatio: null, hiTechRatio: null,
+                rdInvest: null, projectInvest: null,
+                loss3y: '', rndProject: '', industryUni: '', fundPref: '', windowPref: '', subsidyHist: ''
+            };
+        }
+        function renderTagGroups() {
+            var box = document.getElementById('tagGroups');
+            if (!box) return;
+            box.innerHTML = TAG_GROUPS.map(function(g) {
+                var open = TAG_OPEN[g.key];
+                var shown = open ? g.items : (function() {
+                    var head = g.items.slice(0, 3);
+                    COND_TAGS[g.key].forEach(function(t) { if (head.indexOf(t) < 0) head.push(t); });
+                    return head;
+                })();
+                var tags = shown.map(function(t) {
+                    var on = COND_TAGS[g.key].indexOf(t) >= 0;
+                    return '<button type="button" onclick="toggleTag(\'' + g.key + '\',\'' + t.replace(/'/g, "\\'") + '\')" class="px-2.5 py-1 rounded-full text-xs border transition-colors ' +
+                        (on ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-brand-300') + '">' + esc(t) + '</button>';
+                }).join('');
+                return '<div class="mb-3 last:mb-0"><div class="flex items-center justify-between mb-1.5">' +
+                    '<span class="text-xs font-medium text-gray-700">' + g.name + (COND_TAGS[g.key].length ? '<span class="text-brand-600 ml-1">（已选 ' + COND_TAGS[g.key].length + '）</span>' : '') + '</span>' +
+                    '<button type="button" onclick="toggleTagGroup(\'' + g.key + '\')" class="text-xs text-gray-400 hover:text-brand-600">' + (open ? '收起' : '展开全部 ' + g.items.length + ' 项') + (open ? '' : ' <i class="fa fa-angle-down"></i>') + '</button>' +
+                    '</div><div class="flex flex-wrap gap-1.5">' + tags + '</div></div>';
+            }).join('');
+        }
+        function toggleTag(g, t) {
+            var i = COND_TAGS[g].indexOf(t);
+            if (i >= 0) COND_TAGS[g].splice(i, 1); else COND_TAGS[g].push(t);
+            renderTagGroups();
+        }
+        function toggleTagGroup(g) { TAG_OPEN[g] = !TAG_OPEN[g]; renderTagGroups(); }
+
+        // 按企业档案自动勾选运营指标（与 H5 一致：阈值类按实测值落档）
+        function autoPickTags(meta, pf, co) {
+            var pick = function(g, t) { if (t && COND_TAGS[g].indexOf(t) < 0) COND_TAGS[g].push(t); };
+            var tier = function(group, prefix, actual) {
+                if (actual == null) return null;
+                var best = null, bestV = -1;
+                TAG_GROUPS.filter(function(x) { return x.key === group; })[0].items.forEach(function(t) {
+                    if (t.indexOf(prefix) !== 0) return;
+                    var m = t.slice(prefix.length).match(/^([\d.]+)(万|亿)?/);
+                    if (!m) return;
+                    var v = parseFloat(m[1]); if (!isNaN(v) && m[2] === '亿') v = v * 10000;
+                    if (isNaN(v) || v > actual) return;
+                    if (v > bestV) { bestV = v; best = t; }
+                });
+                return best;
+            };
+            var yrs = meta.foundedYears != null ? meta.foundedYears : COND.years;
+            if (yrs != null && yrs < 2) pick('basic', '初创企业');
+            if ((pf.capital || 0) >= 1000) pick('basic', '注册资本1000万以上');
+            pick('finance', tier('finance', '收入', co.revenue || pf.revenue));
+            pick('finance', tier('finance', '研发费', COND.rdInvest));
+            pick('finance', tier('finance', '净利润', pf.profit));
+            pick('finance', tier('finance', '资产总额', pf.netAssets));
+            pick('ip', tier('ip', '知识产权', COND.ipCount != null ? COND.ipCount : pf.ipCount));
+            var quals = (meta.quals || []).concat(co.quals || []);
+            var QUAL_ITEMS = TAG_GROUPS.filter(function(x) { return x.key === 'qual'; })[0].items;
+            quals.forEach(function(q) {
+                QUAL_ITEMS.forEach(function(t) { if (q && (t.indexOf(q) >= 0 || q.indexOf(t) >= 0)) pick('qual', t); });
+            });
+        }
+
+        // 条件 → 匹配引擎字段（企业档案缺失时用销售补充值兜底）
+        function condProfile() {
+            var p = {};
+            if (COND.rdRatio != null) p.rdRatio = COND.rdRatio;
+            if (COND.ipCount != null) { p.ipCount = COND.ipCount; p.ipOwned = COND.ipCount > 0; }
+            if (COND.hiTechRatio != null) p.hiTechRatio = COND.hiTechRatio;
+            if (COND.rdInvest != null) p.rdInvest = COND.rdInvest;
+            if (COND.projectInvest != null) p.projectInvest = COND.projectInvest;
+            if (COND.years != null) p.duration = COND.years;
+            if (COND.employees != null) p.employees = COND.employees;
+            if (COND.revenue != null) p.revenue = COND.revenue;
+            var quals = (COND_TAGS.qual || []).slice();
+            if (quals.length) p.qualification = quals.join(',');
+            return p;
+        }
 
         // ===== 初始化 =====
         function load() {
@@ -293,7 +536,7 @@
         function generateDraft() {
             var name = document.getElementById('inpName').value.trim();
             if (!name) { toast('请输入企业名称', false); return; }
-            var type = document.getElementById('selType').value;
+            var type = '政策匹配';
 
             // 自动获取数据：已有客户直接取数；新客户自动建档
             var c = getCustomer(name);
@@ -308,10 +551,33 @@
                 DataBridge.saveCustomers(CUSTOMERS);
             }
 
+            initCondFromArchive(c);
             DRAFT = buildDraft(c, type);
             fillCompanyForm(DRAFT);
             EDIT_ID = null;
             gotoStep(2);
+        }
+
+        // 载入企业档案 → 初始化匹配条件（有值即带入，缺失留空供销售补充）
+        function initCondFromArchive(c) {
+            var ent = DataBridge.buildRadarProfileFromEnterprise ? DataBridge.buildRadarProfileFromEnterprise(c.name)
+                : { hit: false, profile: {}, meta: {} };
+            var pf = ent.hit ? ent.profile : {};
+            var meta = ent.meta || {};
+            resetCond();
+            COND.employees = c.employees || pf.employees || null;
+            COND.revenue = c.revenue || pf.revenue || null;
+            COND.years = meta.foundedYears != null ? meta.foundedYears : (pf.duration != null ? pf.duration : null);
+            COND.socialStaff = meta.socialStaff != null ? meta.socialStaff : null;
+            COND.coreProduct = meta.coreProduct || '';
+            COND.rdRatio = pf.rdRatio != null ? pf.rdRatio : null;
+            COND.ipCount = pf.ipCount != null ? pf.ipCount : null;
+            COND.hiTechRatio = pf.hiTechRatio != null ? pf.hiTechRatio : null;
+            COND.rdInvest = pf.rdInvest != null ? pf.rdInvest : null;
+            COND.projectInvest = pf.projectInvest != null ? pf.projectInvest : null;
+            autoPickTags(meta, pf, c);
+            DRAFT_ENT_META = meta;
+            DRAFT_ENT_META.__hit = !!ent.hit;
         }
 
         // 新企业无匹配数据时，从政策库按资质/行业粗匹配生成候选
@@ -328,80 +594,131 @@
             var co = {
                 name: c.name, code: c.code || '', industry: c.industry || '其他', contact: c.contact || '',
                 phone: c.phone || '', employees: c.employees || 0, revenue: c.revenue || 0,
-                region: c.region || '', quals: (c.quals || []).slice()
+                region: c.region || '', quals: (c.quals || []).slice(),
+                years: COND.years, socialStaff: COND.socialStaff, coreProduct: COND.coreProduct,
+                growthStage: COND.growth, rdRatio: COND.rdRatio, ipCount: COND.ipCount,
+                sciStaffRatio: COND.sciStaffRatio, hiTechRatio: COND.hiTechRatio,
+                rdInvest: COND.rdInvest, projectInvest: COND.projectInvest,
+                loss3y: COND.loss3y, rndProject: COND.rndProject, industryUni: COND.industryUni,
+                fundPref: COND.fundPref, windowPref: COND.windowPref, subsidyHist: COND.subsidyHist,
+                tags: JSON.parse(JSON.stringify(COND_TAGS))
             };
             var diag = c.lastDiagnosis ? JSON.parse(JSON.stringify(c.lastDiagnosis)) : null;
-            var policies = (c.matchedPolicies || []).slice();
-            var wanTotal = 0, matchSum = 0;
-            policies.forEach(function(p) { wanTotal += parseWan(p.benefit); matchSum += (p.match || 80); });
+            // 政策机会：企业档案 → 雷达引擎实时匹配正式政策库（与 H5、PC 政策雷达同一口径）
+            var policies = buildRadarPolicies(c);
+            var matchSum = 0;
+            policies.forEach(function(p) { matchSum += (p.match || 0); });
             var matchAvg = policies.length ? Math.round(matchSum / policies.length) : 0;
             var qualsText = co.quals.length ? co.quals.join('、') : '成长型';
             var top = policies.slice().sort(function(a, b) { return (b.match || 0) - (a.match || 0); })[0];
+            var highCount = policies.filter(function(p) { return p.level === '高匹配'; }).length;
+            var pendCount = policies.filter(function(p) { return p.level === '待确认'; }).length;
 
             // 摘要
-            var summary = co.name + '作为' + qualsText + '企业，在' + co.industry + '领域' +
-                (co.employees >= 200 ? '具备一定规模优势' : '处于快速发展阶段') + '。经 AI 综合分析，企业可申报政策 ' +
-                policies.length + ' 项，预计可获权益 ' + wanTotal + ' 万元' +
-                (matchAvg ? '，综合匹配度 ' + matchAvg + '%' : '') +
+            var summary = co.name + '作为' + qualsText + '企业，在' + co.industry + '领域，经政策雷达引擎匹配正式政策库，' +
+                '可申报政策 ' + policies.length + ' 项' +
+                (highCount ? '，其中高匹配 ' + highCount + ' 项' : '') +
+                (pendCount ? '，待确认 ' + pendCount + ' 项' : '') +
+                (matchAvg ? '，平均匹配度 ' + matchAvg + '%' : '') +
                 (top ? '，建议优先申报「' + top.title + '」' : '') + '。';
             if (diag) summary += ' 科创能力综合得分 ' + diag.avg + ' 分（评级 ' + diag.grade + '）。';
 
-            // 企业画像
+            // 企业画像（企业档案字段优先，缺失回退客户档案）
+            var meta = DRAFT_ENT_META || {};
             var profile = '企业' + (co.region ? '位于' + co.region + '，' : '') + '属' + co.industry + '行业' +
+                (meta.foundedYears != null ? '，成立约 ' + meta.foundedYears + ' 年' : '') +
                 (co.employees ? '，现有员工 ' + co.employees + ' 人' : '') +
-                (co.revenue ? '，年营收约 ' + (co.revenue / 10000).toFixed(1) + ' 亿元' : '') + '。' +
+                (co.revenue ? '，年营收约 ' + (co.revenue / 10000).toFixed(1) + ' 亿元' : '') +
+                (meta.coreProduct ? '，主导产品/服务为' + meta.coreProduct : '') + '。' +
                 (co.quals.length ? '已获' + co.quals.join('、') + '资质认定。' : '暂无已获资质认定，建议从科技型中小企业评价切入。') +
                 (diag ? '科创能力综合得分 ' + diag.avg + ' 分（评级 ' + diag.grade + '）' + (diag.weak && diag.weak.length ? '，' + diag.weak.join('、') + '为当前待补短板。' : '。') : '');
 
-            // 申报建议（每行一条）
+            // 申报建议（按匹配结果逐条给出）
             var tips = [];
-            if (top) tips.push('1. 建议优先申报「' + top.title + '」（' + top.benefit + '），建议尽快启动申报材料准备。');
+            policies.slice(0, 3).forEach(function(p, i) {
+                var dept = p.dept ? '（' + p.dept + '·匹配 ' + p.match + '%）' : '（匹配 ' + p.match + '%）';
+                if (p.level === '高匹配') tips.push((i + 1) + '. 优先申报「' + p.title + '」' + dept + '：条件已全部满足，建议尽快准备申报材料。');
+                else if (p.level === '部分匹配') tips.push((i + 1) + '. 「' + p.title + '」' + dept + '：未满足 ' + p.unmet.join('、') + '，建议补齐后再申报。');
+                else tips.push((i + 1) + '. 「' + p.title + '」' + dept + '：' + p.pending.join('、') + '尚待确认，建议向企业核实后复核。');
+            });
+            if (!policies.length) tips.push('1. 政策库暂无匹配结果，建议先完善企业档案（成立年限、研发投入、营业收入、知识产权等）后重新生成。');
             if (diag && diag.weak && diag.weak.length) tips.push((tips.length + 1) + '. 针对' + diag.weak.join('、') + '短板，建议在申报前补充相关证明材料，提升评审通过率。');
-            if (policies.length > 1) tips.push((tips.length + 1) + '. 可将加计扣除与资质类申报同步推进，注意研发费用归集口径一致性。');
             tips.push((tips.length + 1) + '. 申报材料建议由专人统筹，提前预留 2-4 周准备期。');
             var advice = tips.join('\n');
 
+            co._policies = policies;
             return {
                 company: co, diagnosis: diag, policies: policies,
                 summary: summary, profile: profile, advice: advice,
-                matchAvg: matchAvg, wanTotal: wanTotal, type: type
+                conditions: condChips(co), todo: todoItems(co),
+                matchAvg: matchAvg, highCount: highCount, pendCount: pendCount, type: type
             };
         }
 
-        // ===== Step2 表单填充 / 收集 =====
+        // ===== Step2 表单填充 / 收集（字段与 H5 智能报告一致） =====
         function fillCompanyForm(d) {
-            document.getElementById('cName').value = d.company.name;
-            document.getElementById('cCode').value = d.company.code;
-            document.getElementById('cIndustry').value = d.company.industry;
-            document.getElementById('cRegion').value = d.company.region;
-            document.getElementById('cContact').value = d.company.contact;
-            document.getElementById('cPhone').value = d.company.phone;
-            document.getElementById('cEmployees').value = d.company.employees || '';
-            document.getElementById('cRevenue').value = d.company.revenue || '';
-            document.getElementById('cQuals').value = (d.company.quals || []).join(',');
-            document.getElementById('cScore').value = d.diagnosis ? d.diagnosis.avg : '';
-            document.getElementById('cGrade').value = d.diagnosis ? d.diagnosis.grade : '';
-            document.getElementById('cWeak').value = d.diagnosis && d.diagnosis.weak ? d.diagnosis.weak.join(',') : '';
+            var co = d.company;
+            document.getElementById('cName').value = co.name || '';
+            document.getElementById('cIndustry').value = co.industry || '其他';
+            document.getElementById('cRegion').value = co.region || '';
+            document.getElementById('cContact').value = co.contact || '';
+            document.getElementById('cPhone').value = co.phone || '';
+            document.getElementById('cEmployees').value = co.employees || '';
+            document.getElementById('cRevenue').value = co.revenue || '';
+            document.getElementById('cQuals').value = (co.quals || []).join(',');
+            var setv = function(id, v) { document.getElementById(id).value = v == null ? '' : v; };
+            setv('cYears', COND.years); setv('cSocialStaff', COND.socialStaff);
+            setv('cRdRatio', COND.rdRatio); setv('cIpCount', COND.ipCount);
+            setv('cSciStaffRatio', COND.sciStaffRatio); setv('cHiTechRatio', COND.hiTechRatio);
+            setv('cRdInvest', COND.rdInvest); setv('cProjectInvest', COND.projectInvest);
+            setv('cCoreProduct', COND.coreProduct); setv('cGrowthStage', COND.growth);
+            setv('cLoss3y', COND.loss3y); setv('cRndProject', COND.rndProject);
+            setv('cIndustryUni', COND.industryUni); setv('cFundPref', COND.fundPref);
+            setv('cWindowPref', COND.windowPref); setv('cSubsidyHist', COND.subsidyHist);
+            var tip = document.getElementById('entSourceTip');
+            if (tip) tip.textContent = DRAFT_ENT_META.__hit ? '（已读取企业档案，可修正）' : '（未查到企业档案，请按实际情况补充）';
+            renderTagGroups();
+        }
+
+        function collectCond() {
+            var num = function(id) { var v = document.getElementById(id).value; return v === '' ? null : parseFloat(v); };
+            var txt = function(id) { return document.getElementById(id).value.trim(); };
+            COND.employees = num('cEmployees'); COND.revenue = num('cRevenue');
+            COND.years = num('cYears'); COND.socialStaff = num('cSocialStaff');
+            COND.rdRatio = num('cRdRatio'); COND.ipCount = num('cIpCount');
+            COND.sciStaffRatio = num('cSciStaffRatio'); COND.hiTechRatio = num('cHiTechRatio');
+            COND.rdInvest = num('cRdInvest'); COND.projectInvest = num('cProjectInvest');
+            COND.coreProduct = txt('cCoreProduct'); COND.growth = document.getElementById('cGrowthStage').value;
+            COND.loss3y = document.getElementById('cLoss3y').value;
+            COND.rndProject = document.getElementById('cRndProject').value;
+            COND.industryUni = document.getElementById('cIndustryUni').value;
+            COND.fundPref = document.getElementById('cFundPref').value;
+            COND.windowPref = document.getElementById('cWindowPref').value;
+            COND.subsidyHist = txt('cSubsidyHist');
         }
 
         function saveCompanyAndNext() {
             var name = document.getElementById('cName').value.trim();
             if (!name) { toast('企业名称不能为空', false); return; }
+            collectCond();
             DRAFT.company = {
                 name: name,
-                code: document.getElementById('cCode').value.trim(),
+                code: DRAFT.company.code || '',
                 industry: document.getElementById('cIndustry').value,
                 region: document.getElementById('cRegion').value.trim(),
                 contact: document.getElementById('cContact').value.trim(),
                 phone: document.getElementById('cPhone').value.trim(),
-                employees: parseInt(document.getElementById('cEmployees').value) || 0,
-                revenue: parseFloat(document.getElementById('cRevenue').value) || 0,
-                quals: document.getElementById('cQuals').value.split(/[,，]/).map(function(s) { return s.trim(); }).filter(Boolean)
+                employees: COND.employees || 0,
+                revenue: COND.revenue || 0,
+                quals: document.getElementById('cQuals').value.split(/[,，]/).map(function(s) { return s.trim(); }).filter(Boolean),
+                years: COND.years, socialStaff: COND.socialStaff, coreProduct: COND.coreProduct,
+                growthStage: COND.growth, rdRatio: COND.rdRatio, ipCount: COND.ipCount,
+                sciStaffRatio: COND.sciStaffRatio, hiTechRatio: COND.hiTechRatio,
+                rdInvest: COND.rdInvest, projectInvest: COND.projectInvest,
+                loss3y: COND.loss3y, rndProject: COND.rndProject, industryUni: COND.industryUni,
+                fundPref: COND.fundPref, windowPref: COND.windowPref, subsidyHist: COND.subsidyHist,
+                tags: JSON.parse(JSON.stringify(COND_TAGS))
             };
-            var score = document.getElementById('cScore').value;
-            var grade = document.getElementById('cGrade').value;
-            var weak = document.getElementById('cWeak').value.split(/[,，]/).map(function(s) { return s.trim(); }).filter(Boolean);
-            DRAFT.diagnosis = (score && grade) ? { avg: parseInt(score), grade: grade, weak: weak } : null;
 
             // 同步回客户档案
             var c = getCustomer(DRAFT.company.name);
@@ -410,12 +727,13 @@
                 c.contact = DRAFT.company.contact; c.phone = DRAFT.company.phone;
                 c.employees = DRAFT.company.employees; c.revenue = DRAFT.company.revenue;
                 c.quals = DRAFT.company.quals;
-                if (DRAFT.diagnosis) c.lastDiagnosis = DRAFT.diagnosis;
+                c.years = DRAFT.company.years; c.socialStaff = DRAFT.company.socialStaff;
+                c.coreProduct = DRAFT.company.coreProduct; c.growthStage = DRAFT.company.growthStage;
                 DataBridge.saveCustomers(CUSTOMERS);
             }
 
-            // AI 重新分析
-            DRAFT.type = document.getElementById('selType').value;
+            // 重新匹配并生成
+            DRAFT.type = '政策匹配';
             var rebuilt = buildDraft(c || DRAFT.company, DRAFT.type);
             rebuilt.company = DRAFT.company; rebuilt.diagnosis = DRAFT.diagnosis;
             DRAFT = rebuilt;
@@ -423,27 +741,120 @@
             gotoStep(3);
         }
 
+        // 本次匹配条件平铺展示（与 H5 报告中的条件标签同口径）
+        function condChips(co) {
+            co = co || DRAFT.company;
+            var tags = co.tags || COND_TAGS;
+            var arr = [];
+            var add = function(k, v) { if (v !== null && v !== undefined && v !== '' && v !== 0) arr.push({ k: k, v: v }); };
+            add('行业', co.industry); add('地区', co.region);
+            add('员工', co.employees ? co.employees + ' 人' : '');
+            add('年营收', co.revenue ? co.revenue + ' 万元' : '');
+            add('成立年限', COND.years != null ? COND.years + ' 年' : '');
+            add('社保人数', COND.socialStaff != null ? COND.socialStaff + ' 人' : '');
+            add('研发费占比', COND.rdRatio != null ? COND.rdRatio + '%' : '');
+            add('知识产权', COND.ipCount != null ? COND.ipCount + ' 项' : '');
+            add('科技人员占比', COND.sciStaffRatio != null ? COND.sciStaffRatio + '%' : '');
+            add('高品收入占比', COND.hiTechRatio != null ? COND.hiTechRatio + '%' : '');
+            add('研发投入', COND.rdInvest != null ? COND.rdInvest + ' 万元' : '');
+            add('项目投入', COND.projectInvest != null ? COND.projectInvest + ' 万元' : '');
+            add('核心产品', COND.coreProduct); add('成长阶段', COND.growth);
+            add('近三年亏损', COND.loss3y); add('在研项目', COND.rndProject);
+            add('产学研合作', COND.industryUni); add('扶持偏好', COND.fundPref);
+            add('申报窗口', COND.windowPref); add('已获补贴', COND.subsidyHist);
+            Object.keys(tags || {}).forEach(function(g) {
+                if (tags[g] && tags[g].length) arr.push({ k: '运营指标', v: tags[g].join('、') });
+            });
+            return arr;
+        }
+
+        function todoItems(co) {
+            co = co || DRAFT.company;
+            var arr = [];
+            if (COND.years == null) arr.push('补充企业成立年限（影响科技型中小企业、高企等年限门槛）');
+            if (COND.rdRatio == null) arr.push('补充研发费用占比（高企认定核心指标）');
+            if (COND.ipCount == null) arr.push('补充核心知识产权数量及类型（发明专利/实用新型/软著）');
+            if (!co.revenue) arr.push('确认上年度营业收入（部分申报要求收入区间）');
+            if (!co.employees) arr.push('确认员工人数与社保参保人数');
+            if (!COND.subsidyHist) arr.push('确认近三年已获同类补贴/资质，避免重复申报');
+            (co._policies || []).forEach(function(p) {
+                (p.pending || []).forEach(function(x) { if (arr.indexOf(x) < 0) arr.push(x); });
+            });
+            return arr;
+        }
+
         // ===== Step3 微调 =====
         function fillStep3() {
             document.getElementById('rTitle').value = (EDIT_ID ? (findReport(EDIT_ID) || {}).title : '') ||
-                DRAFT.company.name + (DRAFT.type === '能力诊断' ? '科创测评报告' : '企业分析报告');
-            document.getElementById('rSummary').value = DRAFT.summary;
-            document.getElementById('rProfile').value = DRAFT.profile;
+                DRAFT.company.name + '企业分析报告';
+            renderConditions();
+            renderProfileBox();
             document.getElementById('rAdvice').value = DRAFT.advice;
+            document.getElementById('rTodo').innerHTML = (DRAFT.todo && DRAFT.todo.length)
+                ? DRAFT.todo.map(function(t, i) { return '<p class="mb-1 last:mb-0">' + (i + 1) + '. ' + esc(t) + '</p>'; }).join('')
+                : '<p class="text-gray-400">匹配所需条件已全部覆盖，可直接进入申报准备。</p>';
             renderPolicyList();
             renderKpi();
         }
 
+        function renderConditions() {
+            var box = document.getElementById('rConditions');
+            var arr = DRAFT.conditions || [];
+            if (!arr.length) {
+                box.innerHTML = '<span class="text-xs text-gray-400">暂无有效条件，请返回上一步补充</span>';
+                return;
+            }
+            box.innerHTML = arr.map(function(x) {
+                return '<span class="px-2 py-1 bg-brand-50 text-brand-700 rounded-full text-xs">' + esc(x.k) + '：' + esc(x.v) + '</span>';
+            }).join('');
+        }
+
+        function renderProfileBox() {
+            var co = DRAFT.company;
+            var kv = [
+                ['企业名称', co.name || '未填'],
+                ['所属行业', co.industry || '未填'],
+                ['联系人', co.contact || '未填'],
+                ['所在地区', co.region || '未填'],
+                ['员工人数', co.employees ? co.employees + ' 人' : '未填'],
+                ['年营业收入', co.revenue ? co.revenue.toLocaleString() + ' 万元' : '未填'],
+                ['成立年限', co.years != null ? co.years + ' 年' : '未填'],
+                ['社保人数', co.socialStaff != null ? co.socialStaff + ' 人' : '未填'],
+                ['研发费用占比', co.rdRatio != null ? co.rdRatio + '%' : '未填'],
+                ['有效知识产权', co.ipCount != null ? co.ipCount + ' 项' : '未填'],
+                ['科技人员占比', co.sciStaffRatio != null ? co.sciStaffRatio + '%' : '未填'],
+                ['高品收入占比', co.hiTechRatio != null ? co.hiTechRatio + '%' : '未填']
+            ];
+            var extra = [
+                ['核心产品/服务', co.coreProduct || '未填'],
+                ['成长阶段', co.growthStage || '未填'],
+                ['已获补贴/资质', co.subsidyHist || '未填'],
+                ['已有资质', (co.quals || []).length ? co.quals.join('、') : '未填']
+            ];
+            document.getElementById('rProfileBox').innerHTML =
+                '<div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">' +
+                kv.map(function(x) {
+                    return '<div class="flex justify-between border-b border-gray-100 pb-1"><span class="text-gray-500 text-xs">' + x[0] + '</span><span class="' + (x[1] === '未填' ? 'text-gray-300' : 'text-gray-800') + '">' + esc(x[1]) + '</span></div>';
+                }).join('') + '</div>' +
+                '<div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm mt-3 pt-3 border-t border-gray-200">' +
+                extra.map(function(x) {
+                    return '<div class="flex justify-between"><span class="text-gray-500 text-xs">' + x[0] + '</span><span class="' + (x[1] === '未填' ? 'text-gray-300' : 'text-gray-800') + '">' + esc(x[1]) + '</span></div>';
+                }).join('') + '</div>' +
+                '<p class="text-xs text-gray-500 leading-relaxed mt-3 pt-3 border-t border-gray-200">' + esc(DRAFT.profile || '') + '</p>';
+        }
+
         function renderKpi() {
-            var wan = 0, mSum = 0;
-            DRAFT.policies.forEach(function(p) { wan += parseWan(p.benefit); mSum += (p.match || 80); });
+            var mSum = 0;
+            DRAFT.policies.forEach(function(p) { mSum += (p.match || 0); });
             var avg = DRAFT.policies.length ? Math.round(mSum / DRAFT.policies.length) : 0;
-            DRAFT.matchAvg = avg; DRAFT.wanTotal = wan;
+            DRAFT.matchAvg = avg;
+            var high = DRAFT.policies.filter(function(p) { return p.level === '高匹配'; }).length;
+            var pend = DRAFT.policies.filter(function(p) { return p.level === '待确认'; }).length;
             document.getElementById('kpiRow').innerHTML =
                 kpiCard(DRAFT.policies.length, '可申报政策') +
-                kpiCard(wan ? wan + '万' : '—', '预计权益') +
-                kpiCard(avg ? avg + '%' : '—', '综合匹配度') +
-                kpiCard(DRAFT.diagnosis ? DRAFT.diagnosis.grade : '—', '科创评级');
+                kpiCard(high || '—', '高匹配') +
+                kpiCard(pend || '—', '待确认') +
+                kpiCard(avg ? avg + '%' : '—', '平均匹配度');
         }
         function kpiCard(v, label) {
             return '<div class="bg-gray-50 rounded-lg p-3 text-center"><p class="text-2xl font-bold text-brand-600">' + v + '</p><p class="text-xs text-gray-500 mt-0.5">' + label + '</p></div>';
@@ -451,21 +862,35 @@
 
         function renderPolicyList() {
             document.getElementById('rPolicies').innerHTML = DRAFT.policies.map(function(p, i) {
-                var lvColor = p.level === '高匹配' ? 'bg-brand-50 text-brand-700' : 'bg-blue-50 text-blue-700';
-                return '<div class="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">' +
-                    '<div><span class="text-sm font-medium text-gray-800">' + esc(p.title) + '</span>' +
-                    '<span class="text-xs text-gray-400 ml-2">' + esc(p.benefit) + (p.match ? ' · 匹配度 ' + p.match + '%' : '') + '</span></div>' +
-                    '<div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded text-xs ' + lvColor + '">' + esc(p.level || '推荐') + '</span>' +
-                    '<button onclick="removePolicy(' + i + ')" class="text-gray-300 hover:text-red-500"><i class="fa fa-times"></i></button></div></div>';
-            }).join('') || '<p class="text-xs text-gray-400 py-1">暂无政策机会，可在下方手动添加</p>';
+                var lvClass = p.level === '高匹配' ? 'bg-brand-50 text-brand-700'
+                    : (p.level === '部分匹配' ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-600');
+                var metaText = [p.levelTag, p.dept].filter(Boolean).join(' · ');
+                var bits = [];
+                if (metaText) bits.push(esc(metaText));
+                if (p.match) bits.push('匹配度 ' + p.match + '%');
+                if (p.total) bits.push('命中 ' + p.hit + '/' + p.total + ' 项');
+                var extra = '';
+                if (p.batch) extra += '<p class="text-xs text-gray-500 mt-1"><i class="fa fa-calendar-o mr-1"></i>' + esc(p.batch.name) +
+                    ' · 截止 ' + esc(p.batch.end) + (p.batch.days > 0 ? '（剩 ' + p.batch.days + ' 天）' : '') + '</p>';
+                if (p.unmet && p.unmet.length) extra += '<p class="text-xs text-red-500 mt-1">未满足：' + esc(p.unmet.join('；')) + '</p>';
+                if (p.pending && p.pending.length) extra += '<p class="text-xs text-orange-500 mt-1">待确认：' + esc(p.pending.join('、')) + '</p>';
+                return '<div class="border border-gray-100 rounded-lg px-3 py-2">' +
+                    '<div class="flex items-start justify-between gap-3">' +
+                    '<div class="min-w-0"><span class="text-sm font-medium text-gray-800">' + esc(p.title) + '</span>' +
+                    (bits.length ? '<span class="text-xs text-gray-400 ml-2">' + bits.join(' · ') + '</span>' : '') +
+                    extra + '</div>' +
+                    '<div class="flex items-center gap-2 shrink-0"><span class="px-2 py-0.5 rounded text-xs ' + lvClass + '">' + esc(p.level || '推荐') + '</span>' +
+                    '<button onclick="removePolicy(' + i + ')" class="text-gray-300 hover:text-red-500"><i class="fa fa-times"></i></button></div>' +
+                    '</div></div>';
+            }).join('') || '<p class="text-xs text-gray-400 py-1">暂无政策机会，建议先完善企业档案后重新生成，或在下方面板手动添加</p>';
         }
         function removePolicy(i) { DRAFT.policies.splice(i, 1); renderPolicyList(); renderKpi(); }
         function addPolicy() {
             var t = document.getElementById('npTitle').value.trim();
             if (!t) { toast('请填写政策名称', false); return; }
-            DRAFT.policies.push({ title: t, benefit: document.getElementById('npBenefit').value.trim() || '面议', level: '推荐', match: 0 });
+            DRAFT.policies.push({ title: t, dept: '', levelTag: '', level: '推荐', match: 0, unmet: [], pending: [], benefit: '' });
             document.getElementById('npTitle').value = '';
-            document.getElementById('npBenefit').value = '';
+            if (document.getElementById('npBenefit')) document.getElementById('npBenefit').value = '';
             renderPolicyList(); renderKpi();
         }
 
@@ -481,8 +906,11 @@
                 shares: (EDIT_ID ? (findReport(EDIT_ID) || {}).shares || 0 : 0),
                 company: DRAFT.company,
                 diagnosis: DRAFT.diagnosis,
-                summary: document.getElementById('rSummary').value.trim(),
-                profile: document.getElementById('rProfile').value.trim(),
+                summary: DRAFT.summary,
+                profile: DRAFT.profile,
+                conditions: DRAFT.conditions || [],
+                todo: DRAFT.todo || [],
+                cond: { fields: JSON.parse(JSON.stringify(COND)), tags: JSON.parse(JSON.stringify(COND_TAGS)) },
                 policies: DRAFT.policies,
                 advice: document.getElementById('rAdvice').value.trim()
             };
@@ -503,36 +931,82 @@
             return r;
         }
 
+        // 一键生成 PDF：本地打印导出，不跳转页面
         function exportPDF() {
-            var r = saveReport(true);
-            toast('正在打开 PDF 导出...');
-            var url = 'report-viewer.html?id=' + r.id + '&print=1';
-            if (parent && parent.window && parent.window.switchPage) parent.window.switchPage(url, null);
-            else window.location.href = url;
+            saveReport(true);
+            toast('正在生成 PDF，请在打印窗口选择「另存为 PDF」');
+            setTimeout(function() { window.print(); }, 350);
         }
 
+        // 打印前展开多行文本，避免内容被滚动区域截断
+        window.addEventListener('beforeprint', function() {
+            document.querySelectorAll('#panel3 textarea').forEach(function(t) { t.dataset.h0 = t.style.height; t.style.height = t.scrollHeight + 'px'; });
+        });
+        window.addEventListener('afterprint', function() {
+            document.querySelectorAll('#panel3 textarea').forEach(function(t) { t.style.height = t.dataset.h0 || ''; });
+        });
+
+        // ===== 分享报告（站内推送 / 外链，与 H5 同口径） =====
+        var SHARE_REPORT = null;
+        var QR_SEED = [1,1,1,1,1,1,1,0,0,1,0,0,0,0,1,0,0,1,0,1,1,0,1,0,1,1,1,0,1,1,1,1,1,0,1,1,0,0,1,0,0,0,0,1,0,0,1,1,1,1,1,1,1,0,1,1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,1,0,0,0,1,1,0,0,1,1];
+
         function copyLink() {
-            var r = saveReport(true);
-            // 弹窗输入分享对象
-            var name = prompt('分享给客户（姓名或部门，回车使用销售联系人）', (DRAFT.company && DRAFT.company.contact) || '');
-            if (name === null) return;
-            name = name.trim() || (DRAFT.company && DRAFT.company.name) || '未知客户';
+            SHARE_REPORT = saveReport(true);
+            document.getElementById('shareTo').value = (DRAFT.company && (DRAFT.company.contact || DRAFT.company.name)) || '';
+            pickShareChannel('站内推送');
+            document.getElementById('shareResult').classList.add('hidden');
+            document.getElementById('btnShare').innerHTML = '<i class="fa fa-paper-plane mr-1"></i>生成分享';
+            var el = document.getElementById('shareOverlay');
+            el.classList.remove('hidden'); el.classList.add('flex');
+        }
+        function closeShare() {
+            var el = document.getElementById('shareOverlay');
+            el.classList.add('hidden'); el.classList.remove('flex');
+        }
+        function pickShareChannel(ch) {
+            document.getElementById('shareChannel').value = ch;
+            var on = 'px-3 py-2.5 rounded-lg border text-left text-xs transition-colors border-brand-600 bg-brand-50 text-brand-700';
+            var off = 'px-3 py-2.5 rounded-lg border text-left text-xs transition-colors border-gray-200 text-gray-600';
+            document.getElementById('chInternal').className = ch === '站内推送' ? on : off;
+            document.getElementById('chExternal').className = ch === '外链' ? on : off;
+            document.getElementById('shareResult').classList.add('hidden');
+        }
+        function confirmShare() {
+            var r = SHARE_REPORT || saveReport(true);
+            var name = document.getElementById('shareTo').value.trim() || (r.customerName || '') || '未知客户';
+            var channel = document.getElementById('shareChannel').value;
             var shareId = 'S' + Date.now();
-            var phone = (DRAFT.company && DRAFT.company.phone) || '';
-            var expire = new Date(); expire.setDate(expire.getDate() + 30);
             function p(n) { return String(n).padStart(2, '0'); }
-            var nowTs = new Date();
-            var createdAt = nowTs.getFullYear() + '-' + p(nowTs.getMonth()+1) + '-' + p(nowTs.getDate()) + ' ' + p(nowTs.getHours()) + ':' + p(nowTs.getMinutes());
-            var expireAt = expire.getFullYear() + '-' + p(expire.getMonth()+1) + '-' + p(expire.getDate());
+            var nowTs = new Date(), exp = new Date(); exp.setDate(exp.getDate() + 30);
+            var createdAt = nowTs.getFullYear() + '-' + p(nowTs.getMonth() + 1) + '-' + p(nowTs.getDate()) + ' ' + p(nowTs.getHours()) + ':' + p(nowTs.getMinutes());
+            var expireAt = exp.getFullYear() + '-' + p(exp.getMonth() + 1) + '-' + p(exp.getDate());
             if (!Array.isArray(r.shares)) r.shares = [];
-            r.shares.push({ shareId: shareId, toName: name, toPhone: phone, createdAt: createdAt, expireAt: expireAt, views: [] });
+            r.shares.push({
+                shareId: shareId, toName: name, toPhone: (DRAFT.company && DRAFT.company.phone) || '',
+                channel: channel, createdAt: createdAt, expireAt: expireAt, views: []
+            });
             DataBridge.saveSalesReports(REPORTS);
             renderReportList();
-            var url = location.origin + '/report-viewer.html?id=' + r.id + '&shareId=' + shareId;
+
+            var url = location.origin + location.pathname.replace(/[^/]*$/, '') + 'report-viewer.html?id=' + r.id + '&shareId=' + shareId;
+            document.getElementById('shareUrl').value = url;
+            document.getElementById('qrBox').innerHTML = QR_SEED.slice(0, 81).map(function(v) {
+                return '<i class="' + (v ? '' : 'off') + '"></i>';
+            }).join('');
+            document.getElementById('shareNote').textContent = channel === '站内推送'
+                ? '已推送至「' + name + '」会员中心，可在分享管理追踪查看'
+                : '已生成外链，可复制或扫码发送给非平台注册客户';
+            document.getElementById('shareResult').classList.remove('hidden');
+            document.getElementById('btnShare').innerHTML = '<i class="fa fa-check mr-1"></i>重新生成';
+            toast(channel === '站内推送' ? '已生成站内推送' : '已生成外链与二维码');
+        }
+        function copyShareUrl() {
+            var input = document.getElementById('shareUrl');
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(url).then(function() { toast('已生成分享链接给「' + name + '」并复制'); })
-                    .catch(function() { prompt('复制报告链接：', url); });
-            } else prompt('复制报告链接：', url);
+                navigator.clipboard.writeText(input.value).then(function() { toast('链接已复制'); }).catch(function() { input.select(); document.execCommand('copy'); toast('链接已复制'); });
+            } else {
+                input.select(); document.execCommand('copy'); toast('链接已复制');
+            }
         }
 
         function findReport(id) {
@@ -578,10 +1052,19 @@
                 company: JSON.parse(JSON.stringify(r.company)),
                 diagnosis: r.diagnosis ? JSON.parse(JSON.stringify(r.diagnosis)) : null,
                 policies: JSON.parse(JSON.stringify(r.policies || [])),
-                summary: r.summary, profile: r.profile, advice: r.advice, type: r.type
+                summary: r.summary, profile: r.profile, advice: r.advice, type: r.type,
+                conditions: JSON.parse(JSON.stringify(r.conditions || [])),
+                todo: JSON.parse(JSON.stringify(r.todo || []))
             };
+            // 恢复匹配条件（老报告无 cond 时按客户档案重建）
+            if (r.cond) {
+                resetCond();
+                COND = Object.assign(COND, r.cond.fields || {});
+                COND_TAGS = Object.assign({ basic: [], finance: [], hr: [], ip: [], qual: [] }, JSON.parse(JSON.stringify(r.cond.tags || {})));
+            } else {
+                initCondFromArchive(DRAFT.company);
+            }
             document.getElementById('inpName').value = r.customerName;
-            document.getElementById('selType').value = r.type === '能力诊断' ? '能力诊断' : '政策匹配';
             fillCompanyForm(DRAFT);
             fillStep3();
             gotoStep(3);

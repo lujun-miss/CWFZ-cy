@@ -14,21 +14,11 @@
     html, body { height: 100%; }
     body {
         margin: 0;
-        display: flex; align-items: center; justify-content: center; gap: 56px;
+        display: flex; align-items: center; justify-content: center;
         background: radial-gradient(1200px 620px at 18% -10%, #eef2ff 0%, #e2e8f0 48%, #f1f5f9 100%);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
         overflow: hidden;
     }
-    /* 左侧说明面板（仅桌面预览显示） */
-    .intro { width: 300px; color: #334155; }
-    .intro h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -0.3px; color: #0f172a; }
-    .intro .sub { font-size: 12px; color: #64748b; line-height: 1.7; margin: 0 0 18px; }
-    .intro .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; box-shadow: 0 8px 24px rgba(15,23,42,.06); margin-bottom: 14px; }
-    .intro .card h3 { font-size: 12px; margin: 0 0 10px; color: #0f172a; display: flex; align-items: center; gap: 6px; }
-    .intro .card h3 i { color: #4f46e5; }
-    .intro .row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; padding: 5px 0; color: #475569; border-bottom: 1px dashed #e2e8f0; }
-    .intro .row:last-child { border-bottom: 0; }
-    .intro .row code { background: #f1f5f9; color: #4f46e5; padding: 1px 5px; border-radius: 5px; font-size: 10px; }
     /* 手机壳 */
     .phone {
         width: 375px; height: 782px; flex-shrink: 0;
@@ -140,11 +130,13 @@
     .pdf-page { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; box-shadow: 0 6px 18px rgba(15,23,42,.08); }
     .pdf-h { font-size: 13px; font-weight: 800; color: #0f172a; margin: 0 0 8px; text-align: center; }
     .pdf-sub { font-size: 11px; color: #475569; line-height: 1.7; margin: 0 0 8px; }
+    .pdf-meta { font-size: 10.5px; color: #64748b; margin: 0 0 6px; text-align: center; }
+    .pdf-sec { font-size: 11px; font-weight: 800; color: #1e293b; margin: 12px 0 5px; padding-left: 6px; border-left: 3px solid #6366f1; }
     .pdf-line { font-size: 11px; color: #475569; line-height: 1.8; margin: 0; }
-    /* 小屏（真机 / 窄屏 iframe）直接全屏展示，不显示手机壳与说明面板 */
+    .pdf-kv { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; font-size: 11px; color: #475569; line-height: 1.8; }
+    /* 小屏（真机 / 窄屏 iframe）全屏展示，不显示手机壳 */
     @media (max-width: 900px) {
         body { display: block; }
-        .intro { display: none; }
         .phone { width: 100%; height: 100%; border-radius: 0; padding: 0; box-shadow: none; }
         .phone::before { display: none; }
         .phone-screen { border-radius: 0; }
@@ -152,34 +144,6 @@
 </style>
 </head>
 <body>
-    <!-- ============ 桌面预览说明面板 ============ -->
-    <div class="intro">
-        <h1>销售赋能中心 · 移动端 H5</h1>
-        <p class="sub">售前 / 售中 / 售后一体化销售工作台。原型内数据与 PC 端同源（客户、线索、报告分享、服务订单均读取同一份本地数据），便于演示时两端数据一致。</p>
-        <div class="card">
-            <h3><i class="fa fa-mobile"></i>底栏 TabBar 架构</h3>
-            <div class="row"><span>客户管理</span><code>/customers</code></div>
-            <div class="row"><span>智能报告</span><code>/report</code></div>
-            <div class="row"><span>分享管理</span><code>/shares</code></div>
-            <div class="row"><span>线索管理</span><code>/leads</code></div>
-            <div class="row"><span>业绩看板</span><code>/dashboard</code></div>
-        </div>
-        <div class="card">
-            <h3><i class="fa fa-link"></i>联动系统占位</h3>
-            <div class="row"><span>企业政策服务平台</span><span>H5 跳转</span></div>
-            <div class="row"><span>AI 智能引擎</span><span>接口调用</span></div>
-            <div class="row"><span>服务交易中心</span><span>订单 API</span></div>
-            <div class="row"><span>运营管理平台</span><span>数据回流</span></div>
-        </div>
-        <div class="card">
-            <h3><i class="fa fa-hand-o-up"></i>可预览的交互</h3>
-            <div class="row"><span>左滑线索</span><span>认领 / 跟进</span></div>
-            <div class="row"><span>AI 生成报告</span><span>骨架屏</span></div>
-            <div class="row"><span>下拉刷新</span><span>分享列表</span></div>
-            <div class="row"><span>动作面板</span><span>已转化 / 无效</span></div>
-        </div>
-    </div>
-
     <!-- ============ 手机壳 + H5 应用 ============ -->
     <div class="phone">
         <div class="phone-screen" id="phoneScreen">
@@ -258,9 +222,6 @@
                                     <van-button type="primary" size="small" round block plain icon="search" @click="showPicker = true">选客户</van-button>
                                     <van-button size="small" round block @click="openConditions()" :disabled="!reportKeyword.trim()" icon="arrow-right">下一步 · 采集条件</van-button>
                                 </div>
-                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
-                                    <span v-for="c in quickCompanies" :key="c" class="tag t-blue" style="cursor:pointer" @click="reportKeyword = c">+ {{ c }}</span>
-                                </div>
                             </div>
 
                             <!-- ======== 条件采集（两步式：企业档案 → 销售补充） ======== -->
@@ -306,6 +267,42 @@
                                             <div>高品收入占比：<b v-if="condAssess.__entHit && condAssess.hiTechRatio != null">{{ condAssess.hiTechRatio }}%</b><span v-else><input v-model.number="condAssess.hiTechRatio" type="number" placeholder="补充" style="width:56px;border:1px solid #f59e0b;border-radius:4px;padding:1px 4px;font-size:11px" /> %</span></div>
                                         </div>
                                     </div>
+
+                                    <div class="muted" style="font-size:10.5px;margin:12px 0 8px 0"><i class="fa fa-line-chart" style="color:#0ea5e9"></i> 投入类指标（政策高频门槛）</div>
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                                        <div style="background:#f0f9ff;border-radius:10px;padding:10px 12px">
+                                            <div style="font-size:11px;color:#475569;margin-bottom:4px">研发投入（万元）</div>
+                                            <input v-model.number="condAssess.rdInvestWan" type="number" placeholder="如 120" style="width:100%;border:1px solid #bae6fd;border-radius:6px;padding:4px 8px;font-size:12px;background:#fff" />
+                                        </div>
+                                        <div style="background:#f0f9ff;border-radius:10px;padding:10px 12px">
+                                            <div style="font-size:11px;color:#475569;margin-bottom:4px">项目投入（万元）</div>
+                                            <input v-model.number="condAssess.projectInvestWan" type="number" placeholder="如 260" style="width:100%;border:1px solid #bae6fd;border-radius:6px;padding:4px 8px;font-size:12px;background:#fff" />
+                                        </div>
+                                    </div>
+                                    <div style="font-size:10px;color:#94a3b8;margin-top:4px">研发投入已按企业档案「研发费用」自动带入，可手动调整</div>
+
+                                    <div class="muted" style="font-size:10.5px;margin:12px 0 8px 0"><i class="fa fa-tags" style="color:#2563eb"></i> 运营指标（可多选，与政策雷达同口径）</div>
+                                    <div style="background:#f8fafc;border-radius:10px;padding:10px 12px">
+                                        <div v-for="g in TAG_GROUPS" :key="g.key" style="padding:6px 0;border-bottom:1px solid #eef2f7">
+                                            <div style="display:flex;align-items:center;justify-content:space-between">
+                                                <span style="font-size:11.5px;font-weight:600;color:#334155">
+                                                    {{ g.name }}
+                                                    <span v-if="condTags[g.key].length" style="color:#2563eb;font-weight:700">（已选 {{ condTags[g.key].length }}）</span>
+                                                </span>
+                                                <span @click="toggleIndGroup(g.key)" style="font-size:10.5px;color:#2563eb">
+                                                    {{ indGroupOpen[g.key] ? '收起' : '展开' }}
+                                                    <i class="fa" :class="indGroupOpen[g.key] ? 'fa-angle-up' : 'fa-angle-down'"></i>
+                                                </span>
+                                            </div>
+                                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                                                <span v-for="t in groupPreview(g)" :key="t"
+                                                      class="tag" :class="condTags[g.key].indexOf(t) >= 0 ? 't-blue' : 't-gray'"
+                                                      @click="toggleTag(g.key, t)">{{ t }}</span>
+                                                <span v-if="!indGroupOpen[g.key] && g.items.length > 3" style="font-size:10px;color:#94a3b8;line-height:20px">+{{ g.items.length - 3 }} 项</span>
+                                            </div>
+                                        </div>
+                                        <div style="font-size:10px;color:#94a3b8;padding-top:6px">可多选，不限制数量；已按企业档案自动勾选，符合的指标请保留</div>
+                                    </div>
                                 </div>
 
                                 <!-- Step 2：销售补充（关键条件） -->
@@ -339,27 +336,17 @@
 
                             <!-- ======== 报告存档（有报告详情在展示时隐藏，避免列表与详情同屏） ======== -->
                             <div class="card" v-if="archiveReports.length && !condOpen && !report">
-                                <div class="card-title"><i class="fa fa-folder-open-o"></i>报告存档<span class="extra">共 {{ archiveReports.length }} 份 · 点击客户展开</span></div>
+                                <div class="card-title"><i class="fa fa-folder-open-o"></i>报告存档<span class="extra">共 {{ archiveGroups.length }} 位客户 · 仅保留最新一份</span></div>
                                 <!-- 按客户名称搜索存档 -->
                                 <van-field v-model="arcKeyword" placeholder="搜索客户名称" clearable style="background:#f8fafc;border-radius:10px;margin-bottom:6px"></van-field>
-                                <!-- 按客户分组：每个客户一行，展开后显示该客户的历史报告 -->
-                                <div v-for="g in archiveGroups" :key="g.name">
-                                    <div class="arc-row" @click="toggleArcGroup(g.name)">
-                                        <div class="row-main">
-                                            <p class="name">{{ g.name }}</p>
-                                            <div class="info"><span class="tag t-blue">{{ g.list.length }} 份报告</span><span>最新 {{ g.latest }}</span></div>
-                                        </div>
-                                        <i class="fa muted" :class="arcExpanded[g.name] ? 'fa-angle-down' : 'fa-angle-right'"></i>
+                                <!-- 每个客户一行，仅展示最新一份报告 -->
+                                <div v-for="g in archiveGroups" :key="g.name" class="arc-row" @click="loadArchive(g.list[0])">
+                                    <div class="row-main">
+                                        <p class="name">{{ g.name }}</p>
+                                        <div class="info"><span class="tag t-blue">{{ g.list[0].type }}</span><span>{{ g.list[0].createdAt }}</span></div>
                                     </div>
-                                    <div v-if="arcExpanded[g.name]">
-                                        <div v-for="r in g.list" :key="r.id" class="arc-row" style="padding-left:14px" @click="loadArchive(r)">
-                                            <div class="row-main">
-                                                <div class="info"><span class="tag t-blue">{{ r.type }}</span><span>{{ r.createdAt }}</span></div>
-                                            </div>
-                                            <span class="tag t-gray">{{ (r.policies || []).length }} 项政策</span>
-                                            <i class="fa fa-angle-right muted"></i>
-                                        </div>
-                                    </div>
+                                    <span class="tag t-gray">{{ (g.list[0].policies || []).length }} 项政策</span>
+                                    <i class="fa fa-angle-right muted"></i>
                                 </div>
                                 <div v-if="!archiveGroups.length" class="empty">无匹配「{{ arcKeyword }}」的存档</div>
                             </div>
@@ -381,7 +368,6 @@
                                         <i class="fa fa-file-text-o"></i>{{ report.title }}
                                         <span class="extra">{{ report.type }} · {{ report.createdAt }}</span>
                                     </div>
-                                    <div style="font-size:11.5px;color:#475569;line-height:1.7">{{ report.summary }}</div>
                                 </div>
 
                                 <!-- 报告引用的匹配条件（展示给销售/客户看"这份报告用了哪些条件算出来的"） -->
@@ -442,20 +428,9 @@
                                 <div class="card">
                                     <div class="card-title"><i class="fa fa-bullhorn"></i>申报建议</div>
                                     <p style="font-size:11.5px;color:#475569;line-height:1.8;white-space:pre-line;margin:0">{{ report.advice }}</p>
-                                </div>
-
-                                <!-- 补充数据表单（可重新生成） -->
-                                <div class="card">
-                                    <div class="card-title"><i class="fa fa-sliders"></i>补充条件后重新生成</div>
-                                    <van-button size="small" round block plain @click="condOpen = true; condStep = 1">打开条件采集面板</van-button>
-                                </div>
-
-                                <!-- 联动占位 -->
-                                <div class="card" style="margin-bottom:14px">
-                                    <div class="card-title"><i class="fa fa-exchange"></i>报告联动</div>
-                                    <div style="display:flex;gap:8px">
-                                        <van-button size="small" round block plain @click="todo('推送到客户账号：客户在「会员中心 · 站内消息」查看（占位）')">推送客户</van-button>
-                                        <van-button size="small" round block plain @click="todo('发起服务订单：服务交易中心（占位）')">转服务</van-button>
+                                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0">
+                                        <span style="font-size:10.5px;color:#64748b">报告已自动保存至报告存档</span>
+                                        <span style="font-size:10.5px;color:#4f46e5;font-weight:700;cursor:pointer" @click="viewArchive()">查看存档 <i class="fa fa-angle-right"></i></span>
                                     </div>
                                 </div>
                             </div>
@@ -481,7 +456,7 @@
                                 <!-- 发起分享入口：报告 / 政策统一入口（此前政策分享没有入口） -->
                                 <van-button block round type="primary" icon="share-o" style="margin-bottom:10px" @click="openShareCreate">发起分享（报告 / 政策）</van-button>
                                 <div v-if="shareTab === 0">
-                                    <div v-for="s in shareList" :key="s.shareId" class="list-row" @click="openTracking(s)">
+                                    <div v-for="s in shareList" :key="s.shareId" class="list-row" @click="s.channel === '外链' ? openTracking(s) : todo('站内推送：客户在「会员中心 · 我的报告」查看，无需扫码或链接')">
                                         <div class="avatar" style="background:#eef2ff;color:#4f46e5"><i class="fa fa-file-text-o"></i></div>
                                         <div class="row-main">
                                             <p class="name">{{ s.toName }} <span v-if="s.converted" class="tag t-green" style="margin-left:2px">已转化</span></p>
@@ -491,14 +466,14 @@
                                             </div>
                                         </div>
                                         <div class="row-right">
-                                            <p style="font-size:12.5px;font-weight:800;color:#0f172a">{{ s.viewCount }} 次</p>
-                                            <p class="muted">累计 {{ s.durText }}</p>
+                                            <span v-if="s.channel === '外链'" style="font-size:10px;color:#4f46e5"><i class="fa fa-qrcode"></i> 链接</span>
+                                            <span v-else style="font-size:10px;color:#7c3aed"><i class="fa fa-check-circle"></i> 平台内</span>
                                         </div>
                                     </div>
                                     <div v-if="!shareList.length" class="empty"><i class="fa fa-share-alt"></i>暂无分享记录，点上方「发起分享」</div>
                                 </div>
                                 <div v-else>
-                                    <div v-for="s in policyShareList" :key="s.shareId" class="list-row" @click="openTracking(s)">
+                                    <div v-for="s in policyShareList" :key="s.shareId" class="list-row" @click="s.channel === '外链' ? openTracking(s) : todo('站内推送：客户在「会员中心 · 我的报告」查看，无需扫码或链接')">
                                         <div class="avatar" style="background:#f5f3ff;color:#6d28d9"><i class="fa fa-university"></i></div>
                                         <div class="row-main">
                                             <p class="name">{{ s.toName }} <span v-if="s.converted" class="tag t-green" style="margin-left:2px">已转化</span></p>
@@ -508,8 +483,8 @@
                                             </div>
                                         </div>
                                         <div class="row-right">
-                                            <p style="font-size:12.5px;font-weight:800;color:#0f172a">{{ s.viewCount }} 次</p>
-                                            <p class="muted">累计 {{ s.durText }}</p>
+                                            <span v-if="s.channel === '外链'" style="font-size:10px;color:#4f46e5"><i class="fa fa-qrcode"></i> 链接</span>
+                                            <span v-else style="font-size:10px;color:#7c3aed"><i class="fa fa-check-circle"></i> 平台内</span>
                                         </div>
                                     </div>
                                     <div v-if="!policyShareList.length" class="empty"><i class="fa fa-university"></i>暂无政策分享，点上方「发起分享」选择政策</div>
@@ -527,8 +502,8 @@
                                 <div class="avatar" style="background:#fef2f2;color:#ef4444"><i class="fa fa-bell-o"></i></div>
                                 <div class="row-main">
                                     <p class="name">待处理线索 <span class="dot-red">{{ pendingCount }}</span></p>
-                                    <p class="info" style="font-size:11px;color:#94a3b8;margin-top:3px">左滑列表项可「认领 / 跟进」，认领后状态自动变为跟进中</p>
                                 </div>
+                                <button @click="showLeadRules = true" style="width:20px;height:20px;border-radius:9999px;border:1px solid #cbd5e1;background:#fff;color:#64748b;font-size:11px;font-weight:700;line-height:1;cursor:pointer;flex-shrink:0" title="查看规则">?</button>
                             </div>
                             <van-tabs v-model:active="leadTab" style="margin-bottom:10px">
                                 <van-tab title="全部"></van-tab>
@@ -560,7 +535,7 @@
                                 </div>
                             </div>
                             <div v-if="!filteredLeads.length" class="empty"><i class="fa fa-inbox"></i>该状态下暂无线索</div>
-                            <p class="muted" style="text-align:center;padding:6px 0 16px">线索来源：企业端问答 / 政策雷达 / 科创测评行为自动回流（与 PC 线索管理同一份数据）</p>
+                            <p class="muted" style="text-align:center;padding:6px 0 16px">线索来源：企业端问答 / 政策雷达 / 科创测评等客户行为自动回流（与 PC 线索管理同一份数据）</p>
                         </div>
                     </div>
 
@@ -580,32 +555,79 @@
                                             :type="boardPeriod === p.key ? 'primary' : 'default'"
                                             @click="setPeriod(p.key)">{{ p.label }}</van-button>
                             </div>
+                            <!-- 核心指标：线索数、转化率、成交额（全部接真实数据） -->
                             <div class="metrics">
-                                <div class="metric"><p class="v">{{ board.leads }}</p><p class="l">线索数</p></div>
-                                <div class="metric"><p class="v">{{ board.rate }}%</p><p class="l">转化率</p></div>
-                                <div class="metric"><p class="v">{{ board.amountText }}</p><p class="l">成交额</p></div>
-                            </div>
-                            <div class="card" style="margin-top:10px">
-                                <div class="card-title"><i class="fa fa-flag-checkered"></i>目标差距<span class="extra">{{ board.periodLabel }}</span></div>
-                                <div style="display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:#475569;margin-bottom:8px">
-                                    <span>已达成 {{ board.amountText }} / 目标 {{ board.targetText }}</span>
-                                    <span style="color:#4f46e5;font-weight:700">还差 {{ board.gapText }}</span>
+                                <div class="metric">
+                                    <p class="v">{{ board.leads }}</p>
+                                    <p class="l" style="display:inline">线索数
+                                        <i class="fa fa-question-circle" @click.stop="showTip($event,'leads')" style="margin-left:3px;font-size:10px;color:#94a3b8;cursor:pointer"></i>
+                                    </p>
                                 </div>
-                                <van-progress :percentage="board.percent" :show-pivot="false" stroke-width="8" color="#6366f1"></van-progress>
+                                <div class="metric">
+                                    <p class="v">{{ board.rate }}%</p>
+                                    <p class="l" style="display:inline">转化率
+                                        <i class="fa fa-question-circle" @click.stop="showTip($event,'rate')" style="margin-left:3px;font-size:10px;color:#94a3b8;cursor:pointer"></i>
+                                    </p>
+                                </div>
+                                <div class="metric">
+                                    <p class="v">¥{{ board.amountText }}</p>
+                                    <p class="l" style="display:inline">成交额
+                                        <i class="fa fa-question-circle" @click.stop="showTip($event,'amount')" style="margin-left:3px;font-size:10px;color:#94a3b8;cursor:pointer"></i>
+                                    </p>
+                                </div>
                             </div>
-                            <div class="card" @click="todo('调整跟进策略：建议优先跟进「频繁查看政策」且 7 天内未认领的高意向线索（占位）')">
-                                <div class="card-title"><i class="fa fa-bar-chart"></i>业绩构成（按线索来源）<span class="extra">点击图表获取建议</span></div>
-                                <div class="bars">
-                                    <div v-for="b in board.bars" :key="b.label" class="bar-wrap">
-                                        <span style="font-size:10px;color:#4f46e5;font-weight:700">{{ b.value }}</span>
-                                        <div class="bar" :style="{ height: b.height + '%' }"></div>
-                                        <span class="bar-label">{{ b.label }}</span>
+                            <!-- 全局 tooltip（fixed 定位，避免父容器 overflow 裁切） -->
+                            <div v-if="tipOpen" @click.stop :style="tipStyle">{{ tipText }}</div>
+
+                            <!-- 漏斗分析：线索 → 转化 → 成交 → 成交额 -->
+                            <div class="card" style="margin-top:10px">
+                                <div class="card-title"><i class="fa fa-filter"></i>转化漏斗</div>
+                                <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+                                    <div v-for="(f, i) in board.funnel" :key="f.label" style="display:flex;align-items:center;gap:8px">
+                                        <span style="font-size:11px;color:#475569;width:80px;flex-shrink:0">{{ f.label }}</span>
+                                        <div style="flex:1;height:18px;background:#f1f5f9;border-radius:3px;overflow:hidden;position:relative">
+                                            <div :style="{ width: (f.isAmount ? 100 : (board.funnel[0].value ? Math.min(100, f.value / board.funnel[0].value * 100) : 0)) + '%', background: f.color, height: '100%', borderRadius: '3px' }"></div>
+                                        </div>
+                                        <span style="font-size:11px;font-weight:700;color:#0f172a;min-width:60px;text-align:right">
+                                            {{ f.isAmount ? '¥' : '' }}{{ f.value.toLocaleString() }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="card" @click="todo('调整跟进策略：已转化线索集中在政策查询渠道，建议加大政策雷达推送频次（占位）')">
-                                <div class="card-title"><i class="fa fa-pie-chart"></i>线索阶段分布<span class="extra">点击图表获取建议</span></div>
-                                <div style="display:flex;align-items:center;gap:14px">
+
+                            <!-- 业绩构成：按线索来源（线索数） -->
+                            <div class="card" style="margin-top:10px">
+                                <div class="card-title"><i class="fa fa-bar-chart"></i>业绩构成：按线索来源</div>
+                                <div style="display:flex;gap:6px;margin-top:4px">
+                                    <div v-for="b in board.sourceBars" :key="b.label" style="flex:1;text-align:center">
+                                        <span style="font-size:13px;font-weight:700;color:#4f46e5">{{ b.value }}</span>
+                                        <div style="height:60px;background:#f1f5f9;border-radius:4px;display:flex;align-items:flex-end;overflow:hidden;margin-top:4px">
+                                            <div :style="{ height: Math.max(b.height, b.value ? 4 : 0) + '%', width: '100%', background: 'linear-gradient(180deg,#818cf8,#4f46e5)', borderRadius: '4px 4px 0 0' }"></div>
+                                        </div>
+                                        <span style="font-size:10px;color:#94a3b8;white-space:nowrap">{{ b.label }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 业绩构成：按服务类型（成交额） -->
+                            <div class="card" style="margin-top:10px">
+                                <div class="card-title"><i class="fa fa-cubes"></i>业绩构成：按服务类型（成交额）</div>
+                                <div v-if="board.svcBars.reduce(function(s,b){return s+b.amount},0) > 0" style="margin-top:4px">
+                                    <div v-for="(b, i) in board.svcBars" :key="b.label" style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                                        <span style="font-size:11px;color:#475569;width:70px;flex-shrink:0">{{ b.label }}</span>
+                                        <div style="flex:1;height:14px;background:#f1f5f9;border-radius:3px;overflow:hidden">
+                                            <div :style="{ width: (b.height || 0) + '%', height: '100%', background: ['#4f46e5','#10b981','#f59e0b'][i % 3], borderRadius: '3px' }"></div>
+                                        </div>
+                                        <span style="font-size:11px;font-weight:700;color:#0f172a;min-width:60px;text-align:right">¥{{ b.amount.toLocaleString() }}</span>
+                                    </div>
+                                </div>
+                                <div v-else class="empty" style="font-size:11.5px;padding:12px 0">暂无成交数据，标记线索为已转化并录入成交后即可查看</div>
+                            </div>
+
+                            <!-- 线索阶段分布 -->
+                            <div class="card" style="margin-top:10px">
+                                <div class="card-title"><i class="fa fa-pie-chart"></i>线索阶段分布</div>
+                                <div style="display:flex;align-items:center;gap:14px;margin-top:4px">
                                     <div class="donut" :style="{ background: board.donut }"></div>
                                     <div class="legend">
                                         <div v-for="d in board.stageDist" :key="d.label" class="li">
@@ -614,7 +636,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <p class="muted" style="text-align:center;padding:4px 0 16px">口径说明：线索与转化取 PC 端线索数据，成交额取服务商城已支付订单</p>
+
+                            <p class="muted" style="text-align:center;padding:4px 0 16px;font-size:10.5px;line-height:1.6">
+                                数据口径：线索数/转化率/阶段分布取 PC 端线索管理数据；成交额取已支付服务订单（按归属销售过滤）；标记线索为已转化并录入成交会自动生成服务订单
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -674,7 +699,6 @@
                                 <div style="display:flex;gap:8px;margin-top:10px">
                                     <van-button size="mini" round plain @click="todo('拨打 ' + customer.phone + '（占位：对接云呼叫中心）')">打电话</van-button>
                                     <van-button size="mini" round plain @click="todo('发送资料（占位：企业政策服务平台推送）')">发资料</van-button>
-                                    <van-button size="mini" round plain @click="todo('创建服务订单（占位：服务交易中心 API）')">转服务</van-button>
                                 </div>
                             </div>
                             <!-- 政策匹配与诊断报告 -->
@@ -760,14 +784,8 @@
                         </div>
                         <p class="muted" style="text-align:center;margin:10px 0 14px">二维码为原型占位，对接时替换为真实二维码图</p>
                         <div style="background:#f8fafc;border-radius:10px;padding:10px;font-size:11px;color:#475569;word-break:break-all">{{ tracking.url }}</div>
-                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;text-align:center">
-                            <div><p style="font-size:16px;font-weight:800;color:#4f46e5;margin:0">{{ tracking.viewCount }}</p><p class="muted" style="margin:2px 0 0">打开次数</p></div>
-                            <div><p style="font-size:16px;font-weight:800;color:#4f46e5;margin:0">{{ tracking.durText }}</p><p class="muted" style="margin:2px 0 0">浏览时长</p></div>
-                            <div><p style="font-size:16px;font-weight:800;color:#4f46e5;margin:0">{{ tracking.lastAt }}</p><p class="muted" style="margin:2px 0 0">最后浏览</p></div>
-                        </div>
                         <div style="display:flex;gap:8px;margin-top:14px">
                             <van-button size="small" round block type="primary" @click="copyLink(tracking.url)">复制追踪链接</van-button>
-                            <van-button size="small" round block plain type="primary" @click="openPreview(tracking)">打开客户视角</van-button>
                         </div>
                         <div style="margin-top:8px">
                             <van-button size="small" round block plain @click="todo('重新生成链接（占位：旧链接将失效）')">刷新链接</van-button>
@@ -792,19 +810,201 @@
                                     </div>
                                 </div>
                             </div>
+                            <div v-if="lead.source === '预约申领'" class="card">
+                                <div class="card-title"><i class="fa fa-user-circle-o"></i>客户联系信息</div>
+                                <div style="font-size:11.5px;color:#475569;line-height:1.9">
+                                    <p style="margin:0">联系人：<b>{{ lead.contact || '—' }}</b></p>
+                                    <p style="margin:4px 0 0">联系电话：<b>{{ lead.phone || '—' }}</b></p>
+                                </div>
+                            </div>
                             <div class="card">
                                 <div class="card-title"><i class="fa fa-user-o"></i>归属与状态</div>
                                 <div style="font-size:11.5px;color:#475569">当前状态：<span class="tag" :class="stageClass(lead.stage)">{{ lead.stage }}</span> 归属销售：{{ lead.sales || '未分配' }}</div>
                             </div>
-                            <div style="display:flex;gap:8px">
+                            <!-- 待跟进：可认领 + 标记结果 -->
+                            <div v-if="lead.stage === '待跟进'" style="display:flex;gap:8px">
                                 <van-button size="small" round block type="primary" @click="claimLead(lead); showLead = false">认领并跟进</van-button>
                                 <van-button size="small" round block plain @click="openMarkSheet(lead)">标记结果</van-button>
+                            </div>
+                            <!-- 跟进中：只有负责人能标记结果 -->
+                            <div v-else-if="lead.stage === '跟进中'" style="display:flex;gap:8px">
+                                <van-button size="small" round block plain @click="openMarkSheet(lead)">标记结果</van-button>
+                            </div>
+                            <!-- 已转化 / 已流失：无操作按钮 -->
+                        </div>
+                    </div>
+                </van-popup>
+
+                <!-- ============ 线索判定与认领规则说明 ============ -->
+                <van-popup v-model:show="showLeadRules" position="bottom" round :style="{ height: '82%' }" teleport="#phoneScreen" :z-index="9999">
+                    <div class="app-body" style="height:100%">
+                        <div style="padding:14px 14px 0;display:flex;align-items:center;justify-content:space-between">
+                            <p style="font-size:14px;font-weight:800;color:#0f172a;margin:0">线索判定与认领规则</p>
+                            <i class="fa fa-times" style="color:#94a3b8;padding:6px" @click="showLeadRules = false"></i>
+                        </div>
+                        <div class="pad" style="padding-bottom:24px">
+                            <div class="card">
+                                <div class="card-title"><i class="fa fa-bolt"></i>一、什么行为算高意向</div>
+                                <div style="font-size:11.5px;color:#475569;line-height:1.9">
+                                    <p style="margin:0 0 4px"><b>频繁查看某政策</b>：同一政策 24 小时内查看 ≥3 次，或 7 天内 ≥5 次</p>
+                                    <p style="margin:0 0 4px"><b>频繁浏览政策</b>：7 天内查看 ≥8 条不同政策，或政策详情累计停留 ≥10 分钟</p>
+                                    <p style="margin:0 0 4px"><b>使用测评工具</b>：启动测评并完成 ≥1 个模块（只打开未完成不计入）</p>
+                                    <p style="margin:0 0 4px"><b>高频 AI 问答</b>：24 小时内 ≥5 轮有效提问，或连续 3 轮追问同一政策</p>
+                                    <p style="margin:0 0 4px"><b>在线咨询 / 提交委托</b>：单次提交即触发线索</p>
+                                    <p style="margin:0;color:#94a3b8">同一客户同类行为 24 小时内只生成一条线索事件，避免重复提醒；已达成的行为不会因为次数增加而重复推送。</p>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-title"><i class="fa fa-refresh"></i>二、线索状态怎么变</div>
+                                <div style="font-size:11.5px;color:#475569;line-height:1.9">
+                                    <p style="margin:0 0 4px">待跟进 → 跟进中（销售认领后自动变更）→ 已转化 / 已流失（销售标记结果）</p>
+                                    <p style="margin:0">待跟进列表按生成时间倒序展示，不单独维护超时状态；所有线索一旦被认领即自动进入跟进中，与 PC 端线索管理同一份状态数据</p>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-title"><i class="fa fa-users"></i>三、多个销售看到同一条线索怎么办</div>
+                                <div style="font-size:11.5px;color:#475569;line-height:1.9">
+                                    <p style="margin:0 0 4px">一条线索同一时间只有一位负责人，<b>先认领先得</b>，认领后状态自动置为「跟进中」、负责人即为该销售，并从「待跟进」列表移至「跟进中」列表</p>
+                                    <p style="margin:0 0 4px">已被认领的线索不在「待跟进」Tab 中出现，其他销售仅可在「跟进中」Tab 查看该线索与负责人姓名</p>
+                                    <p style="margin:0">需要换人跟进的，由主管在 PC 端线索管理中执行转派，H5 端只做认领，不做转派</p>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-title"><i class="fa fa-database"></i>四、数据来源与同步</div>
+                                <div style="font-size:11.5px;color:#475569;line-height:1.9">
+                                    <p style="margin:0 0 4px">行为来源：政策库浏览、政策雷达、科创测评、AI 问答、在线咨询、预约申领、委托申报</p>
+                                    <p style="margin:0 0 4px">与 PC 端线索管理使用同一份数据，H5 认领、标记结果实时同步，PC 端可查看同一条线索的时间轴</p>
+                                    <p style="margin:0;color:#94a3b8">说明：政策计算器已下线，不再作为线索来源统计</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </van-popup>
 
-                <!-- ============ 线索结果动作面板 ============ -->
+                <!-- ============ 成交录入（标记已转化后弹出） ============ -->
+                <van-popup v-model:show="showDealInput" position="bottom" round :style="{ height: '80%' }" teleport="#phoneScreen">
+                    <div class="app-body" style="height:100%">
+                        <div style="padding:14px 14px 0;display:flex;align-items:center;justify-content:space-between">
+                            <p style="font-size:14px;font-weight:800;color:#0f172a;margin:0">录入成交（关联服务商城订单）</p>
+                            <i class="fa fa-times" style="color:#94a3b8;padding:6px" @click="showDealInput = false"></i>
+                        </div>
+                        <div class="pad" style="padding-bottom:24px">
+
+                            <!-- 客户信息 -->
+                            <div class="card" style="margin-bottom:10px">
+                                <div style="font-size:11.5px;color:#475569;line-height:1.7">
+                                    <p style="margin:0 0 4px"><b>客户：</b>{{ currentLead && currentLead.company }}</p>
+                                    <p style="margin:0"><b>来源：</b>{{ currentLead && currentLead.source }} · 意向 {{ currentLead && currentLead.intent }}</p>
+                                </div>
+                            </div>
+
+                            <!-- 1) 关联已有订单（该客户在服务商城下单但未归属销售的） -->
+                            <div v-if="dealCompanyOrders.length" class="card" style="margin-bottom:10px">
+                                <div class="card-title"><i class="fa fa-link"></i>关联已有订单<span class="extra">该客户 {{ dealCompanyOrders.length }} 笔服务商城订单</span></div>
+                                <div style="font-size:10.5px;color:#94a3b8;margin-bottom:6px">点击可认领（归属到你名下），已支付订单自动计入业绩看板</div>
+                                <div v-for="o in dealCompanyOrders" :key="o.id"
+                                     @click="claimExistingOrder(o)"
+                                     :style="{ display:'flex', alignItems:'center', gap:'8px', padding:'10px 8px', borderBottom:'1px solid #f1f5f9', cursor: o._claimable ? 'pointer' : 'default', opacity: o._claimable ? 1 : 0.55, background: o._paidUnclaimed ? '#f0fdf4' : 'transparent', borderRadius: o._paidUnclaimed ? '8px' : '0', marginBottom: o._paidUnclaimed ? '4px' : '0' }">
+                                    <i class="fa" :class="['fa-file-text-o','fa-trophy','fa-calculator','fa-copyright','fa-star-o'][Math.abs(hashCode(o.id)) % 5]" :style="{ fontSize:'16px', color: o._paidUnclaimed ? '#10b981' : '#4f46e5' }"></i>
+                                    <div style="flex:1;min-width:0">
+                                        <div style="display:flex;align-items:center;gap:4px">
+                                            <p style="margin:0;font-size:12px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ o.svcName }}</p>
+                                            <span v-if="o._paidUnclaimed" class="tag t-green" style="font-size:10px;font-weight:700;flex-shrink:0">客户已付款 · 认领即归你</span>
+                                        </div>
+                                        <p style="margin:2px 0 0;font-size:10.5px;color:#94a3b8">{{ o.category }} · {{ o.provider || '未知服务商' }} · {{ o.createTime }}</p>
+                                        <p v-if="o._claimable && !o._paidUnclaimed" style="margin:2px 0 0;font-size:10px;color:#f97316">待支付，点击认领自动标记已付款计入业绩</p>
+                                        <p v-if="!o._claimable" style="margin:2px 0 0;font-size:10px;color:#94a3b8">
+                                            <span v-if="o.sales">已归属 {{ o.sales }}，不可认领</span>
+                                            <span v-else>不可认领</span>
+                                        </p>
+                                    </div>
+                                    <div style="text-align:right;flex-shrink:0">
+                                        <p style="margin:0;font-size:12px;font-weight:700;color:#ef4444">¥{{ (Number(o.amount)||0).toLocaleString() }}</p>
+                                        <span class="tag" :class="o._class" style="font-size:10px">{{ o._label }}</span>
+                                        <p style="margin:1px 0 0;font-size:9.5px;color:#94a3b8">{{ o._payType }}</p>
+                                    </div>
+                                </div>
+                                <p v-if="!dealCompanyOrders.some(o => o._claimable)" class="muted" style="font-size:11px;padding-top:6px">该客户暂无可认领的服务商城订单</p>
+                            </div>
+
+                            <!-- 2) 从服务商城选商品新建成交 -->
+                            <div class="card" style="margin-bottom:10px">
+                                <div class="card-title"><i class="fa fa-shopping-cart"></i>新建成交 · 选服务商品</div>
+                                <div v-if="!dealPicked" style="font-size:11px;color:#475569;line-height:1.7">
+                                    <p style="margin:0 0 6px">从服务商城已上架商品里选一个，自动带出名称/分类/服务商/金额，直接生成订单归属到你名下。</p>
+                                    <van-button size="small" round block type="primary" plain icon="plus" @click="showDealProducts = true">打开服务商城商品选择</van-button>
+                                </div>
+                                <div v-else>
+                                    <div style="display:flex;gap:8px;padding:8px 0;background:#f8fafc;border-radius:8px;margin-bottom:8px">
+                                        <div class="avatar" style="background:#eef2ff;color:#4f46e5;font-size:16px"><i :class="dealPicked.icon || 'fa-file-text-o'"></i></div>
+                                        <div style="flex:1;min-width:0">
+                                            <p style="margin:0;font-size:12px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ dealPicked.name }}</p>
+                                            <p style="margin:2px 0 0;font-size:10.5px;color:#94a3b8">{{ dealPicked.category }} · {{ dealPicked.provider }}</p>
+                                        </div>
+                                        <div style="text-align:right;flex-shrink:0">
+                                            <p style="margin:0;font-size:13px;font-weight:800;color:#ef4444">¥{{ dealPicked.price.toLocaleString() }}</p>
+                                            <a @click="dealPicked = null; dealForm.svcId=''; dealForm.svcName=''; dealForm.category=''; dealForm.provider=''; dealForm.amount=''" style="font-size:10px;color:#94a3b8">更换</a>
+                                        </div>
+                                    </div>
+
+                                    <!-- 生成方式二选一 -->
+                                    <p style="font-size:11px;font-weight:600;color:#334155;margin:8px 0 6px">生成方式</p>
+                                    <div class="radio-group" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
+                                        <label class="radio-item" style="display:flex;align-items:center;gap:8px;padding:8px;background:#f8fafc;border-radius:8px;cursor:pointer">
+                                            <input type="radio" :value="'unpaid'" v-model="dealForm.statusMode" name="statusMode" style="accent-color:#4f46e5">
+                                            <div style="flex:1">
+                                                <p style="margin:0;font-size:11.5px;font-weight:600;color:#0f172a">待客户付款（推荐）</p>
+                                                <p style="margin:2px 0 0;font-size:10px;color:#94a3b8">生成线上订单，客户在会员中心付款后自动计入业绩</p>
+                                            </div>
+                                            <span class="tag t-gray" style="font-size:10px">订单 · 待支付</span>
+                                        </label>
+                                        <label class="radio-item" style="display:flex;align-items:center;gap:8px;padding:8px;background:#f8fafc;border-radius:8px;cursor:pointer">
+                                            <input type="radio" :value="'paid'" v-model="dealForm.statusMode" name="statusMode" style="accent-color:#10b981">
+                                            <div style="flex:1">
+                                                <p style="margin:0;font-size:11.5px;font-weight:600;color:#0f172a">线下已收款，补线上订单</p>
+                                                <p style="margin:2px 0 0;font-size:10px;color:#94a3b8">现金/转账已到账，线上补订单记录方便后续交付跟进</p>
+                                            </div>
+                                            <span class="tag t-green" style="font-size:10px">订单 · 已支付</span>
+                                        </label>
+                                    </div>
+
+                                    <van-field v-model="dealForm.note" label="备注（选填）" placeholder="如 成交方式、客户特殊需求" rows="2" autosize style="border-bottom:1px solid #eef2f7"></van-field>
+                                    <van-button size="small" round block type="primary" style="margin-top:10px" @click="submitDeal">确认转化</van-button>
+                                </div>
+                            </div>
+
+                            <p class="muted" style="text-align:center;font-size:10.5px;line-height:1.6">
+                                关联或新建的订单会写入 PC 端「订单管理」，服务商城客户下单后可直接在成交录入里认领归属销售；业绩看板成交额按已支付订单真实金额汇总
+                            </p>
+                        </div>
+                    </div>
+                </van-popup>
+
+                <!-- ============ 服务商品选择（从服务商城选） ============ -->
+                <van-popup v-model:show="showDealProducts" position="bottom" round :style="{ height: '75%' }" teleport="#phoneScreen">
+                    <div class="app-body" style="height:100%">
+                        <div style="padding:14px 14px 0;display:flex;align-items:center;justify-content:space-between">
+                            <p style="font-size:14px;font-weight:800;color:#0f172a;margin:0">选择服务商品</p>
+                            <i class="fa fa-times" style="color:#94a3b8;padding:6px" @click="showDealProducts = false"></i>
+                        </div>
+                        <van-search v-model="dealProductKw" placeholder="搜索商品名称/服务商" shape="round" style="padding:10px 14px 0"></van-search>
+                        <div class="pad" style="padding-bottom:24px">
+                            <div v-for="p in filteredDealProducts" :key="p.id" class="list-row" style="margin:0 0 6px" @click="pickDealProduct(p)">
+                                <div class="avatar" style="background:#eef2ff;color:#4f46e5;font-size:18px"><i :class="p.icon || 'fa-file-text-o'"></i></div>
+                                <div class="row-main">
+                                    <p class="name" style="font-size:13px">{{ p.name }}</p>
+                                    <div class="info" style="margin-top:3px">
+                                        <span class="tag t-blue" style="font-size:10px">{{ p.category }}</span>
+                                        <span>{{ p.provider }}</span>
+                                    </div>
+                                </div>
+                                <span style="font-size:13px;font-weight:800;color:#ef4444">¥{{ p.price.toLocaleString() }}</span>
+                            </div>
+                            <p v-if="!filteredDealProducts.length" class="muted" style="text-align:center;padding:20px 0">无匹配的服务商品</p>
+                        </div>
+                    </div>
+                </van-popup>
+
                 <van-action-sheet v-model:show="showMarkSheet" :actions="markActions" cancel-text="取消"
                                   description="标记后将同步到 PC 线索管理" teleport="#phoneScreen"
                                   @select="onMarkSelect"></van-action-sheet>
@@ -838,9 +1038,60 @@
                         <p class="muted" style="text-align:center;margin:0 0 12px">{{ report.title }} · {{ report.createdAt }}</p>
                         <div class="pdf-page">
                             <p class="pdf-h">{{ report.title }}</p>
-                            <p class="pdf-sub">{{ report.summary }}</p>
-                            <p class="pdf-line" v-for="p in report.policies" :key="p.title">· {{ p.title }}（{{ p.level }} · 命中 {{ p.hit }}/{{ p.total }} 项 · 匹配 {{ p.match }}%）{{ p.reason ? '｜未满足：' + p.reason : '' }}{{ p.pending ? '｜待确认：' + p.pending : '' }}</p>
-                            <p class="pdf-line" style="margin-top:8px;white-space:pre-line">{{ report.advice }}</p>
+                            <p class="pdf-meta">{{ report.createdAt }} · 匹配政策 {{ (report.stats && report.stats.total) || report.policies.length }} 项 · 企业档案 / 正式政策库</p>
+
+                            <p class="pdf-sec">一、企业概况</p>
+                            <div class="pdf-kv">
+                                <div>企业名称：{{ report.company.name }}</div>
+                                <div>统一代码：{{ report.company.code }}</div>
+                                <div>所属行业：{{ report.company.industry }}</div>
+                                <div>注册地区：{{ report.company.region }}</div>
+                                <div>成立年限：{{ report.company.years != null ? report.company.years + ' 年' : '未填' }}</div>
+                                <div>成长阶段：{{ report.company.growthStage || '未填' }}</div>
+                                <div>员工人数：{{ report.company.employees || '未填' }} 人</div>
+                                <div>社保人数：{{ report.company.socialStaff != null ? report.company.socialStaff + ' 人' : '未填' }}</div>
+                                <div>科技人员占比：{{ report.company.sciStaffRatio != null ? report.company.sciStaffRatio + '%' : '未填' }}</div>
+                                <div>高品收入占比：{{ report.company.hiTechRatio != null ? report.company.hiTechRatio + '%' : '未填' }}</div>
+                                <div>年营业收入：{{ report.company.revenueWan != null ? report.company.revenueWan + ' 万元' : '未填' }}</div>
+                                <div>研发投入：{{ report.company.rdInvestWan != null ? report.company.rdInvestWan + ' 万元' : '未填' }}</div>
+                                <div>研发费用占比：{{ report.company.rdRatio != null ? report.company.rdRatio + '%' : '未填' }}</div>
+                                <div>净资产：{{ report.company.netAssetsWan != null ? report.company.netAssetsWan + ' 万元' : '未填' }}</div>
+                                <div>有效知识产权：{{ report.company.ipCount != null ? report.company.ipCount + ' 项' : '未填' }}</div>
+                                <div>联系人：{{ report.company.contact }}</div>
+                                <div style="grid-column:1/-1" v-if="report.company.coreProduct">核心产品/服务：{{ report.company.coreProduct }}</div>
+                                <div style="grid-column:1/-1" v-if="report.company.quals && report.company.quals.length">已有资质：{{ report.company.quals.join('、') }}</div>
+                                <div style="grid-column:1/-1" v-if="report.company.subsidyHist">已获扶持：{{ report.company.subsidyHist }}</div>
+                            </div>
+                            <p class="pdf-line" v-if="report.diagnosis.weak && report.diagnosis.weak.length" style="color:#b45309">测评短板：{{ report.diagnosis.weak.join('、') }}</p>
+
+                            <template v-if="report.stats">
+                                <p class="pdf-sec">二、匹配结果概览</p>
+                                <p class="pdf-line">共匹配 {{ report.stats.total }} 项政策：高匹配 {{ report.stats.high }} 项 · 待确认 {{ report.stats.pending }} 项 · 部分匹配 {{ report.stats.partial }} 项</p>
+                                <p class="pdf-line">最高匹配度 {{ report.stats.best }}% · 平均匹配度 {{ report.stats.avg }}% · {{ report.stats.urgent }} 项政策 30 天内截止</p>
+                            </template>
+
+                            <p class="pdf-sec">三、政策机会（按匹配度排序）</p>
+                            <div v-for="p in report.policies" :key="p.title" style="margin-bottom:6px">
+                                <p class="pdf-line" style="font-weight:700;color:#0f172a">· {{ p.title }}<span style="font-weight:400;color:#64748b">（{{ p.level }}<span v-if="p.dept"> · {{ p.dept }}</span>）</span></p>
+                                <p class="pdf-line" style="padding-left:10px;color:#475569">匹配度 {{ p.match }}% · 命中 {{ p.hit }}/{{ p.total }} 项<span v-if="p.fail"> · 未满足 {{ p.fail }} 项</span><span v-if="p.unknown"> · 待确认 {{ p.unknown }} 项</span></p>
+                                <p class="pdf-line" style="padding-left:10px;color:#64748b" v-if="p.batch">申报窗口：{{ p.batch }}<span v-if="p.daysLeft != null && p.daysLeft >= 0" style="color:#dc2626"> · 剩 {{ p.daysLeft }} 天</span></p>
+                                <p class="pdf-line" style="padding-left:10px;color:#64748b" v-if="p.support">扶持方式：{{ p.support }}</p>
+                                <p class="pdf-line" style="padding-left:10px;color:#64748b" v-if="p.materials">申报材料：{{ p.materials }}</p>
+                                <p class="pdf-line" style="padding-left:10px;color:#94a3b8" v-if="p.reason || p.pending">
+                                    <span v-if="p.reason">未满足：{{ p.reason }}</span><span v-if="p.reason && p.pending">；</span><span v-if="p.pending">待确认：{{ p.pending }}</span>
+                                </p>
+                            </div>
+
+                            <p class="pdf-sec">四、申报建议</p>
+                            <p class="pdf-line" style="white-space:pre-line">{{ report.advice }}</p>
+
+                            <template v-if="report.nextSteps && report.nextSteps.length">
+                                <p class="pdf-sec">五、下一步待补齐</p>
+                                <p class="pdf-line" v-for="(s, i) in report.nextSteps" :key="i">· {{ s }}</p>
+                            </template>
+
+                            <p class="pdf-sec">六、说明</p>
+                            <p class="pdf-line" style="color:#94a3b8">本报告由企业档案与正式政策库自动匹配生成，政策条款与申报要求请以原文及主管部门最新通知为准。AI 辅助分析仅供参考。</p>
                         </div>
                         <p class="muted" style="text-align:center;margin:10px 0 14px">PDF 为原型占位预览，对接后端渲染服务后替换为真实文件</p>
                         <div style="display:flex;gap:8px">
@@ -852,7 +1103,7 @@
 
                 <!-- ============ 分享通道选择（站内推送 / 外链） ============ -->
                 <van-action-sheet v-model:show="showChannelSheet" :actions="channelActions" cancel-text="取消"
-                                  description="选择分享通道：平台客户可站内推送，外部客户走外链（微信发送，免登录打开）"
+                                  description="选择推送通道：平台客户可站内推送，外部客户走外链（微信发送，免登录打开）"
                                   @select="onChannelSelect"></van-action-sheet>
 
                 <!-- ============ 发起分享（报告 / 政策 → 选客户 → 选通道） ============ -->
@@ -1149,11 +1400,14 @@
             '政策查询': ['频繁查看政策', 't-blue', 'fa-search'],
             '问答触发': ['高频 AI 问答', 't-purple', 'fa-comments'],
             '诊断触发': ['使用测评工具', 't-orange', 'fa-stethoscope'],
-            '计算器触发': ['使用收益计算器', 't-green', 'fa-calculator'],
             '咨询触发': ['发起在线咨询', 't-purple', 'fa-headphones'],
-            '委托触发': ['提交委托申报', 't-green', 'fa-briefcase']
+            '委托触发': ['提交委托申报', 't-green', 'fa-briefcase'],
+            '雷达触发': ['政策雷达高意向', 't-blue', 'fa-rss'],
+            '预约申领': ['提交预约申领', 't-green', 'fa-calendar-check-o']
         };
-        const SOURCE_ICON = { '政策查询': ['#eff6ff', '#1d4ed8'], '问答触发': ['#f5f3ff', '#6d28d9'], '诊断触发': ['#fff7ed', '#c2410c'], '计算器触发': ['#ecfdf5', '#047857'], '咨询触发': ['#f5f3ff', '#6d28d9'], '委托触发': ['#ecfdf5', '#047857'] };
+        const SOURCE_ICON = { '政策查询': ['#eff6ff', '#1d4ed8'], '问答触发': ['#f5f3ff', '#6d28d9'], '诊断触发': ['#fff7ed', '#c2410c'], '咨询触发': ['#f5f3ff', '#6d28d9'], '委托触发': ['#ecfdf5', '#047857'], '雷达触发': ['#eff6ff', '#1d4ed8'], '预约申领': ['#ecfdf5', '#047857'] };
+        // 当前登录销售（演示固定值；真实环境取登录账号）
+        const ME = '张销售';
 
         createApp({
             setup() {
@@ -1480,10 +1734,9 @@
                 }
                 // 报告存档列表（读 PC 端同一份报告存档 ceyuan_sales_reports）
                 const archiveReports = ref([]);
-                // 存档搜索关键词 + 分组展开状态
+                // 存档搜索关键词
                 const arcKeyword = ref('');
-                const arcExpanded = reactive({});
-                // 按客户分组 + 关键词过滤（每组内保持时间倒序）
+                // 按客户分组 + 关键词过滤（每组内保持时间倒序，界面仅展示最新一份）
                 const archiveGroups = computed(function () {
                     const kw = (arcKeyword.value || '').trim();
                     const map = {};
@@ -1492,11 +1745,12 @@
                         (map[r.customerName] = map[r.customerName] || []).push(r);
                     });
                     return Object.keys(map).map(function (name) {
-                        const list = map[name];
+                        const list = map[name].slice().sort(function (a, b) {
+                            return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+                        });
                         return { name: name, list: list, latest: (list[0] && list[0].createdAt) || '' };
                     });
                 });
-                function toggleArcGroup(name) { arcExpanded[name] = !arcExpanded[name]; }
                 function refreshArchive() {
                     const list = (DB.loadSalesReports ? DB.loadSalesReports() : []) || [];
                     archiveReports.value = list.map(r => ({ id: r.id, customerName: r.customerName, title: r.title, type: r.type, createdAt: r.createdAt, policies: r.policies || [] }));
@@ -1515,7 +1769,6 @@
                 }
                 // PDF 预览弹层
                 const showPdf = ref(false);
-                const quickCompanies = rawCustomers.slice(0, 3).map(c => c.type === 'personal' ? (c.realName || '') : c.name).filter(Boolean);
 
                 // ============================================================
                 // 政策匹配条件采集（两步）
@@ -1526,11 +1779,36 @@
                 const condOpen = ref(false);
                 const condStep = ref(0);
                 const condAuto = ref({ industry: '', region: '', quals: [], revenue: 0, employees: 0, foundedYears: null, coreProduct: '', socialStaff: null, source: '' });
+                // 运营指标多选（与 PC 政策雷达同一套口径）
+                // 与 PC「精准政策雷达」完全同一套运营指标口径（分组/选项文字均保持一致）
+                const TAG_GROUPS = [
+                    { key: 'basic', name: '基本情况', items: ['初创企业', '注册资本1000万以上', '外资实缴', '研发场所100平以上', '上市企业'] },
+                    { key: 'finance', name: '财务状况', items: ['一般纳税人', '收入100万以上', '收入200万以上', '收入500万以上', '收入1000万以上', '收入1500万以上', '收入2000万以上', '收入3000万以上', '收入5000万以上', '收入1亿以上', '收入3亿以上', '收入4亿以上', '收入5亿以上', '收入10亿以上', '收入15亿以上', '收入20亿以上', '收入递增', '收入增长5%以上', '收入增长10%以上', '收入增长15%以上', '收入增长20%以上', '净利润500万元以上', '净利润1000万元以上', '净利润2000万元以上', '纳税500万以上', '资产总额300万+', '资产负债率70%以下', '资产负债率60%以下', '已归集研发费用', '研发费100万以上', '研发费500万以上', '研发费3000万以上', '购买软件和数字化服务', '数字化转型投入10万以上', '数字化转型投入50万以上', '数字化转型投入100万以上', '数字化转型投入200万以上', '数字化转型投入500万以上', '上年度已购置设备仪器', '设备投资300万以上', '设备投资500万以上', '设备投资1000万以上', '设备投资2000万以上', '获得股权融资', '股权融资2000万以上', '股权融资8000万以上', '获得贷款融资'] },
+                    { key: 'hr', name: '人力资源', items: ['研发人员10人以上', '研发人员20人以上', '研发人员占10%以上', '研发人员占20%以上', '研发人员占30%以上', '研发人员占50%以上', '具有留学人员', '具有人才职称', '中级以上职称', '博士', '高级职称', '高层次人才'] },
+                    { key: 'ip', name: '知识产权', items: ['知识产权10件以上', '知识产权50件以上', '知识产权100件以上', '拥有高价值专利', '具有涉外专利', '拥有地理标志产品', '知识产权贯标企业', '知识产权示范企业', '知识产权优势企业', '获得专利奖'] },
+                    { key: 'qual', name: '企业资质', items: ['高新技术企业', '专精特新中小企业', '专精特新"小巨人"企业', '科技型中小企业', '创新型中小企业', '单项冠军', '技术中心', '工业设计中心', '工程技术中心', '工程实验室', '重点实验室', '院士专家工作站', '博士后工作站', '制造业创新中心', '技术创新示范企业', '获得科研立项/大赛奖励', '参展企业', '总部企业', '参与标准化工作', '技术先进型服务企业', '工业设计奖', '重点软件企业', '工业互联网企业', '中小企业公共服务示范平台', '市科学技术奖', '中国500强', '世界500强', '著名商标', '驰名商标', '知名品牌', '老字号'] }
+                ];
+                const condTags = reactive({ basic: [], finance: [], hr: [], ip: [], qual: [] });
+                const indGroupOpen = reactive({ basic: false, finance: false, hr: false, ip: false, qual: false });
+                function toggleTag(g, t) {
+                    const arr = condTags[g];
+                    const i = arr.indexOf(t);
+                    if (i >= 0) arr.splice(i, 1); else arr.push(t);
+                }
+                function toggleIndGroup(g) { indGroupOpen[g] = !indGroupOpen[g]; }
+                /** 收起状态下的预览：前 3 项 + 已勾选项，保证已选项始终可见 */
+                function groupPreview(g) {
+                    if (indGroupOpen[g.key]) return g.items;
+                    const head = g.items.slice(0, 3);
+                    condTags[g.key].forEach(function (t) { if (head.indexOf(t) < 0) head.push(t); });
+                    return head;
+                }
                 const condAssess = reactive({
                     score: null, grade: '', weak: [],
                     // 企业档案真实测评得分（可能分别有高企/专精特新/小巨人的独立得分）
                     gaoxinScore: null, zhuanjingScore: null, jurenScore: null,
                     rdRatio: null, ipCount: null, sciStaffRatio: null, hiTechRatio: null,
+                    rdInvestWan: null, projectInvestWan: null,
                     loss3y: null, rndProject: null, industryUni: null,
                     fundPref: '', windowPref: '',
                     // 新增条件
@@ -1558,6 +1836,31 @@
                     const key = (reportKeyword.value || '').trim();
                     if (!key) return null;
                     return customers.value.filter(x => x._displayName.indexOf(key) >= 0)[0];
+                }
+
+                // 从政策正文里抽取指定章节的内容（正文按「一、二、三、」分节）
+                function policySection(content, keys) {
+                    const lines = String(content || '').split('\n');
+                    const out = [];
+                    let on = false;
+                    for (let i = 0; i < lines.length; i++) {
+                        const l = lines[i].trim();
+                        if (/^[一二三四五六七八九十]+、/.test(l)) { on = keys.some(function (k) { return l.indexOf(k) >= 0; }); continue; }
+                        if (on && l) out.push(l.replace(/^\d+[\.、]\s*/, '').replace(/^[（(]\d+[）)]\s*/, ''));
+                    }
+                    return out;
+                }
+                // 章节摘要：取前 3 条并以「；」连接，超出长度截断
+                function policyDigest(content, keys, cap) {
+                    const s = policySection(content, keys).slice(0, 3).join('；');
+                    return s.length > cap ? s.slice(0, cap) + '…' : s;
+                }
+                // 距今天数（用于批次倒计时）
+                function daysTo(dateStr) {
+                    if (!dateStr) return null;
+                    const d = new Date(String(dateStr).replace(/-/g, '/'));
+                    if (isNaN(d.getTime())) return null;
+                    return Math.ceil((d - new Date()) / 86400000);
                 }
 
                 /** 打开条件采集面板：优先读取企业档案（科创测评/政策雷达沉淀的权威数据），回退客户档案/销售补充 */
@@ -1694,6 +1997,105 @@
                     condAssess.grade = condAssess.score == null ? '' : (condAssess.score >= 80 ? 'A' : (condAssess.score >= 65 ? 'B' : (condAssess.score >= 50 ? 'C' : 'D')));
                     condAssess.weak = calcWeak(ac);
 
+                    // ===== 运营指标：按企业档案自动勾选（选项文字与 PC 政策雷达完全一致） =====
+                    condTags.basic = [];
+                    condTags.finance = [];
+                    condTags.hr = [];
+                    condTags.ip = [];
+                    condTags.qual = [];
+                    const tagPick = function (g, cond, t) { if (cond && t && condTags[g].indexOf(t) < 0) condTags[g].push(t); };
+                    // 档案财务串里某科目的逐年数值（用于判断是否逐年递增）
+                    const pickSeries = function (kw) {
+                        if (!finText) return [];
+                        const seg = finText.split(/[；;]/).filter(function (s) { return s.indexOf(kw) >= 0; })[0];
+                        if (!seg) return [];
+                        const re = /\d{4}\s*年\s*([\d.]+)/g;
+                        const out = [];
+                        let m;
+                        while ((m = re.exec(seg)) !== null) { const v = parseFloat(m[1]); if (!isNaN(v)) out.push(v); }
+                        return out;
+                    };
+                    const tierItems = function (groupKey) {
+                        const g = TAG_GROUPS.filter(function (x) { return x.key === groupKey; })[0];
+                        return g ? g.items : [];
+                    };
+                    const tierVal = function (t, prefix) {
+                        if (t.indexOf(prefix) !== 0) return null;
+                        const m = t.slice(prefix.length).match(/^([\d.]+)([万亿]?)/);
+                        if (!m) return null;
+                        let v = parseFloat(m[1]);
+                        if (m[2] === '亿') v = v * 10000;
+                        return isNaN(v) ? null : v;
+                    };
+                    /** 「X 以上」类：取不超过实测值的最高一档，如营收 5200 万 → 收入5000万以上 */
+                    const pickUp = function (groupKey, prefix, actual) {
+                        if (actual == null) return null;
+                        let best = null, bestV = -1;
+                        tierItems(groupKey).forEach(function (t) {
+                            const v = tierVal(t, prefix);
+                            if (v == null || v > actual) return;
+                            if (v > bestV) { bestV = v; best = t; }
+                        });
+                        return best;
+                    };
+                    // 基本情况
+                    tagPick('basic', foundedYears != null && foundedYears < 2, '初创企业');
+                    tagPick('basic', fvNum('注册资本') != null && fvNum('注册资本') >= 1000, '注册资本1000万以上');
+                    tagPick('basic', fv('外资') === '是' || fv('外资实缴') === '是', '外资实缴');
+                    tagPick('basic', fvNum('研发场所') != null && fvNum('研发场所') >= 100, '研发场所100平以上');
+                    tagPick('basic', fv('上市') === '是', '上市企业');
+                    // 财务状况（阈值类按实测值自动落档）
+                    tagPick('finance', fv('一般纳税人') === '是', '一般纳税人');
+                    tagPick('finance', true, pickUp('finance', '收入', entRevenueRaw));
+                    const revSeries = pickSeries('营业收入');
+                    tagPick('finance', revSeries.length >= 2 && revSeries.every(function (v, i) { return i === 0 || v >= revSeries[i - 1]; }), '收入递增');
+                    tagPick('finance', true, pickUp('finance', '净利润', pickYearly('净利润')));
+                    tagPick('finance', fvNum('纳税') != null && fvNum('纳税') >= 500, '纳税500万以上');
+                    const entAssetRaw = pickYearly('资产总额');
+                    tagPick('finance', true, pickUp('finance', '资产总额', entAssetRaw != null ? entAssetRaw : pickYearly('净资产')));
+                    const entDebtRaw = pickYearly('资产负债率');
+                    tagPick('finance', entDebtRaw != null && entDebtRaw <= 70, '资产负债率70%以下');
+                    tagPick('finance', entDebtRaw != null && entDebtRaw <= 60, '资产负债率60%以下');
+                    tagPick('finance', rdFeeRaw != null, '已归集研发费用');
+                    tagPick('finance', true, pickUp('finance', '研发费', rdFeeRaw));
+                    tagPick('finance', fv('软件') === '是' || fv('数字化') === '是', '购买软件和数字化服务');
+                    tagPick('finance', true, pickUp('finance', '数字化转型投入', fvNum('数字化转型投入')));
+                    tagPick('finance', fv('设备仪器') === '是' || fv('购置设备') === '是', '上年度已购置设备仪器');
+                    tagPick('finance', true, pickUp('finance', '设备投资', fvNum('设备投资')));
+                    const entEquityRaw = fvNum('股权融资');
+                    tagPick('finance', entEquityRaw != null && entEquityRaw > 0, '获得股权融资');
+                    tagPick('finance', true, pickUp('finance', '股权融资', entEquityRaw));
+                    tagPick('finance', fv('贷款') === '是' || fv('贷款融资') === '是', '获得贷款融资');
+                    // 人力资源
+                    tagPick('hr', true, pickUp('hr', '研发人员', entRdStaff));
+                    tagPick('hr', true, pickUp('hr', '研发人员占', sciStaffRatio));
+                    tagPick('hr', fv('留学') === '是' || /留学/.test(fv('人才')), '具有留学人员');
+                    const titleText = fv('职称');
+                    tagPick('hr', !!titleText || fv('具有人才职称') === '是', '具有人才职称');
+                    tagPick('hr', /中级/.test(titleText), '中级以上职称');
+                    tagPick('hr', /博士/.test(titleText), '博士');
+                    tagPick('hr', /高级/.test(titleText), '高级职称');
+                    tagPick('hr', fv('高层次人才') === '是' || fv('人才') === '是', '高层次人才');
+                    // 知识产权（件数阈值 + 已获资质里的贯标/示范/优势等）
+                    tagPick('ip', true, pickUp('ip', '知识产权', entIpCount));
+                    tagPick('ip', fv('高价值专利') === '是', '拥有高价值专利');
+                    tagPick('ip', fv('涉外专利') === '是', '具有涉外专利');
+                    tagPick('ip', fv('地理标志') === '是', '拥有地理标志产品');
+                    // 企业资质 + 知识产权荣誉：已获资质选项逐项精确比对
+                    const entQualPool = (fv('已获资质') + ',' + ((c && c.quals) || []).join(','));
+                    const qualTokens = entQualPool.replace(/["'“”]/g, '').split(/[、,，\/;；\s]+/).filter(Boolean);
+                    TAG_GROUPS.filter(function (g) { return g.key === 'ip' || g.key === 'qual'; }).forEach(function (g) {
+                        g.items.forEach(function (t) {
+                            const norm = t.replace(/["'“”]/g, '');
+                            tagPick(g.key, qualTokens.indexOf(norm) >= 0, t);
+                        });
+                    });
+                    tagPick('qual', fv('国家级科技奖励') === '有', '获得科研立项/大赛奖励');
+                    tagPick('qual', fv('主导制定标准') === '有', '参与标准化工作');
+                    // 投入类指标：研发投入按档案研发费用带入，项目投入需销售补充
+                    condAssess.rdInvestWan = rdFeeRaw != null ? rdFeeRaw : null;
+                    condAssess.projectInvestWan = null;
+
                     condStep.value = 0;
                     condOpen.value = true;
                     report.value = null;
@@ -1778,18 +2180,54 @@
                             exportRatio: '出口占比', projectInvest: '项目投入', ipOwned: '拥有知识产权',
                             ipCount: '知识产权数量', qualification: '已有资质', industry: '所属行业', region: '所属地区'
                         };
+                        // 运营指标 → 雷达引擎字段（映射规则与 PC 政策雷达 buildEnterprise 一致）
+                        const tagsAll = { basic: condTags.basic, finance: condTags.finance, hr: condTags.hr, ip: condTags.ip, qual: condTags.qual };
+                        // 取同一前缀里阈值最大的选项（如同时勾了「收入500万以上」和「收入1000万以上」取 1000）
+                        const tagNum = function (arr, prefix) {
+                            let max = null;
+                            (arr || []).forEach(function (t) {
+                                if (t.indexOf(prefix) !== 0) return;
+                                const m = t.slice(prefix.length).match(/^([\d.]+)([万亿]?)/);
+                                if (!m) return;
+                                let v = parseFloat(m[1]);
+                                if (m[2] === '亿') v = v * 10000;
+                                if (isNaN(v)) return;
+                                if (max == null || v > max) max = v;
+                            });
+                            return max;
+                        };
+                        const tagVals = {
+                            capital: tagNum(tagsAll.basic, '注册资本'),
+                            revenue: tagNum(tagsAll.finance, '收入'),
+                            profit: tagNum(tagsAll.finance, '净利润'),
+                            netAssets: tagNum(tagsAll.finance, '资产总额'),
+                            rdInvest: tagNum(tagsAll.finance, '研发费'),
+                            employees: tagNum(tagsAll.hr, '研发人员'),
+                            sciStaffRatio: tagNum(tagsAll.hr, '研发人员占'),
+                            ipCount: tagNum(tagsAll.ip, '知识产权')
+                        };
+                        const qualText = ((condAuto.value.quals || []).concat(tagsAll.qual)).join(',');
+                        const tagIpCount = ac.ipCount != null ? ac.ipCount : tagVals.ipCount;
                         const profile = {
                             duration: ac.years,
                             industry: condAuto.value.industry || '',
                             rdRatio: ac.rdRatio,
                             hiTechRatio: ac.hiTechRatio,
-                            employees: condAuto.value.employees || null,
-                            revenue: condAuto.value.revenueWan,
-                            rdInvest: condAuto.value.rdInvestWan,
-                            netAssets: condAuto.value.netAssetsWan,
-                            ipOwned: ac.ipCount == null ? null : (ac.ipCount > 0),
-                            ipCount: ac.ipCount,
-                            qualification: (condAuto.value.quals || []).join(','),
+                            sciStaffRatio: ac.sciStaffRatio,
+                            employees: condAuto.value.employees || tagVals.employees || null,
+                            revenue: condAuto.value.revenueWan != null ? condAuto.value.revenueWan : tagVals.revenue,
+                            rdInvest: condAssess.rdInvestWan != null ? condAssess.rdInvestWan
+                                : (condAuto.value.rdInvestWan != null ? condAuto.value.rdInvestWan : tagVals.rdInvest),
+                            projectInvest: condAssess.projectInvestWan != null ? condAssess.projectInvestWan : null,
+                            netAssets: condAuto.value.netAssetsWan != null ? condAuto.value.netAssetsWan : tagVals.netAssets,
+                            capital: tagVals.capital,
+                            profit: tagVals.profit,
+                            ipOwned: tagIpCount == null ? null : (tagIpCount > 0),
+                            ipCount: tagIpCount,
+                            qualification: qualText,
+                            hiTechCert: tagsAll.qual.indexOf('高新技术企业') >= 0 ? '是' : null,
+                            smeCert: tagsAll.qual.indexOf('科技型中小企业') >= 0 ? '是' : null,
+                            gazelleCert: (tagsAll.qual.indexOf('专精特新中小企业') >= 0 || tagsAll.qual.indexOf('专精特新"小巨人"企业') >= 0) ? '是' : null,
                             region: condAuto.value.region
                         };
                         const engineResults = (DB.matchPoliciesForEnterprise ? DB.matchPoliciesForEnterprise(profile) : []) || [];
@@ -1803,6 +2241,9 @@
                             const fmt = function (d) {
                                 return (COND_LABEL[d.type] || d.type) + '需' + d.op + ' ' + d.val;
                             };
+                            const batchList = p.batches || [];
+                            const curBatch = batchList.filter(function (b) { return DB.batchStatus && DB.batchStatus(b) === 'open'; })[0]
+                                || batchList.filter(function (b) { return DB.batchStatus && DB.batchStatus(b) === 'upcoming'; })[0];
                             return {
                                 title: p.name || '未命名政策',
                                 dept: p.dept || '',
@@ -1811,8 +2252,18 @@
                                 total: r.total, hit: r.hit, fail: r.fail, unknown: r.unknown,
                                 level: fails.length ? '部分匹配' : (unknowns.length ? '待确认' : '高匹配'),
                                 reason: fails.map(fmt).join('；'),
-                                pending: unknowns.map(function (d) { return COND_LABEL[d.type] || d.type; }).join('、')
+                                pending: unknowns.map(function (d) { return COND_LABEL[d.type] || d.type; }).join('、'),
+                                batch: curBatch ? (curBatch.name + (curBatch.end ? '（截止 ' + curBatch.end + '）' : '')) : '',
+                                daysLeft: curBatch ? daysTo(curBatch.end) : null,
+                                support: policyDigest(p.content, ['扶持措施', '支持方式', '支持标准', '财政奖励', '补助'], 96),
+                                materials: policyDigest(p.content, ['申报材料', '申请材料'], 96)
                             };
+                        });
+
+                        // 按匹配度降序排列，同分时未满足条件少的优先
+                        const sortedPolicies = policies.slice().sort(function (a, b) {
+                            if (b.match !== a.match) return b.match - a.match;
+                            return a.fail - b.fail;
                         });
 
                         // 组装 matchConditions 展示用
@@ -1844,13 +2295,34 @@
                             scoreText +
                             (condAssess.weak && condAssess.weak.length ? '短板：' + condAssess.weak.join('、') + '。' : '');
 
-                        const advice = policies.length ? policies.slice(0, 3).map(function (p, i) {
+                        const advice = sortedPolicies.length ? sortedPolicies.slice(0, 3).map(function (p, i) {
                             var tip = '';
                             if (p.fail > 0) tip = '⚠ 需补强：' + p.reason + '（当前满足 ' + p.hit + '/' + p.total + ' 项）';
                             else if (p.unknown > 0) tip = '⚠ 待确认：' + p.pending + '（补齐档案后复核）';
                             else tip = '条件已全部满足，建议尽快准备申报材料';
                             return (i + 1) + '. 优先申报「' + p.title + '」（' + (p.dept ? p.dept + ' · ' : '') + '匹配度 ' + p.match + '%）：' + tip;
                         }).join('\n') : '政策库中暂无与该企业条件相符的政策，建议先补全企业档案条件后重新生成。';
+
+                        // PDF 用的汇总信息：匹配结果统计 + 待补齐条件（按条件去重）
+                        const pdfStats = {
+                            total: sortedPolicies.length,
+                            high: sortedPolicies.filter(function (p) { return p.level === '高匹配'; }).length,
+                            pending: sortedPolicies.filter(function (p) { return p.level === '待确认'; }).length,
+                            partial: sortedPolicies.filter(function (p) { return p.level === '部分匹配'; }).length,
+                            best: sortedPolicies.length ? sortedPolicies[0].match : 0,
+                            avg: sortedPolicies.length ? Math.round(sortedPolicies.reduce(function (s, p) { return s + p.match; }, 0) / sortedPolicies.length) : 0,
+                            urgent: sortedPolicies.filter(function (p) { return p.daysLeft != null && p.daysLeft >= 0 && p.daysLeft <= 30; }).length
+                        };
+                        const pdfNext = [];
+                        const nextSeen = {};
+                        sortedPolicies.forEach(function (p) {
+                            let s = null;
+                            if (p.pending) s = '补齐' + p.pending;
+                            else if (p.reason) s = p.reason;
+                            if (!s || nextSeen[s]) return;
+                            nextSeen[s] = 1;
+                            pdfNext.push(s);
+                        });
 
                         report.value = {
                             id: 'R' + Date.now(), title: (c && c._displayName) + ' 政策匹配分析报告',
@@ -1871,7 +2343,14 @@
                                 coreProduct: ac.coreProduct,
                                 socialStaff: ac.socialStaff,
                                 growthStage: ac.growthStage || '',
-                                subsidyHist: ac.subsidyHist || ''
+                                subsidyHist: ac.subsidyHist || '',
+                                revenueWan: condAuto.value.revenueWan,
+                                rdInvestWan: condAuto.value.rdInvestWan,
+                                netAssetsWan: condAuto.value.netAssetsWan,
+                                rdRatio: ac.rdRatio,
+                                ipCount: ac.ipCount,
+                                sciStaffRatio: ac.sciStaffRatio,
+                                hiTechRatio: ac.hiTechRatio
                             },
                             diagnosis: { avg: condAssess.score || 0, grade: condAssess.grade || '—', weak: condAssess.weak || [] },
                             summary: summary,
@@ -1883,7 +2362,9 @@
                                 '核心知识产权 ' + (ac.ipCount != null ? ac.ipCount + ' 项' : '未填') + '。' +
                                 (ac.subsidyHist ? '历史：' + ac.subsidyHist + '。' : '') +
                                 '本次匹配共采集 ' + Object.keys(condDisplay).length + ' 项条件。',
-                            policies: policies,
+                            policies: sortedPolicies,
+                            stats: pdfStats,
+                            nextSteps: pdfNext,
                             advice: advice || '暂无可用建议。',
                             shares: []
                         };
@@ -1902,11 +2383,10 @@
                             const idx = list.findIndex(function (u) { return u.id === c.id; });
                             if (idx >= 0) { list[idx] = c; DB.saveCustomers(list); }
                         }
-                        // 报告存档（PC 端也能看到）——去重：同一客户当天的新报告覆盖旧报告
+                        // 报告存档（PC 端也能看到）——同一客户只保留最新一份报告
                         if (DB.saveSalesReports) {
-                            const todayStr = (report.value.createdAt || '').slice(0, 10);
                             const list = (DB.loadSalesReports() || []).filter(function (r) {
-                                return !(r.customerName === report.value.customerName && String(r.createdAt || '').slice(0, 10) === todayStr);
+                                return r.customerName !== report.value.customerName;
                             });
                             list.unshift(report.value);
                             DB.saveSalesReports(list);
@@ -1952,23 +2432,41 @@
                     const r = report.value;
                     if (!r) return;
                     const sid = 'S' + Date.now().toString().slice(-6);
-                    const url = 'report-viewer.html?id=' + r.id + '&shareId=' + sid;
+                    const c = customers.value.filter(x => x._displayName === r.customerName || (r.customerName || '').indexOf(x._displayName) >= 0)[0];
+                    const toName = (c && c.contact) ? c.contact + '（' + r.customerName + '）' : r.customerName;
+                    const toPhone = (c && c.phone) || r.company.phone;
+                    const url = 'report-viewer.html?id=' + r.id + '&shareId=' + sid + '&src=wechat&track=1';
                     const list = DB.loadSalesReports ? DB.loadSalesReports() : [];
                     const target = list.filter(x => x.id === r.id)[0];
                     const rec = {
-                        shareId: sid, toName: (r.company.contact || '客户') + '（本次分享）', toPhone: r.company.phone,
-                        channel: channel, createdAt: today() + ' 10:20', expireAt: '', views: []
+                        shareId: sid, toName: toName, toPhone: toPhone,
+                        channel: channel, createdAt: today() + ' ' + pad2(new Date().getHours()) + ':' + pad2(new Date().getMinutes()),
+                        expireAt: '', views: [], converted: false
                     };
                     if (target) {
                         target.shares = target.shares || [];
                         target.shares.unshift(rec);
                         if (DB.saveSalesReports) DB.saveSalesReports(list);
                     } else {
+                        r.shares = r.shares || [];
                         r.shares.unshift(rec);   // 草稿未存档时仅存于内存演示
                     }
                     loadingShares();
                     refreshArchive();
-                    tip(channel === '站内推送' ? '已推送到客户账号（客户在「会员中心 · 站内消息」查看）' : '分享链接已生成：' + url.slice(0, 26) + '…');
+                    if (channel === '外链') {
+                        // 与分享模块一致：立即给出二维码 + 追踪链接，可复制 / 打开客户视角
+                        openTracking(Object.assign({
+                            shareId: sid, toName: toName, reportTitle: r.title, reportId: r.id,
+                            channel: channel, converted: false, url: url
+                        }, sumViews([])));
+                    } else {
+                        tip('已推送到「' + toName + '」的平台账号，客户在「会员中心 · 我的报告」查看');
+                    }
+                }
+
+                function viewArchive() {
+                    report.value = null;
+                    refreshArchive();
                 }
 
                 // ================= 分享管理（追踪） =================
@@ -1987,6 +2485,15 @@
                         lastAt: fmtDate(last) || '—'
                     };
                 }
+                /** 同一对象 + 同一内容只保留最新一条分享记录 */
+                function dedupeLatest(list) {
+                    const map = {};
+                    list.forEach(function (s) {
+                        const k = (s.toName || '') + '|' + (s.reportTitle || '');
+                        if (!map[k] || String(s.createdAt || '') > String(map[k].createdAt || '')) map[k] = s;
+                    });
+                    return Object.keys(map).map(function (k) { return map[k]; });
+                }
                 function loadingShares() {
                     // 报告分享：展开各报告的 shares → 列表
                     const flat = [];
@@ -1994,22 +2501,22 @@
                         (r.shares || []).forEach(function (s) {
                             flat.push(Object.assign({
                                 shareId: s.shareId, toName: s.toName || '（匿名访问）', reportTitle: r.title, reportId: r.id,
-                                channel: s.channel || '外链', converted: !!s.converted,
+                                channel: s.channel || '外链', converted: !!s.converted, createdAt: s.createdAt || '',
                                 url: 'report-viewer.html?id=' + r.id + '&shareId=' + s.shareId + '&src=wechat&track=1'
                             }, sumViews(s.views)));
                         });
                     });
-                    shareList.value = flat.sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+                    shareList.value = dedupeLatest(flat).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
                     // 政策分享：读 ceyuan_policy_shares（与报告分享同构，落地页 policy-viewer.html 上报）
                     const pflat = (DB.loadPolicyShares ? DB.loadPolicyShares() : []).map(function (s) {
                         return Object.assign({
                             shareId: s.shareId, toName: s.toName || '（匿名访问）',
                             reportTitle: s.policyName + '（政策）', policyId: s.policyId,
-                            channel: s.channel || '外链', converted: !!s.converted,
+                            channel: s.channel || '外链', converted: !!s.converted, createdAt: s.createdAt || '',
                             url: 'policy-viewer.html?id=' + encodeURIComponent(s.policyId) + '&shareId=' + s.shareId
                         }, sumViews(s.views));
                     });
-                    policyShareList.value = pflat.sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+                    policyShareList.value = dedupeLatest(pflat).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
                 }
                 function onRefresh() {
                     setTimeout(function () { loadingShares(); refreshing.value = false; tip('追踪数据已刷新'); }, 800);
@@ -2089,11 +2596,6 @@
                     return seed.slice(0, 81);
                 })();
                 function openTracking(s) { tracking.value = s; showTracking.value = true; }
-                /** 打开客户视角：客户在微信里点开外链实际看到的落地页（报告 / 政策均支持） */
-                function openPreview(s) {
-                    if (!s.url) { tip('该分享暂无落地页链接'); return; }
-                    window.open(s.url, '_blank');
-                }
                 function copyLink(url) {
                     // 复制到剪贴板（移动端兜底 textarea 方案）
                     try {
@@ -2108,6 +2610,7 @@
                 const leadTab = ref(0);
                 const showMarkSheet = ref(false);
                 const showLead = ref(false);
+                const showLeadRules = ref(false);
                 const lead = ref(null);
                 const currentLead = ref(null);
                 const markActions = [
@@ -2152,12 +2655,119 @@
                 function openLeadDetail(l) { lead.value = l; showLead.value = true; }
                 function claimLead(l) {
                     if (l.stage === '已转化' || l.stage === '已流失') { tip('该线索已结束，无需认领'); return; }
-                    l.stage = '跟进中'; l.sales = l.sales || '张销售';
+                    // 一条线索只能有一位负责人：先认领先得，其他人仅可查看
+                    if (l.sales && l.sales !== ME) { tip('该线索已被「' + l.sales + '」认领，如需协作请联系主管转派'); return; }
+                    if (l.stage === '跟进中' && l.sales === ME) { tip('你已在跟进该线索'); return; }
+                    l.stage = '跟进中'; l.sales = ME;
                     l._x = 0;
                     persistLeads();
-                    tip('已认领，状态更新为「跟进中」');
+                    tip('认领成功，已分配给你并置为「跟进中」');
                 }
                 function openMarkSheet(l) { currentLead.value = l; showMarkSheet.value = true; }
+                // 成交录入（从服务商城选商品 / 关联已有订单）
+                const showDealInput = ref(false);
+                const showDealProducts = ref(false);
+                const dealProductKw = ref('');
+                const dealPicked = ref(null);      // 选中的服务商品对象
+                const dealForm = reactive({ svcId: '', svcName: '', category: '', provider: '', amount: 0, note: '', statusMode: 'unpaid' });
+
+                // 简单字符串哈希（给订单列表的图标索引用）
+                function hashCode(s) {
+                    let h = 0; for (let i = 0; i < (s || '').length; i++) { h = (h << 5) - h + s.charCodeAt(i); h |= 0; }
+                    return h;
+                }
+
+                // 该客户（currentLead.company）在服务商城的已有订单（去重 + 过滤 + 标记 _claimable）
+                const dealCompanyOrders = computed(function () {
+                    const l = currentLead.value && currentLead.value.company;
+                    if (!l || !DB.loadServiceOrders) return [];
+                    // 状态名 → 展示映射（覆盖服务商城可能返回的后端原始值）
+                    const STATUS_MAP = {
+                        unpaid: '待支付', paid: '已支付', serving: '服务中',
+                        completed: '已完成', reviewed: '已完成', accepted: '已完成', finished: '已完成',
+                        cancelled: '已取消', refunded: '已退款', closed: '已关闭'
+                    };
+                    const statusClass = {
+                        unpaid: 't-gray', paid: 't-green', serving: 't-blue',
+                        completed: 't-green', reviewed: 't-green', accepted: 't-green', finished: 't-green',
+                        cancelled: 't-red', refunded: 't-red', closed: 't-gray'
+                    };
+                    const raw = (DB.loadServiceOrders() || [])
+                        .filter(function (o) { return o.company === l; });
+                    // 去重：同一 svcId + company + amount + createTime 的只留一条（保留 sales 已归属的那条）
+                    const seen = {};
+                    const deduped = raw.filter(function (o) {
+                        const key = (o.svcId || '') + '|' + (o.svcName || '') + '|' + (o.amount || '') + '|' + (o.createTime || '') + '|' + (o.company || '');
+                        if (seen[key]) {
+                            // key 相同，保留 sales 字段非空的那条
+                            if (o.sales && !seen[key].sales) { seen[key] = o; return true; }
+                            return false;
+                        }
+                        seen[key] = o; return true;
+                    });
+                    return deduped
+                        .map(function (o) {
+                            const copy = Object.assign({}, o);
+                            copy._label = STATUS_MAP[copy.status] || copy.status || '-';
+                            copy._class = statusClass[copy.status] || 't-gray';
+                            copy._claimable = copy.status !== 'cancelled' && copy.status !== 'closed' && copy.sales !== ME;
+                            // 优先级标签：已付款可认领的 = 客户已线上付款，最醒目标识
+                            copy._paidUnclaimed = copy.status === 'paid' && !copy.sales;
+                            // 线上 vs 线下支付标识
+                            const m = (copy.payMethod || '').toString();
+                            copy._payType = m.indexOf('线下') >= 0 || m.indexOf('现金') >= 0 ? '线下支付' : (m ? '线上支付' : '—');
+                            return copy;
+                        })
+                        .sort(function (a, b) {
+                            // 1) 已付款可认领置顶（客户已经线上付完款了，销售认领即可归自己）
+                            if (a._paidUnclaimed !== b._paidUnclaimed) return a._paidUnclaimed ? -1 : 1;
+                            // 2) 可认领的排前面，已归属/已取消的排后面
+                            if (a._claimable !== b._claimable) return a._claimable ? -1 : 1;
+                            // 3) 再按时间倒序
+                            return String(b.createTime || '').localeCompare(String(a.createTime || ''));
+                        });
+                });
+
+                // 服务商城已上架商品（过滤 draft/off 状态）
+                const filteredDealProducts = computed(function () {
+                    if (!DB.loadServiceProducts) return [];
+                    const kw = (dealProductKw.value || '').trim();
+                    return (DB.loadServiceProducts() || [])
+                        .filter(function (p) { return p.status === 'on'; })
+                        .filter(function (p) {
+                            if (!kw) return true;
+                            return (p.name || '').indexOf(kw) >= 0 || (p.provider || '').indexOf(kw) >= 0 || (p.category || '').indexOf(kw) >= 0;
+                        });
+                });
+
+                // 从服务商品选择面板选中一个商品，自动带出字段
+                function pickDealProduct(p) {
+                    dealPicked.value = p;
+                    dealForm.svcId = p.id;
+                    dealForm.svcName = p.name;
+                    dealForm.category = p.category;
+                    dealForm.provider = p.provider;
+                    dealForm.amount = p.price;
+                    showDealProducts.value = false;
+                }
+
+                // 认领已有订单：归属改为 ME；未支付的订单自动置为已支付（销售确认成交）
+                function claimExistingOrder(o) {
+                    if (!o._claimable) return;
+                    const list = DB.loadServiceOrders ? (DB.loadServiceOrders() || []) : [];
+                    const target = list.find(function (x) { return x.id === o.id; });
+                    if (!target) return;
+                    target.sales = ME;
+                    if (target.status === 'unpaid') {
+                        target.status = 'paid';
+                        target.payMethod = '销售线下确认';
+                    }
+                    if (DB.saveServiceOrders) DB.saveServiceOrders(list);
+                    showDealInput.value = false;
+                    recalcBoard();
+                    tip('已认领订单 ' + target.id + '，归属到你名下');
+                }
+
                 function onMarkSelect(a) {
                     showMarkSheet.value = false;
                     const l = currentLead.value;
@@ -2166,7 +2776,43 @@
                     l.stage = isWin ? '已转化' : '已流失';
                     l._x = 0;
                     persistLeads();
-                    tip(a.name + '，已同步到 PC 线索管理');
+                    if (isWin) {
+                        dealPicked.value = null;
+                        dealForm.svcId = ''; dealForm.svcName = ''; dealForm.category = '';
+                        dealForm.provider = ''; dealForm.amount = 0; dealForm.note = '';
+                        dealForm.statusMode = 'unpaid';
+                        showDealInput.value = true;
+                    } else {
+                        tip('已标记为已流失');
+                    }
+                }
+                function submitDeal() {
+                    if (!dealPicked.value) { tip('请先从服务商城选一个服务商品'); return; }
+                    const l = currentLead.value;
+                    if (!l) return;
+                    if (!DB.addServiceOrder) { tip('服务商城接口未就绪'); return; }
+                    const isPaid = dealForm.statusMode === 'paid';
+                    DB.addServiceOrder({
+                        svcId: dealForm.svcId,
+                        svcName: dealForm.svcName,
+                        provider: dealForm.provider,
+                        category: dealForm.category,
+                        amount: dealForm.amount,
+                        status: isPaid ? 'paid' : 'unpaid',
+                        payMethod: isPaid ? '销售线下确认' : '',
+                        company: l.company,
+                        contact: l.contact || '',
+                        phone: l.phone || '',
+                        sales: ME,
+                        note: dealForm.note
+                    });
+                    showDealInput.value = false;
+                    recalcBoard();
+                    if (isPaid) {
+                        tip('已生成已支付订单并归属给你，PC 订单管理立即可见，业绩看板已计入');
+                    } else {
+                        tip('已生成待支付订单，客户在会员中心付款后自动计入业绩');
+                    }
                 }
                 function persistLeads() {
                     // 状态写回 DataBridge，PC 线索管理 / 业绩看板同步变化
@@ -2201,41 +2847,119 @@
                 // ================= 业绩看板 =================
                 const boardScope = ref(0);        // 0=个人 1=团队
                 const boardPeriod = ref('month'); // week / month / year
+                // 全局 tooltip（fixed 定位，避免父容器 overflow 裁切）
+                const tipOpen = ref(false);
+                const tipText = ref('');
+                const tipStyle = ref({});
+                const TIP_MAP = {
+                    leads: '你归属（认领）的线索总数，按 PC 线索管理的销售归属过滤。',
+                    rate: '已转化线索 ÷ 你归属的全部线索。标记「已转化」即计入，不看是否已成交。',
+                    amount: '已支付服务订单的真实金额汇总，按订单归属销售过滤。含客户线上付款和线下确认收款两种。'
+                };
+                function showTip(e, key) {
+                    if (tipOpen.value && tipText.value === TIP_MAP[key]) { tipOpen.value = false; return; }
+                    const r = e.currentTarget.getBoundingClientRect();
+                    const width = 200;
+                    const top = r.bottom + 4;
+                    let left = r.left;
+                    // 防止超出右侧
+                    if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
+                    if (left < 8) left = 8;
+                    tipStyle.value = {
+                        position: 'fixed', top: top + 'px', left: left + 'px',
+                        width: width + 'px', padding: '8px 10px',
+                        background: '#0f172a', color: '#fff',
+                        fontSize: '11px', lineHeight: '1.6',
+                        borderRadius: '6px', zIndex: 9999,
+                        boxShadow: '0 4px 12px rgba(0,0,0,.15)',
+                        textAlign: 'left'
+                    };
+                    tipText.value = TIP_MAP[key];
+                    tipOpen.value = true;
+                }
                 const periods = [{ key: 'week', label: '本周' }, { key: 'month', label: '本月' }, { key: 'year', label: '本年' }];
-                const PERIOD_SCALE = { week: 0.25, month: 1, year: 3.2 };
                 const PERIOD_LABEL = { week: '本周', month: '本月', year: '本年' };
-                const board = reactive({ leads: 0, rate: 0, amountText: '0 万', targetText: '0 万', gapText: '0 万', percent: 0, bars: [], donut: '', stageDist: [], periodLabel: '本月' });
+                const board = reactive({
+                    leads: 0, rate: 0, amountText: '0', periodLabel: '本月',
+                    // 业绩构成：按线索来源
+                    sourceBars: [], sourceMax: 1,
+                    // 业绩构成：按服务类型（读订单 category）
+                    svcBars: [], svcMax: 1,
+                    // 漏斗：线索 → 已转化 → 已成交 → 成交额
+                    funnel: [],
+                    // 线索阶段分布
+                    stageDist: [], donut: ''
+                });
 
                 function setPeriod(k) { boardPeriod.value = k; recalcBoard(); }
                 function recalcBoard() {
-                    const scale = PERIOD_SCALE[boardPeriod.value];
                     const mine = boardScope.value === 0;
-                    const scoped = leads.value.filter(l => !mine || l.sales === '张销售');
+                    const me = ME;
+                    // 周期口径：近 7 / 30 / 365 天（按 createTime），存量类指标（线索池）不受周期影响
+                    const PERIOD_DAYS = { week: 7, month: 30, year: 365 };
+                    const cutoff = Date.now() - (PERIOD_DAYS[boardPeriod.value] || 30) * 86400000;
+                    function inPeriod(t) {
+                        if (!t) return false;
+                        const d = new Date(String(t).replace(/-/g, '/'));
+                        return !isNaN(d.getTime()) && d.getTime() >= cutoff;
+                    }
+                    // 线索池：存量指标，不随周期变化
+                    const scoped = leads.value.filter(l => !mine || l.sales === me);
                     const converted = scoped.filter(l => l.stage === '已转化').length;
-                    const orders = DB.loadServiceOrders ? (DB.loadServiceOrders() || []) : [];
-                    const paid = orders.filter(o => o.status !== 'unpaid').reduce((s, o) => s + (Number(o.amount) || 0), 0);
-                    const amount = Math.round(paid * scale * (mine ? 0.55 : 1) / 100) / 10; // 万元
-                    const target = mine ? 30 : 80; // 万元（原型目标值，对接后可后台配置）
-                    board.leads = Math.max(1, Math.round(scoped.length * (scale < 1 ? 0.6 : scale === 1 ? 1 : 2.6)));
+                    // 真实订单：按 sales 归属 + 已支付 + 落在周期内
+                    const allOrders = DB.loadServiceOrders ? (DB.loadServiceOrders() || []) : [];
+                    const orders = allOrders.filter(o => (!mine || o.sales === me) && inPeriod(o.createTime));
+                    const paid = orders.filter(o => o.status !== 'unpaid' && o.status !== 'cancelled');
+                    const amountFen = paid.reduce(function (s, o) { return s + (Number(o.amount) || 0); }, 0);
+                    const amountYuan = Math.round(amountFen);     // 原型阶段 amount 存元，不是分
+
+                    // KPI
+                    board.leads = scoped.length;
                     board.rate = scoped.length ? Math.round(converted / scoped.length * 100) : 0;
-                    board.amountText = amount.toFixed(1) + ' 万';
-                    board.targetText = target + ' 万';
-                    board.gapText = Math.max(0, target - amount).toFixed(1) + ' 万';
-                    board.percent = Math.min(100, Math.round(amount / target * 100));
+                    board.amountText = amountYuan.toLocaleString();
                     board.periodLabel = PERIOD_LABEL[boardPeriod.value];
-                    // 业绩构成柱状图（按线索来源）
-                    const sources = ['政策查询', '问答触发', '诊断触发', '计算器触发'];
-                    const counts = sources.map(s => scoped.filter(l => l.source === s).length);
-                    const max = Math.max.apply(null, counts.concat([1]));
-                    board.bars = sources.map((s, i) => ({ label: s.slice(0, 2), value: counts[i], height: Math.round(counts[i] / max * 100) }));
-                    // 线索阶段分布环形图（conic-gradient 占位，可替换为 ECharts / chart.js）
+
+                    // 业绩构成：按线索来源（线索条）
+                    const sources = ['政策查询', '问答触发', '诊断触发'];
+                    const sCounts = sources.map(function (s) { return scoped.filter(l => l.source === s).length; });
+                    board.sourceMax = Math.max.apply(null, sCounts.concat([1]));
+                    board.sourceBars = sources.map(function (s, i) {
+                        return { label: s, value: sCounts[i], height: Math.round(sCounts[i] / board.sourceMax * 100) };
+                    });
+
+                    // 业绩构成：按服务类型（订单金额），按订单里实际出现的分类动态生成
+                    const catMap = {};
+                    paid.forEach(function (o) {
+                        const c = o.category || '其他';
+                        catMap[c] = (catMap[c] || 0) + (Number(o.amount) || 0);
+                    });
+                    const svcList = Object.keys(catMap).map(function (c) { return { label: c, amount: catMap[c] }; })
+                        .sort(function (a, b) { return b.amount - a.amount; }).slice(0, 6);
+                    board.svcMax = Math.max.apply(null, svcList.map(function (x) { return x.amount; }).concat([1]));
+                    board.svcBars = svcList.map(function (x) {
+                        return { label: x.label, amount: x.amount, height: Math.round(x.amount / board.svcMax * 100) };
+                    });
+
+                    // 漏斗：线索 → 已转化 → 已成交（有订单） → 成交额
+                    const hasOrderCompany = {};
+                    paid.forEach(function (o) { if (o.company) hasOrderCompany[o.company] = true; });
+                    const convertedCompanies = scoped.filter(function (l) { return l.stage === '已转化'; }).map(function (l) { return l.company; });
+                    const closedCount = Object.keys(hasOrderCompany).length;
+                    board.funnel = [
+                        { label: '线索总数', value: scoped.length, color: '#6366f1' },
+                        { label: '已转化', value: converted, color: '#8b5cf6' },
+                        { label: '已成交（有订单）', value: closedCount, color: '#10b981' },
+                        { label: '成交额（元）', value: amountYuan, color: '#059669', isAmount: true }
+                    ];
+
+                    // 阶段分布环形图
                     const stages = ['待跟进', '跟进中', '已转化', '已流失'];
                     const colors = ['#94a3b8', '#6366f1', '#10b981', '#ef4444'];
                     const total = scoped.length || 1;
                     let acc = 0;
                     const stops = [];
-                    board.stageDist = stages.map((s, i) => {
-                        const v = scoped.filter(l => l.stage === s).length;
+                    board.stageDist = stages.map(function (s, i) {
+                        const v = scoped.filter(function (l) { return l.stage === s; }).length;
                         const pct = Math.round(v / total * 100);
                         stops.push(colors[i] + ' ' + acc + '% ' + (acc + v / total * 100) + '%');
                         acc += v / total * 100;
@@ -2335,6 +3059,8 @@
                 onMounted(function () {
                     loadingShares(); refreshArchive(); recalcBoard(); loadMsgs(); loadEntrusts();
                     setInterval(function () { loadMsgs(); loadEntrusts(); syncLeads(); }, 5000); // 轮询新消息/新委托/新线索，刷新角标（正式版替换为 WebSocket/IM SDK）
+                    // 全局点击关闭 tooltip
+                    document.addEventListener('click', function () { tipOpen.value = false; });
                 });
 
                 // ================= 暴露给模板 =================
@@ -2346,21 +3072,27 @@
                     showNewCustomer, showNewStatus, newForm, NEW_STATUS_ACTIONS, openNewCustomer, onNewStatusSelect, submitNewCustomer, refreshLocalCustomers,
                     showImportCustomers, openImportCustomers, importFileName, importError, importDup,
                     showFileInput, downloadTemplate, parsedImported, confirmImportCustomers,
-                    reportKeyword, reportLoading, report, quickCompanies, generateReport, exportPDF, createShare,
+                    reportKeyword, reportLoading, report, generateReport, exportPDF, createShare,
+                    viewArchive,
                     // 政策匹配条件采集
                     condOpen, condStep, condAuto, condAssess,
+                    TAG_GROUPS, condTags, indGroupOpen, toggleTag, toggleIndGroup, groupPreview,
                     openConditions, goNextStep, doMatch, calcWeak,
                     showLossPicker, showRndPicker, showUniPicker, showFundPicker, showWindowPicker, showGrowthPicker,
                     BOOL_ACTIONS, FUND_ACTIONS, WINDOW_ACTIONS, GROWTH_ACTIONS,
                     onLossSelect, onRndSelect, onUniSelect, onFundSelect, onWindowSelect, onGrowthSelect,
                     showChannelSheet, channelActions, onChannelSelect,
-                    showPicker, pickerKeyword, pickerList, pickCustomer, archiveReports, loadArchive, backToArchive, showPdf, arcKeyword, arcExpanded, archiveGroups, toggleArcGroup,
-                    shareTab, refreshing, shareList, policyShareList, onRefresh, showTracking, tracking, qrCells, openTracking, openPreview, copyLink,
+                    showPicker, pickerKeyword, pickerList, pickCustomer, archiveReports, loadArchive, backToArchive, showPdf, arcKeyword, archiveGroups,
+                    shareTab, refreshing, shareList, policyShareList, onRefresh, showTracking, tracking, qrCells, openTracking, copyLink,
                     showShareCreate, scType, scStep, scKeyword, scContent, scCustomer, scContentList, scCustomerList,
                     openShareCreate, scPickContent, scPickCustomer, scConfirm,
-                    leadTab, leads, filteredLeads, pendingCount, stageClass, showLead, lead, openLeadDetail,
+                    leadTab, leads, filteredLeads, pendingCount, stageClass, showLead, showLeadRules, lead, openLeadDetail,
                     claimLead, showMarkSheet, markActions, openMarkSheet, onMarkSelect, swipeStart, swipeMove, swipeEnd,
-                    boardScope, boardPeriod, periods, board, setPeriod, recalcBoard
+                    showDealInput, showDealProducts, dealProductKw, dealPicked, dealForm,
+                    filteredDealProducts, dealCompanyOrders, hashCode, pickDealProduct, claimExistingOrder,
+                    submitDeal, currentLead,
+                    boardScope, boardPeriod, periods, board, setPeriod, recalcBoard,
+                    tipOpen, tipText, tipStyle, showTip
                 };
             }
         }).use(vant).mount('#app');

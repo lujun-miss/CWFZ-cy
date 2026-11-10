@@ -218,9 +218,9 @@
                         </div>
                     </div>
                     <!-- 右：申报日历 -->
-                    <div class="w-[340px] flex-shrink-0">
-                        <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-4 h-full flex flex-col">
-                            <h3 class="text-xs font-black text-slate-800 mb-2"><i class="fa fa-calendar text-emerald-500 mr-1"></i>申报日历</h3>
+                    <div class="w-[520px] flex-shrink-0">
+                        <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-5 h-full min-h-[460px] flex flex-col">
+                            <h3 class="text-sm font-black text-slate-800 mb-3"><i class="fa fa-calendar text-emerald-500 mr-1"></i>申报日历</h3>
                             <div id="calendarBody" class="flex-1"></div>
                         </div>
                     </div>
@@ -414,7 +414,7 @@
         });
 
         // ===== 右栏：申报日历 / 热门服务 =====
-        // 申报日历（月历视图：蓝点=批次开始，橙点=截止，今日高亮；附本月截止提醒）
+        // 申报日历（月历视图：当日有在申报期内的项目即标红点，今日高亮；附本月截止提醒）
         // CAL = { y 显示年, m 显示月(0基), d 选中日 }；支持年月左右切换与日期点击弹「政策月历」详情窗
         var CAL = (function() { var n = new Date(); return { y: n.getFullYear(), m: n.getMonth(), d: n.getDate() }; })();
         function calPickDay(y, m, d) {
@@ -447,66 +447,70 @@
             var firstW = new Date(cy, cm, 1).getDay();
             var daysInM = new Date(cy, cm + 1, 0).getDate();
             var isCurMonth = (cy === ty && cm === tm);
-            var cal = '<div class="flex items-center justify-between mb-1.5">' +
-                '<button onclick="calShiftMonth(-1)" class="w-5 h-5 rounded hover:bg-slate-100 text-slate-400 text-[10px]"><i class="fa fa-chevron-left"></i></button>' +
-                '<span class="text-[11px] font-black text-slate-700">' + cy + '年' + (cm + 1) + '月' + (isCurMonth ? '' : ' <a onclick="calBackToday()" class="text-[9px] text-indigo-500 font-bold cursor-pointer">回今天</a>') + '</span>' +
-                '<button onclick="calShiftMonth(1)" class="w-5 h-5 rounded hover:bg-slate-100 text-slate-400 text-[10px]"><i class="fa fa-chevron-right"></i></button></div>' +
-                '<div class="text-[9px] text-slate-400 mb-1 text-right"><span style="color:#2563eb;">●</span> 开始 <span style="color:#f97316;">●</span> 截止 <span class="text-slate-300">· 点日期看当日事项</span></div>' +
-                '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;">';
-            '日一二三四五六'.split('').forEach(function(w) { cal += '<div class="text-[9px] text-slate-400 font-bold py-0.5">' + w + '</div>'; });
+            var cal = '<div class="flex items-center justify-between mb-2">' +
+                '<button onclick="calShiftMonth(-1)" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 text-xs"><i class="fa fa-chevron-left"></i></button>' +
+                '<span class="text-sm font-black text-slate-700">' + cy + '年' + (cm + 1) + '月' + (isCurMonth ? '' : ' <a onclick="calBackToday()" class="text-[11px] text-indigo-500 font-bold cursor-pointer">回今天</a>') + '</span>' +
+                '<button onclick="calShiftMonth(1)" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 text-xs"><i class="fa fa-chevron-right"></i></button></div>' +
+                '<div class="text-[11px] text-slate-400 mb-1.5 text-right"><span style="color:#ef4444;">●</span> 有可申报项目 <span class="text-slate-300">· 点日期看当日项目</span></div>' +
+                '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;">';
+            '日一二三四五六'.split('').forEach(function(w) { cal += '<div class="text-[11px] text-slate-400 font-bold py-1">' + w + '</div>'; });
             for (var wi = 0; wi < firstW; wi++) cal += '<div></div>';
             for (var d2 = 1; d2 <= daysInM; d2++) {
                 var isToday = isCurMonth && d2 === td;
                 var isSel = (d2 === CAL.d);
                 var hasMark = !!marks[d2];
-                var style = 'font-size:11px;line-height:16px;cursor:pointer;border-radius:6px;';
+                var style = 'font-size:15px;line-height:26px;min-height:34px;cursor:pointer;border-radius:10px;';
                 if (isToday && !isSel) style += 'background:#6366f1;color:#fff;font-weight:700;';
                 else if (isSel) style += 'box-shadow:inset 0 0 0 1.5px #6366f1;color:#4f46e5;font-weight:700;background:#eef2ff;';
                 else style += 'color:#475569;' + (hasMark ? 'font-weight:700;' : '');
                 style += 'transition:background .12s;';
-                var dots = (marks[d2] || []).slice(0, 3).map(function(mk) { return '<span style="width:4px;height:4px;border-radius:9999px;background:' + mk.color + ';display:inline-block;margin:0 0.5px;"></span>'; }).join('');
+                var dots = hasMark ? '<span style="width:7px;height:7px;border-radius:9999px;background:#ef4444;display:inline-block;"></span>' : '';
                 cal += '<div onclick="calPickDay(' + cy + ',' + cm + ',' + d2 + ')" class="cal-day" style="' + style + '" onmouseover="if(!this.dataset.sel)this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'\'" data-sel="' + (isSel ? 1 : '') + '" title="' + (hasMark ? marks[d2].map(function(mk){ return mk.label; }).join('；') : '') + '">' + d2 +
-                    '<div style="height:5px;text-align:center;">' + dots + '</div></div>';
+                    '<div style="height:9px;text-align:center;">' + dots + '</div></div>';
             }
             cal += '</div>';
-            var monthEnds = [];
-            POLICIES.forEach(function(p) {
-                (p.batches || []).forEach(function(b) {
-                    if (!b.end) return;
-                    var a = String(b.end).split('-');
-                    if (+a[0] === cy && +a[1] - 1 === cm) monthEnds.push({ name: p.name, bname: b.name, day: +a[2], left: +a[2] - (isCurMonth ? td : -99) });
-                });
-            });
-            monthEnds.sort(function(a, b) { return a.day - b.day; });
-            if (monthEnds.length) {
-                cal += '<div class="mt-2 pt-2 border-t border-slate-100">' + monthEnds.slice(0, 3).map(function(it) {
-                    var urgent = it.left >= 0 && it.left <= 7;
-                    return '<div class="flex items-center gap-2 py-1" style="cursor:pointer" onclick="calPickDay(' + cy + ',' + cm + ',' + it.day + ')"><i class="fa fa-bell-o text-[10px] ' + (urgent ? 'text-red-500' : 'text-slate-300') + '"></i>' +
-                        '<span class="flex-1 text-[10px] text-slate-600 truncate">' + it.name + ' · ' + it.bname + '</span>' +
-                        '<span class="text-[10px] font-bold flex-shrink-0" style="color:' + (it.left < 0 ? '#94a3b8' : urgent ? '#dc2626' : '#f97316') + ';">' + (it.left < 0 ? '已截止' : it.left === 0 ? '今天截止' : '剩' + it.left + '天') + '</span></div>';
-                }).join('') + '</div>';
-            }
             document.getElementById('calendarBody').innerHTML = cal;
         }
 
-        /** 汇总某年某月的日历标记：marks[日] = [{color, label, name, bname, dept, level, ds, kind}] */
+        /** 汇总某年某月的日历标记：当日处于某批次申报期内即标红点（与政策雷达申报日历同口径） */
         function calMarks(cy, cm) {
             var marks = {};
+            var RED = '#ef4444';
             POLICIES.forEach(function(p) {
+                if (!DataBridge.isDeclaration(p)) return;
                 (p.batches || []).forEach(function(b) {
-                    [['start', '#2563eb', '开始'], ['end', '#f97316', '截止']].forEach(function(pair) {
-                        var ds = b[pair[0]];
-                        if (!ds) return;
-                        var a = String(ds).split('-');
-                        if (+a[0] === cy && +a[1] - 1 === cm) {
-                            var dd = +a[2];
+                    if (!b.end) return;
+                    var ea = String(b.end).split('-');
+                    var endD = new Date(+ea[0], +ea[1] - 1, +ea[2]);
+                    var startD = null;
+                    if (b.start) {
+                        var sa = String(b.start).split('-');
+                        startD = new Date(+sa[0], +sa[1] - 1, +sa[2]);
+                    }
+                    // 逐日打标：申报期 [start, end] 覆盖到本月的每一天；start 缺失时按 end 当天
+                    var cursor = startD ? new Date(startD) : new Date(endD);
+                    if (cursor > endD) return;
+                    while (cursor <= endD) {
+                        if (cursor.getFullYear() === cy && cursor.getMonth() === cm) {
+                            var dd = cursor.getDate();
                             (marks[dd] = marks[dd] || []).push({
-                                color: pair[1], kind: pair[2], ds: ds,
-                                label: p.name + ' · ' + (b.name || '') + '（' + pair[2] + '）',
-                                name: p.name, bname: b.name || '', dept: p.dept || '', level: p.level || ''
+                                color: RED,
+                                label: p.name + ' · ' + (b.name || ''),
+                                name: p.name, bname: b.name || '', dept: p.dept || '', level: p.level || '',
+                                end: b.end
                             });
                         }
-                    });
+                        cursor.setDate(cursor.getDate() + 1);
+                    }
+                });
+            });
+            // 同日同政策去重（多批次各自打标时保留多条，按 政策名+批次名 去重）
+            Object.keys(marks).forEach(function(k) {
+                var seen = {};
+                marks[k] = marks[k].filter(function(it) {
+                    var key = it.name + '|' + it.bname;
+                    if (seen[key]) return false;
+                    seen[key] = 1; return true;
                 });
             });
             return marks;
@@ -524,11 +528,15 @@
             var ty = nowD.getFullYear(), tm = nowD.getMonth(), td = nowD.getDate();
             var cy = CAL.y, cm = CAL.m;
             var marks = calMarks(cy, cm);
-            var monthCount = Object.keys(marks).reduce(function(n, k) { return n + marks[k].length; }, 0);
+            var monthCount = Object.keys(marks).reduce(function(n, k) {
+                var seen = {};
+                marks[k].forEach(function(it) { seen[it.name + '|' + it.bname] = 1; });
+                return n + Object.keys(seen).length;
+            }, 0);
             // 头部
             document.getElementById('calModalTitle').innerHTML =
-                cy + '年' + (cm + 1) + '月 · 申报事项 ' + monthCount + ' 项' +
-                '<span class="text-[10px] text-slate-400 font-normal ml-2"><span style="color:#2563eb;">●</span> 批次开始 <span style="color:#f97316;">●</span> 截止</span>';
+                cy + '年' + (cm + 1) + '月 · 可申报项目 ' + monthCount + ' 个' +
+                '<span class="text-[10px] text-slate-400 font-normal ml-2"><span style="color:#ef4444;">●</span> 当日在申报期内</span>';
             document.getElementById('calModalMonth').textContent = cy + '年' + (cm + 1) + '月';
             document.getElementById('calTodayBtn').style.display = (cy === ty && cm === tm) ? 'none' : '';
             // 月历网格
@@ -554,25 +562,23 @@
             }
             document.getElementById('calModalGrid').innerHTML = grid;
             // 当日清单
-            var dayList = (marks[CAL.d] || []).slice().sort(function(a, b) { return a.kind === '截止' ? -1 : 1; });
+            var dayList = (marks[CAL.d] || []).slice().sort(function(a, b) { return String(a.end).localeCompare(String(b.end)); });
             var dateLabel = cy + '年' + (cm + 1) + '月' + CAL.d + '日';
             var html = '<div class="flex items-center justify-between mb-2">' +
-                '<span class="text-[12px] font-black text-slate-700">' + dateLabel + ' · ' + dayList.length + ' 项事项</span></div>';
+                '<span class="text-[12px] font-black text-slate-700">' + dateLabel + ' · ' + dayList.length + ' 个可申报项目</span></div>';
             if (!dayList.length) {
-                html += '<div class="text-[11px] text-slate-400 py-6 text-center">当日无申报开始 / 截止事项</div>';
+                html += '<div class="text-[11px] text-slate-400 py-6 text-center">当日无可申报项目</div>';
             } else {
                 var todayStr = ty + '-' + String(tm + 1).padStart(2, '0') + '-' + String(td).padStart(2, '0');
                 html += dayList.map(function(it) {
-                    var isEnd = it.kind === '截止';
-                    var left = Math.round((new Date(it.ds) - new Date(todayStr)) / 86400000);
-                    var stTxt, stColor;
-                    if (isEnd) { stTxt = left < 0 ? '已截止' : (left === 0 ? '今天截止' : '剩 ' + left + ' 天'); stColor = left < 0 ? '#94a3b8' : (left <= 7 ? '#dc2626' : '#f97316'); }
-                    else { stTxt = left < 0 ? '已开始' : (left === 0 ? '今天开始' : left + ' 天后开始'); stColor = left < 0 ? '#94a3b8' : '#2563eb'; }
+                    var left = Math.round((new Date(String(it.end).replace(/-/g, '/')) - new Date(todayStr.replace(/-/g, '/'))) / 86400000);
+                    var stTxt = left < 0 ? '已截止' : (left === 0 ? '今天截止' : '剩 ' + left + ' 天');
+                    var stColor = left < 0 ? '#94a3b8' : (left <= 7 ? '#dc2626' : '#f97316');
                     return '<div class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-indigo-50/60 cursor-pointer transition-all" onclick="calGoPolicy(\'' + it.name.replace(/'/g, "\\'") + '\')">' +
-                        '<span style="width:8px;height:8px;border-radius:9999px;background:' + it.color + ';flex-shrink:0;"></span>' +
+                        '<span style="width:8px;height:8px;border-radius:9999px;background:#ef4444;flex-shrink:0;"></span>' +
                         '<div class="flex-1" style="min-width:0;">' +
                             '<div class="text-[12px] font-bold text-slate-700 truncate">' + it.name + '</div>' +
-                            '<div class="text-[10px] text-slate-400 truncate">' + (it.bname ? it.bname + ' · ' : '') + (it.dept || '') + ' · ' + it.ds + ' ' + it.kind + '</div>' +
+                            '<div class="text-[10px] text-slate-400 truncate">' + (it.bname ? it.bname + ' · ' : '') + (it.dept || '') + ' · ' + it.end + ' 截止</div>' +
                         '</div>' +
                         (it.level ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold flex-shrink-0">' + it.level + '</span>' : '') +
                         '<span class="text-[10px] font-black flex-shrink-0" style="color:' + stColor + '">' + stTxt + '</span>' +

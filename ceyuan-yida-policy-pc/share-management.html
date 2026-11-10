@@ -22,13 +22,15 @@
         .hover\:text-brand-700:hover { color: var(--brand-700); }
         .hover\:text-brand-600:hover { color: var(--brand-600); }
         .focus\:ring-brand-500:focus { --tw-ring-color: var(--brand-500); }
-        /* 抽屉 */
-        .drawer-mask { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 50; transition: opacity .2s; }
-        .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 480px; max-width: 100%; background: #fff; z-index: 51; transform: translateX(100%); transition: transform .25s; box-shadow: -4px 0 20px rgba(0,0,0,.08); overflow-y: auto; }
-        .drawer.open { transform: translateX(0); }
-        .bar-cell { display: flex; align-items: center; gap: 8px; }
-        .bar-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
-        .bar-fill { height: 100%; background: linear-gradient(90deg, #16a34a, #4ade80); border-radius: 3px; transition: width .3s; }
+        /* 追踪弹层 */
+        .trace-mask { position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .trace-card { width: 400px; max-width: 100%; background: #fff; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.2); overflow: hidden; }
+        /* 二维码占位（与 H5 同款图案） */
+        .qr { width: 132px; height: 132px; margin: 0 auto; border-radius: 10px; border: 1px solid #e2e8f0; padding: 8px; display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; background: #fff; }
+        .qr i { background: #0f172a; border-radius: 1px; }
+        .qr i.off { background: transparent; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; padding: 10px 20px; border-radius: 10px; font-size: 13px; color: #fff; background: #0f172a; box-shadow: 0 8px 20px rgba(0,0,0,.15); opacity: 0; transition: opacity .25s; pointer-events: none; }
+        .toast.show { opacity: 1; }
     </style>
     <script>
         // 登录拦截：未登录时强制跳转到登录页
@@ -53,7 +55,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-gray-800">分享管理</h1>
-                    <p class="text-xs text-gray-500">客户阅读行为追踪 · 数据来源于智能报告模块</p>
+                    <p class="text-xs text-gray-500">站内推送 / 外链双通道 · 同一客户同一内容仅保留最新一条</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
@@ -68,18 +70,25 @@
     </header>
 
     <main class="max-w-[1600px] mx-auto px-6 py-6">
-        <!-- 列表 -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <!-- 页签 + 筛选 -->
             <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
-                <h2 class="font-semibold text-gray-800">客户阅读行为记录</h2>
+                <div class="flex items-center bg-gray-100 rounded-lg p-0.5 text-sm">
+                    <button id="tabReport" onclick="switchTab('report')" class="px-4 py-1.5 rounded-md bg-white shadow-sm text-gray-800 font-medium">
+                        <i class="fa fa-file-text-o mr-1.5"></i>已分享报告 <span id="cntReport" class="text-brand-600">0</span>
+                    </button>
+                    <button id="tabPolicy" onclick="switchTab('policy')" class="px-4 py-1.5 rounded-md text-gray-500">
+                        <i class="fa fa-university mr-1.5"></i>已分享政策 <span id="cntPolicy">0</span>
+                    </button>
+                </div>
                 <div class="flex items-center space-x-2 text-sm">
-                    <input id="q" oninput="render()" type="text" placeholder="搜索客户/企业/报告" class="px-3 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs w-52">
+                    <input id="q" oninput="render()" type="text" placeholder="搜索客户 / 内容名称" class="px-3 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs w-52">
                     <select id="filter" onchange="render()" class="px-3 py-1.5 border border-gray-200 rounded-md text-gray-600 text-xs">
-                        <option value="">全部状态</option>
-                        <option value="opened">已打开</option>
-                        <option value="silent">未打开</option>
+                        <option value="">全部渠道</option>
+                        <option value="站内推送">站内推送</option>
+                        <option value="外链">外链</option>
                     </select>
-                    <button onclick="gotoReportMgr()" class="px-3 py-1.5 border border-brand-600 text-brand-600 rounded-md text-xs hover:bg-brand-50 font-bold"><i class="fa fa-plus mr-1"></i>生成报告并分享</button>
+                    <button onclick="gotoReportMgr()" class="px-3 py-1.5 border border-brand-600 text-brand-600 rounded-md text-xs hover:bg-brand-50 font-bold"><i class="fa fa-plus mr-1"></i>发起分享</button>
                 </div>
             </div>
             <div class="overflow-x-auto scrollbar-thin">
@@ -87,10 +96,8 @@
                     <thead>
                         <tr class="bg-gray-50 text-gray-500 text-left">
                             <th class="px-6 py-3 font-medium">分享对象</th>
-                            <th class="px-6 py-3 font-medium">报告名称</th>
-                            <th class="px-6 py-3 font-medium">打开次数</th>
-                            <th class="px-6 py-3 font-medium">最近访问</th>
-                            <th class="px-6 py-3 font-medium">累计停留</th>
+                            <th class="px-6 py-3 font-medium">分享内容</th>
+                            <th class="px-6 py-3 font-medium">分享渠道</th>
                             <th class="px-6 py-3 font-medium">打开状态</th>
                             <th class="px-6 py-3 font-medium text-right">操作</th>
                         </tr>
@@ -98,145 +105,202 @@
                     <tbody class="divide-y divide-gray-100" id="tbody"></tbody>
                 </table>
             </div>
+            <div class="px-6 py-3 border-t border-gray-100 text-xs text-gray-400">
+                站内推送：客户在「会员中心 · 我的报告」查看，无需扫码；外链：生成追踪链接与二维码，客户免登录打开，浏览数据可追踪。
+            </div>
         </div>
     </main>
 
-    <!-- 行为详情抽屉 -->
-    <div class="drawer-mask hidden" onclick="closeDrawer()" id="mask"></div>
-    <div class="drawer" id="drawer">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
-            <div>
-                <h2 class="font-semibold text-gray-800" id="dTitle">行为详情</h2>
-                <p class="text-xs text-gray-400 mt-0.5" id="dSub"></p>
+    <!-- 追踪弹层（仅外链） -->
+    <div class="trace-mask hidden" id="traceMask" onclick="if(event.target===this)closeTrace()">
+        <div class="trace-card">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                    <h2 class="font-semibold text-gray-800">追踪二维码 / 链接</h2>
+                    <p class="text-xs text-gray-400 mt-0.5" id="traceSub"></p>
+                </div>
+                <button onclick="closeTrace()" class="text-gray-400 hover:text-gray-600"><i class="fa fa-times"></i></button>
             </div>
-            <button onclick="closeDrawer()" class="text-gray-400 hover:text-gray-600"><i class="fa fa-times text-lg"></i></button>
+            <div class="p-5">
+                <div class="qr" id="qrBox"></div>
+                <p class="text-xs text-gray-400 text-center mt-3 mb-4">二维码为原型占位，对接时替换为真实二维码图</p>
+                <div class="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 break-all" id="traceUrl"></div>
+                <div class="flex gap-2 mt-4">
+                    <button onclick="copyTrace()" class="flex-1 py-2 bg-brand-600 text-white rounded-lg text-xs font-bold hover:bg-brand-700"><i class="fa fa-copy mr-1"></i>复制追踪链接</button>
+                    <button onclick="copyTrace(true)" class="px-3 py-2 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50"><i class="fa fa-external-link"></i></button>
+                </div>
+            </div>
         </div>
-        <div class="p-6" id="dBody"></div>
     </div>
+
+    <div class="toast" id="toast"></div>
 
     <script src="data-bridge.js"></script>
     <script>
-        var FLAT = []; // 扁平化分享记录 [{shareId,toName,toPhone,reportId,reportTitle,createdAt,expireAt,views,totalDur,lastAt}]
+        var activeTab = 'report';
+        var FLAT_REPORT = [];
+        var FLAT_POLICY = [];
+        var traceUrlValue = '';
+        var QR_CELLS = [1,1,1,0,1,1,1,0,1, 1,0,1,1,0,1,1,1,0, 1,1,1,0,1,1,1,0,1, 0,1,0,1,1,0,1,1,0, 1,0,1,0,1,0,1,0,1, 1,1,0,1,0,1,1,0,1, 1,0,1,1,1,0,1,1,1, 0,1,1,0,1,1,0,1,0, 1,1,1,0,1,1,1,0,1];
+
         function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
-        function fmtDur(sec) { sec = sec || 0; var m = Math.floor(sec/60); var s = sec%60; return m + "'" + String(s).padStart(2,'0') + '"'; }
+        function fmtDate(t) { return String(t || '').slice(5, 16); }
+        function toast(msg) {
+            var el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            clearTimeout(el._t);
+            el._t = setTimeout(function() { el.classList.remove('show'); }, 2200);
+        }
         function gotoReportMgr() {
             if (parent && parent.window && parent.window.switchPage) parent.window.switchPage('sales-report.html', null);
             else window.location.href = 'sales-report.html';
         }
-        function viewReport(rid, sid) {
-            var url = 'report-viewer.html?id=' + rid + (sid ? '&shareId=' + sid : '');
-            if (parent && parent.window && parent.window.switchPage) parent.window.switchPage(url, null);
-            else window.location.href = url;
+        function switchTab(t) {
+            activeTab = t;
+            var on = 'px-4 py-1.5 rounded-md bg-white shadow-sm text-gray-800 font-medium';
+            var off = 'px-4 py-1.5 rounded-md text-gray-500';
+            var r = document.getElementById('tabReport'), p = document.getElementById('tabPolicy');
+            if (t === 'report') { r.className = on; p.className = off; }
+            else { p.className = on; r.className = off; }
+            render();
         }
-        function openDrawer(i) {
-            var s = FLAT[i];
-            document.getElementById('dTitle').textContent = '「' + s.reportCompany + '」阅读行为';
-            document.getElementById('dSub').textContent = s.reportTitle + ' · 分享给 ' + s.toName + (s.toPhone ? '（' + s.toPhone + '）' : '') + ' · ' + s.createdAt;
-            var views = s.views || [];
-            var body = '';
-            if (!views.length) {
-                body = '<div class="text-center py-10 text-sm text-gray-400"><i class="fa fa-hourglass-half text-3xl mb-3"></i><p>客户尚未打开此链接</p><p class="text-xs mt-2">可通过「复制链接」按钮提醒客户</p></div>';
-            } else {
-                // 浏览时间线
-                body += '<p class="text-xs text-gray-500 font-semibold mb-2">浏览时间线（共 ' + views.length + ' 次）</p>';
-                body += '<div class="space-y-3 mb-5">';
-                views.forEach(function(v, idx) {
-                    var color = idx === views.length - 1 ? 'bg-brand-50 border-brand-200' : 'bg-gray-50 border-gray-100';
-                    body += '<div class="flex items-center gap-3 border-l-2 pl-3 py-1.5 ' + color + '">' +
-                        '<div class="flex-1"><p class="text-sm font-medium text-gray-700">' + esc(v.at) + '</p></div>' +
-                        '<span class="text-xs text-gray-500">停留 ' + fmtDur(v.durSec) + '</span></div>';
-                });
-                body += '</div>';
-                // 汇总小卡
-                body += '<p class="text-xs text-gray-500 font-semibold mb-2">行为汇总</p>';
-                body += '<div class="grid grid-cols-3 gap-2 mb-5">' +
-                    '<div class="bg-gray-50 rounded p-3 text-center"><p class="text-lg font-bold text-gray-800">' + views.length + '</p><p class="text-xs text-gray-500">打开次数</p></div>' +
-                    '<div class="bg-gray-50 rounded p-3 text-center"><p class="text-lg font-bold text-gray-800">' + fmtDur(s.totalDur) + '</p><p class="text-xs text-gray-500">累计停留</p></div>' +
-                    '<div class="bg-gray-50 rounded p-3 text-center"><p class="text-lg font-bold text-gray-800">' + fmtDur(Math.round(s.totalDur / views.length)) + '</p><p class="text-xs text-gray-500">平均停留</p></div>' +
-                    '</div>';
-                // 最后操作
-                body += '<div class="flex gap-2">' +
-                    '<button onclick="closeDrawer();viewReport(\'' + s.reportId + '\',\'' + s.shareId + '\')" class="flex-1 px-3 py-2 bg-brand-600 text-white rounded-lg text-xs font-bold hover:bg-brand-700"><i class="fa fa-eye mr-1"></i>打开报告链接</button>' +
-                    '<button onclick="deleteShare(\'' + s.reportId + '\',\'' + s.shareId + '\')" class="px-3 py-2 border border-red-200 text-red-500 rounded-lg text-xs hover:bg-red-50"><i class="fa fa-trash"></i></button>' +
-                    '</div>';
-            }
-            document.getElementById('dBody').innerHTML = body;
-            document.getElementById('mask').classList.remove('hidden');
-            document.getElementById('drawer').classList.add('open');
-        }
-        function closeDrawer() {
-            document.getElementById('mask').classList.add('hidden');
-            document.getElementById('drawer').classList.remove('open');
-        }
-        function deleteShare(rid, sid) {
-            if (!confirm('确认删除这条分享记录？')) return;
-            var reports = DataBridge.loadSalesReports();
-            reports.forEach(function(r) {
-                if (r.id === rid && Array.isArray(r.shares)) r.shares = r.shares.filter(function(s) { return s.shareId !== sid; });
+
+        /** 同一对象 + 同一内容只保留最新一条 */
+        function dedupeLatest(list) {
+            var map = {};
+            list.forEach(function(s) {
+                var k = (s.toName || '') + '|' + (s.title || '');
+                if (!map[k] || String(s.createdAt || '') > String(map[k].createdAt || '')) map[k] = s;
             });
-            DataBridge.saveSalesReports(reports);
-            closeDrawer();
-            refresh();
+            return Object.keys(map).map(function(k) { return map[k]; });
         }
 
         function refresh() {
-            var reports = DataBridge.loadSalesReports();
-            FLAT = [];
+            var reports = DataBridge.loadSalesReports ? DataBridge.loadSalesReports() : [];
+            FLAT_REPORT = [];
             reports.forEach(function(r) {
-                if (!Array.isArray(r.shares)) return;
-                r.shares.forEach(function(s) {
-                    var v = s.views || [];
-                    var totalDur = 0; v.forEach(function(x) { totalDur += (x.durSec || 0); });
-                    var lastAt = v.length ? v[v.length - 1].at : '';
-                    FLAT.push({
-                        shareId: s.shareId, toName: s.toName || '（匿名）', toPhone: s.toPhone || '',
-                        reportId: r.id, reportTitle: r.title, reportCompany: r.customerName,
-                        reportType: r.type, createdAt: s.createdAt, expireAt: s.expireAt,
-                        views: v, totalDur: totalDur, lastAt: lastAt
+                (r.shares || []).forEach(function(s) {
+                    var views = s.views || [];
+                    FLAT_REPORT.push({
+                        shareId: s.shareId, toName: s.toName || '（匿名访问）', toPhone: s.toPhone || '',
+                        reportId: r.id, title: r.title || r.customerName, company: r.customerName || '',
+                        channel: s.channel || '外链', converted: !!s.converted, createdAt: s.createdAt || '',
+                        views: views, lastAt: views.length ? views[views.length - 1].at : '',
+                        url: 'report-viewer.html?id=' + r.id + '&shareId=' + s.shareId + '&src=wechat&track=1'
                     });
                 });
             });
+            FLAT_REPORT = dedupeLatest(FLAT_REPORT).sort(function(a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
+
+            var pshares = DataBridge.loadPolicyShares ? DataBridge.loadPolicyShares() : [];
+            FLAT_POLICY = pshares.map(function(s) {
+                var views = s.views || [];
+                return {
+                    shareId: s.shareId, toName: s.toName || '（匿名访问）', toPhone: s.toPhone || '',
+                    policyId: s.policyId, title: (s.policyName || '政策') + '（政策）', company: '',
+                    channel: s.channel || '外链', converted: !!s.converted, createdAt: s.createdAt || '',
+                    views: views, lastAt: views.length ? views[views.length - 1].at : '',
+                    url: 'policy-viewer.html?id=' + encodeURIComponent(s.policyId) + '&shareId=' + s.shareId
+                };
+            });
+            FLAT_POLICY = dedupeLatest(FLAT_POLICY).sort(function(a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
+
+            document.getElementById('cntReport').textContent = FLAT_REPORT.length;
+            document.getElementById('cntPolicy').textContent = FLAT_POLICY.length;
             render();
         }
 
         function render() {
             var q = (document.getElementById('q').value || '').trim().toLowerCase();
             var f = document.getElementById('filter').value;
-            var list = FLAT.filter(function(s) {
-                if (q && s.toName.toLowerCase().indexOf(q) < 0 && s.reportTitle.toLowerCase().indexOf(q) < 0 && s.reportCompany.toLowerCase().indexOf(q) < 0) return false;
-                if (f === 'opened' && !(s.views && s.views.length)) return false;
-                if (f === 'silent' && s.views && s.views.length) return false;
+            var src = activeTab === 'report' ? FLAT_REPORT : FLAT_POLICY;
+            var list = src.filter(function(s) {
+                if (q && s.toName.toLowerCase().indexOf(q) < 0 && s.title.toLowerCase().indexOf(q) < 0 && (s.company || '').toLowerCase().indexOf(q) < 0) return false;
+                if (f && s.channel !== f) return false;
                 return true;
             });
 
-            var html = list.map(function(s, i) {
-                var vLen = s.views.length;
-                var statusBadge = vLen
-                    ? '<span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded text-xs">已打开 ' + vLen + ' 次</span>'
+            document.getElementById('tbody').innerHTML = list.map(function(s) {
+                var channelBadge = s.channel === '站内推送'
+                    ? '<span class="px-2 py-0.5 bg-violet-50 text-violet-700 rounded text-xs"><i class="fa fa-check-circle mr-1"></i>站内推送</span>'
+                    : '<span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs"><i class="fa fa-qrcode mr-1"></i>外链</span>';
+                var statusBadge = (s.views && s.views.length)
+                    ? '<span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded text-xs">已打开 ' + s.views.length + ' 次</span>' + (s.lastAt ? '<span class="text-xs text-gray-400 ml-2">' + esc(fmtDate(s.lastAt)) + '</span>' : '')
                     : '<span class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">未打开</span>';
-                var lastAt = s.lastAt || '<span class="text-gray-300">—</span>';
-                var dur = vLen ? fmtDur(s.totalDur) : '<span class="text-gray-300">—</span>';
-
-                var contact = esc(s.toName) + (s.toPhone ? ' · ' + esc(s.toPhone) : '');
-                return '<tr class="hover:bg-brand-50/40">' +
+                var phone = s.toPhone ? ' · ' + esc(s.toPhone) : '';
+                var avatarBg = activeTab === 'report' ? 'bg-brand-100 text-brand-700' : 'bg-amber-100 text-amber-700';
+                var avatarIcon = activeTab === 'report' ? '<i class="fa fa-file-text-o"></i>' : '<i class="fa fa-university"></i>';
+                var op = s.channel === '外链'
+                    ? '<button class="text-indigo-600 hover:text-indigo-700 mr-3" title="查看追踪二维码与链接" onclick="event.stopPropagation();openTrace(' + "'" + s.shareId + "'" + ')"><i class="fa fa-qrcode"></i></button>'
+                    : '<button class="text-violet-600 hover:text-violet-700 mr-3" title="站内推送：客户在会员中心查看" onclick="event.stopPropagation();platformTip()"><i class="fa fa-eye"></i></button>';
+                return '<tr class="hover:bg-brand-50/40 cursor-pointer" onclick="rowClick(' + "'" + s.shareId + "'" + ',' + "'" + s.channel + "'" + ')">' +
                     '<td class="px-6 py-4">' +
                         '<div class="flex items-center gap-3">' +
-                            '<div class="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">' + esc((s.reportCompany || '?').charAt(0)) + '</div>' +
-                            '<div><p class="text-sm font-medium text-gray-800">' + esc(s.reportCompany) + '</p>' +
-                            '<p class="text-xs text-gray-400">' + contact + '</p></div>' +
+                            '<div class="w-8 h-8 ' + avatarBg + ' rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">' + avatarIcon + '</div>' +
+                            '<div><p class="text-sm font-medium text-gray-800">' + esc(s.toName) + '</p>' +
+                            '<p class="text-xs text-gray-400">' + (s.company ? esc(s.company) + phone : '分享于 ' + esc(s.createdAt)) + '</p></div>' +
                         '</div>' +
                     '</td>' +
-                    '<td class="px-6 py-4"><p class="text-sm text-gray-800">' + esc(s.reportTitle) + '</p><p class="text-xs text-gray-400">分享于 ' + esc(s.createdAt) + '</p></td>' +
-                    '<td class="px-6 py-4 text-sm font-medium text-gray-700">' + vLen + '</td>' +
-                    '<td class="px-6 py-4 text-xs text-gray-500">' + lastAt + '</td>' +
-                    '<td class="px-6 py-4 text-sm text-gray-600">' + dur + '</td>' +
+                    '<td class="px-6 py-4"><p class="text-sm text-gray-800">' + esc(s.title) + '</p><p class="text-xs text-gray-400">' + (s.company ? '分享于 ' : '') + esc(s.createdAt) + '</p></td>' +
+                    '<td class="px-6 py-4">' + channelBadge + '</td>' +
                     '<td class="px-6 py-4">' + statusBadge + '</td>' +
-                    '<td class="px-6 py-4 text-right"><button class="text-brand-600 hover:text-brand-700 mr-3" title="查看行为详情" onclick="openDrawer(' + i + ')"><i class="fa fa-eye"></i></button>' +
-                    '<button class="text-gray-500 hover:text-brand-600" title="打开报告链接" onclick="viewReport(\'' + s.reportId + '\',\'' + s.shareId + '\')"><i class="fa fa-external-link"></i></button></td>' +
+                    '<td class="px-6 py-4 text-right">' + op +
+                    '<button class="text-gray-400 hover:text-red-500" title="删除分享记录" onclick="event.stopPropagation();delShare(' + "'" + s.shareId + "'" + ')"><i class="fa fa-trash"></i></button></td>' +
                     '</tr>';
-            }).join('');
-            document.getElementById('tbody').innerHTML = html ||
-                '<tr><td colspan="7" class="px-6 py-12 text-center text-sm text-gray-400"><i class="fa fa-inbox mr-1"></i>暂无分享记录，请先到「智能报告」生成报告并分享</td></tr>';
+            }).join('') ||
+                '<tr><td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400"><i class="fa fa-inbox mr-1"></i>' +
+                (activeTab === 'report' ? '暂无报告分享记录，请先到「智能报告」生成报告后分享' : '暂无政策分享记录，请在「智能报告」或 H5 发起分享') + '</td></tr>';
+        }
+
+        function findShare(sid) {
+            var lists = FLAT_REPORT.concat(FLAT_POLICY);
+            for (var i = 0; i < lists.length; i++) if (lists[i].shareId === sid) return lists[i];
+            return null;
+        }
+        function rowClick(sid, channel) {
+            if (channel === '外链') openTrace(sid);
+            else platformTip();
+        }
+        function platformTip() {
+            toast('站内推送：客户在「会员中心 · 我的报告」查看，无需扫码或链接');
+        }
+
+        function openTrace(sid) {
+            var s = findShare(sid);
+            if (!s) return;
+            traceUrlValue = s.url;
+            document.getElementById('traceSub').textContent = s.title + ' → ' + s.toName + ' · 外链';
+            document.getElementById('traceUrl').textContent = s.url;
+            document.getElementById('qrBox').innerHTML = QR_CELLS.map(function(c) { return '<i class="' + (c ? '' : 'off') + '"></i>'; }).join('');
+            document.getElementById('traceMask').classList.remove('hidden');
+        }
+        function closeTrace() { document.getElementById('traceMask').classList.add('hidden'); }
+        function copyTrace(open) {
+            if (open) { window.open(traceUrlValue, '_blank'); return; }
+            try {
+                navigator.clipboard.writeText(traceUrlValue);
+                toast('追踪链接已复制');
+            } catch (e) {
+                var ta = document.createElement('textarea');
+                ta.value = traceUrlValue; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); toast('追踪链接已复制'); } catch (e2) { toast('复制失败，请手动选择链接'); }
+                document.body.removeChild(ta);
+            }
+        }
+
+        function delShare(sid) {
+            if (!confirm('确认删除这条分享记录？')) return;
+            var reports = DataBridge.loadSalesReports ? DataBridge.loadSalesReports() : [];
+            reports.forEach(function(r) {
+                if (Array.isArray(r.shares)) r.shares = r.shares.filter(function(s) { return s.shareId !== sid; });
+            });
+            if (DataBridge.saveSalesReports) DataBridge.saveSalesReports(reports);
+            var pshares = DataBridge.loadPolicyShares ? DataBridge.loadPolicyShares() : [];
+            pshares = pshares.filter(function(s) { return s.shareId !== sid; });
+            if (DataBridge.savePolicyShares) DataBridge.savePolicyShares(pshares);
+            closeTrace();
+            refresh();
         }
 
         document.addEventListener('DOMContentLoaded', refresh);

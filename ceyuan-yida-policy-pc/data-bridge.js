@@ -672,6 +672,96 @@
         return results;
     }
 
+    /**
+     * 由企业档案（科创测评 / 政策雷达沉淀）构建雷达引擎口径的企业画像
+     * 与销售 H5 条件采集保持同一套字段解析规则；未取到的字段留空，引擎会判为「待确认」
+     * @returns { hit, name, profile, meta }
+     */
+    function buildRadarProfileFromEnterprise(name) {
+        var out = {
+            hit: false, name: String(name || '').trim(), profile: {},
+            meta: { items: [], quals: [], foundedYears: null, coreProduct: '', socialStaff: null, scores: {} }
+        };
+        if (!out.name) return out;
+        var rec = loadEnterpriseProfile(out.name);
+        if (!rec || !rec.id) return out;
+        out.hit = true;
+
+        var items = [];
+        (rec.fields || []).forEach(function(g) { (g.items || []).forEach(function(it) { items.push(it); }); });
+        out.meta.items = items;
+
+        var fvAll = function(label) { return items.filter(function(x) { return String(x.label || '').indexOf(label) >= 0; }); };
+        var fv = function(label) { var it = fvAll(label)[0]; return it ? String(it.value || '').trim() : ''; };
+        var fvNum = function(label) {
+            var t = fv(label).replace(/[^\d.\-]/g, '');
+            if (!t) return null;
+            var n = parseFloat(t);
+            return isNaN(n) ? null : n;
+        };
+        // 财务指标合并串里取某科目的最后一年数值，如「营业收入：2023年5200、2024年6800」
+        var finText = fv('财务指标') || fv('财务数据（单位');
+        var pickYearly = function(kw) {
+            if (!finText) return null;
+            var seg = finText.split(/[；;]/).filter(function(s) { return s.indexOf(kw) >= 0; })[0];
+            if (!seg) return null;
+            var re = /\d{4}\s*年\s*([\d.]+)/g, m, last = null;
+            while ((m = re.exec(seg)) !== null) last = m[1];
+            if (last == null) return null;
+            var n = parseFloat(last);
+            return isNaN(n) ? null : n;
+        };
+        // 成立年限
+        var foundedRaw = fv('成立时间') || fv('成立日期') || fv('注册时间') || fv('成立');
+        var foundedYears = null;
+        if (foundedRaw) {
+            var d = new Date(foundedRaw.replace(/年|月/g, '-').replace(/日/g, ''));
+            if (!isNaN(d.getTime())) foundedYears = Math.max(0, Math.floor((Date.now() - d.getTime()) / (365.25 * 86400000)));
+        }
+        var staff = fvNum('职工总数') != null ? fvNum('职工总数') : fvNum('企业员工总数');
+        var rdStaff = fvNum('研发人员数量') != null ? fvNum('研发人员数量') : fvNum('研发人员');
+        var revenue = fvNum('近一年营业收入') != null ? fvNum('近一年营业收入') : pickYearly('营业收入');
+        var hiTechRevenue = pickYearly('高新技术产品');
+        var rdFee = pickYearly('研发费用');
+        var rdPct = fvNum('研发费用占比') != null ? fvNum('研发费用占比')
+            : ((rdFee != null && revenue) ? Math.round(rdFee / revenue * 100) : null);
+        var ipDirect = fvNum('有效知识产权');
+        var ipI = fvNum('Ⅰ类知识产权');
+        var ipII = fvNum('Ⅱ类知识产权');
+        var ipCount = ipDirect != null ? ipDirect : ((ipI != null || ipII != null) ? (ipI || 0) + (ipII || 0) : null);
+        var quals = fv('已获资质') ? fv('已获资质').split(/[、,，\/\s]+/).filter(Boolean) : [];
+        var scoreOf = function(kw) {
+            var hit = items.filter(function(x) { return String(x.label || '').indexOf(kw) >= 0 && String(x.label || '').indexOf('得分') >= 0; })[0];
+            if (!hit) hit = items.filter(function(x) { return String(x.label || '').indexOf(kw) >= 0 && /\d+/.test(String(x.value || '')); })[0];
+            if (!hit) return null;
+            var n = parseFloat(String(hit.value).replace(/[^\d.]/g, ''));
+            return isNaN(n) ? null : n;
+        };
+
+        out.profile = {
+            duration: foundedYears,
+            industry: fv('所属行业'),
+            region: fv('注册地'),
+            employees: staff,
+            revenue: revenue,
+            rdRatio: rdPct,
+            hiTechRatio: (hiTechRevenue != null && revenue) ? Math.round(hiTechRevenue / revenue * 100) : null,
+            rdInvest: rdFee,
+            netAssets: pickYearly('净资产') != null ? pickYearly('净资产') : fvNum('净资产'),
+            profit: pickYearly('净利润') != null ? pickYearly('净利润') : fvNum('净利润'),
+            capital: fvNum('注册资本'),
+            ipCount: ipCount,
+            ipOwned: ipCount == null ? null : (ipCount > 0),
+            qualification: quals.join(',')
+        };
+        out.meta.quals = quals;
+        out.meta.foundedYears = foundedYears;
+        out.meta.coreProduct = fv('核心产品') || fv('主导产品') || fv('主营产品') || fv('主营业务') || '';
+        out.meta.socialStaff = fvNum('社保') || fvNum('参保') || staff;
+        out.meta.scores = { gaoxin: scoreOf('高企'), zhuanjing: scoreOf('专精特新'), juren: scoreOf('小巨人') };
+        return out;
+    }
+
     // ========== 服务商城商品（后台「服务商品管理」维护，前台商城展示） ==========
     // status: 'on' 已上架 | 'off' 已下架 | 'draft' 草稿；featured: 是否首页推荐位
     const DEFAULT_SERVICE_PRODUCTS = [
@@ -793,30 +883,48 @@
     // status: 'unpaid' 待付款 | 'serving' 服务中(已付款) | 'done' 已完成待评价 | 'reviewed' 已评价
     const DEFAULT_SERVICE_ORDERS = [
         { id:'FW20260901001', svcId:'SVC001', svcName:'高新技术企业认定全程辅导', provider:'北京中科创服咨询有限公司', icon:'fa-trophy', category:'政策咨询',
-          amount:18800, status:'serving', payMethod:'微信支付', createTime:'2026-09-01 14:22', company:'绿能新能源科技有限公司', contact:'陈志远', phone:'139****8899', progress:50, rating:0 },
+          amount:18800, status:'serving', payMethod:'微信支付', createTime:'2026-09-01 14:22', company:'绿能新能源科技有限公司', contact:'陈志远', phone:'139****8899', sales:'张销售', progress:50, rating:0 },
         { id:'FW20260828002', svcId:'SVC002', svcName:'专精特新企业申报一站式服务', provider:'华策企业咨询服务有限公司', icon:'fa-star-o', category:'申报代理',
-          amount:32000, status:'serving', payMethod:'对公转账', createTime:'2026-08-28 10:05', company:'恒泰机械制造有限公司', contact:'王建国', phone:'138****6677', progress:20, rating:0 },
+          amount:32000, status:'serving', payMethod:'对公转账', createTime:'2026-08-28 10:05', company:'恒泰机械制造有限公司', contact:'王建国', phone:'138****6677', sales:'王销售', progress:20, rating:0 },
         { id:'FW20260820003', svcId:'SVC005', svcName:'软件著作权登记代理', provider:'知产天下知识产权代理', icon:'fa-copyright', category:'知识产权',
-          amount:1200, status:'done', payMethod:'支付宝', createTime:'2026-08-20 16:40', company:'绿能新能源科技有限公司', contact:'陈志远', phone:'139****8899', progress:100, rating:0 },
+          amount:1200, status:'done', payMethod:'支付宝', createTime:'2026-08-20 16:40', company:'绿能新能源科技有限公司', contact:'陈志远', phone:'139****8899', sales:'张销售', progress:100, rating:0 },
         { id:'FW20260810004', svcId:'SVC009', svcName:'研发费用加计扣除咨询', provider:'税智通财税咨询', icon:'fa-file-text-o', category:'政策咨询',
-          amount:4500, status:'reviewed', payMethod:'微信支付', createTime:'2026-08-10 09:18', company:'恒泰机械制造有限公司', contact:'刘会计', phone:'137****2233', progress:100, rating:5,
+          amount:4500, status:'reviewed', payMethod:'微信支付', createTime:'2026-08-10 09:18', company:'恒泰机械制造有限公司', contact:'刘会计', phone:'137****2233', sales:'', progress:100, rating:5,
           reviewText:'服务响应及时，专家对加计扣除政策解读清晰，材料准备规范，已顺利通过税务局备案，非常满意！', reviewTime:'2026-08-12 10:30', replyText:'感谢您的认可！后续如有政策更新或年度复核需求，随时联系我们，祝贵司发展顺利。', replyTime:'2026-08-12 14:05' },
         { id:'FW20260904005', svcId:'SVC011', svcName:'商标注册全程代理', provider:'知产天下知识产权代理', icon:'fa-copyright', category:'知识产权',
-          amount:880, status:'unpaid', payMethod:'', createTime:'2026-09-04 11:30', company:'绿能新能源科技有限公司', contact:'陈志远', phone:'139****8899', progress:0, rating:0 },
+          amount:880, status:'unpaid', payMethod:'', createTime:'2026-09-04 11:30', company:'绿能新能源科技有限公司', contact:'陈志远', phone:'139****8899', sales:'', progress:0, rating:0 },
         { id:'FW20260903006', svcId:'SVC006', svcName:'年度财务审计报告', provider:'华信会计师事务所', icon:'fa-calculator', category:'财务审计',
-          amount:5500, status:'unpaid', payMethod:'', createTime:'2026-09-03 15:52', company:'恒泰机械制造有限公司', contact:'刘会计', phone:'137****2233', progress:0, rating:0 },
-        // —— 与「用户管理」演示客户对应的订单（客户详情抽屉展示消费记录） ——
+          amount:5500, status:'unpaid', payMethod:'', createTime:'2026-09-03 15:52', company:'恒泰机械制造有限公司', contact:'刘会计', phone:'137****2233', sales:'', progress:0, rating:0 },
+        // —— 与「用户管理」演示客户对应的订单 ——
         { id:'FW20260908011', svcId:'SVC001', svcName:'高新技术企业认定全程辅导', provider:'北京中科创服咨询有限公司', icon:'fa-trophy', category:'政策咨询',
-          amount:18800, status:'serving', payMethod:'微信支付', createTime:'2026-09-08 10:12', company:'星河智造科技有限公司', contact:'王明华', phone:'138****8688', progress:40, rating:0 },
+          amount:18800, status:'serving', payMethod:'微信支付', createTime:'2026-09-08 10:12', company:'星河智造科技有限公司', contact:'王明华', phone:'138****8688', sales:'张销售', progress:40, rating:0 },
         { id:'FW20260826012', svcId:'SVC009', svcName:'研发费用加计扣除咨询', provider:'税智通财税咨询', icon:'fa-file-text-o', category:'政策咨询',
-          amount:4500, status:'reviewed', payMethod:'支付宝', createTime:'2026-08-26 15:47', company:'星河智造科技有限公司', contact:'王明华', phone:'138****8688', progress:100, rating:5,
+          amount:4500, status:'reviewed', payMethod:'支付宝', createTime:'2026-08-26 15:47', company:'星河智造科技有限公司', contact:'王明华', phone:'138****8688', sales:'', progress:100, rating:5,
           reviewText:'专家团队很专业，研发费用辅助账梳理得很清楚，加计扣除顺利通过。', reviewTime:'2026-08-30 09:20', replyText:'感谢认可！后续高企复审如有需要欢迎随时联系。', replyTime:'2026-08-30 11:05' },
         { id:'FW20260905013', svcId:'SVC002', svcName:'专精特新企业申报一站式服务', provider:'华策企业咨询服务有限公司', icon:'fa-star-o', category:'申报代理',
-          amount:32000, status:'serving', payMethod:'对公转账', createTime:'2026-09-05 14:30', company:'康泰生物制药有限公司', contact:'李建国', phone:'139****2266', progress:25, rating:0 },
+          amount:32000, status:'serving', payMethod:'对公转账', createTime:'2026-09-05 14:30', company:'康泰生物制药有限公司', contact:'李建国', phone:'139****2266', sales:'张销售', progress:25, rating:0 },
         { id:'FW20260912014', svcId:'SVC005', svcName:'软件著作权登记代理', provider:'知产天下知识产权代理', icon:'fa-copyright', category:'知识产权',
-          amount:1200, status:'done', payMethod:'微信支付', createTime:'2026-09-12 11:05', company:'锐达新材料股份公司', contact:'陈晓敏', phone:'137****6699', progress:100, rating:0 },
+          amount:1200, status:'done', payMethod:'微信支付', createTime:'2026-09-12 11:05', company:'锐达新材料股份公司', contact:'陈晓敏', phone:'137****6699', sales:'王销售', progress:100, rating:0 },
         { id:'FW20260929015', svcId:'SVC011', svcName:'商标注册全程代理', provider:'知产天下知识产权代理', icon:'fa-copyright', category:'知识产权',
-          amount:880, status:'unpaid', payMethod:'', createTime:'2026-09-29 20:18', company:'', contact:'张小明', phone:'138****1234', progress:0, rating:0 }
+          amount:880, status:'unpaid', payMethod:'', createTime:'2026-09-29 20:18', company:'', contact:'张小明', phone:'138****1234', progress:0, rating:0 },
+        // —— 新增跟进中线索对应的种子订单（成交录入面板可关联认领） ——
+        { id:'FW20261103001', svcId:'SVC001', svcName:'高新技术企业复审辅导', provider:'北京中科创服咨询有限公司', icon:'fa-trophy', category:'政策咨询',
+          amount:18800, status:'unpaid', payMethod:'', createTime:'2026-11-03 11:20', company:'海辰生物医药有限公司', contact:'赵立军', phone:'136****4455', sales:'', progress:0, rating:0 },
+        { id:'FW20261102001', svcId:'SVC010', svcName:'绿色工厂评价辅导', provider:'中国节能协会', icon:'fa-leaf', category:'申报代理',
+          amount:26000, status:'paid', payMethod:'对公转账', createTime:'2026-11-02 15:08', company:'鸿源环保技术有限公司', contact:'孙经理', phone:'135****7788', sales:'', progress:15, rating:0 },
+        { id:'FW20261101001', svcId:'SVC009', svcName:'软件退税申请辅导', provider:'税智通财税咨询', icon:'fa-file-text-o', category:'政策咨询',
+          amount:6800, status:'unpaid', payMethod:'', createTime:'2026-11-01 10:00', company:'优速信息科技有限公司', contact:'陈财务', phone:'133****9922', sales:'', progress:0, rating:0 },
+        { id:'FW20261030001', svcId:'SVC007', svcName:'现代物流专项规划', provider:'物流研究院咨询', icon:'fa-truck', category:'专项规划',
+          amount:15000, status:'serving', payMethod:'微信支付', createTime:'2026-10-30 14:40', company:'智联物流科技有限公司', contact:'周总', phone:'132****1166', sales:'张销售', progress:30, rating:0 },
+        // —— 业绩看板演示：张销售已成交的多种服务类型（构成分析用） ——
+        { id:'FW20261020001', svcId:'SVC003', svcName:'高企申报材料代拟打包', provider:'北京中科创服咨询有限公司', icon:'fa-file-text-o', category:'材料代办',
+          amount:12000, status:'done', payMethod:'对公转账', createTime:'2026-10-20 10:15', company:'海辰生物医药有限公司', contact:'赵立军', phone:'136****4455', sales:'张销售', progress:100, rating:5 },
+        { id:'FW20261015002', svcId:'SVC006', svcName:'年度财务审计报告', provider:'华信会计师事务所', icon:'fa-calculator', category:'财务审计',
+          amount:6500, status:'reviewed', payMethod:'微信支付', createTime:'2026-10-15 15:20', company:'优速信息科技有限公司', contact:'陈财务', phone:'133****9922', sales:'张销售', progress:100, rating:4 },
+        { id:'FW20260925003', svcId:'SVC005', svcName:'软件著作权登记代理', provider:'知产天下知识产权代理', icon:'fa-copyright', category:'知识产权',
+          amount:8800, status:'done', payMethod:'支付宝', createTime:'2026-09-25 09:40', company:'星河智造科技有限公司', contact:'王明华', phone:'138****8688', sales:'张销售', progress:100, rating:0 },
+        { id:'FW20261105001', svcId:'SVC008', svcName:'专精特新认定材料梳理', provider:'华策企业咨询服务有限公司', icon:'fa-star-o', category:'申报代理',
+          amount:15800, status:'paid', payMethod:'微信支付', createTime:'2026-11-05 09:30', company:'恒泰机械制造有限公司', contact:'王建国', phone:'138****6677', sales:'张销售', progress:10, rating:0 }
     ];
 
     // ========== 购物车（加入购物车→结算生成订单） ==========
@@ -881,25 +989,45 @@
         return _write(KEYS.SERVICE_CART, []);
     }
 
-    // ========== 销售线索种子（与 clue-management.html 原有列表对齐；企业端问答/雷达/诊断触发时由 addClue 追加） ==========
-    // source: '政策查询' | '问答触发' | '诊断触发' | '雷达触发'
+    // ========== 销售线索种子（与 clue-management.html 原有列表对齐；企业端问答/雷达/诊断/预约触发时由 addClue 追加） ==========
+    // source: '政策查询' | '问答触发' | '诊断触发' | '雷达触发' | '预约申领'
     // stage:  '待跟进' | '跟进中' | '已转化' | '已流失'
     const DEFAULT_CLUES = [
+        // —— 跟进中（已认领，覆盖「有服务商城订单」和「无订单」两类演示场景） ——
         { id:'XS20260907001', company:'星河智造科技有限公司', source:'政策查询', sourceIcon:'fa-search', sourceColor:'blue', intent:'高企认定复审', sales:'张销售', salesInitial:'张', stage:'跟进中', stageColor:'blue', enterTime:'2 小时前进入', createTime:'2026-09-07 09:30' },
         { id:'XS20260907002', company:'康泰生物制药有限公司', source:'问答触发', sourceIcon:'fa-comments', sourceColor:'orange', intent:'临床试验加速', sales:'张销售', salesInitial:'张', stage:'跟进中', stageColor:'blue', enterTime:'5 小时前进入', createTime:'2026-09-07 06:30' },
-        { id:'XS20260907003', company:'蓝海智能科技有限公司', source:'政策查询', sourceIcon:'fa-search', sourceColor:'blue', intent:'人工智能专项', sales:'', salesInitial:'-', stage:'待跟进', stageColor:'gray', enterTime:'2 小时前进入', createTime:'2026-09-07 09:30' },
         { id:'XS20260906001', company:'锐达新材料股份公司', source:'诊断触发', sourceIcon:'fa-stethoscope', sourceColor:'purple', intent:'新材料专项', sales:'王销售', salesInitial:'王', stage:'跟进中', stageColor:'blue', enterTime:'1 天前进入', createTime:'2026-09-06 10:00' },
-        { id:'XS20260904001', company:'云图信息技术有限公司', source:'政策查询', sourceIcon:'fa-search', sourceColor:'blue', intent:'软件退税', sales:'张销售', salesInitial:'张', stage:'已转化', stageColor:'brand', enterTime:'3 天前进入', createTime:'2026-09-04 10:00' },
+        { id:'XS20260905001', company:'绿能新能源科技有限公司', source:'政策查询', sourceIcon:'fa-search', sourceColor:'blue', intent:'节能降耗专项', sales:'张销售', salesInitial:'张', stage:'跟进中', stageColor:'blue', enterTime:'30 分钟前进入', createTime:'2026-09-05 14:20' },
+        { id:'XS20260904001', company:'恒泰机械制造有限公司', source:'雷达触发', sourceIcon:'fa-rss', sourceColor:'brand', intent:'设备更新补贴', sales:'王销售', salesInitial:'王', stage:'跟进中', stageColor:'blue', enterTime:'4 小时前进入', createTime:'2026-09-04 11:10' },
+        // 新增：4 条跟进中，覆盖不同来源 + 有的有订单有的没有
+        { id:'XS20261106001', company:'海辰生物医药有限公司', source:'问答触发', sourceIcon:'fa-comments', sourceColor:'orange', intent:'高企复审 + 研发补贴', sales:'张销售', salesInitial:'张', stage:'跟进中', stageColor:'blue', enterTime:'40 分钟前进入', createTime:'2026-11-06 10:15' },
+        { id:'XS20261105001', company:'鸿源环保技术有限公司', source:'雷达触发', sourceIcon:'fa-rss', sourceColor:'brand', intent:'绿色工厂评价', sales:'王销售', salesInitial:'王', stage:'跟进中', stageColor:'blue', enterTime:'8 小时前进入', createTime:'2026-11-05 16:20' },
+        { id:'XS20261104001', company:'优速信息科技有限公司', source:'政策查询', sourceIcon:'fa-search', sourceColor:'blue', intent:'软件退税 + 双软认证', sales:'张销售', salesInitial:'张', stage:'跟进中', stageColor:'blue', enterTime:'1 天前进入', createTime:'2026-11-04 09:05' },
+        { id:'XS20261102001', company:'智联物流科技有限公司', source:'诊断触发', sourceIcon:'fa-stethoscope', sourceColor:'purple', intent:'现代物流专项', sales:'李销售', salesInitial:'李', stage:'跟进中', stageColor:'blue', enterTime:'3 天前进入', createTime:'2026-11-02 14:00' },
+        // —— 待跟进（未认领） ——
+        { id:'XS20261110001', company:'博汇智能制造有限公司', source:'预约申领', sourceIcon:'fa-calendar-check-o', sourceColor:'brand', intent:'陕西省专精特新企业奖励', contact:'陈先生', phone:'136****2218', sales:'', salesInitial:'-', stage:'待跟进', stageColor:'gray', enterTime:'刚刚进入', createTime:'2026-11-10 14:32' },
+        { id:'XS20260907003', company:'蓝海智能科技有限公司', source:'政策查询', sourceIcon:'fa-search', sourceColor:'blue', intent:'人工智能专项', sales:'', salesInitial:'-', stage:'待跟进', stageColor:'gray', enterTime:'2 小时前进入', createTime:'2026-09-07 09:30' },
+        { id:'XS20261106002', company:'云栖数据科技有限公司', source:'问答触发', sourceIcon:'fa-comments', sourceColor:'orange', intent:'大数据税收优惠', sales:'', salesInitial:'-', stage:'待跟进', stageColor:'gray', enterTime:'刚刚进入', createTime:'2026-11-06 11:55' },
+        // —— 已转化 / 已流失 ——
+        { id:'XS20260904002', company:'云图信息技术有限公司', source:'政策查询', sourceIcon:'fa-search', sourceColor:'blue', intent:'软件退税', sales:'张销售', salesInitial:'张', stage:'已转化', stageColor:'brand', enterTime:'3 天前进入', createTime:'2026-09-04 10:00' },
         { id:'XS20260715001', company:'远东贸易有限公司', source:'政策查询', sourceIcon:'fa-search', sourceColor:'blue', intent:'出口退税', sales:'王销售', salesInitial:'王', stage:'已流失', stageColor:'red', enterTime:'流失于 07-15', lostTime:'2026-07-15', createTime:'2026-07-15 10:00' }
     ];
 
-    /** 读取服务订单 */
+    /** 读取服务订单（幂等合并新增种子） */
     function loadServiceOrders() {
         const data = _read(KEYS.SERVICE_ORDERS, null);
-        const src = (!data || !Array.isArray(data) || data.length === 0)
-            ? DEFAULT_SERVICE_ORDERS
+        let list = (!data || !Array.isArray(data) || data.length === 0)
+            ? JSON.parse(JSON.stringify(DEFAULT_SERVICE_ORDERS))
             : data.filter(o => o && o.id && o.svcName);
-        return src.map(o => ({
+        // 合并种子里新增的订单（按 id 增量补入）
+        const exists = {};
+        list.forEach(o => exists[o.id] = true);
+        let added = false;
+        DEFAULT_SERVICE_ORDERS.forEach(ds => {
+            if (!exists[ds.id]) { list.push(JSON.parse(JSON.stringify(ds))); added = true; }
+        });
+        if (added) _write(KEYS.SERVICE_ORDERS, list);
+        return list.map(o => ({
             id: o.id,
             svcId: o.svcId || '',
             svcName: o.svcName,
@@ -913,6 +1041,7 @@
             company: o.company || '',
             contact: o.contact || '',
             phone: o.phone || '',
+            sales: o.sales || '',
             progress: Number(o.progress) || 0,
             rating: Number(o.rating) || 0,
             settled: !!o.settled,
@@ -933,6 +1062,7 @@
             icon: o.icon || 'fa-file-text-o', category: o.category || '', amount: Number(o.amount) || 0,
             status: o.status || 'unpaid', payMethod: o.payMethod || '', createTime: o.createTime || '',
             company: o.company || '', contact: o.contact || '', phone: o.phone || '',
+            sales: o.sales || '',
             progress: Number(o.progress) || 0, rating: Number(o.rating) || 0,
             settled: !!o.settled, settleNote: o.settleNote || '',
             reviewText: o.reviewText || '', reviewTime: o.reviewTime || '',
@@ -963,6 +1093,7 @@
             company: order.company || '',
             contact: order.contact || '',
             phone: order.phone || '',
+            sales: order.sales || '',
             progress: order.status === 'unpaid' ? 0 : 10,
             rating: 0,
             reviewText: '', reviewTime: '', replyText: '', replyTime: ''
@@ -976,16 +1107,26 @@
     /** 读取销售线索 */
     function loadClues() {
         const data = _read(KEYS.CLUES, null);
-        const src = (!data || !Array.isArray(data) || data.length === 0)
-            ? DEFAULT_CLUES
+        let list = (!data || !Array.isArray(data) || data.length === 0)
+            ? JSON.parse(JSON.stringify(DEFAULT_CLUES))
             : data.filter(c => c && c.id && c.company);
-        return src.map(c => ({
+        // 合并种子里新增的线索（按 id 增量补入）
+        const exists = {};
+        list.forEach(c => exists[c.id] = true);
+        let added = false;
+        DEFAULT_CLUES.forEach(ds => {
+            if (!exists[ds.id]) { list.push(JSON.parse(JSON.stringify(ds))); added = true; }
+        });
+        if (added) _write(KEYS.CLUES, list);
+        return list.map(c => ({
             id: c.id,
             company: c.company,
             source: c.source || '政策查询',
             sourceIcon: c.sourceIcon || 'fa-search',
             sourceColor: c.sourceColor || 'blue',
             intent: c.intent || '',
+            contact: c.contact || '',
+            phone: c.phone || '',
             sales: c.sales || '',
             salesInitial: c.salesInitial || '-',
             stage: c.stage || '待跟进',
@@ -1002,7 +1143,8 @@
         const cleaned = list.filter(c => c && c.id && c.company).map(c => ({
             id: c.id, company: c.company, source: c.source || '政策查询',
             sourceIcon: c.sourceIcon || 'fa-search', sourceColor: c.sourceColor || 'blue',
-            intent: c.intent || '', sales: c.sales || '', salesInitial: c.salesInitial || '-',
+            intent: c.intent || '', contact: c.contact || '', phone: c.phone || '',
+            sales: c.sales || '', salesInitial: c.salesInitial || '-',
             stage: c.stage || '待跟进', stageColor: c.stageColor || 'gray',
             enterTime: c.enterTime || '', lostTime: c.lostTime || '',
             createTime: c.createTime || '', note: c.note || ''
@@ -2711,6 +2853,7 @@
         loadContributions,
         loadUserContributions,
         matchPoliciesForEnterprise,
+        buildRadarProfileFromEnterprise,
         evaluatePolicyCondition,
         getSyncStatus,
         // 写入

@@ -216,6 +216,10 @@
     reports.forEach(function (r) { if (r.id === reportId) report = r; });
     if (report) (report.shares || []).forEach(function (s) { if (s.shareId === shareId) share = s; });
 
+    // 销售本人导出 PDF / 预览：不校验分享编号，也不计入浏览追踪
+    var isOwnerPreview = params.get('print') === '1';
+    if (isOwnerPreview && report) share = { shareId: '本人预览', toName: '（本人预览）', views: [] };
+
     if (!report || !share) { $('invalidBox').style.display = 'block'; return; }
 
     // ---------- 浏览追踪：打开计时，离开/切后台时写回一条 view（durSec 上限 30 分钟） ----------
@@ -224,6 +228,7 @@
     function flushView() {
         if (flushed) return;
         flushed = true;
+        if (share.shareId === '本人预览') return;   // 本人预览不计入浏览追踪
         var dur = Math.round((Date.now() - startAt.getTime()) / 1000);
         if (dur < 2) return;                 // 秒关不计入（误触）
         if (dur > 1800) dur = 1800;
@@ -332,6 +337,12 @@
         btn.classList.add('done');
         btn.onclick = function () { showToast('即将跳转策源易答平台（占位：引导下载 App / 打开小程序）'); };
         if (withToast) showToast('注册成功！完整报告已解锁，张销售已收到查阅提醒');
+    }
+
+    // 销售本人导出 PDF：解锁完整内容并自动唤起打印（浏览器可另存为 PDF）
+    if (isOwnerPreview) {
+        unlock(false);
+        setTimeout(function () { window.print(); }, 600);
     }
 })();
 </script>

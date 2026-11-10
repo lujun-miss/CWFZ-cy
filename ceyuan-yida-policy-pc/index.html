@@ -199,6 +199,10 @@
                         <i class="fa fa-ticket w-7 text-base group-hover:scale-110 transition-transform"></i>
                         <span class="font-medium text-[13px]">兑换码管理</span>
                     </a>
+                    <a href="javascript:void(0)" onclick="switchPage('member-guide-config.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-book w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">会员指南维护</span>
+                    </a>
                 </div>
             </div>
 
@@ -206,6 +210,12 @@
             <div class="mt-6 mb-2">
                 <p class="text-sm text-green-400 px-4 font-medium">销售管理</p>
             </div>
+            <!-- 移动端 H5：单个入口，内含 5 模块底栏 TabBar（不拆成 5 个菜单项，避免与上面 PC 端菜单重复） -->
+            <a href="javascript:void(0)" onclick="switchPage('sales-mobile-h5.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
+                <i class="fa fa-mobile w-8 text-lg group-hover:scale-110 transition-transform"></i>
+                <span class="font-medium text-sm">销售赋能中心 H5</span>
+                <span style="margin-left:auto;font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px;background:rgba(16,185,129,.18);color:#6ee7b7;white-space:nowrap">移动端</span>
+            </a>
             <a href="javascript:void(0)" onclick="switchPage('customer-management.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
                 <i class="fa fa-users w-8 text-lg group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium text-sm">客户管理</span>
@@ -225,12 +235,6 @@
             <a href="javascript:void(0)" onclick="switchPage('sales-dashboard.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
                 <i class="fa fa-bar-chart w-8 text-lg group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium text-sm">业绩看板</span>
-            </a>
-            <!-- 移动端 H5：单个入口，内含 5 模块底栏 TabBar（不拆成 5 个菜单项，避免与上面 PC 端菜单重复） -->
-            <a href="javascript:void(0)" onclick="switchPage('sales-mobile-h5.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
-                <i class="fa fa-mobile w-8 text-lg group-hover:scale-110 transition-transform"></i>
-                <span class="font-medium text-sm">销售赋能中心 H5</span>
-                <span style="margin-left:auto;font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px;background:rgba(16,185,129,.18);color:#6ee7b7;white-space:nowrap">移动端</span>
             </a>
 
             <!-- 系统管理（二级菜单，与运营管理同色系） -->

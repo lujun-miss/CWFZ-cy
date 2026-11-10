@@ -6,16 +6,18 @@
     <title>业绩看板 - 策源易达政策销售平台</title>
     <link href="libs/css/tailwind.css" rel="stylesheet">
     <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <script src="data-bridge.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
         .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
         .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
         .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
         /* brand 主题色（本地预编译 tailwind.css 不含 brand 色板，在此补齐） */
-        :root { --brand-50:#f0fdf4; --brand-100:#dcfce7; --brand-300:#86efac; --brand-500:#22c55e; --brand-600:#16a34a; --brand-700:#15803d; --brand-800:#166534; }
+        :root { --brand-50:#f0fdf4; --brand-100:#dcfce7; --brand-300:#86efac; --brand-400:#4ade80; --brand-500:#22c55e; --brand-600:#16a34a; --brand-700:#15803d; --brand-800:#166534; }
         .bg-brand-50 { background-color: var(--brand-50); }
         .bg-brand-100 { background-color: var(--brand-100); }
         .bg-brand-300 { background-color: var(--brand-300); }
+        .bg-brand-400 { background-color: var(--brand-400); }
         .bg-brand-500 { background-color: var(--brand-500); }
         .bg-brand-600 { background-color: var(--brand-600); }
         .text-brand-600 { color: var(--brand-600); }
@@ -56,11 +58,10 @@
                     <button id="tabPersonal" onclick="switchScope('personal')" class="px-3 py-1 rounded-md bg-white shadow-sm text-gray-800 font-medium">个人</button>
                     <button id="tabTeam" onclick="switchScope('team')" class="px-3 py-1 rounded-md text-gray-500">团队</button>
                 </div>
-                <select class="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600">
-                    <option>本月</option>
-                    <option>本季度</option>
-                    <option>本年度</option>
-                    <option>自定义</option>
+                <select id="periodSelect" onchange="recalc()" class="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600">
+                    <option value="month">本月</option>
+                    <option value="quarter">本季度</option>
+                    <option value="year">本年度</option>
                 </select>
                 <button class="text-gray-600 hover:text-brand-600"><i class="fa fa-bell"></i></button>
                 <div class="flex items-center space-x-2">
@@ -72,349 +73,301 @@
     </header>
 
     <main class="max-w-[1600px] mx-auto px-6 py-6">
-        <!-- 核心指标 -->
+        <!-- 核心指标（接 DataBridge 真实数据，与 H5 业绩看板同口径） -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <!-- 本月成交额 -->
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative">
                 <div class="flex items-center justify-between">
-                    <div>
+                    <div class="flex items-center gap-1">
                         <p class="text-sm text-gray-500">本月成交额</p>
-                        <p class="text-3xl font-bold text-gray-800 mt-1">¥486<span class="text-lg text-gray-400">.8万</span></p>
-                        <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +18.6%</p>
+                        <i class="fa fa-question-circle text-slate-300 text-xs cursor-pointer" title="已支付服务订单的真实金额汇总。含客户线上付款和线下确认收款两种。"></i>
                     </div>
                     <div class="w-12 h-12 bg-brand-50 rounded-lg flex items-center justify-center">
                         <i class="fa fa-yen text-brand-600 text-2xl"></i>
                     </div>
                 </div>
-                <div class="mt-3 w-full bg-gray-100 rounded-full h-1.5">
-                    <div class="bg-brand-600 h-1.5 rounded-full" style="width: 78%"></div>
-                </div>
-                <p class="text-xs text-gray-400 mt-1">目标完成 78%</p>
+                <p class="text-3xl font-bold text-gray-800 mt-1" id="kpiAmount">¥0</p>
+                <p class="text-xs text-gray-400 mt-2" id="kpiAmountSub">已支付服务订单真实金额汇总</p>
             </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <!-- 本月新增线索 -->
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500">新增客户数</p>
-                        <p class="text-3xl font-bold text-gray-800 mt-1">128</p>
-                        <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +12.5%</p>
-                    </div>
-                    <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <i class="fa fa-user-plus text-blue-500 text-2xl"></i>
-                    </div>
-                </div>
-                <div class="mt-3 w-full bg-gray-100 rounded-full h-1.5">
-                    <div class="bg-blue-500 h-1.5 rounded-full" style="width: 85%"></div>
-                </div>
-                <p class="text-xs text-gray-400 mt-1">目标完成 85%</p>
-            </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
+                    <div class="flex items-center gap-1">
                         <p class="text-sm text-gray-500">本月新增线索</p>
-                        <p class="text-3xl font-bold text-gray-800 mt-1">186</p>
-                        <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +22.3%</p>
+                        <i class="fa fa-question-circle text-slate-300 text-xs cursor-pointer" title="你归属（认领）的线索总数，按 PC 线索管理的销售归属过滤。"></i>
                     </div>
                     <div class="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
                         <i class="fa fa-bullseye text-orange-500 text-2xl"></i>
                     </div>
                 </div>
-                <div class="mt-3 w-full bg-gray-100 rounded-full h-1.5">
-                    <div class="bg-orange-500 h-1.5 rounded-full" style="width: 88%"></div>
-                </div>
-                <p class="text-xs text-gray-400 mt-1">目标完成 88%</p>
+                <p class="text-3xl font-bold text-gray-800 mt-1" id="kpiLeads">0</p>
+                <p class="text-xs text-gray-400 mt-2" id="kpiLeadsSub">认领后计入你的线索</p>
             </div>
-            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <!-- 线索转化率 -->
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative">
                 <div class="flex items-center justify-between">
-                    <div>
+                    <div class="flex items-center gap-1">
                         <p class="text-sm text-gray-500">线索转化率</p>
-                        <p class="text-3xl font-bold text-gray-800 mt-1">17.5%</p>
-                        <p class="text-xs text-brand-600 mt-1"><i class="fa fa-arrow-up"></i> 较上月 +2.1%</p>
+                        <i class="fa fa-question-circle text-slate-300 text-xs cursor-pointer" title="已转化线索 ÷ 你归属的全部线索。标记「已转化」即计入，不看是否已成交。"></i>
                     </div>
                     <div class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center">
                         <i class="fa fa-exchange text-emerald-500 text-2xl"></i>
                     </div>
                 </div>
-                <div class="mt-3 w-full bg-gray-100 rounded-full h-1.5">
-                    <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 67%"></div>
+                <p class="text-3xl font-bold text-gray-800 mt-1" id="kpiRate">0%</p>
+                <p class="text-xs text-gray-400 mt-2" id="kpiRateSub">标记已转化即计入</p>
+            </div>
+            <!-- 已成交订单 -->
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 relative">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1">
+                        <p class="text-sm text-gray-500">已成交订单</p>
+                        <i class="fa fa-question-circle text-slate-300 text-xs cursor-pointer" title="你归属的已支付服务订单数量。客户线上付款或销售线下确认收款均计入。"></i>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <i class="fa fa-file-text-o text-blue-500 text-2xl"></i>
+                    </div>
                 </div>
-                <p class="text-xs text-gray-400 mt-1">目标完成 67%</p>
+                <p class="text-3xl font-bold text-gray-800 mt-1" id="kpiOrders">0</p>
+                <p class="text-xs text-gray-400 mt-2" id="kpiOrdersSub">订单归属你名下计入</p>
             </div>
         </div>
 
         <!-- 主看板：左 2/3 列（业绩趋势、销售排行），右 1/3 列（转化漏斗、申报构成） -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- 月度业绩趋势 -->
+            <!-- 月度业绩趋势（真实订单按月汇总） -->
             <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center justify-between mb-5">
                     <div>
                         <h2 class="font-semibold text-gray-800">月度业绩趋势</h2>
-                        <p class="text-xs text-gray-400 mt-0.5">近 6 个月成交额变化（万元）</p>
+                        <p class="text-xs text-gray-400 mt-0.5">近 6 个月归属你名下的成交额（万元）</p>
                     </div>
-                    <div class="flex items-center space-x-3 text-xs">
-                        <span class="flex items-center"><span class="w-2.5 h-2.5 bg-brand-500 rounded-sm mr-1.5"></span>成交额</span>
-                        <span class="flex items-center"><span class="w-2.5 h-2.5 bg-gray-300 rounded-sm mr-1.5"></span>目标</span>
-                    </div>
+                    <span class="flex items-center text-xs text-gray-500"><span class="w-2.5 h-2.5 bg-brand-500 rounded-sm mr-1.5"></span>成交额</span>
                 </div>
-                <!-- 简易柱状图 -->
-                <div class="flex items-end justify-between h-64 px-2">
-                    <div class="flex flex-col items-center flex-1">
-                        <div class="text-xs text-gray-500 mb-1">286</div>
-                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 50%"></div>
-                        <div class="w-full max-w-[40px] bg-brand-500 rounded-t -mt-[50%]" style="height: 38%"></div>
-                        <div class="text-xs text-gray-400 mt-2">4月</div>
-                    </div>
-                    <div class="flex flex-col items-center flex-1">
-                        <div class="text-xs text-gray-500 mb-1">328</div>
-                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 55%"></div>
-                        <div class="w-full max-w-[40px] bg-brand-500 rounded-t -mt-[55%]" style="height: 44%"></div>
-                        <div class="text-xs text-gray-400 mt-2">5月</div>
-                    </div>
-                    <div class="flex flex-col items-center flex-1">
-                        <div class="text-xs text-gray-500 mb-1">356</div>
-                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 60%"></div>
-                        <div class="w-full max-w-[40px] bg-brand-500 rounded-t -mt-[60%]" style="height: 48%"></div>
-                        <div class="text-xs text-gray-400 mt-2">6月</div>
-                    </div>
-                    <div class="flex flex-col items-center flex-1">
-                        <div class="text-xs text-gray-500 mb-1">382</div>
-                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 65%"></div>
-                        <div class="w-full max-w-[40px] bg-brand-500 rounded-t -mt-[65%]" style="height: 52%"></div>
-                        <div class="text-xs text-gray-400 mt-2">7月</div>
-                    </div>
-                    <div class="flex flex-col items-center flex-1">
-                        <div class="text-xs text-gray-500 mb-1">410</div>
-                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 70%"></div>
-                        <div class="w-full max-w-[40px] bg-brand-500 rounded-t -mt-[70%]" style="height: 56%"></div>
-                        <div class="text-xs text-gray-400 mt-2">8月</div>
-                    </div>
-                    <div class="flex flex-col items-center flex-1">
-                        <div class="text-xs text-brand-600 font-semibold mb-1">486</div>
-                        <div class="w-full max-w-[40px] bg-gray-200 rounded-t" style="height: 82%"></div>
-                        <div class="w-full max-w-[40px] bg-brand-600 rounded-t -mt-[82%]" style="height: 66%"></div>
-                        <div class="text-xs text-brand-600 font-medium mt-2">9月</div>
-                    </div>
-                </div>
+                <div id="trendChart" class="flex items-end justify-between h-64 px-2"></div>
             </div>
 
-            <!-- 客户漏斗 -->
+            <!-- 客户漏斗（真实线索与订单） -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="font-semibold text-gray-800 mb-1">客户转化漏斗</h2>
-                <p class="text-xs text-gray-400 mb-5">各阶段转化率</p>
-                <div class="space-y-3">
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm text-gray-600">线索</span>
-                            <span class="text-sm font-semibold text-gray-800">628</span>
-                        </div>
-                        <div class="w-full bg-brand-100 rounded h-8 flex items-center justify-center text-xs text-brand-700" style="width: 100%">100%</div>
-                    </div>
-                    <div class="text-center text-gray-400 text-xs"><i class="fa fa-arrow-down"></i> 转化 56.4%</div>
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm text-gray-600">意向</span>
-                            <span class="text-sm font-semibold text-gray-800">354</span>
-                        </div>
-                        <div class="bg-brand-300 rounded h-8 flex items-center justify-center text-xs text-brand-800" style="width: 56%">56.4%</div>
-                    </div>
-                    <div class="text-center text-gray-400 text-xs"><i class="fa fa-arrow-down"></i> 转化 47.5%</div>
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm text-gray-600">方案</span>
-                            <span class="text-sm font-semibold text-gray-800">168</span>
-                        </div>
-                        <div class="bg-brand-500 rounded h-8 flex items-center justify-center text-xs text-white" style="width: 27%">26.8%</div>
-                    </div>
-                    <div class="text-center text-gray-400 text-xs"><i class="fa fa-arrow-down"></i> 转化 65.5%</div>
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm text-gray-600">成交</span>
-                            <span class="text-sm font-semibold text-gray-800">110</span>
-                        </div>
-                        <div class="bg-brand-600 rounded h-8 flex items-center justify-center text-xs text-white" style="width: 18%">17.5%</div>
-                    </div>
-                </div>
-                <div class="mt-5 pt-4 border-t border-gray-100">
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-gray-500">整体转化率</span>
-                        <span class="font-bold text-brand-600">17.5%</span>
-                    </div>
-                </div>
+                <h2 class="font-semibold text-gray-800 mb-1">客户转化漏斗
+                    <i class="fa fa-question-circle text-slate-300 text-xs ml-1 cursor-pointer" title="线索总数与已转化取线索池存量；已成交客户与成交额按所选周期内的已支付订单统计。"></i>
+                </h2>
+                <p class="text-xs text-gray-400 mb-5">线索 → 转化 → 成交</p>
+                <div id="funnelBox" class="space-y-3"></div>
             </div>
-            <!-- 销售排行榜 -->
+            <!-- 销售排行榜（接 DataBridge 真实数据） -->
             <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <h2 class="font-semibold text-gray-800">销售排行榜</h2>
-                    <span class="text-xs text-gray-400">本月</span>
+                    <h2 class="font-semibold text-gray-800">销售排行榜
+                        <i class="fa fa-question-circle text-slate-300 text-xs ml-1 cursor-pointer" title="按已支付服务订单真实金额汇总排序，所有销售归属的订单都计入。"></i>
+                    </h2>
+                    <span class="text-xs text-gray-400" id="boardPeriod">个人</span>
                 </div>
-                <div class="p-6 space-y-4">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center text-yellow-600 font-bold">1</div>
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-7 h-7 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-semibold">张</div>
-                                    <span class="text-sm font-medium text-gray-800">张明远</span>
-                                </div>
-                                <span class="text-sm font-bold text-brand-600">¥98.6万</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-2">
-                                <div class="bg-brand-600 h-2 rounded-full" style="width: 100%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 font-bold">2</div>
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-semibold">李</div>
-                                    <span class="text-sm font-medium text-gray-800">李思琪</span>
-                                </div>
-                                <span class="text-sm font-bold text-gray-700">¥82.3万</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-2">
-                                <div class="bg-blue-500 h-2 rounded-full" style="width: 83%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600 font-bold">3</div>
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-7 h-7 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-xs font-semibold">王</div>
-                                    <span class="text-sm font-medium text-gray-800">王浩然</span>
-                                </div>
-                                <span class="text-sm font-bold text-gray-700">¥76.8万</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-2">
-                                <div class="bg-purple-500 h-2 rounded-full" style="width: 78%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 font-bold">4</div>
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-7 h-7 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center text-xs font-semibold">赵</div>
-                                    <span class="text-sm font-medium text-gray-800">赵雨欣</span>
-                                </div>
-                                <span class="text-sm font-bold text-gray-700">¥65.2万</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-2">
-                                <div class="bg-teal-500 h-2 rounded-full" style="width: 66%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 font-bold">5</div>
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-7 h-7 bg-pink-100 text-pink-700 rounded-full flex items-center justify-center text-xs font-semibold">陈</div>
-                                    <span class="text-sm font-medium text-gray-800">陈志强</span>
-                                </div>
-                                <span class="text-sm font-bold text-gray-700">¥52.7万</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-2">
-                                <div class="bg-pink-500 h-2 rounded-full" style="width: 53%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div class="p-6 space-y-2" id="salesBoard"></div>
             </div>
 
-            <!-- 政策申报分布 -->
+            <!-- 业绩构成（真实订单分类 + 线索来源） -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center justify-between mb-4">
                     <div>
-                        <h2 class="font-semibold text-gray-800">政策申报分布</h2>
-                        <p class="text-xs text-gray-400 mt-0.5">本月各类型政策申报占比</p>
+                        <h2 class="font-semibold text-gray-800">业绩构成 · 按服务类型</h2>
+                        <p class="text-xs text-gray-400 mt-0.5">所选周期内已成交订单按分类汇总</p>
                     </div>
                 </div>
-                <div class="space-y-4">
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-sm text-gray-700">高新技术企业认定</span>
-                            <span class="text-sm text-gray-500">68 次 · 32%</span>
-                        </div>
-                        <div class="w-full bg-gray-100 rounded-full h-2.5">
-                            <div class="bg-brand-600 h-2.5 rounded-full" style="width: 32%"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-sm text-gray-700">专精特新中小企业</span>
-                            <span class="text-sm text-gray-500">45 次 · 21%</span>
-                        </div>
-                        <div class="w-full bg-gray-100 rounded-full h-2.5">
-                            <div class="bg-blue-500 h-2.5 rounded-full" style="width: 21%"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-sm text-gray-700">研发费用加计扣除</span>
-                            <span class="text-sm text-gray-500">38 次 · 18%</span>
-                        </div>
-                        <div class="w-full bg-gray-100 rounded-full h-2.5">
-                            <div class="bg-orange-500 h-2.5 rounded-full" style="width: 18%"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-sm text-gray-700">研发中心建设补助</span>
-                            <span class="text-sm text-gray-500">26 次 · 12%</span>
-                        </div>
-                        <div class="w-full bg-gray-100 rounded-full h-2.5">
-                            <div class="bg-purple-500 h-2.5 rounded-full" style="width: 12%"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-sm text-gray-700">技术改造专项</span>
-                            <span class="text-sm text-gray-500">20 次 · 9%</span>
-                        </div>
-                        <div class="w-full bg-gray-100 rounded-full h-2.5">
-                            <div class="bg-teal-500 h-2.5 rounded-full" style="width: 9%"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-sm text-gray-700">其他政策</span>
-                            <span class="text-sm text-gray-500">16 次 · 8%</span>
-                        </div>
-                        <div class="w-full bg-gray-100 rounded-full h-2.5">
-                            <div class="bg-gray-400 h-2.5 rounded-full" style="width: 8%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-5 pt-4 border-t border-gray-100 grid grid-cols-3 gap-3 text-center">
-                    <div>
-                        <p class="text-xl font-bold text-brand-600">213</p>
-                        <p class="text-xs text-gray-500">总申报数</p>
-                    </div>
-                    <div>
-                        <p class="text-xl font-bold text-emerald-600">186</p>
-                        <p class="text-xs text-gray-500">已通过</p>
-                    </div>
-                    <div>
-                        <p class="text-xl font-bold text-orange-600">87.3%</p>
-                        <p class="text-xs text-gray-500">通过率</p>
-                    </div>
+                <div id="svcBox" class="space-y-4"></div>
+                <div class="mt-5 pt-4 border-t border-gray-100">
+                    <p class="text-xs text-gray-400 mb-3">业绩构成 · 按线索来源（线索池存量）</p>
+                    <div id="srcBox" class="space-y-2.5"></div>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        // 个人/团队视角切换（演示数据，切换按钮状态）
-        function switchScope(scope) {
+        // === 真实数据接入（与 H5 业绩看板同口径） ===
+        // 演示账号固定为张销售（服务订单种子数据归属该销售）；正式版从登录态取
+        const me = '张销售';
+        const PAID_STATUS = ['paid', 'serving', 'done', 'reviewed'];
+        let scope = 'personal';   // personal=只看自己，team=全部销售
+
+        function fmt(n) {
+            if (!n) return '¥0';
+            if (n >= 10000) return '¥' + (n / 10000).toFixed(1) + '万';
+            return '¥' + n.toLocaleString();
+        }
+        function periodDays() {
+            var el = document.getElementById('periodSelect');
+            var v = el ? el.value : 'month';
+            return ({ month: 30, quarter: 90, year: 365 })[v] || 30;
+        }
+        function inPeriod(t, cutoff) {
+            if (!t) return false;
+            var d = new Date(String(t).replace(/-/g, '/'));
+            return !isNaN(d.getTime()) && d.getTime() >= cutoff;
+        }
+        function bar(label, value, percent, hint) {
+            return '<div><div class="flex items-center justify-between mb-1.5">' +
+                '<span class="text-sm text-gray-700">' + label + '</span>' +
+                '<span class="text-sm text-gray-500">' + value + (hint ? ' · ' + hint : '') + '</span></div>' +
+                '<div class="w-full bg-gray-100 rounded-full h-2.5"><div class="bg-brand-500 h-2.5 rounded-full" style="width:' + percent + '%"></div></div></div>';
+        }
+
+        function recalc() {
+            const DB = window.DataBridge;
+            if (!DB) return;
+            const days = periodDays();
+            const cutoff = Date.now() - days * 86400000;
+            const mine = (o) => scope === 'team' || o.sales === me;
+
+            // ===== 订单 =====
+            const orders = (DB.loadServiceOrders || function() { return []; })();
+            const paidAll = orders.filter(o => PAID_STATUS.indexOf(o.status) >= 0);
+            const myPaid = paidAll.filter(o => mine(o) && inPeriod(o.createTime, cutoff));
+            const amount = myPaid.reduce((s, o) => s + (Number(o.amount) || 0), 0);
+
+            // ===== 线索池（存量） =====
+            const clues = (DB.loadClues ? DB.loadClues() : []) || [];
+            const myClues = clues.filter(c => scope === 'team' || c.sales === me);
+            const converted = myClues.filter(c => c.stage === '已转化').length;
+            const rate = myClues.length ? Math.round(converted / myClues.length * 100) : 0;
+
+            // ===== 核心指标 =====
+            document.getElementById('kpiAmount').textContent = fmt(amount);
+            document.getElementById('kpiAmountSub').textContent = (scope === 'team' ? '全部销售' : me) + ' · 已支付订单金额';
+            document.getElementById('kpiOrders').textContent = myPaid.length;
+            document.getElementById('kpiOrdersSub').textContent = (scope === 'team' ? '全部销售' : me) + ' 的已支付订单';
+            document.getElementById('kpiLeads').textContent = myClues.length;
+            document.getElementById('kpiLeadsSub').textContent = '线索池存量（不随周期变化）';
+            document.getElementById('kpiRate').textContent = rate + '%';
+            document.getElementById('kpiRateSub').textContent = converted + ' 已转化 / ' + myClues.length + ' 线索';
+
+            // ===== 月度业绩趋势：近 6 个月 =====
+            const trendEl = document.getElementById('trendChart');
+            if (trendEl) {
+                const months = [];
+                const now = new Date();
+                for (let i = 5; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    months.push({ y: d.getFullYear(), m: d.getMonth() + 1, label: (d.getMonth() + 1) + '月' });
+                }
+                const vals = months.map(mm => {
+                    return paidAll.filter(o => {
+                        if (!mine(o)) return false;
+                        const d = new Date(String(o.createTime || '').replace(/-/g, '/'));
+                        return !isNaN(d.getTime()) && d.getFullYear() === mm.y && (d.getMonth() + 1) === mm.m;
+                    }).reduce((s, o) => s + (Number(o.amount) || 0), 0);
+                });
+                const max = Math.max(1, ...vals);
+                trendEl.innerHTML = months.map((mm, i) => {
+                    const wan = (vals[i] / 10000).toFixed(1);
+                    const h = Math.max(6, Math.round(vals[i] / max * 170));
+                    return '<div class="flex flex-col items-center justify-end flex-1">' +
+                        '<div class="text-xs ' + (i === 5 ? 'text-brand-600 font-semibold' : 'text-gray-500') + ' mb-1">' + wan + '</div>' +
+                        '<div class="w-full max-w-[40px] ' + (i === 5 ? 'bg-brand-600' : 'bg-brand-400') + ' rounded-t" style="height:' + h + 'px"></div>' +
+                        '<div class="text-xs ' + (i === 5 ? 'text-brand-600 font-medium' : 'text-gray-400') + ' mt-2">' + mm.label + '</div></div>';
+                }).join('');
+            }
+
+            // ===== 转化漏斗 =====
+            const funnelEl = document.getElementById('funnelBox');
+            if (funnelEl) {
+                const dealCompanies = {};
+                myPaid.forEach(o => { if (o.company) dealCompanies[o.company] = true; });
+                const dealCount = Object.keys(dealCompanies).length;
+                const base = Math.max(1, myClues.length);
+                const steps = [
+                    { label: '线索总数', value: myClues.length, pct: 100, cls: 'bg-brand-100 text-brand-700' },
+                    { label: '已转化', value: converted, pct: Math.round(converted / base * 100), cls: 'bg-brand-300 text-brand-800' },
+                    { label: '已成交客户', value: dealCount, pct: Math.round(dealCount / base * 100), cls: 'bg-brand-500 text-white' },
+                    { label: '成交额', value: fmt(amount), pct: dealCount ? 100 : 0, cls: 'bg-brand-600 text-white' }
+                ];
+                funnelEl.innerHTML = steps.map((s, i) => {
+                    const w = Math.max(12, s.pct);
+                    return '<div><div class="flex items-center justify-between mb-1">' +
+                        '<span class="text-sm text-gray-600">' + s.label + '</span>' +
+                        '<span class="text-sm font-semibold text-gray-800">' + s.value + '</span></div>' +
+                        '<div class="' + s.cls + ' rounded h-8 flex items-center justify-center text-xs" style="width:' + w + '%">' + s.pct + '%</div></div>' +
+                        (i < steps.length - 1 ? '<div class="text-center text-gray-400 text-xs"><i class="fa fa-arrow-down"></i></div>' : '');
+                }).join('');
+                const ratioBox = '<div class="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-sm">' +
+                    '<span class="text-gray-500">线索 → 成交转化率</span><span class="font-bold text-brand-600">' + rate + '%</span></div>';
+                funnelEl.innerHTML += ratioBox;
+            }
+
+            // ===== 业绩构成：按服务类型（成交额） =====
+            const svcEl = document.getElementById('svcBox');
+            if (svcEl) {
+                const catMap = {};
+                myPaid.forEach(o => {
+                    const c = o.category || '其他';
+                    catMap[c] = (catMap[c] || 0) + (Number(o.amount) || 0);
+                });
+                const list = Object.keys(catMap).map(k => ({ label: k, amount: catMap[k] }))
+                    .sort((a, b) => b.amount - a.amount).slice(0, 6);
+                const max = Math.max(1, ...list.map(x => x.amount), 1);
+                svcEl.innerHTML = list.length
+                    ? list.map(x => bar(x.label, fmt(x.amount), Math.round(x.amount / max * 100), Math.round(x.amount / Math.max(1, amount) * 100) + '%')).join('')
+                    : '<div class="text-xs text-gray-400 py-2">当前周期内暂无成交订单，标记线索为已转化并生成订单后即可查看</div>';
+            }
+
+            // ===== 业绩构成：按线索来源（存量） =====
+            const srcEl = document.getElementById('srcBox');
+            if (srcEl) {
+                const srcMap = {};
+                myClues.forEach(c => { const k = c.source || '其他'; srcMap[k] = (srcMap[k] || 0) + 1; });
+                const list = Object.keys(srcMap).map(k => ({ label: k, count: srcMap[k] }))
+                    .sort((a, b) => b.count - a.count);
+                const max = Math.max(1, ...list.map(x => x.count), 1);
+                srcEl.innerHTML = list.length
+                    ? list.map(x => '<div class="flex items-center gap-2 text-xs">' +
+                        '<span class="text-gray-600 w-20 shrink-0">' + x.label + '</span>' +
+                        '<div class="flex-1 bg-gray-100 rounded-full h-1.5"><div class="bg-brand-400 h-1.5 rounded-full" style="width:' + Math.round(x.count / max * 100) + '%"></div></div>' +
+                        '<span class="text-gray-500 w-8 text-right shrink-0">' + x.count + '</span></div>').join('')
+                    : '<p class="text-xs text-gray-400">暂无线索</p>';
+            }
+
+            // ===== 销售排行榜（全部销售，与周期一致） =====
+            const allSales = {};
+            paidAll.filter(o => inPeriod(o.createTime, cutoff)).forEach(o => {
+                const s = o.sales || '未分配';
+                if (!allSales[s]) allSales[s] = { name: s, amount: 0, orders: 0 };
+                allSales[s].amount += Number(o.amount) || 0;
+                allSales[s].orders += 1;
+            });
+            const board = Object.values(allSales).sort((a, b) => b.amount - a.amount).slice(0, 8);
+            const boardEl = document.getElementById('salesBoard');
+            if (boardEl) {
+                const max = Math.max(1, ...board.map(b => b.amount));
+                boardEl.innerHTML = board.map((s, i) => `
+                    <div class="flex items-center gap-3 py-2">
+                        <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i < 3 ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600'}">${i + 1}</span>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="font-medium text-gray-800 truncate">${s.name}</span>
+                                <span class="text-brand-600 font-semibold">${fmt(s.amount)}</span>
+                            </div>
+                            <div class="w-full bg-gray-100 h-1.5 rounded-full mt-1">
+                                <div class="bg-brand-500 h-1.5 rounded-full" style="width: ${Math.round(s.amount / max * 100)}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('') || '<p class="text-gray-400 text-sm">暂无销售数据</p>';
+            }
+        }
+
+        function switchScope(s) {
+            scope = s;
             var on = 'px-3 py-1 rounded-md bg-white shadow-sm text-gray-800 font-medium';
             var off = 'px-3 py-1 rounded-md text-gray-500';
             var p = document.getElementById('tabPersonal'), t = document.getElementById('tabTeam');
-            if (scope === 'personal') { p.className = on; t.className = off; }
+            if (s === 'personal') { p.className = on; t.className = off; }
             else { t.className = on; p.className = off; }
+            document.getElementById('boardPeriod').textContent = s === 'team' ? '团队' : '个人';
+            recalc();
         }
+
+        // 页面加载时接真实数据
+        window.addEventListener('load', recalc);
     </script>
 </body>
 </html>
