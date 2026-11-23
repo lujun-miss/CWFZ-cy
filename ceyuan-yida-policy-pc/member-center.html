@@ -34,16 +34,20 @@
         .usage-tab { transition: all .15s ease; }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -59,6 +63,10 @@
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-comments text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策问答</span>
                 </button>
+                <button onclick="goPage('policy-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
                 <button onclick="goPage('policy-radar.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策雷达</span>
@@ -70,10 +78,6 @@
                 <button onclick="goPage('declaration-butler.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="申报材料自查">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-file-text-o text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">申报管家</span>
-                </button>
-                <button onclick="goPage('policy-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
-                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
-                    <span class="text-[10px] font-bold">政策中心</span>
                 </button>
                 <button onclick="goPage('service-market.html')" class="flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
                     <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
@@ -333,7 +337,7 @@
                 <!-- Tab 2：上传政策 -->
                 <div id="contribTabUploadPanel" class="hidden">
                     <div class="mb-3 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg text-[11px] text-amber-700 leading-relaxed">
-                        <i class="fa fa-info-circle mr-1"></i>积分规则：国家级 50 · 省级 20 · 市级/通知 10；已入库或他人审核中的政策不可重复提交，最终以运营审核确认的层级发放
+                        <i class="fa fa-info-circle mr-1"></i>积分规则：不区分国家级/省级/市级/区县级，采纳即得，统一 30 策能值；新政策无需审核，提交后直接入库并立即到账，已入库或他人审核中的政策不可重复提交
                     </div>
                     <!-- 贡献渠道切换：上传文件 / 政策链接 / 粘贴全文 -->
                     <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1 mb-3">
@@ -415,14 +419,14 @@
                                 <div>
                                     <label class="text-xs font-bold text-slate-600 mb-1 flex items-center gap-1.5">政策层级 <span class="text-rose-400">*</span> <span class="text-[9px] text-slate-400 font-normal px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded">自动预判，请确认</span></label>
                                     <select id="c_level" class="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
-                                        <option value="国家级">国家级（预计 +50）</option>
-                                        <option value="省级">省级（预计 +20）</option>
-                                        <option value="市级">市级（预计 +10）</option>
-                                        <option value="区县级">区县级（预计 +10）</option>
-                                        <option value="通知公告">通知公告（预计 +10）</option>
+                                        <option value="国家级">国家级</option>
+                                        <option value="省级">省级</option>
+                                        <option value="市级">市级</option>
+                                        <option value="区县级">区县级</option>
+                                        <option value="通知公告">通知公告</option>
                                     </select>
                                 </div>
-                                <div class="mt-1.5 text-[10px] text-slate-400"><i class="fa fa-info-circle mr-0.5"></i>策能值在运营审核通过后发放，以审核确认的政策层级为准</div>
+                                <div class="mt-1.5 text-[10px] text-slate-400"><i class="fa fa-info-circle mr-0.5"></i>策能值不区分政策层级，采纳即得 30；新政策无需审核，提交后直接入库并立即到账</div>
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-slate-600 mb-1">备注（选填）</label>
@@ -434,10 +438,10 @@
                 <!-- 提交成功提示（浮层） -->
                 <div id="contribSuccess" class="hidden text-center py-8">
                     <i class="fa fa-check-circle text-5xl text-emerald-500 mb-3"></i>
-                    <div class="text-base font-black text-slate-800 mb-1">提交成功！</div>
-                    <div class="text-xs text-slate-500">运营审核通过后，按审核确认的政策层级发放策能值</div>
+                    <div id="contribSuccessTitle" class="text-base font-black text-slate-800 mb-1">提交成功！</div>
+                    <div id="contribSuccessMsg" class="text-xs text-slate-500">已自动入库，策能值已到账</div>
                     <div class="mt-4 px-4 py-2 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700 inline-block">
-                        预计可得 <span id="contribPoints" class="font-black">20</span> 策能值
+                        本次获得 <span id="contribPoints" class="font-black">30</span> 策能值
                     </div>
                 </div>
             </div>
@@ -1318,23 +1322,37 @@
                 level: cLevel, // 自动预判 + 用户确认；运营审核时按确认层级结算并可修正
                 remark: document.getElementById('c_remark').value.trim()
             };
+            var directOk = false;
+            var pts = (DataBridge.CONTRIB_POINTS && DataBridge.CONTRIB_POINTS[payload.level]) || 30;
             try {
-                DataBridge.submitContribution(payload);
+                if (!_contribState.dup) {
+                    // 新政策：无需审核，直接入库并立即发放策能值
+                    var res = DataBridge.submitContributionDirect(payload);
+                    if (res) directOk = true;
+                }
+                if (!directOk) {
+                    // 文号冲突等需运营核实的情况，转人工审核
+                    DataBridge.submitContribution(payload);
+                }
             } catch (e) {
                 var list = JSON.parse(localStorage.getItem('ceyuan_policy_contrib') || '[]');
                 list.unshift({ id:'ctb_'+Date.now(), uploaderId:payload.uploaderId, uploaderName:payload.uploaderName,
                     channel:payload.channel, fileName:payload.fileName, sourceLink:payload.sourceLink, textContent:payload.textContent, ocr:payload.ocr,
-                    level:payload.level, remark:payload.remark, points:DataBridge.CONTRIB_POINTS[payload.level]||10,
+                    level:payload.level, remark:payload.remark, points:pts,
                     status:'pending', createdAt:new Date().toISOString().slice(0,16) });
                 localStorage.setItem('ceyuan_policy_contrib', JSON.stringify(list));
             }
-            document.getElementById('contribPoints').textContent = DataBridge.CONTRIB_POINTS[payload.level] || 10;
+            document.getElementById('contribPoints').textContent = pts;
+            document.getElementById('contribSuccessTitle').textContent = directOk ? '贡献成功，已自动入库！' : '提交成功！';
+            document.getElementById('contribSuccessMsg').textContent = directOk
+                ? '政策已写入政策库并立即生效，策能值已到账'
+                : '与库内政策存在冲突，运营核实后发放策能值';
             // 隐藏上传区，显示成功提示
             document.getElementById('contribTabUploadPanel').classList.add('hidden');
             document.getElementById('contribSuccess').classList.remove('hidden');
             document.getElementById('contribUploadSubmit').classList.add('hidden');
             document.getElementById('contribUploadAgain').classList.remove('hidden');
-            toast('提交成功！审核通过后按确认层级发放策能值');
+            toast(directOk ? '新政策已自动入库，策能值已到账' : '提交成功，运营核实后发放策能值');
         }
 
         // 我的贡献记录（弹窗内）
@@ -1342,22 +1360,22 @@
         var MY_CONTRIB_DEMO = [
             { id:'demo_ctb_1', fileName:'浙江省制造业中小企业研发费用补贴实施细则.pdf', channel:'file',
               ocr:{ name:'浙江省制造业中小企业研发费用补贴实施细则', docNo:'浙经信〔2026〕45号', dept:'浙江省经济和信息化厅', date:'2026-09-01' },
-              province:'浙江省', industry:'制造业', level:'省级', points:20, status:'approved', createdAt:'2026-10-21 14:32' },
+              province:'浙江省', industry:'制造业', level:'省级', points:30, status:'approved', createdAt:'2026-10-21 14:32' },
             { id:'demo_ctb_2', fileName:'嘉兴市企业上云用云补贴申领通知（网页链接）', channel:'link',
               sourceLink:'https://www.jiaxing.gov.cn/rsj/cy-subsidy-2026.html',
               ocr:{ name:'嘉兴市企业上云用云补贴申领通知', docNo:'嘉经信〔2026〕18号', dept:'嘉兴市经济和信息化局', date:'2026-10-10' },
-              province:'浙江省', industry:'信息技术', level:'市级', points:10, status:'pending', createdAt:'2026-10-26 09:47' },
+              province:'浙江省', industry:'信息技术', level:'市级', points:30, status:'pending', createdAt:'2026-10-26 09:47' },
             { id:'demo_ctb_3', fileName:'高新技术企业认定管理工作指引（粘贴全文）', channel:'text',
               ocr:{ name:'高新技术企业认定管理工作指引（2026 年修订）', docNo:'国科发火〔2026〕6号', dept:'科技部 税务总局', date:'2026-08-15' },
-              province:'全国', industry:'全行业', level:'国家级', points:50, status:'approved', createdAt:'2026-10-15 16:08' },
+              province:'全国', industry:'全行业', level:'国家级', points:30, status:'approved', createdAt:'2026-10-15 16:08' },
             { id:'demo_ctb_4', fileName:'分布式光伏发电项目电价补贴政策.docx', channel:'file',
               ocr:{ name:'分布式光伏发电项目电价补贴政策（节选）', docNo:'浙发改能源〔2026〕9号', dept:'浙江省发展和改革委员会', date:'2026-07-20' },
-              province:'浙江省', industry:'新能源', level:'省级', points:20, status:'rejected', rejectReason:'政策正文不完整，仅包含目录与摘要，请补充完整全文后再提交',
+              province:'浙江省', industry:'新能源', level:'省级', points:30, status:'rejected', rejectReason:'政策正文不完整，仅包含目录与摘要，请补充完整全文后再提交',
               createdAt:'2026-10-12 11:20' },
             { id:'demo_ctb_5', fileName:'科技型中小企业研发费用加计扣除公告（网页链接）', channel:'link',
               sourceLink:'https://most.gov.cn/qiyi/cy2026/notice.html',
               ocr:{ name:'科技型中小企业研发费用加计扣除比例提升公告', docNo:'国科发政〔2026〕22号', dept:'科技部 财政部', date:'2026-09-28' },
-              province:'全国', industry:'全行业', level:'国家级', points:50, status:'pending', createdAt:'2026-10-28 10:05' }
+              province:'全国', industry:'全行业', level:'国家级', points:30, status:'pending', createdAt:'2026-10-28 10:05' }
         ];
         function renderContribRecords() {
             var profile = loadProfile();

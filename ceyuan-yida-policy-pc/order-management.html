@@ -27,16 +27,20 @@
         .progress-bar { transition: width 0.6s ease; }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -96,6 +100,7 @@
                     <div class="flex items-center space-x-2 mt-5 overflow-x-auto scroll-hide">
                         <button onclick="setTab('all', this)" class="status-tab active px-4 py-2 rounded-xl text-sm font-medium bg-slate-50 hover:bg-orange-50 transition-all whitespace-nowrap" data-tab="all">全部</button>
                         <button onclick="setTab('unpaid', this)" class="status-tab px-4 py-2 rounded-xl text-sm font-medium bg-slate-50 hover:bg-orange-50 transition-all whitespace-nowrap" data-tab="unpaid">待付款 <span id="cUnpaid" class="ml-1 text-[10px]"></span></button>
+                        <button onclick="setTab('audit', this)" class="status-tab px-4 py-2 rounded-xl text-sm font-medium bg-slate-50 hover:bg-orange-50 transition-all whitespace-nowrap" data-tab="audit">转账待审核 <span id="cAudit" class="ml-1 text-[10px]"></span></button>
                         <button onclick="setTab('serving', this)" class="status-tab px-4 py-2 rounded-xl text-sm font-medium bg-slate-50 hover:bg-orange-50 transition-all whitespace-nowrap" data-tab="serving">服务中 <span id="cServing" class="ml-1 text-[10px]"></span></button>
                         <button onclick="setTab('done', this)" class="status-tab px-4 py-2 rounded-xl text-sm font-medium bg-slate-50 hover:bg-orange-50 transition-all whitespace-nowrap" data-tab="done">已完成 <span id="cDone" class="ml-1 text-[10px]"></span></button>
                     </div>
@@ -222,6 +227,38 @@
         </div>
     </div>
 
+    <!-- 订单改价弹窗 -->
+    <div id="adjustModal" class="fixed inset-0 modal-mask z-[56] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-base font-bold"><i class="fa fa-tag text-orange-500 mr-2"></i>订单改价</h3>
+                <button onclick="closeAdjust()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div id="adjustOrderInfo" class="px-4 py-3 bg-slate-50 rounded-xl text-xs text-slate-600 leading-relaxed"></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">原价（元）</label>
+                        <input id="adjustOriginal" type="number" readonly class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">改后价格（元）<span class="text-rose-500">*</span></label>
+                        <input id="adjustPrice" type="number" min="0" class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">改价原因</label>
+                    <input id="adjustReason" type="text" maxlength="40" placeholder="如：咨询后专属报价 / 老客户优惠" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white">
+                </div>
+                <p class="text-[10px] text-slate-400 leading-relaxed"><i class="fa fa-info-circle mr-1"></i>仅待付款订单可改价，改价后客户订单页应付金额同步更新，订单保留原价与改价原因。</p>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50/60">
+                <button onclick="closeAdjust()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
+                <button onclick="confirmAdjust()" class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">确认改价</button>
+            </div>
+        </div>
+    </div>
+
     <script src="data-bridge.js"></script>
     <script>
         // 订单状态映射（与企业侧 service-orders.html 一致）
@@ -231,6 +268,19 @@
             done:     { text: '已完成', cls: 'bg-emerald-50 text-emerald-600', icon: 'fa-check-circle-o' },
             reviewed: { text: '已评价', cls: 'bg-slate-100 text-slate-500', icon: 'fa-star' }
         };
+        // 对公转账订单按凭证状态细化展示
+        function statusOfAdmin(o) {
+            if (o.status === 'unpaid' && o.payMethod === '对公转账') {
+                if (o.payStatus === 'pending') return { text: '凭证待审核', cls: 'bg-amber-50 text-amber-600', icon: 'fa-hourglass-half' };
+                if (o.payStatus === 'rejected') return { text: '凭证被驳回', cls: 'bg-rose-50 text-rose-600', icon: 'fa-exclamation-circle' };
+                return { text: '待转账', cls: 'bg-orange-50 text-orange-600', icon: 'fa-bank' };
+            }
+            return statusMap[o.status] || statusMap.unpaid;
+        }
+        function nowStr() {
+            const n = new Date(), p = x => String(x).padStart(2, '0');
+            return n.getFullYear() + '-' + p(n.getMonth() + 1) + '-' + p(n.getDate()) + ' ' + p(n.getHours()) + ':' + p(n.getMinutes());
+        }
         // 交付里程碑跟随商品配置的服务流程（每个服务项目流程不同）
         const FALLBACK_STEPS = [{ name:'签订合同', deliv:'服务合同（双方盖章）' },{ name:'需求评估', deliv:'需求确认书' },{ name:'方案制定', deliv:'服务方案书' },{ name:'材料准备', deliv:'申报材料/审计底稿' },{ name:'审核提交', deliv:'受理回执/审查意见' },{ name:'完成交付', deliv:'最终成果报告' }];
         let PRODUCT_CACHE = null;
@@ -276,6 +326,7 @@
             const fSvc = document.getElementById('fSvc').value;
             let list = ORDERS;
             if (curTab === 'unpaid') list = ORDERS.filter(o => o.status === 'unpaid');
+            else if (curTab === 'audit') list = ORDERS.filter(o => o.status === 'unpaid' && o.payStatus === 'pending');
             else if (curTab === 'serving') list = ORDERS.filter(o => o.status === 'serving');
             else if (curTab === 'done') list = ORDERS.filter(o => o.status === 'done' || o.status === 'reviewed');
             list = list.filter(o => {
@@ -286,6 +337,7 @@
 
             // Tab 计数
             document.getElementById('cUnpaid').textContent = ORDERS.filter(o => o.status === 'unpaid').length || '';
+            document.getElementById('cAudit').textContent = ORDERS.filter(o => o.status === 'unpaid' && o.payStatus === 'pending').length || '';
             document.getElementById('cServing').textContent = ORDERS.filter(o => o.status === 'serving').length || '';
             document.getElementById('cDone').textContent = ORDERS.filter(o => o.status === 'done' || o.status === 'reviewed').length || '';
             document.getElementById('orderCount').textContent = list.length;
@@ -296,9 +348,12 @@
                 return;
             }
             tbody.innerHTML = list.map(o => {
-                const st = statusMap[o.status] || statusMap.unpaid;
+                const st = statusOfAdmin(o);
                 let acts = `<button onclick="openDetail('${o.id}')" class="px-3 py-1.5 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 text-slate-600 text-xs rounded-lg transition-all">详情</button>`;
-                if (o.status === 'unpaid') acts += ` <span class="text-xs text-slate-400">等待客户付款</span>`;
+                if (o.status === 'unpaid') acts += ` <button onclick="openAdjust('${o.id}')" class="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs rounded-lg transition-all">改价</button>`;
+                if (o.status === 'unpaid' && o.payStatus === 'pending') acts += ` <button onclick="openDetail('${o.id}')" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs rounded-lg transition-all">审核凭证</button>`;
+                else if (o.status === 'unpaid' && o.payMethod === '对公转账') acts += ` <span class="text-xs text-slate-400">等待客户转账</span>`;
+                else if (o.status === 'unpaid') acts += ` <span class="text-xs text-slate-400">等待客户付款</span>`;
                 else if (o.status === 'serving') acts += ` <button onclick="advanceOrder('${o.id}')" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg transition-all">推进进度</button>`;
                 else if (o.status === 'done') acts += ` <button onclick="markReviewed('${o.id}')" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs rounded-lg transition-all">标记已评价</button>`;
                 return `
@@ -308,25 +363,31 @@
                         <div class="flex items-center space-x-2">
                             <div class="w-8 h-8 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center"><i class="fa ${o.icon || 'fa-cube'} text-xs"></i></div>
                             <span class="text-sm font-medium">${o.svcName}</span>
+                            ${o.bundleId ? `<span class="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold whitespace-nowrap"><i class="fa fa-cubes mr-0.5"></i>服务包</span>` : ''}
+                            ${o.tierName ? `<span class="text-[10px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded font-bold whitespace-nowrap"><i class="fa fa-signal mr-0.5"></i>${o.tierName}</span>` : ''}
                         </div>
                     </td>
                     <td class="px-6 py-4 text-sm text-slate-600">
                         <div>${o.company}</div>
                         <div class="text-xs text-slate-400">${o.contact} ${o.phone}</div>
                     </td>
-                    <td class="px-6 py-4"><span class="text-orange-600 font-bold">¥${fmtMoney(o.amount)}</span></td>
+                    <td class="px-6 py-4">
+                        <span class="text-orange-600 font-bold">¥${fmtMoney(o.amount)}</span>
+                        ${o.originalAmount && o.originalAmount > 0 ? `<div class="text-[10px] text-slate-400"><span class="line-through">¥${fmtMoney(o.originalAmount)}</span><span class="text-orange-500 ml-1">${o.bundleId ? '打包优惠' : '已改价'}</span></div>` : ''}
+                    </td>
                     <td class="px-6 py-4 text-xs text-slate-500">${o.createTime}</td>
                     <td class="px-6 py-4">
                         <span class="inline-flex items-center space-x-1 text-xs px-3 py-1 rounded-full ${st.cls}">
                             <i class="fa ${st.icon}"></i><span>${st.text}</span>
                         </span>
                         ${o.status === 'serving' ? `<div class="text-[10px] text-slate-400 mt-1">进度 ${o.progress}%</div>` : ''}
-                        ${o.status === 'paid' || o.status === 'serving' || o.status === 'done' || o.status === 'reviewed' ? (() => {
+                        ${o.payMethod ? (() => {
                             const m = o.payMethod || '';
+                            const isBank = m === '对公转账';
                             const isOffline = m.indexOf('线下') >= 0 || m.indexOf('现金') >= 0;
-                            const cls = isOffline ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600';
-                            const label = isOffline ? '线下支付' : '线上支付';
-                            return `<div class="text-[10px] mt-1"><span class="inline-block px-1.5 py-0.5 rounded ${cls}">${label} · ${m || '—'}</span></div>`;
+                            const cls = isBank ? 'bg-amber-50 text-amber-600' : isOffline ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600';
+                            const label = isBank ? '对公转账' : isOffline ? '线下支付' : '线上支付';
+                            return `<div class="text-[10px] mt-1"><span class="inline-block px-1.5 py-0.5 rounded ${cls}">${label} · ${m}</span></div>`;
                         })() : ''}
                     </td>
                     <td class="px-6 py-4"><div class="flex items-center justify-center space-x-2">${acts}</div></td>
@@ -402,6 +463,31 @@
             persist(); render();
         }
 
+        // ===== 对公转账凭证审核 =====
+        function approveVoucher(id) {
+            const o = ORDERS.find(x => x.id === id);
+            if (!o) return;
+            o.status = 'serving';
+            o.payStatus = 'confirmed';
+            o.progress = o.progress || 10;
+            o.voucherAudit = { result: 'approved', note: '', time: nowStr() };
+            persist(); render();
+            if (typeof closeModal === 'function') closeModal();
+            alert('审核通过，订单已转为「服务中」，客户侧同步显示付款成功。');
+        }
+        function rejectVoucher(id) {
+            const o = ORDERS.find(x => x.id === id);
+            if (!o) return;
+            const el = document.getElementById('rejectNote');
+            const note = el ? el.value.trim() : '';
+            if (!note) { alert('请填写驳回原因，便于客户重新上传正确的凭证'); return; }
+            o.payStatus = 'rejected';
+            o.voucherAudit = { result: 'rejected', note: note, time: nowStr() };
+            persist(); render();
+            if (typeof closeModal === 'function') closeModal();
+            alert('已驳回，客户在订单页可看到驳回原因并重新上传凭证。');
+        }
+
         // ===== 交付能力（里程碑随商品流程动态生成） =====
         const SEED_NOTES = [
             { who:'李专家（运营）', avatar:'李', color:'blue', time:'2026-09-01 14:25', text:'已完成需求评估，企业知识产权情况已确认，进入方案制定阶段。' },
@@ -468,16 +554,48 @@
         function showM(id) { const m=document.getElementById(id); m.classList.remove('hidden'); m.classList.add('flex'); }
         function hideM(id) { const m=document.getElementById(id); m.classList.add('hidden'); m.classList.remove('flex'); }
 
+        // ===== 待付款订单改价（客服咨询后专属报价 / 老客户优惠） =====
+        let adjustTargetId = null;
+        function openAdjust(id) {
+            const o = ORDERS.find(x => x.id === id);
+            if (!o) return;
+            if (o.status !== 'unpaid') { alert('仅待付款订单支持改价'); return; }
+            adjustTargetId = id;
+            document.getElementById('adjustOrderInfo').innerHTML =
+                '<i class="fa fa-file-text-o text-orange-400 mr-1"></i><b>' + (o.svcName || '-') + '</b><br>'
+                + '订单编号：' + o.id + ' · ' + (o.company || '-') + (o.tierName ? ' · ' + o.tierName : '');
+            document.getElementById('adjustOriginal').value = o.originalAmount > 0 ? o.originalAmount : o.amount;
+            document.getElementById('adjustPrice').value = o.amount;
+            document.getElementById('adjustReason').value = o.priceAdjustReason || '';
+            showM('adjustModal');
+        }
+        function closeAdjust() { hideM('adjustModal'); adjustTargetId = null; }
+        function confirmAdjust() {
+            const o = ORDERS.find(x => x.id === adjustTargetId);
+            if (!o) return;
+            const price = parseFloat(document.getElementById('adjustPrice').value);
+            if (!(price > 0)) { alert('请填写有效的改后价格'); return; }
+            const reason = document.getElementById('adjustReason').value.trim();
+            if (!o.originalAmount) o.originalAmount = o.amount;
+            o.amount = price;
+            o.priceAdjustReason = reason;
+            o.priceAdjustAt = nowStr();
+            persist();
+            closeAdjust();
+            render();
+            alert('改价成功，客户订单页应付金额已同步为 ¥' + fmtMoney(price));
+        }
+
         // ===== 详情弹窗（动态填充，含交付物与记录） =====
         function openDetail(id) {
             const o = ORDERS.find(x => x.id === id);
             if (!o) return;
             detailId = id;
             initDelivery(id, o);
-            const st = statusMap[o.status] || statusMap.unpaid;
+            const st = statusOfAdmin(o);
             const steps = getMilestones(o);
             const stepIdx = curMsIdx(o);
-            const oldPrice = o.amount * 1.3;
+            const oldPrice = o.originalAmount > 0 ? o.originalAmount : o.amount * 1.3;
             const isDone = o.status === 'done' || o.status === 'reviewed';
 
             // 里程碑时间轴（含交付物 + 操作按钮）
@@ -516,9 +634,49 @@
             }
 
             let acts = '';
-            if (o.status === 'unpaid') acts = `<div class="px-6 py-3 bg-slate-100 text-slate-500 rounded-2xl text-sm font-semibold"><i class="fa fa-clock-o mr-1"></i>等待客户付款，付款后可推进进度</div>`;
+            if (o.status === 'unpaid' && o.payStatus === 'pending') acts = `<div class="px-6 py-3 bg-amber-50 text-amber-600 rounded-2xl text-sm font-semibold"><i class="fa fa-hourglass-half mr-1"></i>客户已提交转账凭证，请在上方完成审核</div>`;
+            else if (o.status === 'unpaid' && o.payMethod === '对公转账') acts = `<div class="px-6 py-3 bg-slate-100 text-slate-500 rounded-2xl text-sm font-semibold"><i class="fa fa-bank mr-1"></i>等待客户完成对公转账并上传凭证</div>`;
+            else if (o.status === 'unpaid') acts = `<div class="px-6 py-3 bg-slate-100 text-slate-500 rounded-2xl text-sm font-semibold"><i class="fa fa-clock-o mr-1"></i>等待客户付款，付款后可推进进度</div>`;
             else if (o.status === 'serving') acts = `<button onclick="advanceOrder('${o.id}');openDetail('${o.id}')" class="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl text-sm font-semibold"><i class="fa fa-arrow-up mr-1"></i>推进进度</button>`;
             else if (o.status === 'done') acts = `<button onclick="markReviewed('${o.id}');closeModal()" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl text-sm font-semibold">标记已评价</button>`;
+
+            // 对公转账凭证审核
+            let voucherHtml = '';
+            if (o.payMethod === '对公转账') {
+                const v = o.voucher || {};
+                const audit = o.voucherAudit || {};
+                const isPending = o.payStatus === 'pending';
+                const isRejected = o.payStatus === 'rejected';
+                const statusText = o.payStatus === 'confirmed' ? '支付成功（凭证已通过）' : isPending ? '凭证待审核' : isRejected ? '凭证被驳回' : '待客户转账';
+                const statusCls = o.payStatus === 'confirmed' ? 'text-emerald-600 bg-emerald-50' : isPending ? 'text-amber-600 bg-amber-50' : isRejected ? 'text-rose-600 bg-rose-50' : 'text-slate-500 bg-slate-100';
+                voucherHtml = `
+                <div>
+                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-bank text-orange-500"></i><span>转账凭证</span></h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="border border-slate-100 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center" style="min-height:150px">
+                            ${v.dataUrl
+                                ? `<img src="${v.dataUrl}" class="w-full max-h-56 object-contain" alt="转账凭证">`
+                                : `<div class="py-10 text-center text-[11px] text-slate-400"><i class="fa fa-file-image-o text-2xl block mb-1"></i>暂无凭证图片</div>`}
+                        </div>
+                        <div class="space-y-2 text-xs">
+                            <div class="p-3 bg-slate-50 rounded-lg flex justify-between items-center"><span class="text-slate-400">审核状态</span><span class="px-2 py-0.5 rounded font-bold ${statusCls}">${statusText}</span></div>
+                            <div class="p-3 bg-slate-50 rounded-lg flex justify-between"><span class="text-slate-400">付款账户</span><span class="font-medium text-right">${v.payer || '—'}</span></div>
+                            <div class="p-3 bg-slate-50 rounded-lg flex justify-between"><span class="text-slate-400">转账日期</span><span class="font-medium">${v.payDate || '—'}</span></div>
+                            <div class="p-3 bg-slate-50 rounded-lg flex justify-between"><span class="text-slate-400">提交时间</span><span class="font-medium">${v.uploadTime || '—'}</span></div>
+                            ${isRejected && audit.note ? `<div class="p-3 bg-rose-50 border border-rose-100 rounded-lg text-rose-600">驳回原因：${audit.note}</div>` : ''}
+                        </div>
+                    </div>
+                    ${isPending ? `
+                    <div class="mt-4 p-4 bg-amber-50/60 border border-amber-100 rounded-xl">
+                        <p class="text-xs font-bold text-amber-700 mb-2"><i class="fa fa-gavel mr-1"></i>凭证审核</p>
+                        <textarea id="rejectNote" rows="2" placeholder="驳回原因（点击驳回时必填，将同步展示给客户）" class="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-xs outline-none mb-2"></textarea>
+                        <div class="flex justify-end space-x-2">
+                            <button onclick="rejectVoucher('${o.id}')" class="px-4 py-2 bg-white border border-rose-200 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-50">驳回</button>
+                            <button onclick="approveVoucher('${o.id}')" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold">审核通过</button>
+                        </div>
+                    </div>` : ''}
+                </div>`;
+            }
 
             document.getElementById('detailBody').innerHTML = `
                 <div class="flex items-center justify-between p-5 bg-gradient-to-r from-orange-50 to-orange-100 rounded-2xl">
@@ -526,7 +684,7 @@
                         <div class="w-12 h-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center"><i class="fa ${st.icon} text-xl"></i></div>
                         <div>
                             <h4 class="font-bold text-base">${st.text}</h4>
-                            <p class="text-xs text-slate-500 mt-1">${o.status === 'serving' ? '服务进行中，进度 ' + o.progress + '%' : o.status === 'unpaid' ? '等待客户付款，付款后自动进入服务中' : o.status === 'done' ? '服务完成，等待客户评价' : '客户已评价，订单闭环'}</p>
+                            <p class="text-xs text-slate-500 mt-1">${o.status === 'serving' ? '服务进行中，进度 ' + o.progress + '%' : o.status === 'unpaid' ? (o.payMethod === '对公转账' ? (o.payStatus === 'pending' ? '客户已提交转账凭证，审核通过后自动进入服务中' : o.payStatus === 'rejected' ? '转账凭证被驳回，等待客户重新上传' : '等待客户完成对公转账并上传凭证') : '等待客户付款，付款后自动进入服务中') : o.status === 'done' ? '服务完成，等待客户评价' : '客户已评价，订单闭环'}</p>
                         </div>
                     </div>
                     <span class="text-orange-600 font-black text-2xl">¥${fmtMoney(o.amount)}</span>
@@ -536,6 +694,7 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">订单编号</p><p class="text-sm font-medium">${o.id}</p></div>
                         <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">服务名称</p><p class="text-sm font-medium">${o.svcName}</p></div>
+                        <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">企业规模档位</p><p class="text-sm font-medium">${o.tierName ? o.tierName + (o.tierMatch === 'auto' ? '（系统匹配）' : '（手动选择）') : '—'}</p></div>
                         <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">服务分类</p><p class="text-sm font-medium">${o.category}</p></div>
                         <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">服务商</p><p class="text-sm font-medium">${o.provider}</p></div>
                         <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">下单时间</p><p class="text-sm font-medium">${o.createTime}</p></div>
@@ -548,10 +707,22 @@
                     <div class="p-5 bg-slate-50 rounded-2xl space-y-3">
                         <div class="flex items-center justify-between text-sm"><span class="text-slate-500">服务原价</span><span>¥${fmtMoney(Math.round(oldPrice))}</span></div>
                         <div class="flex items-center justify-between text-sm"><span class="text-slate-500">优惠折扣</span><span class="text-green-500">-¥${fmtMoney(Math.round(oldPrice - o.amount))}</span></div>
+                        ${o.priceAdjustReason ? `<div class="flex items-center justify-between text-sm"><span class="text-slate-500">改价说明</span><span class="text-orange-600">${o.priceAdjustReason}${o.priceAdjustAt ? ' · ' + o.priceAdjustAt : ''}</span></div>` : ''}
                         <div class="flex items-center justify-between text-sm"><span class="text-slate-500">支付方式</span><span>${o.payMethod || '—'}</span></div>
                         <div class="border-t border-slate-200 pt-3 flex items-center justify-between"><span class="font-bold">实付金额</span><span class="text-orange-600 font-black text-xl">¥${fmtMoney(o.amount)}</span></div>
                     </div>
                 </div>
+                ${voucherHtml}
+                ${o.bundleId && o.items && o.items.length ? `
+                <div>
+                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-cubes text-indigo-500"></i><span>服务包清单</span><span class="text-xs font-normal text-slate-400">共 ${o.items.length} 项 · 服务包 ${o.bundleId}</span></h3>
+                    <div class="border border-indigo-100 rounded-2xl overflow-hidden">
+                        ${o.items.map((it, i) => `<div class="flex items-center justify-between px-4 py-3 ${i ? 'border-t border-indigo-50' : ''} bg-indigo-50/30">
+                            <span class="text-sm">${it.svcName}${it.tierName ? ` <span class="text-[10px] bg-white text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded font-bold">${it.tierName}</span>` : ''}</span>
+                            <span class="text-xs text-slate-400">原价 ¥${fmtMoney(it.originalPrice)}</span>
+                        </div>`).join('')}
+                    </div>
+                </div>` : ''}
                 <div>
                     <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-tasks text-orange-500"></i><span>交付里程碑</span></h3>
                     <div class="relative pl-6">

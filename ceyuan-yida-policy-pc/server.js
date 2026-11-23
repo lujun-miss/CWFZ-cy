@@ -32,18 +32,30 @@ const server = http.createServer((req, res) => {
         return;
     }
     if (urlPath === '/') urlPath = '/index.html';
+    // 兼容带项目目录前缀的地址（如 /ceyuan-yida-policy-pc/index.html），避免误 404
+    if (urlPath.indexOf('/ceyuan-yida-policy-pc/') === 0) {
+        urlPath = urlPath.slice('/ceyuan-yida-policy-pc'.length);
+    }
 
     const filePath = path.join(ROOT, urlPath);
 
+    // 预览容器会注入 @vite/client 等脚本请求，若返回 HTML，浏览器会把 HTML 当 JS 解析并报 SyntaxError
+    const isScriptReq = /\.m?js$/i.test(urlPath) || urlPath.indexOf('/@') === 0 || String(req.headers.accept || '').indexOf('javascript') > -1;
+
     fs.readFile(filePath, (err, data) => {
         if (err) {
-            res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+            if (isScriptReq) {
+                res.writeHead(404, { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
+                res.end('');
+                return;
+            }
+            res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
             res.end('<h1>404 Not Found</h1><p>文件不存在: ' + urlPath + '</p>');
             return;
         }
         const ext = path.extname(filePath).toLowerCase();
         const mime = MIME[ext] || 'application/octet-stream';
-        res.writeHead(200, { 'Content-Type': mime });
+        res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'no-cache, no-store, must-revalidate' });
         res.end(data);
     });
 });

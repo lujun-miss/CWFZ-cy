@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -33,16 +33,20 @@
         .toast.show { opacity: 1; }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>

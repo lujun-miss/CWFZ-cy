@@ -15,16 +15,20 @@
         ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -93,6 +97,35 @@
         </div>
     </div>
 
+    <!-- 客户端专属服务包（定向报价，不进入公开商城） -->
+    <div class="mt-6 bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
+            <div>
+                <h2 class="text-base font-black text-slate-800 flex items-center">
+                    <i class="fa fa-cubes text-indigo-500 mr-2"></i>客户服务包
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">由客服在「在线咨询消息 → 打包报价」生成，仅通过专属链接展示给对应客户，不进入公开商城；客户下单后订单同步至订单管理。</p>
+            </div>
+            <span class="text-xs text-slate-400">共 <span id="bundleTotal" class="font-bold text-indigo-600">0</span> 个服务包</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 text-xs">
+                        <th class="px-5 py-3 text-left font-bold">服务包</th>
+                        <th class="px-5 py-3 text-left font-bold">客户</th>
+                        <th class="px-5 py-3 text-left font-bold">服务项</th>
+                        <th class="px-5 py-3 text-left font-bold">原价 / 打包价</th>
+                        <th class="px-5 py-3 text-left font-bold">有效期</th>
+                        <th class="px-5 py-3 text-left font-bold">状态</th>
+                        <th class="px-5 py-3 text-left font-bold">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="bundleBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- 服务编辑弹窗 -->
     <div id="editModal" class="fixed inset-0 modal-mask z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-[20px] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -117,13 +150,65 @@
                         <label class="block text-xs font-bold text-slate-600 mb-1.5">服务提供商</label>
                         <input id="fProvider" type="text" placeholder="如：北京中科创服咨询有限公司" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1.5">售价（元）<span class="text-rose-500">*</span></label>
-                        <input id="fPrice" type="number" min="0" placeholder="18800" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">定价方式 <span class="text-rose-500">*</span></label>
+                        <div id="pricingModeGroup" class="grid grid-cols-3 gap-2">
+                            <label onclick="setPricingMode('fixed')" data-mode="fixed" class="pricing-opt cursor-pointer border-2 border-slate-200 bg-white rounded-xl px-3 py-2.5 text-center transition-all">
+                                <input type="radio" name="fPricingMode" value="fixed" class="hidden">
+                                <div class="text-sm font-bold text-slate-700">一口价</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">所有客户统一价格</div>
+                            </label>
+                            <label onclick="setPricingMode('tiered')" data-mode="tiered" class="pricing-opt cursor-pointer border-2 border-slate-200 bg-white rounded-xl px-3 py-2.5 text-center transition-all">
+                                <input type="radio" name="fPricingMode" value="tiered" class="hidden">
+                                <div class="text-sm font-bold text-slate-700">按企业规模阶梯计价</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">微型 / 小型 / 中型 / 大型</div>
+                            </label>
+                            <label onclick="setPricingMode('quote')" data-mode="quote" class="pricing-opt cursor-pointer border-2 border-slate-200 bg-white rounded-xl px-3 py-2.5 text-center transition-all">
+                                <input type="radio" name="fPricingMode" value="quote" class="hidden">
+                                <div class="text-sm font-bold text-slate-700">面议报价</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">按需求定制，前台显示面议</div>
+                            </label>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1.5">划线价/原价（元，0 表示无）</label>
-                        <input id="fOldPrice" type="number" min="0" placeholder="25000" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white">
+                    <div id="fixedPriceWrap" class="col-span-2 grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5">售价（元）<span class="text-rose-500">*</span></label>
+                            <input id="fPrice" type="number" min="0" placeholder="18800" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5">划线价/原价（元，0 表示无）</label>
+                            <input id="fOldPrice" type="number" min="0" placeholder="25000" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white">
+                        </div>
+                    </div>
+                    <div id="tierWrap" class="col-span-2 hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-xs font-bold text-slate-600">规模档位 <span class="text-rose-500">*</span></label>
+                            <button type="button" onclick="applyStandardTiers()" class="text-xs font-bold text-orange-600 hover:text-orange-700"><i class="fa fa-magic mr-1"></i>套用标准四档</button>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mb-2 leading-relaxed">按企业职工人数与年营业收入划分档位，商城将根据企业档案自动匹配档位并允许客户手动切换；上限留空或填 0 表示不限。列表价格按最低档展示为「¥X 起」。</p>
+                        <div class="overflow-x-auto border border-slate-100 rounded-xl">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-500">
+                                        <th class="px-2 py-2 text-left font-bold">档位名称</th>
+                                        <th class="px-2 py-2 text-left font-bold">职工人数（人）</th>
+                                        <th class="px-2 py-2 text-left font-bold">年营收（万元）</th>
+                                        <th class="px-2 py-2 text-left font-bold">价格（元）</th>
+                                        <th class="px-2 py-2 text-left font-bold">划线价</th>
+                                        <th class="px-2 py-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tierList" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                        <button type="button" onclick="addTier()" class="w-full mt-2 py-2 border border-dashed border-slate-300 text-slate-500 rounded-xl text-sm font-bold hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50/40 transition-all flex items-center justify-center">
+                            <i class="fa fa-plus mr-1.5"></i>添加档位
+                        </button>
+                    </div>
+                    <div id="quoteWrap" class="col-span-2 hidden">
+                        <div class="px-4 py-3 bg-amber-50/60 border border-amber-100 rounded-xl">
+                            <p class="text-xs text-amber-700 leading-relaxed"><i class="fa fa-info-circle mr-1"></i>面议报价不展示具体价格，商城显示「面议」，客户点击后引导在线咨询获取专属方案。适合项目复杂度差异大、需按需求评估的服务。</p>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1.5">上架状态</label>
@@ -180,6 +265,7 @@
     <script src="data-bridge.js"></script>
     <script>
         let PRODUCTS = [];
+        let BUNDLES = [];
         let editingId = null;
 
         function fmtMoney(n) {
@@ -190,6 +276,18 @@
             if (s === 'on') return '<span class="px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-md"><i class="fa fa-check-circle mr-0.5"></i>已上架</span>';
             if (s === 'draft') return '<span class="px-2 py-1 bg-slate-100 text-slate-500 text-xs font-bold rounded-md border border-slate-200"><i class="fa fa-pencil mr-0.5"></i>草稿</span>';
             return '<span class="px-2 py-1 bg-slate-100 text-slate-400 text-xs font-bold rounded-md border border-slate-200"><i class="fa fa-ban mr-0.5"></i>已下架</span>';
+        }
+        function priceCell(p) {
+            if (p.pricingMode === 'quote') {
+                return '<span class="text-slate-700 font-black">面议</span><div class="text-[10px] text-amber-600 mt-0.5"><i class="fa fa-comments-o mr-0.5"></i>定制报价</div>';
+            }
+            if (p.pricingMode === 'tiered') {
+                const n = (p.tiers || []).length;
+                return `<span class="text-orange-600 font-black">¥${fmtMoney(p.price)}</span><span class="text-[10px] text-orange-500 ml-0.5">起</span>
+                    <div class="text-[10px] text-slate-400 mt-0.5"><i class="fa fa-signal mr-0.5"></i>按企业规模 ${n} 档</div>`;
+            }
+            return `<span class="text-orange-600 font-black">¥${fmtMoney(p.price)}</span>
+                ${p.oldPrice ? `<span class="text-xs text-slate-400 line-through ml-1">¥${fmtMoney(p.oldPrice)}</span>` : ''}`;
         }
 
         function load() {
@@ -235,10 +333,7 @@
                         </div>
                     </td>
                     <td class="px-5 py-4 text-slate-600">${p.provider}</td>
-                    <td class="px-5 py-4">
-                        <span class="text-orange-600 font-black">¥${fmtMoney(p.price)}</span>
-                        ${p.oldPrice ? `<span class="text-xs text-slate-400 line-through ml-1">¥${fmtMoney(p.oldPrice)}</span>` : ''}
-                    </td>
+                    <td class="px-5 py-4">${priceCell(p)}</td>
                     <td class="px-5 py-4 text-slate-600">
                         <div class="text-xs"><i class="fa fa-fire text-orange-400 mr-1"></i>${fmtMoney(p.sales)} 单</div>
                         <div class="text-xs text-slate-400 mt-0.5"><i class="fa fa-star text-orange-300 mr-1"></i>${p.rating || '—'} 分</div>
@@ -262,8 +357,160 @@
             DataBridge.saveServiceProducts(PRODUCTS);
         }
 
+        // ===== 客户服务包（定向报价，仅专属链接可见） =====
+        function loadBundles() {
+            BUNDLES = (typeof DataBridge !== 'undefined' && DataBridge.loadServiceBundles) ? DataBridge.loadServiceBundles() : [];
+            renderBundles();
+        }
+        function localToday() {
+            const d = new Date(), p = n => String(n).padStart(2, '0');
+            return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+        }
+        function bundleStatus(b) {
+            if (b.status === 'closed') return '<span class="px-2 py-1 bg-slate-100 text-slate-400 text-xs font-bold rounded-md"><i class="fa fa-ban mr-0.5"></i>已作废</span>';
+            if (b.status === 'paid') return '<span class="px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-md"><i class="fa fa-check-circle mr-0.5"></i>已付款</span>';
+            if (b.status === 'ordered') return '<span class="px-2 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-md"><i class="fa fa-clock-o mr-0.5"></i>已下单待付款</span>';
+            if (b.expireAt && b.expireAt < localToday()) return '<span class="px-2 py-1 bg-rose-50 text-rose-500 text-xs font-bold rounded-md"><i class="fa fa-times-circle mr-0.5"></i>已过期</span>';
+            return '<span class="px-2 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-md"><i class="fa fa-paper-plane mr-0.5"></i>待客户确认</span>';
+        }
+        function bundleLink(b) {
+            return location.href.replace(/[^\/]*$/, '') + 'service-bundle.html?token=' + encodeURIComponent(b.token);
+        }
+        function renderBundles() {
+            const tbody = document.getElementById('bundleBody');
+            document.getElementById('bundleTotal').textContent = BUNDLES.length;
+            if (!BUNDLES.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-5 py-10 text-center text-xs text-slate-300">暂无服务包，可在「在线咨询消息」中为客户打包报价</td></tr>';
+                return;
+            }
+            tbody.innerHTML = BUNDLES.map(b => {
+                const closed = b.status === 'closed';
+                return `<tr class="hover:bg-slate-50/60 transition-colors">
+                    <td class="px-5 py-3.5">
+                        <div class="font-bold text-slate-800">${esc(b.title)}</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5 font-mono">${b.id}</div>
+                    </td>
+                    <td class="px-5 py-3.5 text-xs text-slate-600">${esc(b.customerName)}</td>
+                    <td class="px-5 py-3.5 text-xs text-slate-600">
+                        <span class="font-bold text-indigo-600">${b.items.length}</span> 项
+                        <div class="text-[10px] text-slate-400 mt-0.5 max-w-[220px] truncate">${esc(b.items.map(it => it.svcName).join('、'))}</div>
+                    </td>
+                    <td class="px-5 py-3.5 whitespace-nowrap">
+                        <span class="text-orange-600 font-black">¥${fmtMoney(b.totalPrice)}</span>
+                        <span class="text-[11px] text-slate-400 line-through ml-1">¥${fmtMoney(b.originalTotal)}</span>
+                    </td>
+                    <td class="px-5 py-3.5 text-xs text-slate-500">${b.expireAt || '长期有效'}</td>
+                    <td class="px-5 py-3.5">${bundleStatus(b)}</td>
+                    <td class="px-5 py-3.5">
+                        <div class="flex items-center gap-3 text-xs font-bold">
+                            <button onclick="previewBundle('${b.id}')" class="text-indigo-600 hover:text-indigo-700">预览</button>
+                            <button onclick="copyBundleLink('${b.id}')" class="text-slate-500 hover:text-slate-700">复制链接</button>
+                            ${closed ? '' : `<button onclick="closeBundle('${b.id}')" class="text-rose-500 hover:text-rose-600">作废</button>`}
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+        function previewBundle(id) {
+            const b = BUNDLES.find(x => x.id === id);
+            if (b) window.open(bundleLink(b), '_blank');
+        }
+        function copyBundleLink(id) {
+            const b = BUNDLES.find(x => x.id === id);
+            if (!b) return;
+            const link = bundleLink(b);
+            try {
+                if (navigator.clipboard) navigator.clipboard.writeText(link);
+            } catch (e) {}
+            alert('专属链接已复制：\n' + link);
+        }
+        function closeBundle(id) {
+            if (!confirm('作废后客户将无法通过该链接下单，确定作废？')) return;
+            if (typeof DataBridge !== 'undefined' && DataBridge.updateServiceBundle) {
+                DataBridge.updateServiceBundle(id, { status: 'closed' });
+            }
+            loadBundles();
+        }
+
         // ===== 编辑弹窗 =====
         let editTags = [];
+
+        // 定价方式切换：一口价 / 按企业规模阶梯计价 / 面议报价
+        function setPricingMode(mode) {
+            document.querySelectorAll('#pricingModeGroup .pricing-opt').forEach(el => {
+                const on = el.dataset.mode === mode;
+                el.classList.toggle('border-orange-400', on);
+                el.classList.toggle('bg-orange-50', on);
+                el.classList.toggle('border-slate-200', !on);
+                el.classList.toggle('bg-white', !on);
+                const radio = el.querySelector('input');
+                if (radio) radio.checked = on;
+            });
+            document.getElementById('fixedPriceWrap').classList.toggle('hidden', mode !== 'fixed');
+            document.getElementById('tierWrap').classList.toggle('hidden', mode !== 'tiered');
+            document.getElementById('quoteWrap').classList.toggle('hidden', mode !== 'quote');
+        }
+
+        function addTier(t) {
+            t = t || {};
+            const box = document.getElementById('tierList');
+            const row = document.createElement('tr');
+            row.className = 'tier-row';
+            row.dataset.tid = t.id || '';
+            const inpCls = 'px-1.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white';
+            row.innerHTML = `
+                <td class="px-2 py-1.5"><input type="text" value="${esc(t.name)}" placeholder="如：小型企业" class="t-name w-24 ${inpCls}"></td>
+                <td class="px-2 py-1.5">
+                    <div class="flex items-center gap-1">
+                        <input type="number" min="0" value="${t.minEmp ? t.minEmp : ''}" placeholder="0" class="t-minEmp w-14 text-center ${inpCls}">
+                        <span class="text-slate-300">~</span>
+                        <input type="number" min="0" value="${t.maxEmp ? t.maxEmp : ''}" placeholder="不限" class="t-maxEmp w-14 text-center ${inpCls}">
+                    </div>
+                </td>
+                <td class="px-2 py-1.5">
+                    <div class="flex items-center gap-1">
+                        <input type="number" min="0" value="${t.minRev ? t.minRev : ''}" placeholder="0" class="t-minRev w-16 text-center ${inpCls}">
+                        <span class="text-slate-300">~</span>
+                        <input type="number" min="0" value="${t.maxRev ? t.maxRev : ''}" placeholder="不限" class="t-maxRev w-16 text-center ${inpCls}">
+                    </div>
+                </td>
+                <td class="px-2 py-1.5"><input type="number" min="0" value="${t.price ? t.price : ''}" placeholder="0" class="t-price w-20 ${inpCls}"></td>
+                <td class="px-2 py-1.5"><input type="number" min="0" value="${t.oldPrice ? t.oldPrice : ''}" placeholder="0" class="t-oldPrice w-16 ${inpCls}"></td>
+                <td class="px-2 py-1.5 text-center"><button type="button" class="w-7 h-7 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"><i class="fa fa-trash-o"></i></button></td>`;
+            row.querySelector('button').onclick = () => row.remove();
+            box.appendChild(row);
+        }
+
+        // 套用标准四档：按顺序保留已填写的价格
+        function applyStandardTiers() {
+            const box = document.getElementById('tierList');
+            const old = [...box.querySelectorAll('.tier-row')].map(r => ({
+                price: r.querySelector('.t-price').value,
+                oldPrice: r.querySelector('.t-oldPrice').value
+            }));
+            const tpl = (typeof DataBridge !== 'undefined' && Array.isArray(DataBridge.STANDARD_SERVICE_TIERS))
+                ? DataBridge.STANDARD_SERVICE_TIERS : [];
+            if (!tpl.length) { alert('标准档位模板不可用'); return; }
+            box.innerHTML = '';
+            tpl.forEach((t, i) => addTier(Object.assign({}, t, {
+                price: old[i] ? old[i].price : '',
+                oldPrice: old[i] ? old[i].oldPrice : ''
+            })));
+        }
+
+        function collectTiers() {
+            return [...document.querySelectorAll('#tierList .tier-row')].map(r => ({
+                id: r.dataset.tid || '',
+                name: r.querySelector('.t-name').value.trim(),
+                minEmp: Number(r.querySelector('.t-minEmp').value) || 0,
+                maxEmp: Number(r.querySelector('.t-maxEmp').value) || 0,
+                minRev: Number(r.querySelector('.t-minRev').value) || 0,
+                maxRev: Number(r.querySelector('.t-maxRev').value) || 0,
+                price: Number(r.querySelector('.t-price').value) || 0,
+                oldPrice: Number(r.querySelector('.t-oldPrice').value) || 0
+            })).filter(t => t.name || t.price > 0);
+        }
+
         function openEdit(id) {
             editingId = id || null;
             const p = id ? PRODUCTS.find(x => x.id === id) : null;
@@ -271,8 +518,14 @@
             document.getElementById('fName').value = p ? p.name : '';
             document.getElementById('fCategory').value = p ? p.category : '政策咨询';
             document.getElementById('fProvider').value = p ? p.provider : '';
-            document.getElementById('fPrice').value = p ? (p.price || '') : '';
-            document.getElementById('fOldPrice').value = p ? (p.oldPrice || '') : '';
+            setPricingMode(p ? (p.pricingMode || 'fixed') : 'fixed');
+            document.getElementById('fPrice').value = p && p.pricingMode !== 'quote' ? (p.price || '') : '';
+            document.getElementById('fOldPrice').value = p && p.pricingMode !== 'quote' ? (p.oldPrice || '') : '';
+            const tierBox = document.getElementById('tierList');
+            tierBox.innerHTML = '';
+            if (p && p.pricingMode === 'tiered' && Array.isArray(p.tiers)) {
+                p.tiers.forEach(t => addTier(t));
+            }
             document.getElementById('fStatus').value = p ? p.status : 'draft';
             document.getElementById('fFeatured').checked = p ? !!p.featured : false;
             document.getElementById('fDesc').value = p ? (p.desc || '') : '';
@@ -365,9 +618,27 @@
 
         function saveSvc() {
             const name = document.getElementById('fName').value.trim();
-            const price = parseFloat(document.getElementById('fPrice').value);
             if (!name) { alert('请填写服务名称'); return; }
-            if (isNaN(price) || price < 0) { alert('请填写正确的售价'); return; }
+            const modeEl = document.querySelector('input[name="fPricingMode"]:checked');
+            const pricingMode = modeEl ? modeEl.value : 'fixed';
+            let price = 0, oldPrice = 0, tiers = [];
+            if (pricingMode === 'fixed') {
+                price = parseFloat(document.getElementById('fPrice').value);
+                if (isNaN(price) || price < 0) { alert('请填写正确的售价'); return; }
+                oldPrice = parseFloat(document.getElementById('fOldPrice').value) || 0;
+            } else if (pricingMode === 'tiered') {
+                tiers = collectTiers();
+                if (!tiers.length) { alert('请至少配置一个规模档位，可点击「套用标准四档」快速生成'); return; }
+                const noName = tiers.find(t => !t.name);
+                if (noName) { alert('请填写每个档位的档位名称'); return; }
+                const noPrice = tiers.find(t => !(t.price > 0));
+                if (noPrice) { alert('请填写档位「' + noPrice.name + '」的价格'); return; }
+                tiers = tiers.map((t, i) => Object.assign({}, t, { id: t.id || ('t' + (i + 1)) }));
+                price = Math.min.apply(null, tiers.map(t => t.price));
+                oldPrice = 0;
+            } else {
+                price = 0; oldPrice = 0;
+            }
             const includes = [...document.querySelectorAll('.inc-item')].map(i => i.value.trim()).filter(Boolean);
             const process = [...document.querySelectorAll('.step-row')].map(r => ({
                 t: r.querySelector('.step-t').value.trim(),
@@ -382,8 +653,10 @@
                 name,
                 category: document.getElementById('fCategory').value,
                 provider: document.getElementById('fProvider').value.trim() || '平台自营',
+                pricingMode,
+                tiers,
                 price,
-                oldPrice: parseFloat(document.getElementById('fOldPrice').value) || 0,
+                oldPrice,
                 status: document.getElementById('fStatus').value,
                 featured: document.getElementById('fFeatured').checked,
                 desc: document.getElementById('fDesc').value.trim(),
@@ -408,6 +681,7 @@
         // 初始化
         load();
         render();
+        loadBundles();
     </script>
 </body>
 </html>

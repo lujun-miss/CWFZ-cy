@@ -17,16 +17,20 @@
         .modal-mask { background: rgba(15,23,42,0.5); backdrop-filter: blur(2px); }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -310,7 +314,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-sm font-black text-amber-800 flex items-center"><i class="fa fa-user-plus mr-2"></i>用户贡献审核</h3>
-                    <p class="text-[11px] text-amber-700 mt-1">企业上传文件 / 政策链接 / 粘贴全文 → 系统自动识别 + 智能查重（与政策库实时比对）→ 你核对修正 → 通过后发放策能值，并在正式政策库生成草稿，补充完整后手动上架</p>
+                    <p class="text-[11px] text-amber-700 mt-1">新政策由系统查重后自动入库并即时发放策能值，无需人工审核；仅与库内政策存在文号冲突等可疑情况才进入本列表，由你核实修正后通过或驳回</p>
                     <div class="flex items-center gap-2 mt-1 flex-wrap">
                         <p class="text-[10px] text-amber-600/80"><i class="fa fa-filter mr-1"></i>查重规则：文号一致且名称/发文单位可佐证 → 原文链接一致 → 名称+发文单位一致 → 名称高相似 → 正文相似</p>
                         <button onclick="toggleContribRuleDetail()" id="contribRuleToggle" class="text-[10px] font-bold text-amber-700 underline decoration-dotted hover:text-amber-900"><i class="fa fa-angle-down mr-0.5"></i>判定档位</button>
@@ -323,7 +327,7 @@
                     </div>
                 </div>
                 <div class="text-[11px] text-amber-700">
-                    <span class="font-bold">积分规则：</span>国家级 50 · 省级 20 · 市级/通知 10
+                    <span class="font-bold">积分规则：</span>不区分国家级/省级/市级/区县级，采纳即得，统一 30 策能值
                 </div>
             </div>
             <!-- 审核状态子 Tab -->
@@ -362,11 +366,12 @@
             <div class="p-5 border-b border-slate-100 flex items-center justify-between">
                 <div>
                     <h3 class="text-sm font-black text-slate-800 flex items-center"><i class="fa fa-file-text-o text-cyan-600 mr-2"></i>采集解析流水线</h3>
-                    <p class="text-[11px] text-slate-400 mt-1">新增政策自动入库并标注「待处理」→ 多模态解析（OCR + 版面分析）→ 字段抽取 → 相似去重 / 修订关联 → 人工审核入库</p>
+                    <p class="text-[11px] text-slate-400 mt-1">采集到的政策先做解析与查重：判定为「新政策」的直接自动入库并生效，无需人工审核；仅疑似重复、修订版、解析字段缺失等有疑问的记录才进入人工核实</p>
                 </div>
                 <div class="flex items-center gap-2 text-[11px] text-slate-500">
                     <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-slate-300"></span>待解析</span>
                     <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>解析中</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>已自动入库</span>
                     <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyan-500"></span>待审核</span>
                     <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-400"></span>疑似重复</span>
                     <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500"></span>修订版</span>
@@ -389,7 +394,7 @@
             </div>
             <div id="crawlerEmpty" class="hidden p-10 text-center">
                 <i class="fa fa-check-circle text-4xl text-emerald-200 mb-3"></i>
-                <div class="text-sm text-slate-400">采集队列已清空 · 所有新政策均已处理入库</div>
+                <div class="text-sm text-slate-400">暂无需人工处理的采集记录 · 新政策已自动入库</div>
             </div>
         </div>
     </div>
@@ -2074,24 +2079,27 @@
             if (st === 'dup') return '<span class="px-2 py-1 bg-orange-50 text-orange-600 text-xs font-bold rounded-md"><i class="fa fa-clone mr-0.5"></i>疑似重复</span>';
             if (st === 'revised') return '<span class="px-2 py-1 bg-purple-50 text-purple-600 text-xs font-bold rounded-md"><i class="fa fa-code-fork mr-0.5"></i>修订版</span>';
             if (st === 'done') return '<span class="px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-md"><i class="fa fa-check mr-0.5"></i>已入库 · 草稿</span>';
+            if (st === 'auto') return '<span class="px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-md"><i class="fa fa-bolt mr-0.5"></i>已自动入库</span>';
             if (st === 'ignored') return '<span class="px-2 py-1 bg-slate-50 text-slate-400 text-xs font-bold rounded-md">已忽略</span>';
             return '';
         }
 
-        function feedSimBadge(sim) {
-            if (!sim || sim.kind === 'new') return '<span class="text-xs text-slate-400">新政策</span>';
+        function feedSimBadge(sim, fields) {
+            if (!sim) return '<span class="text-xs text-slate-400">' + ((fields && fields.length) ? '新政策' : '待人工核实') + '</span>';
+            if (sim.kind === 'new') return '<span class="text-xs text-emerald-600 font-bold">新政策 · 自动入库</span>';
             if (sim.kind === 'dup') return '<span class="text-xs text-orange-600 font-bold">与「' + sim.match + '」相似度 ' + sim.rate + '%</span>';
             if (sim.kind === 'revised') return '<span class="text-xs text-purple-600 font-bold">关联历史版本：' + sim.match + '</span>';
             return '';
         }
 
         function renderCrawler() {
+            autoIngestNewFeeds();
             renderSourceCards();
             var tbody = '';
             var active = 0;
             FEED.forEach(function(f, i) {
-                if (f.status !== 'done' && f.status !== 'ignored') active++;
-                var simHtml = feedSimBadge(f.sim);
+                if (f.status !== 'done' && f.status !== 'ignored' && f.status !== 'auto') active++;
+                var simHtml = feedSimBadge(f.sim, f.fields);
                 var ops = '';
                 if (f.status === 'parsed' || f.status === 'revised') {
                     ops = '<button onclick="openParseModal(' + i + ')" class="text-cyan-600 hover:text-cyan-800 font-bold text-xs"><i class="fa fa-cogs mr-0.5"></i>查看解析</button>' +
@@ -2103,6 +2111,8 @@
                     ops = '<div class="flex items-center gap-2"><div class="bar-track w-20"><div class="bar-fill" style="width:' + f.progress + '%;background:linear-gradient(90deg,#3b82f6,#60a5fa)"></div></div><span class="text-[10px] text-blue-500 font-bold">' + f.progress + '%</span></div>';
                 } else if (f.status === 'pending') {
                     ops = '<span class="text-xs text-slate-400">排队中 · 稍后自动解析</span>';
+                } else if (f.status === 'auto') {
+                    ops = '<span class="text-xs text-emerald-500 font-bold"><i class="fa fa-bolt mr-0.5"></i>新政策自动入库</span>';
                 } else {
                     ops = '<span class="text-xs text-slate-300">—</span>';
                 }
@@ -2276,9 +2286,7 @@
             if (/申报|遴选|入库|认定/.test(title)) return '申报通知';
             return '政策发布';
         }
-        function quickApproveFeed(i) {
-            var f = FEED[i];
-            if (!f || f.status === 'done') return;
+        function _feedToPolicy(f, status) {
             var m = _feedFieldMap(f);
             var valid = String(m['有效期'] || '');
             var vparts = valid.split(/\s*至\s*/);
@@ -2286,9 +2294,8 @@
             var bparts = batchStr.split(/\s*至\s*/);
             var regionText = String(m['适用区域'] || '').replace(/（.*?）/g, '').trim();
             var lv = m['政策层级'] || '省级';
-            var pid = 'POLICY_' + Date.now();
-            POLICY_LIBRARY.push({
-                id: pid,
+            return {
+                id: 'POLICY_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
                 name: m['政策名称'] || f.title,
                 docNo: m['文号'] || (f.docNo && f.docNo !== '—' ? f.docNo : ''),
                 dept: m['发文部门'] || '',
@@ -2296,7 +2303,7 @@
                 industry: m['适用行业'] || (lv === '国家级' ? '全行业' : '通用'),
                 region: { province: regionText || (lv === '国家级' ? '全国' : '四川省'), city: '', district: '' },
                 infoType: _feedInfoType(f.title),
-                status: 'draft',
+                status: status || 'draft',
                 sourceType: 'crawler',
                 effective: vparts[0] || '',
                 validType: vparts[1] ? 'date' : 'unknown',
@@ -2307,7 +2314,53 @@
                 source: { link: m['原文链接'] || f.url || '' },
                 _ai: true,
                 crawlFeedId: f.id
+            };
+        }
+
+        /**
+         * 采集自动入库：解析完成且查重判定为「新政策」的记录直接入库（无需人工审核）
+         * 仅疑似重复、修订版、解析异常等有疑问的记录进入人工审核
+         */
+        var CRAWL_INGESTED_KEY = 'ceyuan_crawl_ingested';
+        function _loadIngestedIds() {
+            try { return JSON.parse(localStorage.getItem(CRAWL_INGESTED_KEY) || '[]'); } catch (e) { return []; }
+        }
+
+        function autoIngestNewFeeds() {
+            var changed = 0;
+            var ingestedIds = _loadIngestedIds();
+            // 已自动入库过的记录（刷新后不重复入库）
+            FEED.forEach(function(f) {
+                if (ingestedIds.indexOf(f.id) > -1 && f.status !== 'auto') { f.status = 'auto'; f.policyId = f.policyId || ''; }
             });
+            FEED.forEach(function(f) {
+                if (f.status !== 'parsed' || f.policyId) return;
+                if (!f.sim || f.sim.kind !== 'new' || !(f.fields && f.fields.length)) return;
+                var exists = POLICY_LIBRARY.some(function(p) { return p.crawlFeedId === f.id; });
+                if (!exists) {
+                    var p = _feedToPolicy(f, 'published');
+                    POLICY_LIBRARY.push(p);
+                    f.policyId = p.id;
+                }
+                f.status = 'auto';
+                if (ingestedIds.indexOf(f.id) === -1) ingestedIds.push(f.id);
+                changed++;
+            });
+            if (changed) {
+                try { localStorage.setItem(CRAWL_INGESTED_KEY, JSON.stringify(ingestedIds)); } catch (e) {}
+                if (typeof DataBridge !== 'undefined') {
+                    try { DataBridge.savePolicyLibrary(POLICY_LIBRARY); } catch (e) {}
+                }
+                showToast(changed + ' 条新采集政策已自动入库（无疑似重复，无需人工审核）', 'success');
+                renderPolicyList();
+            }
+            return changed;
+        }
+
+        function quickApproveFeed(i) {
+            var f = FEED[i];
+            if (!f || f.status === 'done') return;
+            POLICY_LIBRARY.push(_feedToPolicy(f, 'draft'));
             if (typeof DataBridge !== 'undefined') {
                 try { DataBridge.savePolicyLibrary(POLICY_LIBRARY); } catch (e) {}
             }
@@ -2613,19 +2666,19 @@
                         '<div class="grid grid-cols-2 gap-3">' +
                             '<div><label class="text-xs font-bold text-slate-600 mb-1">生效日期</label>' +
                                 '<input id="rv_date" type="date" value="' + (ocr.date || '') + '" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm"></div>' +
-                            '<div><label class="text-xs font-bold text-slate-600 mb-1">政策层级 <span class="font-normal text-slate-400">（确认后按此层级结算积分）</span></label>' +
+                            '<div><label class="text-xs font-bold text-slate-600 mb-1">政策层级 <span class="font-normal text-slate-400">（仅用于确定政策归属地区，不影响积分）</span></label>' +
                                 '<select id="rv_level" onchange="updateReviewPoints()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm">' +
-                                    '<option' + (c.level==='国家级'?' selected':'') + ' value="国家级">国家级（+50）</option>' +
-                                    '<option' + (c.level==='省级'?' selected':'') + ' value="省级">省级（+20）</option>' +
-                                    '<option' + (c.level==='市级'?' selected':'') + ' value="市级">市级（+10）</option>' +
-                                    '<option' + (c.level==='区县级'?' selected':'') + ' value="区县级">区县级（+10）</option>' +
-                                    '<option' + (c.level==='通知公告'?' selected':'') + ' value="通知公告">通知公告（+10）</option>' +
+                                    '<option' + (c.level==='国家级'?' selected':'') + ' value="国家级">国家级</option>' +
+                                    '<option' + (c.level==='省级'?' selected':'') + ' value="省级">省级</option>' +
+                                    '<option' + (c.level==='市级'?' selected':'') + ' value="市级">市级</option>' +
+                                    '<option' + (c.level==='区县级'?' selected':'') + ' value="区县级">区县级</option>' +
+                                    '<option' + (c.level==='通知公告'?' selected':'') + ' value="通知公告">通知公告</option>' +
                                 '</select></div>' +
                         '</div>' +
                         (function() {
                             var infer = inferLevelFromOcr(ocr);
                             if (infer && c.level && infer !== c.level) {
-                                return '<div class="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"><i class="fa fa-exclamation-triangle mr-1"></i>用户提交时选择「' + c.level + '」，但按发文单位与文号自动预判为「' + infer + '」，请核实后修正层级，积分按确认层级结算</div>';
+                                return '<div class="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"><i class="fa fa-exclamation-triangle mr-1"></i>用户提交时选择「' + c.level + '」，但按发文单位与文号自动预判为「' + infer + '」，请核实后修正层级（仅影响政策归属地区，积分不随层级变化）</div>';
                             }
                             return '';
                         })() +
@@ -2775,7 +2828,7 @@
             m.classList.add('hidden'); m.classList.remove('flex');
         }
 
-        var REVIEW_POINTS = { '国家级': 50, '省级': 20, '市级': 10, '区县级': 10, '通知公告': 10 };
+        var REVIEW_POINTS = { '国家级': 30, '省级': 30, '市级': 30, '区县级': 30, '通知公告': 30 };
         // 与 C 端 contribInferLevel 同规则：按发文单位/文号预判层级
         function inferLevelFromOcr(ocr) {
             var s = ((ocr && ocr.dept) || '') + ((ocr && ocr.docNo) || '');
@@ -2791,9 +2844,9 @@
             var c = _contribList.find(function(x){ return x.id === _reviewingId; });
             if (!sel || !line || !c) return;
             var lv = sel.value;
-            var pts = REVIEW_POINTS[lv] || 10;
+            var pts = REVIEW_POINTS[lv] || 30;
             var diff = c.level && c.level !== lv;
-            line.innerHTML = '审核通过后，将给 <b class="text-amber-600">' + c.uploaderName + '</b> 发放 <b class="text-emerald-600">' + pts + '</b> 策能值（按运营确认的层级结算' + (diff ? '，已由提交时「' + c.level + '」修正为「' + lv + '」' : '') + '）';
+            line.innerHTML = '审核通过后，将给 <b class="text-amber-600">' + c.uploaderName + '</b> 发放 <b class="text-emerald-600">' + pts + '</b> 策能值（不区分政策层级，统一 30 策能值' + (diff ? '；层级由提交时「' + c.level + '」修正为「' + lv + '」，仅影响政策归属地区' : '') + '）';
         }
 
         // 贡献审核通过 → 在正式政策库生成「草稿」，字段待运营补充后再上架（不直接对外展示）
@@ -2852,7 +2905,8 @@
                 for (var i = 0; i < list.length; i++) {
                     if (list[i].id === cid) {
                         list[i].status = 'approved'; list[i].reviewedAt = new Date().toISOString().slice(0,16);
-                        if (lv && lv !== list[i].level) { list[i].level = lv; list[i].points = REVIEW_POINTS[lv] || 10; }
+                        if (lv && lv !== list[i].level) { list[i].level = lv; }
+                        list[i].points = REVIEW_POINTS[lv] || 30;
                         break;
                     }
                 }

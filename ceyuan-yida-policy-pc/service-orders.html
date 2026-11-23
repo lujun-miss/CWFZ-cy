@@ -16,16 +16,20 @@
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -44,6 +48,10 @@
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-comments text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策问答</span>
                 </button>
+                <button onclick="goPage('policy-center.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
                 <button onclick="goPage('policy-radar.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策雷达</span>
@@ -55,10 +63,6 @@
                 <button onclick="goPage('declaration-butler.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="申报材料自查">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-file-text-o text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">申报管家</span>
-                </button>
-                <button onclick="goPage('policy-center.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
-                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
-                    <span class="text-[10px] font-bold">政策中心</span>
                 </button>
                 <button onclick="goPage('service-market.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
                     <span class="w-9 h-9 rounded-full shadow-md flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600 ring-2 ring-orange-300"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
@@ -191,6 +195,77 @@
         </div>
     </div>
 
+    <!-- 对公转账凭证弹窗 -->
+    <div id="voucherModal" class="fixed inset-0 modal-mask z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden flex flex-col" style="max-height:92vh">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 id="voucherTitle" class="text-base font-black text-slate-800"><i class="fa fa-bank text-orange-500 mr-2"></i>上传转账凭证</h3>
+                <button onclick="closeVoucher()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="flex items-center justify-between p-4 bg-orange-50/60 rounded-2xl border border-orange-100 mb-4">
+                    <div class="min-w-0">
+                        <p id="voucherOrderName" class="font-bold text-sm text-slate-800 truncate"></p>
+                        <p id="voucherOrderId" class="text-[11px] text-slate-400 mt-0.5"></p>
+                    </div>
+                    <span class="text-orange-600 font-black text-lg flex-shrink-0">¥<span id="voucherOrderAmt"></span></span>
+                </div>
+
+                <div class="bg-slate-50 rounded-2xl p-4 mb-4 text-[11px] text-slate-600 space-y-1.5">
+                    <p class="font-bold text-slate-700 text-xs mb-1"><i class="fa fa-university mr-1 text-slate-400"></i>对公收款账户</p>
+                    <div class="flex justify-between"><span class="text-slate-400">收款户名</span><span id="voucherBankHolder" class="font-bold">策源易答（深圳）科技有限公司</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">开户银行</span><span id="voucherBankBranch" class="font-bold">招商银行深圳科技园支行</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">银行账号</span><span id="voucherBankAccount" class="font-bold font-mono">7559 0188 2210 901</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">转账备注</span><span class="font-bold">订单号 <span id="voucherOrderNo"></span></span></div>
+                </div>
+
+                <div id="voucherAuditNote" class="hidden mb-4 p-3 bg-rose-50 border border-rose-100 rounded-xl text-[11px] text-rose-600 font-bold"></div>
+
+                <div id="voucherForm">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5">付款账户名称 <span class="text-rose-500">*</span></label>
+                            <input id="voucherPayer" type="text" placeholder="与银行账户一致" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-orange-300">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5">转账日期 <span class="text-rose-500">*</span></label>
+                            <input id="voucherDate" type="date" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-orange-300">
+                        </div>
+                    </div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">转账凭证图片 <span class="text-rose-500">*</span></label>
+                    <label class="block border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:border-orange-300 hover:bg-orange-50/30 transition-all">
+                        <input id="voucherFile" type="file" accept="image/*" class="hidden" onchange="onVoucherFile(this)">
+                        <div id="voucherDrop">
+                            <i class="fa fa-cloud-upload text-2xl text-slate-300"></i>
+                            <p class="text-[11px] text-slate-400 mt-1">点击上传银行回单，支持 JPG / PNG</p>
+                        </div>
+                        <div id="voucherPreviewBox" class="hidden">
+                            <img id="voucherPreview" class="max-h-40 mx-auto rounded-lg border border-slate-100" alt="转账凭证">
+                            <p id="voucherFileName" class="text-[10px] text-slate-400 mt-1.5 truncate"></p>
+                        </div>
+                    </label>
+                    <p class="text-[10px] text-slate-400 mt-2"><i class="fa fa-info-circle mr-1"></i>提交后订单状态变为「待审核」，运营审核通过后自动进入服务流程</p>
+                </div>
+
+                <div id="voucherReadonly" class="hidden">
+                    <div class="rounded-xl border border-slate-100 overflow-hidden">
+                        <img id="voucherViewImg" class="w-full max-h-64 object-contain bg-slate-50" alt="转账凭证">
+                        <div id="voucherViewNoImg" class="hidden py-10 text-center text-[11px] text-slate-400"><i class="fa fa-file-image-o text-2xl block mb-2"></i>未上传凭证图片（演示数据）</div>
+                    </div>
+                    <div class="mt-3 text-[11px] text-slate-600 space-y-1">
+                        <p>付款账户：<span id="voucherViewPayer" class="font-bold"></span></p>
+                        <p>转账日期：<span id="voucherViewDate" class="font-bold"></span></p>
+                        <p>提交时间：<span id="voucherViewTime" class="font-bold"></span></p>
+                    </div>
+                </div>
+            </div>
+            <div id="voucherFooter" class="px-6 py-4 border-t border-slate-100 bg-slate-50/60 flex justify-end space-x-2">
+                <button onclick="closeVoucher()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
+                <button onclick="submitVoucher()" class="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">提交审核</button>
+            </div>
+        </div>
+    </div>
+
     <script src="data-bridge.js"></script>
     <script>
         // 框架内跳转（商城为沉浸式全屏页），独立打开时直接跳
@@ -218,6 +293,24 @@
             done:     { text: '已完成', cls: 'bg-emerald-50 text-emerald-600' },
             reviewed: { text: '已评价', cls: 'bg-slate-100 text-slate-500' }
         };
+        // 对公收款账户取自后台「客服与咨询 → 对公转账收款账户」配置
+        function bankInfo() {
+            const d = (window.DataBridge && DataBridge.loadServiceContact) ? DataBridge.loadServiceContact() : {};
+            return {
+                holder: d.bankHolder || '策源易答（深圳）科技有限公司',
+                branch: d.bankBranch || '招商银行深圳科技园支行',
+                account: d.bankAccount || '7559 0188 2210 901'
+            };
+        }
+        // 对公转账订单按凭证状态细化展示
+        function statusOf(o) {
+            if (o.status === 'unpaid' && o.payMethod === '对公转账') {
+                if (o.payStatus === 'pending') return { text: '待审核', cls: 'bg-amber-50 text-amber-600' };
+                if (o.payStatus === 'rejected') return { text: '凭证被驳回', cls: 'bg-rose-50 text-rose-600' };
+                return { text: '待转账', cls: 'bg-orange-50 text-orange-600' };
+            }
+            return STATUS[o.status] || STATUS.unpaid;
+        }
         // 订单进度节点跟随商品配置的服务流程（商城看到什么流程，订单就是什么流程）
         const FALLBACK_STEPS = ['签订合同', '需求评估', '方案制定', '材料准备', '审核提交', '完成交付'];
         let PRODUCT_CACHE = null;
@@ -261,7 +354,7 @@
         }
 
         function orderCard(o) {
-            const st = STATUS[o.status] || STATUS.unpaid;
+            const st = statusOf(o);
             let body = '';
             // 服务进度（服务中）
             if (o.status === 'serving') {
@@ -281,6 +374,26 @@
                         </div>
                         <div class="mt-2 text-[10px] text-slate-400 flex items-center gap-1"><i class="fa fa-info-circle"></i>服务全部完成后可评价</div>
                     </div>`;
+            } else if (o.status === 'unpaid' && o.payMethod === '对公转账') {
+                const v = o.voucher;
+                const audit = o.voucherAudit;
+                let tip = '';
+                if (o.payStatus === 'pending') {
+                    tip = `<div class="mt-2 text-[11px] text-amber-600 font-bold flex items-center"><i class="fa fa-clock-o mr-1"></i>凭证已提交${v && v.uploadTime ? '（' + v.uploadTime + '）' : ''}，运营审核通过后自动进入服务流程</div>`;
+                } else if (o.payStatus === 'rejected') {
+                    tip = `<div class="mt-2 text-[11px] text-rose-600 font-bold flex items-start"><i class="fa fa-exclamation-circle mr-1 mt-0.5"></i><span>凭证未通过：${audit && audit.note ? audit.note : '凭证信息不清晰'}，请重新上传</span></div>`;
+                } else {
+                    tip = `<div class="mt-2 text-[11px] text-slate-400"><i class="fa fa-info-circle mr-1"></i>请完成转账后上传凭证，运营审核通过后订单自动进入服务流程</div>`;
+                }
+                body = `
+                    <div class="mt-3 p-3.5 bg-orange-50/50 border border-orange-100 rounded-xl">
+                        <div class="flex items-center justify-between text-[11px] gap-3">
+                            <span class="text-slate-500 flex-shrink-0">对公收款账户</span>
+                            <span class="font-bold text-slate-700 font-mono">${bankInfo().branch} · ${bankInfo().account}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-1">户名：${bankInfo().holder} · 转账请备注订单号 ${o.id}</div>
+                        ${tip}
+                    </div>`;
             } else if (o.status === 'done') {
                 body = `<div class="mt-3 flex items-center text-[11px] text-emerald-600 font-bold"><i class="fa fa-check-circle mr-1"></i>服务已完成，期待您的评价</div>`;
             } else if (o.status === 'reviewed') {
@@ -291,7 +404,17 @@
 
             // 操作按钮
             let acts = '';
-            if (o.status === 'unpaid') {
+            if (o.status === 'unpaid' && o.payMethod === '对公转账') {
+                if (o.payStatus === 'pending') {
+                    acts = `
+                    <button onclick="openVoucher('${o.id}', true)" class="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50">查看凭证</button>
+                    <button class="px-4 py-2 bg-white border border-orange-200 text-orange-600 rounded-xl text-xs font-bold hover:bg-orange-50"><i class="fa fa-phone mr-1"></i>联系顾问</button>`;
+                } else {
+                    acts = `
+                    <button onclick="removeOrder('${o.id}')" class="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50">取消订单</button>
+                    <button onclick="openVoucher('${o.id}', false)" class="px-5 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-xs font-bold">${o.payStatus === 'rejected' ? '重新上传凭证' : '上传转账凭证'}</button>`;
+                }
+            } else if (o.status === 'unpaid') {
                 acts = `
                     <button onclick="removeOrder('${o.id}')" class="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50">取消订单</button>
                     <button onclick="openPay('${o.id}')" class="px-5 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-xs font-bold">立即支付</button>`;
@@ -324,10 +447,12 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="font-bold text-slate-800 truncate">${o.svcName}</p>
-                        <p class="text-xs text-slate-400 mt-1"><i class="fa fa-building-o mr-1"></i>${o.provider} · ${o.category}</p>
+                        <p class="text-xs text-slate-400 mt-1"><i class="fa fa-building-o mr-1"></i>${o.provider} · ${o.category}${o.tierName ? ` · <span class="text-orange-500 font-bold"><i class="fa fa-signal mr-0.5"></i>${o.tierName}</span>` : ''}${o.bundleId ? ' · <span class="text-indigo-600 font-bold"><i class="fa fa-cubes mr-0.5"></i>服务包</span>' : ''}</p>
+                        ${o.bundleId && o.items && o.items.length ? `<p class="text-[11px] text-slate-400 mt-1 truncate">含：${o.items.map(it => it.svcName + (it.tierName ? '（' + it.tierName + '）' : '')).join('、')}</p>` : ''}
                     </div>
                     <div class="text-right flex-shrink-0">
                         <p class="text-orange-600 font-black">¥${fmtMoney(o.amount)}</p>
+                        ${o.originalAmount && o.originalAmount > 0 ? `<p class="text-[10px] text-slate-400"><span class="line-through">¥${fmtMoney(o.originalAmount)}</span><span class="text-orange-500 ml-1">${o.bundleId ? '打包优惠' : '客服已改价'}</span></p>` : ''}
                     </div>
                 </div>
                 ${body ? `<div class="px-5 pb-4">${body}</div>` : ''}
@@ -362,8 +487,22 @@
             const o = ORDERS.find(x => x.id === payOrderId);
             if (!o) return;
             const method = document.querySelector('#payModal input[name="odPay"]:checked').value;
+            if (method === '对公转账') {
+                o.payMethod = method;
+                o.payStatus = 'waiting';
+                o.voucher = null;
+                o.voucherAudit = null;
+                persist();
+                const oid = o.id;
+                hide('payModal');
+                payOrderId = null;
+                setTab('unpaid');
+                openVoucher(oid, false);
+                return;
+            }
             o.status = 'serving';
             o.payMethod = method;
+            o.payStatus = 'confirmed';
             o.progress = 10;
             persist();
             hide('payModal');
@@ -376,6 +515,134 @@
             ORDERS = ORDERS.filter(o => o.id !== id);
             persist();
             render();
+        }
+
+        // ===== 对公转账凭证 =====
+        let voucherOrderId = null;
+        let voucherDataUrl = '';
+        let voucherFileName = '';
+
+        function nowStr() {
+            const n = new Date(), p = x => String(x).padStart(2, '0');
+            return n.getFullYear() + '-' + p(n.getMonth() + 1) + '-' + p(n.getDate()) + ' ' + p(n.getHours()) + ':' + p(n.getMinutes());
+        }
+        function openVoucher(id, readonly) {
+            const o = ORDERS.find(x => x.id === id);
+            if (!o) return;
+            const bank = bankInfo();
+            document.getElementById('voucherBankHolder').textContent = bank.holder;
+            document.getElementById('voucherBankBranch').textContent = bank.branch;
+            document.getElementById('voucherBankAccount').textContent = bank.account;
+            voucherOrderId = id;
+            voucherDataUrl = (o.voucher && o.voucher.dataUrl) || '';
+            voucherFileName = (o.voucher && o.voucher.fileName) || '';
+            document.getElementById('voucherOrderName').textContent = o.svcName;
+            document.getElementById('voucherOrderId').textContent = '订单号：' + o.id;
+            document.getElementById('voucherOrderNo').textContent = o.id;
+            document.getElementById('voucherOrderAmt').textContent = fmtMoney(o.amount);
+            document.getElementById('voucherTitle').innerHTML = readonly
+                ? '<i class="fa fa-file-image-o text-orange-500 mr-2"></i>已提交的转账凭证'
+                : '<i class="fa fa-bank text-orange-500 mr-2"></i>' + (o.payStatus === 'rejected' ? '重新上传转账凭证' : '上传转账凭证');
+
+            const note = document.getElementById('voucherAuditNote');
+            if (o.payStatus === 'rejected' && o.voucherAudit && o.voucherAudit.note) {
+                note.textContent = '驳回原因：' + o.voucherAudit.note;
+                note.classList.remove('hidden');
+            } else {
+                note.classList.add('hidden');
+            }
+
+            const form = document.getElementById('voucherForm');
+            const ro = document.getElementById('voucherReadonly');
+            const footer = document.getElementById('voucherFooter');
+            if (readonly) {
+                form.classList.add('hidden');
+                ro.classList.remove('hidden');
+                footer.classList.add('hidden');
+                const img = document.getElementById('voucherViewImg');
+                const no = document.getElementById('voucherViewNoImg');
+                if (o.voucher && o.voucher.dataUrl) {
+                    img.src = o.voucher.dataUrl;
+                    img.classList.remove('hidden');
+                    no.classList.add('hidden');
+                } else {
+                    img.classList.add('hidden');
+                    no.classList.remove('hidden');
+                }
+                document.getElementById('voucherViewPayer').textContent = (o.voucher && o.voucher.payer) || '—';
+                document.getElementById('voucherViewDate').textContent = (o.voucher && o.voucher.payDate) || '—';
+                document.getElementById('voucherViewTime').textContent = (o.voucher && o.voucher.uploadTime) || '—';
+            } else {
+                form.classList.remove('hidden');
+                ro.classList.add('hidden');
+                footer.classList.remove('hidden');
+                document.getElementById('voucherPayer').value = (o.voucher && o.voucher.payer) || '';
+                document.getElementById('voucherDate').value = (o.voucher && o.voucher.payDate) || new Date().toISOString().slice(0, 10);
+                document.getElementById('voucherFile').value = '';
+                if (voucherDataUrl) {
+                    renderVoucherPreview(voucherDataUrl, voucherFileName);
+                } else {
+                    document.getElementById('voucherDrop').classList.remove('hidden');
+                    document.getElementById('voucherPreviewBox').classList.add('hidden');
+                }
+            }
+            show('voucherModal');
+        }
+        function closeVoucher() { hide('voucherModal'); voucherOrderId = null; }
+        function renderVoucherPreview(url, name) {
+            document.getElementById('voucherPreview').src = url;
+            document.getElementById('voucherFileName').textContent = name || '';
+            document.getElementById('voucherPreviewBox').classList.remove('hidden');
+            document.getElementById('voucherDrop').classList.add('hidden');
+        }
+        // 图片压缩后转 dataURL，避免 localStorage 超限
+        function onVoucherFile(input) {
+            const f = input.files && input.files[0];
+            if (!f) return;
+            if (f.size > 5 * 1024 * 1024) {
+                alert('图片不能超过 5MB，请压缩后重试');
+                input.value = '';
+                return;
+            }
+            voucherFileName = f.name;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const raw = e.target.result;
+                const img = new Image();
+                img.onload = function () {
+                    const maxW = 900;
+                    const scale = Math.min(1, maxW / img.width);
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(img.width * scale);
+                    c.height = Math.round(img.height * scale);
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    voucherDataUrl = c.toDataURL('image/jpeg', 0.7);
+                    renderVoucherPreview(voucherDataUrl, voucherFileName);
+                };
+                img.onerror = function () {
+                    voucherDataUrl = raw;
+                    renderVoucherPreview(voucherDataUrl, voucherFileName);
+                };
+                img.src = raw;
+            };
+            reader.readAsDataURL(f);
+        }
+        function submitVoucher() {
+            const o = ORDERS.find(x => x.id === voucherOrderId);
+            if (!o) return;
+            const payer = document.getElementById('voucherPayer').value.trim();
+            const payDate = document.getElementById('voucherDate').value;
+            if (!payer) { alert('请填写付款账户名称'); return; }
+            if (!payDate) { alert('请选择转账日期'); return; }
+            if (!voucherDataUrl) { alert('请上传转账凭证图片'); return; }
+            o.payMethod = '对公转账';
+            o.payStatus = 'pending';
+            o.voucher = { payer: payer, payDate: payDate, fileName: voucherFileName || '转账凭证', dataUrl: voucherDataUrl, uploadTime: nowStr() };
+            o.voucherAudit = null;
+            persist();
+            closeVoucher();
+            setTab('unpaid');
+            alert('凭证已提交，运营审核通过后订单将自动进入服务流程。');
         }
 
         // ===== 评价 =====
@@ -420,6 +687,14 @@
         // 初始化
         load();
         render();
+        // 从商城对公转账下单后，带 upload 参数直达凭证上传
+        const uploadId = new URLSearchParams(location.search).get('upload');
+        if (uploadId) {
+            setTimeout(function () {
+                const o = ORDERS.find(x => x.id === uploadId);
+                if (o) openVoucher(uploadId, o.payStatus === 'pending');
+            }, 200);
+        }
     </script>
 </body>
 </html>

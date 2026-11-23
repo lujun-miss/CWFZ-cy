@@ -27,16 +27,20 @@
         }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -55,6 +59,10 @@
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-comments text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策问答</span>
                 </button>
+                <button onclick="goPage('policy-center.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
                 <button onclick="goPage('policy-radar.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策雷达</span>
@@ -66,10 +74,6 @@
                 <button onclick="goPage('declaration-butler.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="申报材料自查">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-file-text-o text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">申报管家</span>
-                </button>
-                <button onclick="goPage('policy-center.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
-                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
-                    <span class="text-[10px] font-bold">政策中心</span>
                 </button>
                 <button onclick="goPage('service-market.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
                     <span class="w-9 h-9 rounded-full shadow-md flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600 ring-2 ring-orange-300"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
@@ -263,22 +267,45 @@
                                 <span><i class="fa fa-star text-orange-400 mr-1"></i><span id="mRating">4.9</span>分</span>
                                 <span><i class="fa fa-fire text-orange-400 mr-1"></i>已售 <span id="mSales">1280</span>单</span>
                             </div>
+                            <div id="mQuoteBanner" class="hidden mb-4 px-4 py-3 bg-gradient-to-r from-rose-50 to-orange-50 border border-orange-100 rounded-2xl flex items-center justify-between">
+                                <div class="text-xs text-slate-600">
+                                    <i class="fa fa-tag text-orange-500 mr-1.5"></i>客服已为您申请专属价
+                                    <b id="mQuotePrice" class="text-orange-600 text-base ml-1"></b>
+                                    <span id="mQuoteOld" class="text-slate-400 line-through ml-1.5"></span>
+                                    <span id="mQuoteExpire" class="text-[10px] text-slate-400 ml-1.5"></span>
+                                </div>
+                                <span class="text-[10px] text-orange-600 bg-white px-2 py-1 rounded-lg border border-orange-100 font-bold flex-shrink-0">专属价</span>
+                            </div>
                             <div class="flex items-end justify-between">
                                 <div>
-                                    <span class="text-orange-500 text-sm">¥</span>
-                                    <span id="mPrice" class="text-3xl font-black text-orange-600">18,800</span>
-                                    <span id="mOldPrice" class="text-xs text-slate-400 line-through ml-2">¥25,000</span>
+                                    <div class="flex items-baseline">
+                                        <span id="mPriceSymbol" class="text-orange-500 text-sm">¥</span>
+                                        <span id="mPrice" class="text-3xl font-black text-orange-600">18,800</span>
+                                        <span id="mPriceSuffix" class="text-xs text-orange-500 ml-1 hidden">起</span>
+                                        <span id="mOldPrice" class="text-xs text-slate-400 line-through ml-2"></span>
+                                    </div>
+                                    <div id="mPriceNote" class="text-[11px] text-slate-400 mt-1"></div>
                                 </div>
                                 <div class="flex items-center space-x-3">
-                                    <button onclick="addToCartCurrent()" class="bg-white border-2 border-orange-200 text-orange-600 px-6 py-3 rounded-2xl font-semibold hover:bg-orange-50 transition-all">
-                                        <i class="fa fa-cart-plus mr-1.5"></i>加入购物车
+                                    <button id="mAddCartBtn" onclick="consultCurrent()" class="bg-white border-2 border-orange-200 text-orange-600 px-6 py-3 rounded-2xl font-semibold hover:bg-orange-50 transition-all">
+                                        <i class="fa fa-comments-o mr-1.5"></i>立即咨询
                                     </button>
-                                    <button onclick="openPay()" class="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-8 py-3 rounded-2xl font-semibold hover:shadow-lg hover:shadow-orange-500/40 transition-all">
+                                    <button id="mBuyBtn" onclick="openPay()" class="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-8 py-3 rounded-2xl font-semibold hover:shadow-lg hover:shadow-orange-500/40 transition-all">
                                         <i class="fa fa-shopping-cart mr-2"></i>立即购买
                                     </button>
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- 企业规模档位（阶梯计价服务展示） -->
+                    <div id="mTierWrap" class="mb-8 hidden">
+                        <h3 class="text-base font-bold mb-2 flex items-center space-x-2">
+                            <i class="fa fa-signal text-orange-500"></i>
+                            <span>选择企业规模档位</span>
+                        </h3>
+                        <div id="mTierHint" class="mb-3"></div>
+                        <div id="mTierList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
                     </div>
 
                     <!-- 包含内容 -->
@@ -380,18 +407,6 @@
                             </div>
                         </div>
 
-                        <!-- 联系信息 -->
-                        <div>
-                            <p class="text-xs font-bold text-slate-600 mb-2"><i class="fa fa-edit mr-1 text-orange-500"></i>联系信息（服务顾问将据此联系您）</p>
-                            <div class="space-y-2.5">
-                                <input id="payCompany" type="text" placeholder="企业名称，如：XX科技有限公司" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white">
-                                <div class="grid grid-cols-2 gap-2.5">
-                                    <input id="payContact" type="text" placeholder="联系人姓名" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white">
-                                    <input id="payPhone" type="tel" placeholder="手机号码" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white">
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- 支付方式 -->
                         <div>
                             <p class="text-xs font-bold text-slate-600 mb-2"><i class="fa fa-wallet mr-1 text-orange-500"></i>支付方式</p>
@@ -445,7 +460,17 @@
                         <div class="flex justify-between"><span class="text-slate-500">支付金额</span><span class="font-bold text-orange-600">¥<span id="orderAmt">18,800</span></span></div>
                         <div class="flex justify-between"><span class="text-slate-500">服务进度</span><span class="text-orange-600 font-medium">可在「订单管理」实时查看</span></div>
                     </div>
-                    <button onclick="closePayAll()" class="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-orange-500/40 transition-all">完成，继续逛逛</button>
+                    <!-- 对公转账：收款账户信息 -->
+                    <div id="bankInfoBox" class="hidden text-left bg-orange-50/60 border border-orange-100 rounded-2xl p-4 mb-6">
+                        <p class="text-xs font-bold text-orange-700 mb-2"><i class="fa fa-bank mr-1"></i>对公收款账户</p>
+                        <div class="space-y-1.5 text-[11.5px] text-slate-600">
+                            <div class="flex justify-between"><span class="text-slate-400">收款户名</span><span id="bankHolder" class="font-bold">策源易答（深圳）科技有限公司</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">开户银行</span><span id="bankBranch" class="font-bold">招商银行深圳科技园支行</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">银行账号</span><span id="bankAccount" class="font-bold font-mono">7559 0188 2210 901</span></div>
+                        </div>
+                        <p class="text-[10px] text-orange-600 mt-2"><i class="fa fa-info-circle mr-1"></i>转账时请备注订单号，凭证审核通过后订单自动进入服务流程</p>
+                    </div>
+                    <button id="successBtn" onclick="successNext()" class="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-orange-500/40 transition-all">完成，继续逛逛</button>
                 </div>
             </div>
         </div>
@@ -560,22 +585,34 @@
         }
 
         // ===== 购物车功能 =====
-        function addToCartSvc(svcId) {
-            const s = ALL_PRODUCTS.find(p => p.id === svcId);
-            if (!s) return;
-            if (typeof DataBridge !== 'undefined' && DataBridge.addToCart) {
-                DataBridge.addToCart({ svcId: s.id, svcName: s.name, provider: s.provider, icon: s.icon, category: s.category, price: s.price, qty: 1 });
-            }
+        function pushCart(s, tier) {
+            if (typeof DataBridge === 'undefined' || !DataBridge.addToCart) return;
+            DataBridge.addToCart({
+                svcId: s.id, svcName: s.name, provider: s.provider, icon: s.icon, category: s.category,
+                price: tier ? tier.price : s.price,
+                tierId: tier ? (tier.id || '') : '',
+                tierName: tier ? tier.name : '',
+                tierMatch: tier ? currentTierMatch : '',
+                qty: 1
+            });
             refreshCartBadge();
-            showToast('已加入购物车：' + s.name);
         }
-        function addToCartCurrent() {
-            if (!currentSvc) return;
-            if (typeof DataBridge !== 'undefined' && DataBridge.addToCart) {
-                DataBridge.addToCart({ svcId: currentSvc.id, svcName: currentSvc.name, provider: currentSvc.provider, icon: currentSvc.icon, category: currentSvc.category, price: currentSvc.price, qty: 1 });
+        // ===== 科创服务：先立即咨询，由顾问按企业情况申请专属价后再购买 =====
+        function openServiceConsult(s) {
+            if (window.parent && window.parent !== window && typeof window.parent.openServiceChat === 'function') {
+                window.parent.openServiceChat(s.id, s.name);
+                showToast('已为您接入在线顾问，可直接咨询服务内容与报价');
+                return;
             }
-            refreshCartBadge();
-            showToast('已加入购物车：' + currentSvc.name);
+            const cfg = (window.DataBridge && DataBridge.loadServiceContact) ? DataBridge.loadServiceContact() : {};
+            showToast('请通过页面在线咨询入口联系顾问，或致电 ' + (cfg.phone || '客服电话'));
+        }
+        function consultSvc(svcId) {
+            const s = ALL_PRODUCTS.find(p => p.id === svcId);
+            if (s) openServiceConsult(s);
+        }
+        function consultCurrent() {
+            if (currentSvc) openServiceConsult(currentSvc);
         }
         function openCartDrawer() {
             try { renderCartDrawer(); } catch(e) { console.warn('renderCartDrawer error:', e); }
@@ -609,6 +646,7 @@
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-bold text-slate-800 truncate">${c.svcName}</p>
                         <p class="text-[11px] text-slate-500 truncate"><i class="fa fa-building-o mr-0.5"></i>${c.provider}</p>
+                        ${c.tierName ? `<div class="mt-0.5"><span class="text-[10px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded font-bold"><i class="fa fa-signal mr-0.5"></i>${c.tierName}</span></div>` : ''}
                         <div class="flex items-center justify-between mt-1">
                             <span class="text-orange-600 font-black text-sm">¥${fmtMoney(c.price)}</span>
                             <div class="flex items-center gap-1">
@@ -653,11 +691,13 @@
             if (cart.length === 0) { showToast('购物车是空的'); return; }
             const total = cart.reduce((s, c) => s + c.price * c.qty, 0);
             // 构建批量下单信息
-            document.getElementById('payName').textContent = cart.length + ' 项服务';
+            const first = cart[0];
+            document.getElementById('payName').textContent = cart.length === 1
+                ? (first.svcName + (first.tierName ? '（' + first.tierName + '）' : ''))
+                : (cart.length + ' 项服务');
             document.getElementById('payProvider').textContent = '来自购物车结算';
             document.getElementById('payPrice').textContent = fmtMoney(total);
             document.getElementById('payTotal').textContent = fmtMoney(total);
-            ['payCompany', 'payContact', 'payPhone'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('payView').classList.remove('hidden');
             document.getElementById('successView').classList.add('hidden');
             selectPay('wechat');
@@ -686,6 +726,72 @@
 
         // ===== 服务商品数据（由后台「服务商品管理」维护，经数据层同步）=====
         function fmtMoney(n) { return (Number(n) || 0).toLocaleString('zh-CN'); }
+
+        // 价格展示：专属价 > 阶梯价「¥X 起」 > 一口价 > 面议
+        function getCustomerName() {
+            try {
+                const p = JSON.parse(localStorage.getItem('ceyuan_member_profile') || '{}') || {};
+                return p.company || p.contact || p.name || '访客';
+            } catch (e) { return '访客'; }
+        }
+        function getQuoteFor(s) {
+            if (!s || typeof DataBridge === 'undefined' || !DataBridge.getActiveServiceQuote) return null;
+            return DataBridge.getActiveServiceQuote(getCustomerName(), s.id);
+        }
+        function quoteAppliesToTier(q, tier) {
+            if (!q) return false;
+            if (!q.tierName) return true;
+            return !!tier && tier.name === q.tierName;
+        }
+        function effectiveUnit(s, tier) {
+            const q = getQuoteFor(s);
+            if (q && quoteAppliesToTier(q, tier)) {
+                return { price: q.quotePrice, original: q.originalPrice, quote: q };
+            }
+            return { price: tier ? tier.price : s.price, original: (tier ? tier.oldPrice : s.oldPrice) || 0, quote: null };
+        }
+        function priceHtml(s, large) {
+            const q = getQuoteFor(s);
+            if (q) {
+                const sz = large ? 'text-2xl' : 'text-xl';
+                const old = q.originalPrice ? `<span class="text-[10px] text-slate-400 line-through ml-1">¥${fmtMoney(q.originalPrice)}</span>` : '';
+                return `<span class="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded font-bold mr-1 align-middle">专属价</span><span class="text-orange-500 text-xs">¥</span><span class="${sz} font-black text-orange-600">${fmtMoney(q.quotePrice)}</span>${old}`;
+            }
+            if (s.pricingMode === 'quote') {
+                return '<span class="text-lg font-black text-slate-700">面议</span><span class="text-[10px] text-amber-600 ml-1">定制报价</span>';
+            }
+            const sz = large ? 'text-2xl' : 'text-xl';
+            const suffix = s.pricingMode === 'tiered' ? '<span class="text-[10px] text-orange-500 ml-0.5">起</span>' : '';
+            const old = (s.pricingMode !== 'tiered' && s.oldPrice)
+                ? `<span class="text-[10px] text-slate-400 line-through ml-1">¥${fmtMoney(s.oldPrice)}</span>` : '';
+            return `<span class="text-orange-500 text-xs">¥</span><span class="${sz} font-black text-orange-600">${fmtMoney(s.price)}</span>${suffix}${old}`;
+        }
+
+        // 档位适用条件文案
+        function tierConditionText(t) {
+            const parts = [];
+            const minEmp = Number(t.minEmp) || 0, maxEmp = Number(t.maxEmp) || 0;
+            const minRev = Number(t.minRev) || 0, maxRev = Number(t.maxRev) || 0;
+            if (maxEmp > 0) parts.push(`职工 ${minEmp}-${maxEmp} 人`);
+            else if (minEmp > 0) parts.push(`职工 ≥${minEmp} 人`);
+            if (maxRev > 0) parts.push(`年营收 ${minRev}-${maxRev} 万元`);
+            else if (minRev > 0) parts.push(`年营收 ≥${minRev} 万元`);
+            return parts.length ? parts.join(' / ') : '不限制企业规模';
+        }
+
+        // 读取当前登录企业档案画像（用于自动匹配档位）
+        function getEnterpriseProfileForPricing() {
+            if (typeof DataBridge === 'undefined' || !DataBridge.buildRadarProfileFromEnterprise) return {};
+            let company = '';
+            try { company = (JSON.parse(localStorage.getItem('ceyuan_member_profile') || '{}') || {}).company || ''; } catch (e) {}
+            let hit = company ? DataBridge.buildRadarProfileFromEnterprise(company) : null;
+            if ((!hit || !hit.hit) && DataBridge.loadEnterpriseList) {
+                const list = DataBridge.loadEnterpriseList();
+                if (list && list.length) hit = DataBridge.buildRadarProfileFromEnterprise(list[0].name);
+            }
+            return (hit && hit.hit) ? (hit.profile || {}) : {};
+        }
+
         let ALL_PRODUCTS = [];
         let ON_PRODUCTS = [];
         let REC_PRODUCTS = [];
@@ -751,13 +857,9 @@
                             <div class="text-slate-400">已售 <span class="text-slate-700 font-bold">${s.sales}</span> 单</div>
                         </div>
                         <div class="flex items-center justify-between pt-3 border-t border-slate-50">
-                            <div>
-                                <span class="text-orange-500 text-xs">¥</span>
-                                <span class="text-xl font-black text-orange-600">${fmtMoney(s.price)}</span>
-                                ${s.oldPrice ? `<span class="text-[10px] text-slate-400 line-through ml-1">¥${fmtMoney(s.oldPrice)}</span>` : ''}
-                            </div>
+                            <div>${priceHtml(s, false)}</div>
                             <div class="flex items-center space-x-2">
-                                <button onclick="event.stopPropagation(); addToCartSvc('${s.id}')" class="bg-white border border-orange-200 hover:bg-orange-50 text-orange-600 text-xs px-3 py-2 rounded-xl font-medium transition-all"><i class="fa fa-cart-plus mr-1"></i>加购</button>
+                                <button onclick="event.stopPropagation(); consultSvc('${s.id}')" class="bg-white border border-orange-200 hover:bg-orange-50 text-orange-600 text-xs px-3 py-2 rounded-xl font-medium transition-all"><i class="fa fa-comments-o mr-1"></i>立即咨询</button>
                                 <button class="bg-orange-50 hover:bg-orange-500 hover:text-white text-orange-600 text-xs px-4 py-2 rounded-xl font-medium transition-all">查看详情</button>
                             </div>
                         </div>
@@ -794,13 +896,9 @@
                         <h3 class="font-bold text-base mb-2 line-clamp-1">${s.name}</h3>
                         <p class="text-xs text-slate-500 mb-3 line-clamp-2">${desc}</p>
                         <div class="flex items-center justify-between pt-3 border-t border-slate-50">
-                            <div>
-                                <span class="text-orange-500 text-xs">¥</span>
-                                <span class="text-2xl font-black text-orange-600">${fmtMoney(s.price)}</span>
-                                ${s.oldPrice ? `<span class="text-[10px] text-slate-400 line-through ml-1">¥${fmtMoney(s.oldPrice)}</span>` : ''}
-                            </div>
+                            <div>${priceHtml(s, true)}</div>
                             <div class="flex items-center space-x-2">
-                                <button onclick="event.stopPropagation(); addToCartSvc('${s.id}')" class="bg-white border border-orange-200 hover:bg-orange-50 text-orange-600 text-xs px-3 py-2 rounded-xl font-medium transition-all"><i class="fa fa-cart-plus mr-1"></i>加购</button>
+                                <button onclick="event.stopPropagation(); consultSvc('${s.id}')" class="bg-white border border-orange-200 hover:bg-orange-50 text-orange-600 text-xs px-3 py-2 rounded-xl font-medium transition-all"><i class="fa fa-comments-o mr-1"></i>立即咨询</button>
                                 <button onclick="event.stopPropagation(); openSvc('${s.id}')" class="bg-orange-500 hover:bg-orange-600 text-white text-xs px-4 py-2 rounded-xl font-medium transition-all">立即购买</button>
                             </div>
                         </div>
@@ -811,6 +909,153 @@
 
         // 弹窗控制
         let currentSvc = null;
+        let currentTierIndex = -1;
+        let currentMatchedIndex = -1;
+        let currentTierMatch = '';
+
+        // 阶梯计价：自动匹配企业档案档位 + 手动切换（客服专属价优先）
+        function prepareTierSelection(s) {
+            currentTierIndex = -1;
+            currentMatchedIndex = -1;
+            currentTierMatch = '';
+            const wrap = document.getElementById('mTierWrap');
+            const hint = document.getElementById('mTierHint');
+            const addBtn = document.getElementById('mAddCartBtn');
+            const buyBtn = document.getElementById('mBuyBtn');
+            const q = getQuoteFor(s);
+            addBtn.innerHTML = '<i class="fa fa-comments-o mr-1.5"></i>立即咨询';
+            if (s.pricingMode === 'tiered' && Array.isArray(s.tiers) && s.tiers.length) {
+                wrap.classList.remove('hidden');
+                addBtn.classList.remove('hidden');
+                buyBtn.innerHTML = '<i class="fa fa-shopping-cart mr-2"></i>立即购买';
+                const prof = getEnterpriseProfileForPricing();
+                const matched = DataBridge.matchServiceTier ? DataBridge.matchServiceTier(s, prof) : null;
+                const matchedIdx = matched ? s.tiers.findIndex(t => t.name === matched.name) : -1;
+                currentMatchedIndex = matchedIdx;
+                currentTierIndex = matchedIdx;
+                currentTierMatch = matchedIdx >= 0 ? 'auto' : '';
+                if (q && q.tierName) {
+                    const qi = s.tiers.findIndex(t => t.name === q.tierName);
+                    if (qi >= 0) { currentTierIndex = qi; currentTierMatch = 'quote'; }
+                }
+                const info = [];
+                if (prof.employees != null && prof.employees !== '') info.push('职工 ' + prof.employees + ' 人');
+                if (prof.revenue != null && prof.revenue !== '') info.push('年营收 ' + Number(prof.revenue).toLocaleString('zh-CN') + ' 万元');
+                if (q && q.tierName) {
+                    hint.innerHTML = `<div class="px-4 py-2.5 bg-orange-50 border border-orange-200 rounded-xl text-xs text-orange-700"><i class="fa fa-tag mr-1.5"></i>客服专属价已生效：${q.tierName}档 <b>¥${fmtMoney(q.quotePrice)}</b>（原价 ¥${fmtMoney(q.originalPrice)}），下单自动按专属价结算</div>`;
+                } else if (info.length) {
+                    hint.innerHTML = `<div class="px-4 py-2.5 bg-emerald-50/70 border border-emerald-100 rounded-xl text-xs text-emerald-700"><i class="fa fa-magic mr-1.5"></i>已读取企业档案（${info.join(' · ')}），${matchedIdx >= 0 ? '自动匹配到「' + s.tiers[matchedIdx].name + '」档' : '未命中档位，请手动选择'}</div>`;
+                } else {
+                    hint.innerHTML = '<div class="px-4 py-2.5 bg-amber-50/70 border border-amber-100 rounded-xl text-xs text-amber-700"><i class="fa fa-info-circle mr-1.5"></i>未获取到企业规模信息，请手动选择档位；科创服务建议先咨询顾问获取专属报价</div>';
+                }
+                renderTierCards();
+            } else {
+                wrap.classList.add('hidden');
+                document.getElementById('mTierList').innerHTML = '';
+                if (s.pricingMode === 'quote' && !q) {
+                    addBtn.classList.add('hidden');
+                    buyBtn.innerHTML = '<i class="fa fa-comments-o mr-2"></i>咨询获取报价';
+                } else {
+                    addBtn.classList.remove('hidden');
+                    buyBtn.innerHTML = '<i class="fa fa-shopping-cart mr-2"></i>立即购买';
+                }
+            }
+            updateDetailPrice();
+        }
+
+        function renderTierCards() {
+            const s = currentSvc;
+            const box = document.getElementById('mTierList');
+            if (!s || s.pricingMode !== 'tiered' || !Array.isArray(s.tiers)) { box.innerHTML = ''; return; }
+            const q = getQuoteFor(s);
+            box.innerHTML = s.tiers.map((t, i) => {
+                const on = i === currentTierIndex;
+                const auto = i === currentMatchedIndex;
+                const qHit = q && quoteAppliesToTier(q, t);
+                const shownPrice = qHit ? q.quotePrice : t.price;
+                const shownOld = qHit ? q.originalPrice : t.oldPrice;
+                return `<div onclick="selectTier(${i})" class="cursor-pointer rounded-2xl border-2 p-4 transition-all ${on ? 'border-orange-400 bg-orange-50/60' : 'border-slate-100 bg-white hover:border-orange-200'}">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-sm font-bold ${on ? 'text-orange-700' : 'text-slate-700'}">${t.name}</span>
+                            ${auto ? '<span class="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">推荐</span>' : ''}
+                            ${qHit ? '<span class="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded font-bold">专属价</span>' : ''}
+                            ${on ? '<span class="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded font-bold">已选</span>' : ''}
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <span class="text-orange-500 text-xs">¥</span><span class="text-lg font-black text-orange-600">${fmtMoney(shownPrice)}</span>
+                            ${shownOld ? `<span class="text-[10px] text-slate-400 line-through ml-1">¥${fmtMoney(shownOld)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="text-[11px] text-slate-500"><i class="fa fa-filter mr-1"></i>${tierConditionText(t)}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function selectTier(i) {
+            if (!currentSvc || currentSvc.pricingMode !== 'tiered') return;
+            currentTierIndex = i;
+            currentTierMatch = 'manual';
+            renderTierCards();
+            updateDetailPrice();
+        }
+
+        function updateDetailPrice() {
+            const s = currentSvc;
+            if (!s) return;
+            const sym = document.getElementById('mPriceSymbol');
+            const priceEl = document.getElementById('mPrice');
+            const suffix = document.getElementById('mPriceSuffix');
+            const oldEl = document.getElementById('mOldPrice');
+            const note = document.getElementById('mPriceNote');
+            const banner = document.getElementById('mQuoteBanner');
+            const q = getQuoteFor(s);
+            banner.classList.add('hidden');
+            if (s.pricingMode === 'quote' && !q) {
+                sym.classList.add('hidden');
+                priceEl.textContent = '面议';
+                priceEl.className = 'text-3xl font-black text-slate-700';
+                suffix.classList.add('hidden');
+                oldEl.textContent = '';
+                note.textContent = '按项目需求定制报价，建议先咨询顾问';
+                return;
+            }
+            const t = (s.pricingMode === 'tiered' && Array.isArray(s.tiers) && currentTierIndex >= 0) ? s.tiers[currentTierIndex] : null;
+            const eff = effectiveUnit(s, t);
+            sym.classList.remove('hidden');
+            priceEl.className = 'text-3xl font-black text-orange-600';
+            priceEl.textContent = fmtMoney(eff.price);
+            suffix.classList.toggle('hidden', !!t || s.pricingMode !== 'tiered');
+            oldEl.textContent = eff.original ? '¥' + fmtMoney(eff.original) : '';
+            if (eff.quote) {
+                banner.classList.remove('hidden');
+                document.getElementById('mQuotePrice').textContent = '¥' + fmtMoney(eff.quote.quotePrice);
+                document.getElementById('mQuoteOld').textContent = eff.quote.originalPrice ? '原价 ¥' + fmtMoney(eff.quote.originalPrice) : '';
+                document.getElementById('mQuoteExpire').textContent = eff.quote.expireAt ? '（有效期至 ' + eff.quote.expireAt + '）' : '';
+            }
+            if (s.pricingMode === 'tiered') {
+                if (eff.quote) note.textContent = '客服专属价已生效，下单自动按此价结算';
+                else if (t) note.textContent = `已选：${t.name}（${tierConditionText(t)}）${currentTierMatch === 'auto' ? ' · 系统按企业档案自动匹配' : ' · 手动选择'}`;
+                else note.textContent = '请选择档位，或立即咨询顾问获取专属报价';
+                return;
+            }
+            note.textContent = eff.quote ? '客服专属价已生效，下单自动按此价结算' : '科创服务建议先咨询顾问获取专属报价';
+        }
+
+        function currentUnitTier() {
+            if (currentSvc && currentSvc.pricingMode === 'tiered' && Array.isArray(currentSvc.tiers)) {
+                return currentSvc.tiers[currentTierIndex] || null;
+            }
+            return null;
+        }
+        function currentUnitInfo() {
+            if (!currentSvc) return { price: 0, original: 0, quote: null };
+            return effectiveUnit(currentSvc, currentUnitTier());
+        }
+        function currentUnitPrice() {
+            return currentUnitInfo().price;
+        }
+
         function openSvc(id) {
             const s = ALL_PRODUCTS.find(p => p.id === id);
             if (s) openModalWith(s);
@@ -822,8 +1067,7 @@
             document.getElementById('mProvider').textContent = s.provider;
             document.getElementById('mRating').textContent = svcRating(s);
             document.getElementById('mSales').textContent = s.sales;
-            document.getElementById('mPrice').textContent = fmtMoney(s.price);
-            document.getElementById('mOldPrice').textContent = s.oldPrice ? '¥' + fmtMoney(s.oldPrice) : '';
+            prepareTierSelection(s);
             // 包含内容
             const incBox = document.getElementById('mIncludes');
             const items = (s.includes && s.includes.length) ? s.includes : ['专业服务全流程'];
@@ -905,12 +1149,22 @@
         }
         function openPay() {
             if (!currentSvc) return;
+            const tier = currentUnitTier();
+            if (currentSvc.pricingMode === 'tiered' && !tier) { showToast('请先选择适用企业规模档位'); return; }
+            const eff = effectiveUnit(currentSvc, tier);
+            if (!eff.quote) {
+                if (currentSvc.pricingMode === 'quote') {
+                    showToast('该服务需先咨询顾问获取专属报价，正在为您接入顾问');
+                    openServiceConsult(currentSvc);
+                    return;
+                }
+                showToast('科创服务建议先咨询顾问获取专属报价，当前按标准价下单');
+            }
             window._cartCheckoutMode = false;
-            document.getElementById('payName').textContent = currentSvc.name;
+            document.getElementById('payName').textContent = tier ? currentSvc.name + '（' + tier.name + '）' : currentSvc.name;
             document.getElementById('payProvider').textContent = currentSvc.provider;
-            document.getElementById('payPrice').textContent = fmtMoney(currentSvc.price);
-            document.getElementById('payTotal').textContent = fmtMoney(currentSvc.price);
-            ['payCompany', 'payContact', 'payPhone'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('payPrice').textContent = fmtMoney(eff.price);
+            document.getElementById('payTotal').textContent = fmtMoney(eff.price);
             document.getElementById('payView').classList.remove('hidden');
             document.getElementById('successView').classList.add('hidden');
             selectPay('wechat');
@@ -933,15 +1187,17 @@
             l.addEventListener('click', () => selectPay(l.dataset.method))
         );
         function confirmPay() {
-            const company = document.getElementById('payCompany').value.trim();
-            const contact = document.getElementById('payContact').value.trim();
-            const phone = document.getElementById('payPhone').value.trim();
-            if (!company) { alert('请填写企业名称'); return; }
-            if (!contact) { alert('请填写联系人姓名'); return; }
-            if (!/^1\d{10}$/.test(phone)) { alert('请填写正确的 11 位手机号码'); return; }
+            // 联系信息取自当前登录账号的会员资料，无需重复填写
+            const profile = (function () {
+                try { return JSON.parse(localStorage.getItem('ceyuan_member_profile') || '{}') || {}; } catch (e) { return {}; }
+            })();
+            const company = profile.company || '演示企业';
+            const contact = profile.contact || '演示用户';
+            const phone = profile.phone || '13800138000';
             const methodRaw = document.querySelector('input[name="payMethod"]:checked').value;
             const methodMap = { wechat: '微信支付', alipay: '支付宝', bank: '对公转账' };
             const method = methodMap[methodRaw] || '微信支付';
+            const isBank = method === '对公转账';
             // 购物车结算模式：批量创建订单
             if (window._cartCheckoutMode) {
                 const cart = typeof DataBridge !== 'undefined' ? DataBridge.loadCart() : [];
@@ -953,7 +1209,10 @@
                             const row = DataBridge.addServiceOrder({
                                 svcId: c.svcId, svcName: c.svcName, provider: c.provider,
                                 icon: c.icon, category: c.category, amount: c.price,
-                                status: 'serving', payMethod: method, company, contact, phone
+                                tierId: c.tierId || '', tierName: c.tierName || '', tierMatch: c.tierMatch || '',
+                                status: isBank ? 'unpaid' : 'serving',
+                                payStatus: isBank ? 'waiting' : 'confirmed',
+                                payMethod: method, company, contact, phone
                             });
                             orderNos.push(row.id);
                             totalAmt += c.price;
@@ -966,41 +1225,73 @@
                 document.getElementById('orderSvc').textContent = cart.length + ' 项服务';
                 document.getElementById('orderAmt').textContent = fmtMoney(totalAmt);
                 refreshCartBadge();
-                if (method === 'bank') {
+                if (isBank) {
                     document.getElementById('successTitle').textContent = '订单提交成功';
-                    document.getElementById('successDesc').innerHTML = '已从购物车生成 ' + orderNos.length + ' 笔对公转账订单，服务顾问将在 24 小时内与您联系。';
+                    document.getElementById('successDesc').innerHTML = '已从购物车生成 ' + orderNos.length + ' 笔对公转账订单，请分别完成转账并上传凭证，<br>审核通过后订单自动进入服务流程。';
                 } else {
                     document.getElementById('successTitle').textContent = '支付成功';
                     document.getElementById('successDesc').innerHTML = '已从购物车结算 ' + orderNos.length + ' 笔订单，服务顾问将在 24 小时内与您联系。';
                 }
+                applySuccessView(isBank, orderNos.length === 1 ? orderNos[0] : '');
                 document.getElementById('payView').classList.add('hidden');
                 document.getElementById('successView').classList.remove('hidden');
                 return;
             }
             // 单品立即购买
             if (!currentSvc) return;
+            const tier = currentUnitTier();
+            const eff = currentUnitInfo();
+            const unit = eff.price;
             let orderNo = 'FW' + new Date().getFullYear() + String(Date.now()).slice(-8);
             if (typeof DataBridge !== 'undefined' && DataBridge.addServiceOrder) {
                 const row = DataBridge.addServiceOrder({
                     svcId: currentSvc.id, svcName: currentSvc.name, provider: currentSvc.provider,
-                    icon: currentSvc.icon, category: currentSvc.category, amount: currentSvc.price,
-                    status: 'serving', payMethod: method, company, contact, phone
+                    icon: currentSvc.icon, category: currentSvc.category, amount: unit,
+                    originalAmount: eff.quote ? (eff.quote.originalPrice || unit) : 0,
+                    quoteId: eff.quote ? eff.quote.id : '',
+                    tierId: tier ? (tier.id || '') : '',
+                    tierName: tier ? tier.name : '',
+                    tierMatch: tier ? currentTierMatch : '',
+                    status: isBank ? 'unpaid' : 'serving',
+                    payStatus: isBank ? 'waiting' : 'confirmed',
+                    payMethod: method, company, contact, phone
                 });
                 orderNo = row.id;
             }
             document.getElementById('orderNo').textContent = orderNo;
-            document.getElementById('orderSvc').textContent = currentSvc.name;
-            document.getElementById('orderAmt').textContent = fmtMoney(currentSvc.price);
+            document.getElementById('orderSvc').textContent = tier ? currentSvc.name + '（' + tier.name + '）' : currentSvc.name;
+            document.getElementById('orderAmt').textContent = fmtMoney(unit);
             refreshCartBadge();
-            if (method === 'bank') {
+            if (isBank) {
                 document.getElementById('successTitle').textContent = '订单提交成功';
-                document.getElementById('successDesc').innerHTML = '已为您生成对公转账订单，服务顾问将在 24 小时内与您联系，<br>签订服务合同并提供对公账户信息。';
+                document.getElementById('successDesc').innerHTML = '订单已生成，请按下方对公账户完成转账并上传凭证，<br>审核通过后订单自动进入服务流程。';
             } else {
                 document.getElementById('successTitle').textContent = '支付成功';
                 document.getElementById('successDesc').innerHTML = '订单已支付完成，服务顾问将在 24 小时内与您联系，<br>请保持手机畅通。';
             }
+            applySuccessView(isBank, orderNo);
             document.getElementById('payView').classList.add('hidden');
             document.getElementById('successView').classList.remove('hidden');
+        }
+
+        // 成功页：对公转账显示收款账户并引导上传凭证
+        function applySuccessView(isBank, singleOrderId) {
+            window._successBank = !!isBank;
+            window._successOrderId = singleOrderId || '';
+            const bankCfg = (window.DataBridge && DataBridge.loadServiceContact) ? DataBridge.loadServiceContact() : {};
+            document.getElementById('bankHolder').textContent = bankCfg.bankHolder || '策源易答（深圳）科技有限公司';
+            document.getElementById('bankBranch').textContent = bankCfg.bankBranch || '招商银行深圳科技园支行';
+            document.getElementById('bankAccount').textContent = bankCfg.bankAccount || '7559 0188 2210 901';
+            document.getElementById('bankInfoBox').classList.toggle('hidden', !isBank);
+            document.getElementById('successBtn').innerText = isBank
+                ? (singleOrderId ? '去上传转账凭证' : '去订单管理上传凭证')
+                : '完成，继续逛逛';
+        }
+        function successNext() {
+            const bank = window._successBank;
+            const oid = window._successOrderId;
+            closePayAll();
+            if (bank) goPage(oid ? 'service-orders.html?upload=' + oid : 'service-orders.html');
         }
 
         // 初始化

@@ -8,347 +8,358 @@
     <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(139,92,246,0.18); }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(124,58,246,0.18); }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
-        .funnel-bar { transition: all 0.3s; }
-        .funnel-bar:hover { filter: brightness(1.08); }
-        .heat-cell { transition: transform 0.15s; }
-        .heat-cell:hover { transform: scale(1.15); z-index: 10; }
-        .period-btn.active { background: #7c3aed; color: #fff; box-shadow: 0 4px 12px -2px rgba(124,58,237,0.4); }
+        .bar { transition: width .4s ease; }
+        .kpi-ico { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) { var d = JSON.parse(p); if (d && d.phone) return; }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
-<body class="bg-slate-50 p-8">
+<body class="bg-slate-50">
 
-    <!-- 页面标题 -->
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h1 class="text-2xl font-black text-slate-800 flex items-center">
-                <i class="fa fa-tachometer text-purple-600 mr-3"></i>数据驾驶舱
-            </h1>
-            <p class="text-sm text-slate-400 mt-1">运营管理平台 / 全局数据监控</p>
-        </div>
-        <div class="flex items-center space-x-3">
-            <div class="flex items-center bg-white border border-slate-200 rounded-xl p-1">
-                <button onclick="switchPeriod(this)" class="period-btn active px-3 py-1.5 text-xs font-bold rounded-lg transition-all">日</button>
-                <button onclick="switchPeriod(this)" class="period-btn px-3 py-1.5 text-xs font-bold text-slate-500 rounded-lg transition-all">周</button>
-                <button onclick="switchPeriod(this)" class="period-btn px-3 py-1.5 text-xs font-bold text-slate-500 rounded-lg transition-all">月</button>
-            </div>
-            <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <option>最近7天</option><option>最近30天</option><option>本季度</option><option>本年度</option>
-            </select>
-            <button class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all flex items-center shadow-lg shadow-purple-600/20">
-                <i class="fa fa-download mr-2"></i>导出报表
-            </button>
-        </div>
-    </div>
-
-    
-
-    <!-- 流程漏斗 + 热门政策排行 -->
-    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
-        <!-- 流程漏斗 -->
-        <div class="lg:col-span-2 bg-white rounded-[20px] border border-slate-100 shadow-sm p-6">
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="font-black text-slate-800 flex items-center"><i class="fa fa-filter text-purple-600 mr-2"></i>业务流程漏斗</h3>
-                <span class="text-xs text-slate-400">政策查询 → 成交</span>
-            </div>
-            <div class="space-y-3">
-                <div>
-                    <div class="flex items-center justify-between text-xs mb-1.5">
-                        <span class="font-bold text-slate-600"><i class="fa fa-search text-purple-500 mr-1"></i>政策查询</span>
-                        <span class="text-slate-500"><span class="font-black text-slate-800">52,840</span> · 100%</span>
-                    </div>
-                    <div class="funnel-bar h-9 bg-gradient-to-r from-purple-500 to-purple-400 rounded-lg flex items-center justify-end pr-3" style="width:100%"></div>
-                </div>
-                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
-                <div>
-                    <div class="flex items-center justify-between text-xs mb-1.5">
-                        <span class="font-bold text-slate-600"><i class="fa fa-bullseye text-indigo-500 mr-1"></i>智能匹配</span>
-                        <span class="text-slate-500"><span class="font-black text-slate-800">8,624</span> · 16.3%</span>
-                    </div>
-                    <div class="funnel-bar h-9 bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-lg flex items-center justify-end pr-3" style="width:65%"></div>
-                </div>
-                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
-                <div>
-                    <div class="flex items-center justify-between text-xs mb-1.5">
-                        <span class="font-bold text-slate-600"><i class="fa fa-file-text-o text-blue-500 mr-1"></i>政策申报</span>
-                        <span class="text-slate-500"><span class="font-black text-slate-800">2,158</span> · 4.1%</span>
-                    </div>
-                    <div class="funnel-bar h-9 bg-gradient-to-r from-blue-500 to-blue-400 rounded-lg flex items-center justify-end pr-3" style="width:42%"></div>
-                </div>
-                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
-                <div>
-                    <div class="flex items-center justify-between text-xs mb-1.5">
-                        <span class="font-bold text-slate-600"><i class="fa fa-check-circle-o text-emerald-500 mr-1"></i>服务成交</span>
-                        <span class="text-slate-500"><span class="font-black text-slate-800">686</span> · 1.3%</span>
-                    </div>
-                    <div class="funnel-bar h-9 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-lg flex items-center justify-end pr-3" style="width:24%"></div>
-                </div>
-                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
-                <div>
-                    <div class="flex items-center justify-between text-xs mb-1.5">
-                        <span class="font-bold text-slate-600"><i class="fa fa-truck text-teal-500 mr-1"></i>服务交付</span>
-                        <span class="text-slate-500"><span id="funnelDelivered" class="font-black text-slate-800">412</span> · 0.8%</span>
-                    </div>
-                    <div class="funnel-bar h-9 bg-gradient-to-r from-teal-500 to-teal-400 rounded-lg flex items-center justify-end pr-3" style="width:18%"></div>
-                </div>
-                <div class="flex justify-center"><i class="fa fa-angle-down text-slate-300"></i></div>
-                <div>
-                    <div class="flex items-center justify-between text-xs mb-1.5">
-                        <span class="font-bold text-slate-600"><i class="fa fa-star text-amber-500 mr-1"></i>评价反馈</span>
-                        <span class="text-slate-500"><span id="funnelReviewed" class="font-black text-slate-800">285</span> · 0.5%</span>
-                    </div>
-                    <div class="funnel-bar h-9 bg-gradient-to-r from-amber-500 to-amber-400 rounded-lg flex items-center justify-end pr-3" style="width:12%"></div>
-                </div>
-            </div>
-            <div class="mt-5 pt-4 border-t border-slate-100 grid grid-cols-5 gap-3 text-center">
-                <div><div class="text-xs text-slate-400">查询→匹配</div><div class="text-sm font-black text-purple-600">16.3%</div></div>
-                <div><div class="text-xs text-slate-400">匹配→申报</div><div class="text-sm font-black text-blue-600">25.0%</div></div>
-                <div><div class="text-xs text-slate-400">申报→成交</div><div class="text-sm font-black text-emerald-600">31.8%</div></div>
-                <div><div class="text-xs text-slate-400">成交→交付</div><div class="text-sm font-black text-teal-600">60.1%</div></div>
-                <div><div class="text-xs text-slate-400">交付→评价</div><div class="text-sm font-black text-amber-600">69.2%</div></div>
-            </div>
-        </div>
-
-        <!-- 热门政策排行 -->
-        <div class="lg:col-span-3 bg-white rounded-[20px] border border-slate-100 shadow-sm p-6">
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="font-black text-slate-800 flex items-center"><i class="fa fa-fire text-purple-600 mr-2"></i>热门政策排行 TOP5</h3>
-                <span class="text-xs text-slate-400">按查询量排序</span>
-            </div>
-            <div class="space-y-4">
-                <div class="flex items-center gap-4">
-                    <div class="w-8 h-8 bg-gradient-to-br from-rose-500 to-rose-600 text-white rounded-lg flex items-center justify-center font-black text-sm shadow-lg shadow-rose-500/30">1</div>
-                    <div class="flex-1">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm font-bold text-slate-800">高新技术企业认定管理办法</span>
-                            <span class="text-xs text-slate-500"><span class="font-black text-purple-600">8,624</span> 次查询</span>
-                        </div>
-                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style="width:100%"></div></div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg flex items-center justify-center font-black text-sm shadow-lg shadow-orange-500/30">2</div>
-                    <div class="flex-1">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm font-bold text-slate-800">研发费用加计扣除政策</span>
-                            <span class="text-xs text-slate-500"><span class="font-black text-purple-600">6,210</span> 次查询</span>
-                        </div>
-                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style="width:72%"></div></div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-lg flex items-center justify-center font-black text-sm shadow-lg shadow-amber-500/30">3</div>
-                    <div class="flex-1">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm font-bold text-slate-800">专精特新中小企业认定</span>
-                            <span class="text-xs text-slate-500"><span class="font-black text-purple-600">4,852</span> 次查询</span>
-                        </div>
-                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style="width:56%"></div></div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="w-8 h-8 bg-slate-400 text-white rounded-lg flex items-center justify-center font-black text-sm">4</div>
-                    <div class="flex-1">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm font-bold text-slate-800">科技型中小企业认定</span>
-                            <span class="text-xs text-slate-500"><span class="font-black text-purple-600">3,406</span> 次查询</span>
-                        </div>
-                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style="width:39%"></div></div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="w-8 h-8 bg-slate-400 text-white rounded-lg flex items-center justify-center font-black text-sm">5</div>
-                    <div class="flex-1">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm font-bold text-slate-800">中小企业数字化转型试点</span>
-                            <span class="text-xs text-slate-500"><span class="font-black text-purple-600">2,178</span> 次查询</span>
-                        </div>
-                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style="width:25%"></div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 趋势分析 -->
-    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6 mb-6">
-        <div class="flex items-center justify-between mb-5">
-            <h3 class="font-black text-slate-800 flex items-center"><i class="fa fa-line-chart text-purple-600 mr-2"></i>趋势分析</h3>
-            <div class="flex items-center gap-4 text-xs">
-                <span class="flex items-center text-slate-600"><span class="w-3 h-3 bg-purple-500 rounded-full mr-1.5"></span>政策查询</span>
-                <span class="flex items-center text-slate-600"><span class="w-3 h-3 bg-emerald-500 rounded-full mr-1.5"></span>匹配成功</span>
-                <span class="flex items-center text-slate-600"><span class="w-3 h-3 bg-amber-500 rounded-full mr-1.5"></span>申报数</span>
-            </div>
-        </div>
-        <!-- SVG 折线图 -->
-        <div class="relative">
-            <svg viewBox="0 0 700 260" class="w-full h-64" preserveAspectRatio="none">
-                <!-- 网格线 -->
-                <g stroke="#f1f5f9" stroke-width="1">
-                    <line x1="40" y1="40" x2="690" y2="40"/>
-                    <line x1="40" y1="90" x2="690" y2="90"/>
-                    <line x1="40" y1="140" x2="690" y2="140"/>
-                    <line x1="40" y1="190" x2="690" y2="190"/>
-                    <line x1="40" y1="240" x2="690" y2="240"/>
-                </g>
-                <!-- Y轴标签 -->
-                <g fill="#94a3b8" font-size="10" text-anchor="end">
-                    <text x="32" y="44">60k</text>
-                    <text x="32" y="94">45k</text>
-                    <text x="32" y="144">30k</text>
-                    <text x="32" y="194">15k</text>
-                    <text x="32" y="244">0</text>
-                </g>
-                <!-- 政策查询 面积+线 (紫色) -->
-                <path d="M60 180 L150 150 L240 165 L330 110 L420 130 L510 80 L600 95 L680 60 L680 240 L60 240 Z" fill="#7c3aed" fill-opacity="0.08"/>
-                <path d="M60 180 L150 150 L240 165 L330 110 L420 130 L510 80 L600 95 L680 60" stroke="#7c3aed" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
-                <!-- 匹配成功 线 (绿色) -->
-                <path d="M60 215 L150 205 L240 210 L330 185 L420 195 L510 170 L600 178 L680 155" stroke="#16a34a" stroke-width="2.5" fill="none" stroke-linejoin="round" stroke-dasharray="0"/>
-                <!-- 申报数 线 (琥珀色) -->
-                <path d="M60 232 L150 228 L240 230 L330 220 L420 225 L510 212 L600 218 L680 205" stroke="#d97706" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
-                <!-- 数据点 -->
-                <g fill="#7c3aed">
-                    <circle cx="60" cy="180" r="3"/><circle cx="150" cy="150" r="3"/><circle cx="240" cy="165" r="3"/><circle cx="330" cy="110" r="3"/><circle cx="420" cy="130" r="3"/><circle cx="510" cy="80" r="3"/><circle cx="600" cy="95" r="3"/><circle cx="680" cy="60" r="4" stroke="#fff" stroke-width="2"/>
-                </g>
-                <!-- X轴标签 -->
-                <g fill="#94a3b8" font-size="10" text-anchor="middle">
-                    <text x="60" y="256">7/27</text>
-                    <text x="150" y="256">7/28</text>
-                    <text x="240" y="256">7/29</text>
-                    <text x="330" y="256">7/30</text>
-                    <text x="420" y="256">7/31</text>
-                    <text x="510" y="256">8/01</text>
-                    <text x="600" y="256">8/02</text>
-                    <text x="680" y="256">8/03</text>
-                </g>
-            </svg>
-            <!-- 峰值标注 -->
-            <div class="absolute" style="right: 4%; top: 8%;">
-                <div class="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-lg shadow-lg">峰值 58,420</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 企业活跃度热力图 -->
-    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6">
-        <div class="flex items-center justify-between mb-5">
-            <h3 class="font-black text-slate-800 flex items-center"><i class="fa fa-th text-purple-600 mr-2"></i>企业活跃度热力图</h3>
-            <div class="flex items-center gap-2 text-xs text-slate-400">
-                <span>低</span>
-                <div class="flex gap-0.5">
-                    <span class="w-4 h-4 bg-purple-50 rounded"></span>
-                    <span class="w-4 h-4 bg-purple-200 rounded"></span>
-                    <span class="w-4 h-4 bg-purple-400 rounded"></span>
-                    <span class="w-4 h-4 bg-purple-600 rounded"></span>
-                    <span class="w-4 h-4 bg-purple-800 rounded"></span>
-                </div>
-                <span>高</span>
-            </div>
-        </div>
-        <div class="overflow-x-auto">
-            <div class="min-w-[680px]">
-                <!-- 时间轴 -->
-                <div class="flex pl-12 mb-2">
-                    <div class="grid grid-cols-24 gap-1 flex-1" style="grid-template-columns: repeat(24, minmax(0, 1fr));">
-                        <div class="text-[9px] text-slate-400 text-center col-span-3">00</div>
-                        <div class="text-[9px] text-slate-400 text-center col-span-3">03</div>
-                        <div class="text-[9px] text-slate-400 text-center col-span-3">06</div>
-                        <div class="text-[9px] text-slate-400 text-center col-span-3">09</div>
-                        <div class="text-[9px] text-slate-400 text-center col-span-3">12</div>
-                        <div class="text-[9px] text-slate-400 text-center col-span-3">15</div>
-                        <div class="text-[9px] text-slate-400 text-center col-span-3">18</div>
-                        <div class="text-[9px] text-slate-400 text-center col-span-3">21</div>
-                    </div>
-                </div>
-                <!-- 热力网格 -->
-                <div id="heatmap" class="space-y-1"></div>
-            </div>
-        </div>
-        <!-- 区域汇总 -->
-        <div class="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-2 h-8 bg-purple-600 rounded-full"></div>
-                <div><div class="text-xs text-slate-400">最活跃区域</div><div class="text-sm font-black text-slate-800">华东地区</div></div>
+    <main class="max-w-[1600px] mx-auto px-6 py-6">
+        <!-- 页面标题 + 周期筛选 -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 flex items-center">
+                    <i class="fa fa-tachometer text-purple-600 mr-3"></i>数据驾驶舱
+                </h1>
+                <p class="text-sm text-slate-400 mt-1">运营管理平台 / 全局数据监控（所有指标来自系统真实数据）</p>
             </div>
             <div class="flex items-center gap-3">
-                <div class="w-2 h-8 bg-purple-400 rounded-full"></div>
-                <div><div class="text-xs text-slate-400">活跃高峰时段</div><div class="text-sm font-black text-slate-800">10:00 - 11:00</div></div>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="w-2 h-8 bg-purple-300 rounded-full"></div>
-                <div><div class="text-xs text-slate-400">峰值企业数</div><div class="text-sm font-black text-slate-800">486 家/小时</div></div>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="w-2 h-8 bg-purple-200 rounded-full"></div>
-                <div><div class="text-xs text-slate-400">日均活跃</div><div class="text-sm font-black text-slate-800">3,452 家</div></div>
+                <select id="periodSelect" onchange="onPeriodChange()" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="all">累计</option>
+                    <option value="7d">近 7 天</option>
+                    <option value="30d">近 30 天</option>
+                    <option value="month">本月</option>
+                </select>
+                <button onclick="exportReport()" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all flex items-center shadow-lg shadow-purple-600/20">
+                    <i class="fa fa-download mr-2"></i>导出报表
+                </button>
             </div>
         </div>
-    </div>
+
+        <!-- 核心 KPI -->
+        <div id="kpiGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6"></div>
+
+        <!-- 成交趋势 + 线索来源 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-1">
+                    <h2 class="font-bold text-slate-800 flex items-center">
+                        <i class="fa fa-line-chart text-purple-600 mr-2"></i>月度成交趋势
+                        <i class="fa fa-question-circle text-slate-300 text-xs ml-1.5 cursor-pointer" title="近 6 个月已支付订单（含线上付款与线下确认收款）按月汇总的成交金额，单位万元。"></i>
+                    </h2>
+                </div>
+                <p class="text-xs text-slate-400 mb-5">已支付订单金额按月汇总（万元）</p>
+                <div id="trendChart" class="flex items-end justify-between gap-2 h-56 px-2 border-b border-slate-100"></div>
+                <div id="trendLabels" class="flex justify-between gap-2 px-2 mt-2"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <h2 class="font-bold text-slate-800 flex items-center mb-1">
+                    <i class="fa fa-pie-chart text-purple-600 mr-2"></i>线索来源分布
+                    <i class="fa fa-question-circle text-slate-300 text-xs ml-1.5 cursor-pointer" title="所选周期内新增线索按来源渠道统计数量；转化率=该来源已转化线索÷该来源全部线索。"></i>
+                </h2>
+                <p class="text-xs text-slate-400 mb-5">按来源渠道</p>
+                <div id="sourceBox" class="space-y-3.5"></div>
+            </div>
+        </div>
+
+        <!-- 线索漏斗 + 会员付费构成 + 服务品类成交构成 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <h2 class="font-bold text-slate-800 flex items-center mb-1">
+                    <i class="fa fa-filter text-purple-600 mr-2"></i>线索转化漏斗
+                    <i class="fa fa-question-circle text-slate-300 text-xs ml-1.5 cursor-pointer" title="所选周期内新增线索按跟进阶段分布：待跟进→跟进中→已转化，已流失单独统计。转化率口径与业绩看板一致（标记已转化即计入）。"></i>
+                </h2>
+                <p class="text-xs text-slate-400 mb-5">线索跟进阶段分布</p>
+                <div id="funnelBox" class="space-y-3"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <h2 class="font-bold text-slate-800 flex items-center mb-1">
+                    <i class="fa fa-users text-purple-600 mr-2"></i>会员付费构成
+                    <i class="fa fa-question-circle text-slate-300 text-xs ml-1.5 cursor-pointer" title="按是否充值过策能值划分：付费会员=充值过，非付费会员=从未充值。下方附按会员等级分布，口径为所选周期内注册的用户。"></i>
+                </h2>
+                <p class="text-xs text-slate-400 mb-5">付费 / 非付费</p>
+                <div id="levelBox" class="space-y-3.5"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <h2 class="font-bold text-slate-800 flex items-center mb-1">
+                    <i class="fa fa-cubes text-purple-600 mr-2"></i>服务品类成交构成
+                    <i class="fa fa-question-circle text-slate-300 text-xs ml-1.5 cursor-pointer" title="所选周期内已支付订单按服务品类汇总成交金额，占比=该品类金额÷总成交金额。"></i>
+                </h2>
+                <p class="text-xs text-slate-400 mb-5">按成交金额</p>
+                <div id="categoryBox" class="space-y-4"></div>
+            </div>
+        </div>
+    </main>
 
     <script src="data-bridge.js"></script>
     <script>
-        // 漏斗末端两节（服务交付 / 评价反馈）从订单数据聚合，与真实交易闭环联动
-        (function(){
-            if (!window.DataBridge || !DataBridge.loadServiceOrders) return;
-            var orders = DataBridge.loadServiceOrders();
-            // 已交付 = 已付款进入服务交付环节（serving/done/reviewed 都算）
-            var delivered = orders.filter(function(o){ return ['serving','done','reviewed'].indexOf(o.status) !== -1; }).length;
-            // 已评价 = 完成评价反馈（reviewed）
-            var reviewed = orders.filter(function(o){ return o.status === 'reviewed'; }).length;
-            // 在演示基数上叠加真实订单增量，体现闭环联动
-            var baseDelivered = 400, baseReviewed = 280;
-            var dEl = document.getElementById('funnelDelivered');
-            var rEl = document.getElementById('funnelReviewed');
-            if (dEl) dEl.textContent = (baseDelivered + delivered).toLocaleString();
-            if (rEl) rEl.textContent = (baseReviewed + reviewed).toLocaleString();
-        })();
-        // 生成热力图
-        (function(){
-            var days = ['周一','周二','周三','周四','周五','周六','周日'];
-            var colors = ['bg-purple-50','bg-purple-100','bg-purple-200','bg-purple-300','bg-purple-400','bg-purple-500','bg-purple-600','bg-purple-700','bg-purple-800'];
-            var container = document.getElementById('heatmap');
-            var html = '';
-            days.forEach(function(day, di){
-                html += '<div class="flex items-center">';
-                html += '<div class="w-10 text-xs text-slate-500 font-bold pr-2 text-right">'+day+'</div>';
-                html += '<div class="grid gap-1 flex-1" style="grid-template-columns: repeat(24, minmax(0, 1fr));">';
-                for(var h=0; h<24; h++){
-                    // 工作日白天活跃度高，夜间低；周末整体低
-                    var base = (di < 5) ? 1 : 0;
-                    var hourFactor = 0;
-                    if(h>=9 && h<=11) hourFactor = 3;
-                    else if(h>=14 && h<=17) hourFactor = 2;
-                    else if(h>=19 && h<=21) hourFactor = 2;
-                    else if(h>=8 && h<=22) hourFactor = 1;
-                    var level = Math.min(8, base*hourFactor + Math.floor(Math.random()*2));
-                    if(di >= 5) level = Math.min(8, hourFactor - 1 + Math.floor(Math.random()));
-                    if(level < 0) level = 0;
-                    html += '<div class="heat-cell h-6 rounded '+colors[level]+'" title="'+day+' '+h+':00 活跃度 '+level+'"></div>';
-                }
-                html += '</div></div>';
-            });
-            container.innerHTML = html;
-        })();
+    (function () {
+        var DB = window.DataBridge;
+        if (!DB) { document.body.insertAdjacentHTML('afterbegin', '<div class="p-6 text-red-500">DataBridge 未加载</div>'); return; }
 
-        function switchPeriod(btn){
-            document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.remove('active'); b.classList.add('text-slate-500'); });
-            btn.classList.add('active'); btn.classList.remove('text-slate-500');
+        var PAID_STATUS = ['paid', 'serving', 'done', 'reviewed'];
+        var NON_MEMBER = '非会员';
+        var period = 'all';
+
+        // ---- 工具 ----
+        function pad(n){ return n < 10 ? '0' + n : '' + n; }
+        function startOfDay(d){ var x = new Date(d); x.setHours(0,0,0,0); return x; }
+        function endOfDay(d){ var x = new Date(d); x.setHours(23,59,59,999); return x; }
+        function parseDay(s){
+            if (!s) return null;
+            var str = String(s).slice(0, 10).replace(/-/g, '/');
+            var t = new Date(str);
+            return isNaN(t.getTime()) ? null : t;
         }
+        function periodRange(){
+            var now = new Date();
+            if (period === '7d') { var s7 = new Date(now); s7.setDate(s7.getDate() - 6); return [startOfDay(s7), endOfDay(now)]; }
+            if (period === '30d'){ var s30 = new Date(now); s30.setDate(s30.getDate() - 29); return [startOfDay(s30), endOfDay(now)]; }
+            if (period === 'month'){ var sm = new Date(now.getFullYear(), now.getMonth(), 1); return [startOfDay(sm), endOfDay(now)]; }
+            return [null, null];
+        }
+        function inRange(s, range){
+            if (!range[0]) return true;
+            var t = parseDay(s);
+            if (!t) return false;
+            return t >= range[0] && t <= range[1];
+        }
+        function groupCount(list, keyFn){
+            var m = {};
+            list.forEach(function(it){ var k = keyFn(it) || '未分类'; m[k] = (m[k] || 0) + 1; });
+            return m;
+        }
+        function fmtMoney(n){
+            if (!n) return '¥0';
+            if (n >= 10000) return '¥' + (n / 10000).toFixed(1) + '万';
+            return '¥' + n.toLocaleString();
+        }
+        function pct(a, b){ return b ? ((a / b) * 100).toFixed(1) + '%' : '0%'; }
+
+        // ---- 数据聚合 ----
+        function buildStats(){
+            var range = periodRange();
+            var members = DB.loadMembers();
+            var clues = DB.loadClues();
+            var orders = DB.loadServiceOrders();
+
+            // 周期内集合
+            var mIn = members.filter(function(m){ return inRange(m.registerTime, range); });
+            var cIn = clues.filter(function(c){ return inRange(c.createTime, range); });
+            var oIn = orders.filter(function(o){ return inRange(o.createTime, range); });
+            var oPaid = oIn.filter(function(o){ return PAID_STATUS.indexOf(o.status) !== -1; });
+
+            var stats = {};
+            // 注册
+            stats.regTotal = mIn.length;
+            stats.regEnt = mIn.filter(function(m){ return m.type === 'enterprise'; }).length;
+            stats.regPer = mIn.filter(function(m){ return m.type === 'personal'; }).length;
+            stats.paidCnt = mIn.filter(function(m){ return Number(m.recharge) > 0; }).length;
+            stats.nonPaidCnt = stats.regTotal - stats.paidCnt;
+            stats.levelDist = groupCount(mIn, function(m){ return m.memberLevel || NON_MEMBER; });
+            // 线索
+            stats.clueTotal = cIn.length;
+            stats.clueConverted = cIn.filter(function(c){ return c.stage === '已转化'; }).length;
+            stats.clueRate = cIn.length ? (stats.clueConverted / cIn.length) : 0;
+            stats.cluePending = cIn.filter(function(c){ return c.stage === '待跟进'; }).length;
+            stats.clueFollowing = cIn.filter(function(c){ return c.stage === '跟进中'; }).length;
+            stats.clueLost = cIn.filter(function(c){ return c.stage === '已流失'; }).length;
+            stats.sourceDist = groupCount(cIn, function(c){ return c.source || '未知'; });
+            stats.sourceConverted = {};
+            cIn.forEach(function(c){
+                if (c.stage === '已转化'){ var s = c.source || '未知'; stats.sourceConverted[s] = (stats.sourceConverted[s] || 0) + 1; }
+            });
+            // 订单
+            stats.orderPaid = oPaid.length;
+            stats.amount = oPaid.reduce(function(s, o){ return s + (Number(o.amount) || 0); }, 0);
+            stats.avgPrice = stats.orderPaid ? stats.amount / stats.orderPaid : 0;
+            stats.categoryDist = {};
+            oPaid.forEach(function(o){ var k = o.category || '未分类'; stats.categoryDist[k] = (stats.categoryDist[k] || 0) + (Number(o.amount) || 0); });
+            // 月度成交趋势（近 6 个月，含当前月）
+            var now = new Date();
+            var months = [];
+            for (var i = 5; i >= 0; i--){
+                var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                months.push({ label: (d.getMonth() + 1) + '月', y: d.getFullYear(), m: d.getMonth(), amount: 0 });
+            }
+            orders.filter(function(o){ return PAID_STATUS.indexOf(o.status) !== -1; }).forEach(function(o){
+                var t = parseDay(o.createTime); if (!t) return;
+                var hit = months.find(function(x){ return x.y === t.getFullYear() && x.m === t.getMonth(); });
+                if (hit) hit.amount += (Number(o.amount) || 0);
+            });
+            stats.months = months;
+
+            return stats;
+        }
+
+        // ---- 渲染 ----
+        function renderKpis(s){
+            var cards = [
+                { t:'注册用户总数', v:s.regTotal, sub:'企业 ' + s.regEnt + ' · 个人 ' + s.regPer, ico:'fa-user-plus', bg:'bg-purple-50', ic:'text-purple-600', tip:'所选周期内注册的用户总数，按账号类型拆分为企业用户与个人用户。' },
+                { t:'付费会员 / 非付费会员', v:s.paidCnt + ' / ' + s.nonPaidCnt, sub:'付费占比 ' + pct(s.paidCnt, s.regTotal) + ' · 充值过策能值即付费', ico:'fa-diamond', bg:'bg-indigo-50', ic:'text-indigo-600', tip:'付费会员=充值过策能值的注册用户；非付费会员=从未充值过策能值的注册用户（含体验会员与未开通会员）。' },
+                { t:'线索总数', v:s.clueTotal, sub:'已转化 ' + s.clueConverted + ' · 转化率 ' + pct(s.clueConverted, s.clueTotal), ico:'fa-bullseye', bg:'bg-orange-50', ic:'text-orange-500', tip:'所选周期内新增的销售线索；转化率与业绩看板同口径（标记「已转化」即计入）。' },
+                { t:'成交金额', v:fmtMoney(s.amount), sub:'成交订单 ' + s.orderPaid + ' · 客单价 ' + fmtMoney(s.avgPrice), ico:'fa-yen', bg:'bg-emerald-50', ic:'text-emerald-600', tip:'所选周期内已支付订单金额汇总（含线上付款与线下确认收款），与业绩看板同口径。' }
+            ];
+            var html = cards.map(function(c){
+                return '<div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 card-hover">' +
+                    '<div class="flex items-start justify-between">' +
+                      '<div class="flex-1 min-w-0">' +
+                        '<div class="flex items-center gap-1"><p class="text-sm text-slate-500">' + c.t + '</p>' +
+                          '<i class="fa fa-question-circle text-slate-300 text-xs cursor-pointer" title="' + c.tip + '"></i></div>' +
+                        '<p class="text-2xl font-black text-slate-800 mt-1.5 truncate">' + c.v + '</p>' +
+                        '<p class="text-xs text-slate-400 mt-1 truncate">' + c.sub + '</p>' +
+                      '</div>' +
+                      '<div class="kpi-ico ' + c.bg + '"><i class="fa ' + c.ico + ' ' + c.ic + ' text-xl"></i></div>' +
+                    '</div></div>';
+            }).join('');
+            document.getElementById('kpiGrid').innerHTML = html;
+        }
+
+        function renderFunnel(s){
+            var stages = [
+                { name:'待跟进', val:s.cluePending, color:'from-slate-400 to-slate-500', ico:'fa-clock-o' },
+                { name:'跟进中', val:s.clueFollowing, color:'from-blue-500 to-indigo-500', ico:'fa-headphones' },
+                { name:'已转化', val:s.clueConverted, color:'from-emerald-500 to-teal-500', ico:'fa-check-circle' },
+                { name:'已流失', val:s.clueLost, color:'from-rose-400 to-rose-500', ico:'fa-times-circle' }
+            ];
+            var max = Math.max.apply(null, stages.map(function(x){ return x.val; })) || 1;
+            var html = stages.map(function(st){
+                var w = (st.val / max * 100).toFixed(1);
+                return '<div>' +
+                  '<div class="flex items-center justify-between text-xs mb-1.5">' +
+                    '<span class="font-bold text-slate-600"><i class="fa ' + st.ico + ' mr-1 text-slate-400"></i>' + st.name + '</span>' +
+                    '<span class="text-slate-500"><span class="font-black text-slate-800">' + st.val + '</span> · ' + pct(st.val, s.clueTotal) + '</span></div>' +
+                  '<div class="h-8 bg-slate-100 rounded-lg overflow-hidden"><div class="bar h-full bg-gradient-to-r ' + st.color + ' rounded-lg" style="width:' + w + '%"></div></div>' +
+                '</div>';
+            }).join('');
+            if (!s.clueTotal) html = empty('所选周期内无线索数据');
+            document.getElementById('funnelBox').innerHTML = html;
+        }
+
+        function renderSource(s){
+            var keys = Object.keys(s.sourceDist);
+            if (!keys.length){ document.getElementById('sourceBox').innerHTML = empty('所选周期内无线索数据'); return; }
+            var total = s.clueTotal || 1;
+            var rows = keys.map(function(k){ return { name:k, val:s.sourceDist[k], conv:s.sourceConverted[k] || 0 }; })
+                .sort(function(a,b){ return b.val - a.val; });
+            var max = rows[0].val || 1;
+            document.getElementById('sourceBox').innerHTML = rows.map(function(r){
+                var w = (r.val / max * 100).toFixed(1);
+                return '<div>' +
+                  '<div class="flex items-center justify-between text-xs mb-1.5">' +
+                    '<span class="font-bold text-slate-700">' + r.name + '</span>' +
+                    '<span class="text-slate-500">' + r.val + ' 条 · 转化 ' + pct(r.conv, r.val) + '</span></div>' +
+                  '<div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="bar h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full" style="width:' + w + '%"></div></div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function renderLevels(s){
+            var box = document.getElementById('levelBox');
+            var total = s.regTotal || 1;
+            if (!s.regTotal){ box.innerHTML = empty('所选周期内无注册用户'); return; }
+            // 付费 / 非付费
+            var payRows = [
+                { name:'付费会员', val:s.paidCnt, grad:'from-purple-600 to-fuchsia-500', note:'已充值策能值' },
+                { name:'非付费会员', val:s.nonPaidCnt, grad:'from-slate-300 to-slate-400', note:'从未充值' }
+            ];
+            var html = payRows.map(function(r){
+                var w = (r.val / total * 100).toFixed(1);
+                return '<div>' +
+                  '<div class="flex items-center justify-between text-xs mb-1.5">' +
+                    '<span class="font-bold text-slate-700">' + r.name + '<span class="text-slate-400 font-normal ml-1">· ' + r.note + '</span></span>' +
+                    '<span class="text-slate-500">' + r.val + ' 人 · ' + pct(r.val, total) + '</span></div>' +
+                  '<div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="bar h-full bg-gradient-to-r ' + r.grad + ' rounded-full" style="width:' + w + '%"></div></div>' +
+                '</div>';
+            }).join('');
+            // 附：按会员等级分布
+            var keys = Object.keys(s.levelDist);
+            if (keys.length){
+                var order = ['年度会员','企业会员','个人会员','体验会员','非会员'];
+                var tags = keys.sort(function(a,b){ return order.indexOf(a) - order.indexOf(b); }).map(function(k){
+                    var label = k === '非会员' ? '未开通会员' : k;
+                    return '<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded">' + label + ' ' + s.levelDist[k] + '</span>';
+                }).join('');
+                html += '<div class="mt-4 pt-3 border-t border-slate-100"><div class="text-xs text-slate-400 mb-2">按会员等级</div><div class="flex flex-wrap gap-1.5">' + tags + '</div></div>';
+            }
+            box.innerHTML = html;
+        }
+
+        function renderTrend(s){
+            var max = Math.max.apply(null, s.months.map(function(x){ return x.amount; })) || 1;
+            var chart = document.getElementById('trendChart');
+            var labels = document.getElementById('trendLabels');
+            chart.innerHTML = s.months.map(function(m){
+                var h = (m.amount / max * 100).toFixed(1);
+                var wan = (m.amount / 10000).toFixed(1);
+                return '<div class="flex-1 flex flex-col items-center justify-end h-full group relative">' +
+                  '<div class="text-[10px] text-slate-500 mb-1 opacity-0 group-hover:opacity-100 transition">¥' + wan + '万</div>' +
+                  '<div class="bar w-full max-w-[44px] bg-gradient-to-t from-purple-600 to-purple-400 rounded-t-lg" style="height:' + h + '%"></div>' +
+                '</div>';
+            }).join('');
+            labels.innerHTML = s.months.map(function(m){ return '<div class="flex-1 text-center text-xs text-slate-400">' + m.label + '</div>'; }).join('');
+        }
+
+        function renderCategory(s){
+            var keys = Object.keys(s.categoryDist);
+            var box = document.getElementById('categoryBox');
+            if (!keys.length || !s.amount){ box.innerHTML = empty('所选周期内无成交订单'); return; }
+            var rows = keys.map(function(k){ return { name:k, val:s.categoryDist[k] }; }).sort(function(a,b){ return b.val - a.val; });
+            var max = rows[0].val || 1;
+            box.innerHTML = rows.map(function(r){
+                var w = (r.val / max * 100).toFixed(1);
+                return '<div>' +
+                  '<div class="flex items-center justify-between text-xs mb-1.5">' +
+                    '<span class="font-bold text-slate-700">' + r.name + '</span>' +
+                    '<span class="text-slate-500">' + fmtMoney(r.val) + ' · ' + pct(r.val, s.amount) + '</span></div>' +
+                  '<div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="bar h-full bg-gradient-to-r from-purple-600 to-indigo-400 rounded-full" style="width:' + w + '%"></div></div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function empty(msg){
+            return '<div class="text-sm text-slate-400 text-center py-8"><i class="fa fa-inbox mr-2"></i>' + msg + '</div>';
+        }
+
+        function renderAll(){
+            var s = buildStats();
+            renderKpis(s);
+            renderTrend(s);
+            renderSource(s);
+            renderFunnel(s);
+            renderLevels(s);
+            renderCategory(s);
+        }
+
+        // 周期切换
+        window.onPeriodChange = function(){
+            var el = document.getElementById('periodSelect');
+            period = el ? el.value : 'all';
+            renderAll();
+        };
+        window.exportReport = function(){
+            alert('原型演示：导出报表功能在正式环境对接后端报表服务。');
+        };
+
+        renderAll();
+    })();
     </script>
 </body>
 </html>

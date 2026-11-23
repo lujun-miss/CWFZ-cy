@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -37,16 +37,20 @@
         @keyframes scanMove { 0% { top: 2%; opacity: 0; } 15% { opacity: .7; } 50% { top: 94%; } 85%, 100% { opacity: 0; } }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -62,6 +66,10 @@
                     <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center" style="background:#6366f1;"><i class="fa fa-comments text-sm text-white"></i></span>
                     <span class="text-[10px] font-bold" style="color:#4f46e5;">政策问答</span>
                 </button>
+                <button onclick="goPage('policy-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
                 <button onclick="goPage('policy-radar.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策雷达</span>
@@ -73,10 +81,6 @@
                 <button onclick="goPage('declaration-butler.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="申报材料自查">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-file-text-o text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">申报管家</span>
-                </button>
-                <button onclick="goPage('policy-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
-                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
-                    <span class="text-[10px] font-bold">政策中心</span>
                 </button>
                 <button onclick="goPage('service-market.html')" class="flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
                     <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
@@ -240,7 +244,8 @@
                 <div class="border-t border-white/60 pt-3 text-center">
                     <i class="fa fa-headphones text-slate-400 text-xs mr-1"></i>
                     <span class="text-[11px] text-slate-400">服务热线</span>
-                    <span class="text-sm font-black text-slate-700 mx-1 tracking-wide">400-1787170</span>
+                    <span id="footerHotline" class="text-sm font-black text-slate-700 mx-1 tracking-wide">400-1787170</span>
+                    <span id="footerWorkTime" class="text-[11px] text-slate-400 ml-1"></span>
                 </div>
             </div>
         </main>
@@ -425,6 +430,7 @@
         }
         function renderRightRail() {
             renderCalendar();
+            renderFooterHotline();
             // 热门服务（读取服务商城上架商品，取前4）
             var svcs = [];
             try { svcs = (DataBridge.loadServiceProducts() || []).filter(function(s){ return s.status === 'on'; }); } catch (e) {}
@@ -436,6 +442,17 @@
                     '<i class="fa fa-angle-right text-slate-300 text-[10px]"></i>' +
                 '</div>';
             }).join('') || '<div class="text-[11px] text-slate-400 py-3 text-center col-span-4">暂无上架服务</div>';
+        }
+
+        /** 页脚服务热线（读取后台客服配置） */
+        function renderFooterHotline() {
+            var cfg = null;
+            try { if (window.DataBridge && DataBridge.loadServiceContact) cfg = DataBridge.loadServiceContact(); } catch (e) {}
+            if (!cfg) return;
+            var p = document.getElementById('footerHotline');
+            var w = document.getElementById('footerWorkTime');
+            if (p) p.innerText = cfg.phone;
+            if (w) w.innerText = cfg.workTime ? '（' + cfg.workTime + '）' : '';
         }
 
         /** 申报日历主体（右栏卡片） */
