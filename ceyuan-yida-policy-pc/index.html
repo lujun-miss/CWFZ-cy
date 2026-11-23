@@ -23,9 +23,43 @@
             background-color:var(--color-blue-600);color:var(--color-white);--tw-shadow:0 10px 15px -3px var(--tw-shadow-color,#0000001a),0 4px 6px -4px var(--tw-shadow-color,#0000001a);box-shadow:var(--tw-inset-shadow),var(--tw-inset-ring-shadow),var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow);--tw-shadow-color:oklch(54.6% .245 262.881 / 0.2);
         }
         .main-content {
-            height: 100vh;
+            flex: 1;
+            min-height: 0;
+            height: auto;
+            display: flex;
             background-color: #f0f2f5;
         }
+        /* 顶部条：左侧页面位置，右侧收起/展开导航 */
+        .app-topbar {
+            height: 44px;
+            flex: 0 0 44px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            background: #fff;
+            border-bottom: 1px solid #e5eaf1;
+            z-index: 20;
+        }
+        .app-topbar .nav-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 11px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all .18s;
+        }
+        .app-topbar .nav-toggle-btn:hover {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #2563eb;
+        }
+        body.nav-collapsed aside { display: none; }
         iframe {
             width: 100%;
             height: 100%;
@@ -51,7 +85,8 @@
         }
         /* 服务商城沉浸式模式：隐藏外壳侧边栏，商城全屏 */
         body.mall-mode aside { display: none; }
-        body.mall-mode .main-content { height: 100vh; }
+        body.mall-mode .app-topbar { display: none; }
+        body.mall-mode .main-content { height: 100vh; flex: 1; }
 
         /* 咨询悬浮按钮 */
         .consult-fab {
@@ -307,7 +342,20 @@
     </aside>
 
     <!-- 右侧内容区 -->
-    <div class="flex-1 flex flex-col">
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- 顶部条 -->
+        <div class="app-topbar">
+            <div class="flex items-center gap-2 text-xs text-slate-400 min-w-0">
+                <i class="fa fa-compass text-slate-300"></i>
+                <span class="truncate">策源易答 · 企业政策服务平台</span>
+                <i class="fa fa-angle-right text-[10px] text-slate-300"></i>
+                <span id="pageTitle" class="font-bold text-slate-600 truncate">智能政策问答</span>
+            </div>
+            <button id="navToggleBtn" onclick="toggleNav()" class="nav-toggle-btn" title="收起左侧导航">
+                <i id="navToggleIcon" class="fa fa-angle-double-left"></i>
+                <span id="navToggleText">收起导航</span>
+            </button>
+        </div>
         <!-- 内容 iframe -->
         <main class="main-content">
             <iframe id="contentFrame" src="dashboard.html"></iframe>
@@ -675,6 +723,23 @@
         updateConsultUnread();
         setInterval(updateConsultUnread, 5000);
 
+        // 左侧导航收起 / 展开
+        function applyNavState(collapsed) {
+            document.body.classList.toggle('nav-collapsed', collapsed);
+            var icon = document.getElementById('navToggleIcon');
+            var text = document.getElementById('navToggleText');
+            var btn = document.getElementById('navToggleBtn');
+            if (icon) icon.className = collapsed ? 'fa fa-angle-double-right' : 'fa fa-angle-double-left';
+            if (text) text.textContent = collapsed ? '展开导航' : '收起导航';
+            if (btn) btn.title = collapsed ? '展开左侧导航' : '收起左侧导航';
+        }
+        function toggleNav() {
+            var next = !document.body.classList.contains('nav-collapsed');
+            applyNavState(next);
+            try { localStorage.setItem('ceyuan_nav_collapsed', next ? '1' : '0'); } catch (e) {}
+        }
+        try { applyNavState(localStorage.getItem('ceyuan_nav_collapsed') === '1'); } catch (e) {}
+
         function switchPage(url, el) {
             var frame = document.getElementById('contentFrame');
             // 同一页面（忽略 _t 刷新参数）不重复加载，避免 iframe 请求被中断产生 ERR_ABORTED
@@ -702,6 +767,9 @@
             });
             if (el) {
                 el.classList.add('active');
+                var lbl = el.querySelector('span.font-medium');
+                var titleEl = document.getElementById('pageTitle');
+                if (lbl && titleEl) titleEl.textContent = lbl.textContent;
             }
         }
 
