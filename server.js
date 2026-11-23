@@ -48,7 +48,7 @@ const server = http.createServer((req, res) => {
     });
 });
 
-server.listen(PORT, '127.0.0.1', () => {
+server.listen(PORT, () => {
     console.log('=================================');
     console.log('  策源易答 本地服务器已启动');
     console.log('=================================');
