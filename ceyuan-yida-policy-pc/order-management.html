@@ -47,7 +47,7 @@
 <body class="text-slate-800">
     <!-- 顶部导航栏 -->
     <header class="bg-white sticky top-0 z-40 border-b border-slate-100 shadow-sm">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="w-full px-6 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/30">
                     <i class="fa fa-clipboard text-xl"></i>
@@ -58,6 +58,10 @@
                 </div>
             </div>
             <div class="flex items-center space-x-3">
+                <button onclick="openPushOrder()" class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl text-sm font-bold shadow-sm hover:opacity-90 transition-all">
+                    <i class="fa fa-paper-plane"></i>
+                    <span>推送专属订单</span>
+                </button>
                 <button onclick="render()" class="flex items-center space-x-2 px-4 py-2 bg-slate-50 hover:bg-orange-50 hover:text-orange-600 rounded-xl text-sm transition-all text-slate-600">
                     <i class="fa fa-refresh"></i>
                     <span>刷新</span>
@@ -73,7 +77,7 @@
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-6 py-8">
+    <main class="w-full px-6 py-8">
 
         <!-- 订单列表 -->
         <section>
@@ -205,6 +209,97 @@
         </div>
     </div>
 
+    <!-- 推送专属订单弹窗（无需聊天，可直接按客户名称推送并复制专属链接） -->
+    <div id="pushOrderModal" class="fixed inset-0 modal-mask z-[56] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full" style="max-width:640px;max-height:88vh;display:flex;flex-direction:column;">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+                <h3 class="text-base font-bold"><i class="fa fa-paper-plane text-indigo-500 mr-2"></i>推送专属订单</h3>
+                <button onclick="closePushOrder()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4 overflow-y-auto" style="flex:1;">
+                <div class="px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-[11px] text-indigo-700 leading-relaxed">
+                    <i class="fa fa-info-circle mr-1"></i>适用于电话/微信等线下沟通后直接推送：填写客户名称（可手动输入非平台客户），推送后生成待付款订单与专属链接，复制链接通过短信/微信发给客户即可查看并付款。
+                </div>
+                <div id="pushForm" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <p class="text-xs font-bold text-slate-600 mb-1.5">客户名称 <span class="text-rose-500">*</span></p>
+                            <input id="pushCustomer" list="pushCustomerList" type="text" placeholder="输入或选择客户" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white">
+                            <datalist id="pushCustomerList"></datalist>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-600 mb-1.5">订单标题</p>
+                            <input id="pushTitle" type="text" placeholder="如：高企认定全流程代办" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-xs font-bold text-slate-600">服务项 <span class="text-slate-400 font-normal">（选择后台服务或自定义，面议可留空价格）</span></p>
+                            <button type="button" onclick="addPushSvc()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-700"><i class="fa fa-plus mr-1"></i>添加服务</button>
+                        </div>
+                        <div id="pushItems" class="space-y-2"></div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-xs font-bold text-slate-600">服务内容清单 <span class="text-slate-400 font-normal">（客户下单页逐条展示）</span></p>
+                            <button type="button" onclick="addPushInclude()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-700"><i class="fa fa-plus mr-1"></i>添加内容</button>
+                        </div>
+                        <div id="pushIncludes" class="space-y-2"></div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-xs font-bold text-slate-600">服务流程 <span class="text-slate-400 font-normal">（仅需步骤名称与说明）</span></p>
+                            <button type="button" onclick="addPushStep()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-700"><i class="fa fa-plus mr-1"></i>添加步骤</button>
+                        </div>
+                        <div id="pushSteps" class="space-y-2"></div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 items-end">
+                        <div>
+                            <p class="text-xs font-bold text-slate-600 mb-1.5">逐项原价合计</p>
+                            <p id="pushOriginal" class="px-3 py-2.5 bg-slate-100 rounded-xl text-sm font-bold text-slate-500">¥0</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-600 mb-1.5">整单成交价 <span class="text-rose-500">*</span></p>
+                            <input id="pushPrice" type="number" oninput="calcPush()" placeholder="留空按原价" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white">
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-600 mb-1.5">报价有效期（天）</p>
+                            <input id="pushExpire" type="number" value="7" min="1" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white">
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-bold text-slate-600 mb-1.5">顾问说明（选填）</p>
+                        <textarea id="pushNote" rows="2" placeholder="如：含两次材料修改，签约后 5 个工作日内启动。" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white"></textarea>
+                    </div>
+                </div>
+
+                <!-- 推送成功 -->
+                <div id="pushResult" class="hidden space-y-3">
+                    <div class="px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-xl text-xs text-emerald-700">
+                        <i class="fa fa-check-circle mr-1"></i>专属订单已生成并发送站内消息，客户可在「我的订单 → 待付款」中看到。
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-600 mb-1.5">专属下单链接</p>
+                        <div class="flex items-center gap-2">
+                            <input id="pushLink" type="text" readonly class="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600">
+                            <button onclick="copyPushLink()" class="px-3 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold whitespace-nowrap">复制链接</button>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-1.5">客户未注册或无站内聊天时，把该链接通过短信/微信发送即可，订单状态与运营端实时同步。</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end space-x-2 bg-slate-50/60 flex-shrink-0">
+                <button onclick="closePushOrder()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">关闭</button>
+                <button id="pushSubmitBtn" onclick="submitPushOrder()" class="px-6 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl text-sm font-bold">确认推送</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 推进进度弹窗 -->
     <div id="advanceModal" class="fixed inset-0 modal-mask z-[55] hidden items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden">
@@ -306,10 +401,198 @@
 
         function load() {
             ORDERS = (typeof DataBridge !== 'undefined') ? DataBridge.loadServiceOrders() : [];
+            // 顾问推送但历史数据尚未建单的专属订单，也归入运营订单列表（待付款）
+            try {
+                var bundles = (typeof DataBridge !== 'undefined' && DataBridge.loadServiceBundles) ? (DataBridge.loadServiceBundles() || []) : [];
+                var linked = {};
+                ORDERS.forEach(function (o) { if (o.bundleId) linked[o.bundleId] = 1; });
+                bundles.forEach(function (b) {
+                    if (linked[b.id] || b.status !== 'pushed') return;
+                    ORDERS.unshift({
+                        id: 'ZD' + String(b.id).slice(-6), svcName: b.title, provider: '策源易答服务顾问',
+                        icon: 'fa-file-text-o', category: '专属服务', amount: b.totalPrice, originalAmount: b.originalTotal,
+                        bundleId: b.id, items: b.items, milestones: b.milestones, includes: b.includes || [],
+                        status: 'unpaid', payMethod: '', payStatus: 'waiting',
+                        createTime: b.pushedAt || b.at || '', progress: 0, rating: 0,
+                        company: b.customerName || '', contact: b.customerName || ''
+                    });
+                });
+            } catch (e) {}
             // 服务筛选下拉
             const svcs = [...new Set(ORDERS.map(o => o.svcName).filter(Boolean))];
             const sel = document.getElementById('fSvc');
             sel.innerHTML = '<option value="">全部服务</option>' + svcs.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
+
+        // ===== 推送专属订单（无聊天场景：电话/微信沟通后直接推送） =====
+        var PUSH_PRODUCTS = [];
+        var pushItems = [];
+        var pushIncludes = [];
+        var pushSteps = [];
+
+        function pushEsc(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function openPushOrder() {
+            // 客户候选：客户池优先，补充平台注册账号
+            var names = [];
+            try { (DataBridge.loadCustomers() || []).forEach(function (u) { var n = u.type === 'personal' ? (u.realName || u.name) : (u.name || u.company); if (n) names.push(n); }); } catch (e) {}
+            try { (DataBridge.loadMembers() || []).forEach(function (m) { var n = m.type === 'enterprise' ? (m.company || m.name) : m.name; if (n) names.push(n); }); } catch (e) {}
+            var seen = {};
+            names = names.filter(function (n) { n = String(n).trim(); if (!n || seen[n]) return false; seen[n] = 1; return true; });
+            document.getElementById('pushCustomerList').innerHTML = names.map(function (n) { return '<option value="' + pushEsc(n) + '"></option>'; }).join('');
+            try { PUSH_PRODUCTS = (DataBridge.loadServiceProducts() || []).filter(function (p) { return p && p.id && p.name; }); } catch (e) { PUSH_PRODUCTS = []; }
+
+            document.getElementById('pushCustomer').value = '';
+            document.getElementById('pushTitle').value = '';
+            document.getElementById('pushPrice').value = '';
+            document.getElementById('pushExpire').value = 7;
+            document.getElementById('pushNote').value = '';
+            pushItems = [{ svcId: PUSH_PRODUCTS[0] ? PUSH_PRODUCTS[0].id : '', svcName: '', price: PUSH_PRODUCTS[0] ? (PUSH_PRODUCTS[0].price || '') : '' }];
+            pushIncludes = [''];
+            pushSteps = [{ name: '', desc: '' }];
+            renderPushItems(); renderPushIncludes(); renderPushSteps(); calcPush();
+            document.getElementById('pushForm').classList.remove('hidden');
+            document.getElementById('pushResult').classList.add('hidden');
+            document.getElementById('pushSubmitBtn').classList.remove('hidden');
+            var m = document.getElementById('pushOrderModal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+
+        function closePushOrder() {
+            var m = document.getElementById('pushOrderModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+        }
+
+        function renderPushItems() {
+            var box = document.getElementById('pushItems');
+            box.innerHTML = pushItems.map(function (r, i) {
+                var opts = '<option value="__custom"' + (r.svcId === '__custom' ? ' selected' : '') + '>自定义服务项</option>' +
+                    PUSH_PRODUCTS.map(function (p) { return '<option value="' + pushEsc(p.id) + '"' + (r.svcId === p.id ? ' selected' : '') + '>' + pushEsc(p.name) + '</option>'; }).join('');
+                var namePart = r.svcId === '__custom'
+                    ? '<input type="text" value="' + pushEsc(r.svcName) + '" oninput="pushItems[' + i + '].svcName=this.value" placeholder="服务名称" style="width:132px;" class="flex-shrink-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">'
+                    : '';
+                return '<div class="flex items-center gap-2">' +
+                    '<select onchange="onPushSvcChange(' + i + ', this.value)" class="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">' + opts + '</select>' +
+                    namePart +
+                    '<input type="number" value="' + (r.price === '' || r.price == null ? '' : r.price) + '" oninput="onPushPriceChange(' + i + ', this.value)" placeholder="面议" style="width:92px;" class="flex-shrink-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">' +
+                    '<button type="button" onclick="removePushSvc(' + i + ')" class="w-7 h-7 flex-shrink-0 rounded-lg text-slate-400 hover:text-rose-500"><i class="fa fa-times"></i></button>' +
+                '</div>';
+            }).join('');
+        }
+
+        function onPushSvcChange(i, val) {
+            var r = pushItems[i]; if (!r) return;
+            r.svcId = val;
+            if (val === '__custom') { r.svcName = r.svcName || ''; r.price = ''; }
+            else {
+                var p = PUSH_PRODUCTS.filter(function (x) { return x.id === val; })[0];
+                r.price = p ? (p.price || '') : '';
+            }
+            renderPushItems(); calcPush();
+        }
+        function onPushPriceChange(i, val) { if (pushItems[i]) pushItems[i].price = val; calcPush(); }
+        function addPushSvc() { pushItems.push({ svcId: '__custom', svcName: '', price: '' }); renderPushItems(); }
+        function removePushSvc(i) { if (pushItems.length <= 1) { alert('至少保留一项服务'); return; } pushItems.splice(i, 1); renderPushItems(); calcPush(); }
+
+        function renderPushIncludes() {
+            document.getElementById('pushIncludes').innerHTML = pushIncludes.map(function (txt, i) {
+                return '<div class="flex items-center gap-2">' +
+                    '<span class="w-5 h-5 flex-shrink-0 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold flex items-center justify-center">' + (i + 1) + '</span>' +
+                    '<input type="text" value="' + pushEsc(txt) + '" oninput="pushIncludes[' + i + ']=this.value" placeholder="如：高企申报书撰写" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">' +
+                    '<button type="button" onclick="removePushInclude(' + i + ')" class="w-7 h-7 flex-shrink-0 rounded-lg text-slate-400 hover:text-rose-500"><i class="fa fa-times"></i></button>' +
+                '</div>';
+            }).join('');
+        }
+        function addPushInclude() { pushIncludes.push(''); renderPushIncludes(); }
+        function removePushInclude(i) { pushIncludes.splice(i, 1); if (!pushIncludes.length) pushIncludes.push(''); renderPushIncludes(); }
+
+        function renderPushSteps() {
+            document.getElementById('pushSteps').innerHTML = pushSteps.map(function (s, i) {
+                return '<div class="flex items-start gap-2">' +
+                    '<span class="w-5 h-5 mt-2 flex-shrink-0 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold flex items-center justify-center">' + (i + 1) + '</span>' +
+                    '<div class="flex-1 min-w-0 space-y-1">' +
+                        '<input type="text" value="' + pushEsc(s.name) + '" oninput="pushSteps[' + i + '].name=this.value" placeholder="步骤名称，如：需求诊断" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">' +
+                        '<input type="text" value="' + pushEsc(s.desc) + '" oninput="pushSteps[' + i + '].desc=this.value" placeholder="步骤说明（选填）" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px]">' +
+                    '</div>' +
+                    '<button type="button" onclick="removePushStep(' + i + ')" class="w-7 h-7 mt-1.5 flex-shrink-0 rounded-lg text-slate-400 hover:text-rose-500"><i class="fa fa-times"></i></button>' +
+                '</div>';
+            }).join('');
+        }
+        function addPushStep() { pushSteps.push({ name: '', desc: '' }); renderPushSteps(); }
+        function removePushStep(i) { pushSteps.splice(i, 1); if (!pushSteps.length) pushSteps.push({ name: '', desc: '' }); renderPushSteps(); }
+
+        function pushOriginalTotal() {
+            return pushItems.reduce(function (s, r) { return s + (Number(r.price) || 0); }, 0);
+        }
+        function calcPush() {
+            document.getElementById('pushOriginal').textContent = '¥' + fmtMoney(pushOriginalTotal());
+        }
+
+        function submitPushOrder() {
+            var customer = (document.getElementById('pushCustomer').value || '').trim();
+            if (!customer) { alert('请填写客户名称'); return; }
+            var items = pushItems.map(function (r) {
+                var p = r.svcId !== '__custom' ? PUSH_PRODUCTS.filter(function (x) { return x.id === r.svcId; })[0] : null;
+                var name = p ? p.name : (r.svcName || '').trim();
+                return { svcId: p ? p.id : '', svcName: name, originalPrice: Number(r.price) || 0, custom: !p };
+            }).filter(function (it) { return it.svcName; });
+            if (!items.length) { alert('请至少填写一项服务'); return; }
+            var original = items.reduce(function (s, it) { return s + it.originalPrice; }, 0);
+            var total = Number(document.getElementById('pushPrice').value) || original;
+            if (!(total > 0)) { alert('请填写整单成交价（或为服务项填写价格）'); return; }
+            var days = Number(document.getElementById('pushExpire').value) || 7;
+            var dt = new Date(Date.now() + days * 86400000);
+            var pad = function (n) { return String(n).padStart(2, '0'); };
+            var expireAt = dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate());
+            var title = (document.getElementById('pushTitle').value || '').trim() || (items[0].svcName + (items.length > 1 ? ' 等 ' + items.length + ' 项服务' : ''));
+            var includes = pushIncludes.map(function (x) { return (x || '').trim(); }).filter(Boolean);
+            var steps = pushSteps.filter(function (s) { return (s.name || '').trim(); }).map(function (s) { return { name: s.name.trim(), desc: (s.desc || '').trim() }; });
+
+            var rec = DataBridge.addServiceBundle({
+                customerName: customer, title: title, items: items, totalPrice: total,
+                milestones: steps, includes: includes,
+                note: (document.getElementById('pushNote').value || '').trim(), expireAt: expireAt
+            });
+            var first = items.filter(function (it) { return it.svcId; })[0] || {};
+            var order = DataBridge.addServiceOrder({
+                svcId: first.svcId || 'BUNDLE', svcName: title, provider: '策源易答服务顾问', icon: 'fa-file-text-o',
+                category: '专属服务', amount: rec.totalPrice, originalAmount: rec.originalTotal,
+                bundleId: rec.id, items: rec.items, milestones: rec.milestones, includes: rec.includes,
+                status: 'unpaid', payStatus: 'waiting', payMethod: '',
+                company: customer, contact: customer
+            });
+            DataBridge.updateServiceBundle(rec.id, { orderId: order.id });
+            // 站内消息（客户有注册账号时可在 H5 消息中心看到）
+            try {
+                DataBridge.addConsultMessage({
+                    customerName: customer, from: 'advisor',
+                    text: '已为您推送定制订单「' + title + '」（' + items.length + ' 项服务，成交价 ¥' + fmtMoney(rec.totalPrice)
+                        + (rec.discount ? '，已优惠 ¥' + fmtMoney(rec.discount) : '')
+                        + (steps.length ? '，含 ' + steps.length + ' 步服务流程' : '')
+                        + (includes.length ? '，' + includes.length + ' 项服务内容' : '')
+                        + '，报价有效期至 ' + expireAt + '）。点击「查看专属订单并支付」确认后付款。',
+                    bundleId: rec.id, bundleToken: rec.token,
+                    svcId: first.svcId || '', svcName: first.svcName || ''
+                });
+            } catch (e) {}
+            load();
+            document.getElementById('pushForm').classList.add('hidden');
+            document.getElementById('pushSubmitBtn').classList.add('hidden');
+            var res = document.getElementById('pushResult');
+            res.classList.remove('hidden');
+            document.getElementById('pushLink').value = location.href.replace(/[^\/]*$/, '') + 'service-bundle.html?token=' + encodeURIComponent(rec.token);
+            try { if (navigator.clipboard) navigator.clipboard.writeText(document.getElementById('pushLink').value); } catch (e) {}
+            render();
+        }
+
+        function copyPushLink() {
+            var v = document.getElementById('pushLink').value;
+            try {
+                if (navigator.clipboard) { navigator.clipboard.writeText(v); alert('专属链接已复制'); return; }
+            } catch (e) {}
+            var el = document.getElementById('pushLink'); el.select(); document.execCommand('copy'); alert('专属链接已复制');
         }
 
         function setTab(t, btn) {
@@ -363,8 +646,7 @@
                         <div class="flex items-center space-x-2">
                             <div class="w-8 h-8 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center"><i class="fa ${o.icon || 'fa-cube'} text-xs"></i></div>
                             <span class="text-sm font-medium">${o.svcName}</span>
-                            ${o.bundleId ? `<span class="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold whitespace-nowrap"><i class="fa fa-cubes mr-0.5"></i>服务包</span>` : ''}
-                            ${o.tierName ? `<span class="text-[10px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded font-bold whitespace-nowrap"><i class="fa fa-signal mr-0.5"></i>${o.tierName}</span>` : ''}
+                            ${o.bundleId ? `<span class="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold whitespace-nowrap"><i class="fa fa-file-text-o mr-0.5"></i>专属服务</span>` : ''}
                         </div>
                     </td>
                     <td class="px-6 py-4 text-sm text-slate-600">
@@ -373,7 +655,7 @@
                     </td>
                     <td class="px-6 py-4">
                         <span class="text-orange-600 font-bold">¥${fmtMoney(o.amount)}</span>
-                        ${o.originalAmount && o.originalAmount > 0 ? `<div class="text-[10px] text-slate-400"><span class="line-through">¥${fmtMoney(o.originalAmount)}</span><span class="text-orange-500 ml-1">${o.bundleId ? '打包优惠' : '已改价'}</span></div>` : ''}
+                        ${o.originalAmount && o.originalAmount > 0 ? `<div class="text-[10px] text-slate-400"><span class="line-through">¥${fmtMoney(o.originalAmount)}</span><span class="text-orange-500 ml-1">${o.bundleId ? '专属优惠' : '已改价'}</span></div>` : ''}
                     </td>
                     <td class="px-6 py-4 text-xs text-slate-500">${o.createTime}</td>
                     <td class="px-6 py-4">
@@ -563,7 +845,7 @@
             adjustTargetId = id;
             document.getElementById('adjustOrderInfo').innerHTML =
                 '<i class="fa fa-file-text-o text-orange-400 mr-1"></i><b>' + (o.svcName || '-') + '</b><br>'
-                + '订单编号：' + o.id + ' · ' + (o.company || '-') + (o.tierName ? ' · ' + o.tierName : '');
+                + '订单编号：' + o.id + ' · ' + (o.company || '-');
             document.getElementById('adjustOriginal').value = o.originalAmount > 0 ? o.originalAmount : o.amount;
             document.getElementById('adjustPrice').value = o.amount;
             document.getElementById('adjustReason').value = o.priceAdjustReason || '';
@@ -694,7 +976,6 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">订单编号</p><p class="text-sm font-medium">${o.id}</p></div>
                         <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">服务名称</p><p class="text-sm font-medium">${o.svcName}</p></div>
-                        <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">企业规模档位</p><p class="text-sm font-medium">${o.tierName ? o.tierName + (o.tierMatch === 'auto' ? '（系统匹配）' : '（手动选择）') : '—'}</p></div>
                         <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">服务分类</p><p class="text-sm font-medium">${o.category}</p></div>
                         <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">服务商</p><p class="text-sm font-medium">${o.provider}</p></div>
                         <div class="p-4 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-400 uppercase mb-1">下单时间</p><p class="text-sm font-medium">${o.createTime}</p></div>
@@ -715,16 +996,23 @@
                 ${voucherHtml}
                 ${o.bundleId && o.items && o.items.length ? `
                 <div>
-                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-cubes text-indigo-500"></i><span>服务包清单</span><span class="text-xs font-normal text-slate-400">共 ${o.items.length} 项 · 服务包 ${o.bundleId}</span></h3>
+                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-file-text-o text-indigo-500"></i><span>专属服务清单</span><span class="text-xs font-normal text-slate-400">共 ${o.items.length} 项 · 专属订单 ${o.bundleId}</span></h3>
                     <div class="border border-indigo-100 rounded-2xl overflow-hidden">
                         ${o.items.map((it, i) => `<div class="flex items-center justify-between px-4 py-3 ${i ? 'border-t border-indigo-50' : ''} bg-indigo-50/30">
-                            <span class="text-sm">${it.svcName}${it.tierName ? ` <span class="text-[10px] bg-white text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded font-bold">${it.tierName}</span>` : ''}</span>
+                            <span class="text-sm">${it.svcName}</span>
                             <span class="text-xs text-slate-400">原价 ¥${fmtMoney(it.originalPrice)}</span>
                         </div>`).join('')}
                     </div>
                 </div>` : ''}
+                ${o.bundleId && o.includes && o.includes.length ? `
                 <div>
-                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-tasks text-orange-500"></i><span>交付里程碑</span></h3>
+                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-check-square-o text-indigo-500"></i><span>服务内容清单</span><span class="text-xs font-normal text-slate-400">共 ${o.includes.length} 项</span></h3>
+                    <div class="border border-slate-100 rounded-2xl p-4 grid grid-cols-2 gap-2.5">
+                        ${o.includes.map(x => `<div class="text-xs text-slate-600 leading-relaxed"><i class="fa fa-check-circle text-indigo-400 mr-1.5"></i>${x}</div>`).join('')}
+                    </div>
+                </div>` : ''}
+                <div>
+                    <h3 class="text-base font-bold mb-4 flex items-center space-x-2"><i class="fa fa-tasks text-orange-500"></i><span>服务流程</span></h3>
                     <div class="relative pl-6">
                         <div class="absolute left-2 top-2 bottom-2 w-0.5 bg-slate-100"></div>
                         ${stepsHtml}

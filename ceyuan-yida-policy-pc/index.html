@@ -253,6 +253,10 @@
                         <i class="fa fa-book w-7 text-base group-hover:scale-110 transition-transform"></i>
                         <span class="font-medium text-[13px]">会员指南维护</span>
                     </a>
+                    <a href="javascript:void(0)" onclick="switchPage('member-plan-config.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-bolt w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">套餐与定价</span>
+                    </a>
                     <a href="javascript:void(0)" onclick="switchPage('system-settings.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
                         <i class="fa fa-headphones w-7 text-base group-hover:scale-110 transition-transform"></i>
                         <span class="font-medium text-[13px]">客服与咨询</span>
@@ -274,7 +278,7 @@
                 <i class="fa fa-users w-8 text-lg group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium text-sm">客户管理</span>
             </a>
-            <a href="javascript:void(0)" onclick="switchPage('sales-report.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
+            <a href="javascript:void(0)" onclick="switchPage('report-list.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
                 <i class="fa fa-file-text w-8 text-lg group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium text-sm">智能报告</span>
             </a>
@@ -362,7 +366,7 @@
         </main>
 
         <!-- 智能政策助手悬浮球 (吸取精华：实时专家互动) -->
-        <div class="fixed bottom-8 right-8 z-50">
+        <div id="consultFabWrap" class="fixed bottom-8 right-8 z-50">
             <div class="group relative">
                 <div class="absolute -top-12 right-0 bg-slate-900 text-white text-[10px] px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap">
                     政策专家在线，点击咨询
@@ -384,7 +388,7 @@
     </div>
 
     <!-- 咨询面板 -->
-    <div id="consultModal" class="fixed inset-0 z-[70] hidden">
+    <div id="consultModal" class="fixed inset-0 z-[70] hidden" style="z-index:70">
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeConsult()"></div>
         <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[340px] p-6 text-center">
             <button onclick="closeConsult()" class="absolute right-4 top-4 w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all">
@@ -419,11 +423,11 @@
     </div>
 
     <!-- 站内即时会话 -->
-    <div id="chatModal" class="fixed inset-0 z-[72] hidden">
+    <div id="chatModal" class="fixed inset-0 z-[72] hidden" style="z-index:72">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onclick="closeChat()"></div>
-        <div class="absolute right-8 bottom-8 w-[380px] h-[540px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div class="absolute right-8 bottom-8 bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden" style="width:380px;height:540px;max-height:calc(100vh - 64px)">
             <!-- 头部 -->
-            <div class="px-4 py-3 text-white flex items-center" style="background: linear-gradient(120deg, #2563eb, #4f46e5);">
+            <div class="px-4 py-3 text-white flex items-center flex-shrink-0" style="background: linear-gradient(120deg, #2563eb, #4f46e5);">
                 <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center mr-2.5 flex-shrink-0">
                     <i class="fa fa-user-circle-o text-lg"></i>
                 </div>
@@ -447,7 +451,7 @@
             <!-- 快捷问题 -->
             <div id="chatQuick" class="px-3 pb-2 flex flex-wrap gap-1.5 bg-slate-50"></div>
             <!-- 输入区 -->
-            <div class="p-2.5 border-t border-slate-100 bg-white flex items-end gap-2">
+            <div class="p-2.5 border-t border-slate-100 bg-white flex items-end gap-2 flex-shrink-0">
                 <textarea id="chatInput" rows="1" placeholder="请输入您的问题，Enter 发送" onkeydown="chatKeydown(event)" class="flex-1 resize-none px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs leading-relaxed focus:outline-none focus:border-blue-400 focus:bg-white transition-all max-h-20"></textarea>
                 <button onclick="sendChat()" class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-all flex-shrink-0">
                     <i class="fa fa-paper-plane text-xs"></i>
@@ -495,9 +499,16 @@
                 }
             }
             document.getElementById('consultModal').classList.remove('hidden');
+            setFabVisible(false);
         }
         function closeConsult() {
             document.getElementById('consultModal').classList.add('hidden');
+            setFabVisible(true);
+        }
+        // 咨询悬浮球与咨询/会话弹窗互斥，避免遮挡发送按钮
+        function setFabVisible(show) {
+            var fab = document.getElementById('consultFabWrap');
+            if (fab) fab.classList.toggle('hidden', !show);
         }
         function consultCall() {
             var phone = getServiceContact().phone.replace(/[^\d]/g, '');
@@ -543,6 +554,7 @@
             if (wt) wt.innerText = cfg.workTime;
             document.getElementById('consultModal').classList.add('hidden');
             document.getElementById('chatModal').classList.remove('hidden');
+            setFabVisible(false);
             renderChatQuick();
             renderChatHistory();
             setTimeout(function () {
@@ -553,6 +565,7 @@
         function closeChat() {
             clearChatSvcCtx();
             document.getElementById('chatModal').classList.add('hidden');
+            setFabVisible(true);
         }
         // 服务上下文：从服务商城「立即咨询」进入时携带服务信息
         var chatSvcCtx = null;
@@ -574,6 +587,11 @@
             if (input && !input.value) input.value = '您好，我想咨询「' + (svcName || '该服务') + '」的服务内容与报价';
         }
         window.openServiceChat = openServiceChat;
+        // 子页面（服务商城）在跨源 iframe 中无法直接调用上面的函数，改用 postMessage 通知
+        window.addEventListener('message', function (e) {
+            var d = e.data;
+            if (d && d.type === 'ceyuan:openServiceChat') openServiceChat(d.svcId, d.svcName);
+        });
         function renderChatQuick() {
             var box = document.getElementById('chatQuick');
             if (!box) return;
@@ -608,11 +626,23 @@
             }
             body.innerHTML = '<div class="text-center text-[10px] text-slate-400 py-3">今天</div>';
             list.forEach(function (m) {
-                chatAppendBubbleDOM(m.from === 'advisor' ? 'advisor' : 'customer', m.text, m.at ? m.at.split(' ')[1] : '');
+                chatAppendBubbleDOM(m.from === 'advisor' ? 'advisor' : 'customer', m.text, m.at ? m.at.split(' ')[1] : '', chatMsgActions(m));
             });
             body.scrollTop = body.scrollHeight;
         }
-        function chatAppendBubbleDOM(who, text, time) {
+        // 顾问消息附带的行动入口：专属价 / 专属服务包（咨询 → 订单 → 付款闭环）
+        function chatMsgActions(m) {
+            if (!m || m.from !== 'advisor') return '';
+            var btns = '';
+            if (m.bundleToken) {
+                btns += '<a href="service-bundle.html?token=' + encodeURIComponent(m.bundleToken) + '" target="_blank" class="inline-flex items-center gap-1 mt-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[11px] font-bold"><i class="fa fa-cubes"></i>查看专属订单并支付</a>';
+            }
+            if (m.quoteId && m.svcId) {
+                btns += '<a href="service-market.html?svc=' + encodeURIComponent(m.svcId) + '" target="_blank" class="inline-flex items-center gap-1 mt-1.5 px-3 py-1.5 bg-orange-500 text-white rounded-lg text-[11px] font-bold"><i class="fa fa-tag"></i>查看专属价并下单</a>';
+            }
+            return btns ? '<div class="mt-1 flex flex-wrap gap-1.5">' + btns + '</div>' : '';
+        }
+        function chatAppendBubbleDOM(who, text, time, actionsHtml) {
             var body = document.getElementById('chatBody');
             if (!body) return;
             var mine = who === 'customer';
@@ -622,6 +652,7 @@
                 + '<div class="px-3 py-2 rounded-2xl text-[12px] leading-relaxed whitespace-pre-wrap break-words '
                 + (mine ? 'bg-blue-600 text-white rounded-br-md' : 'bg-white text-slate-700 border border-slate-200 rounded-bl-md')
                 + '">' + escapeChat(text) + '</div>'
+                + (actionsHtml || '')
                 + (time ? '<div class="text-[9px] text-slate-400 mt-1 ' + (mine ? 'text-right' : '') + '">' + time + '</div>' : '')
                 + '</div>';
             wrap.innerHTML = bubble;
@@ -722,6 +753,11 @@
         }
         updateConsultUnread();
         setInterval(updateConsultUnread, 5000);
+        // 聊天窗打开期间轮询消息，顾问推送的专属价/专属服务包卡片可实时出现
+        setInterval(function () {
+            var modal = document.getElementById('chatModal');
+            if (modal && !modal.classList.contains('hidden')) renderChatHistory();
+        }, 3000);
 
         // 左侧导航收起 / 展开
         function applyNavState(collapsed) {
@@ -749,17 +785,24 @@
             }
 
             var urlOnly = url.split('/').pop();
+            var pathOnly = urlOnly.split('?')[0];
 
             document.body.classList.remove('mall-mode');
 
             if (!el) {
+                // 子页面归属菜单：生成页/查看页均归到「智能报告」列表页高亮
+                var MENU_ALIAS = { 'sales-report.html': 'report-list.html', 'report-viewer.html': 'report-list.html' };
+                var matchKey = pathOnly;
                 var items = document.querySelectorAll('.sidebar-item');
-                for (var i = 0; i < items.length; i++) {
-                    if (items[i].getAttribute('onclick') && items[i].getAttribute('onclick').indexOf(urlOnly) !== -1) {
-                        el = items[i];
-                        break;
+                var findItem = function(key) {
+                    for (var i = 0; i < items.length; i++) {
+                        var oc = items[i].getAttribute('onclick');
+                        if (oc && oc.indexOf(key) !== -1) return items[i];
                     }
-                }
+                    return null;
+                };
+                el = findItem(matchKey);
+                if (!el && MENU_ALIAS[matchKey]) el = findItem(MENU_ALIAS[matchKey]);
             }
 
             document.querySelectorAll('.sidebar-item').forEach(function(item) {
@@ -779,6 +822,11 @@
             groups.forEach(function(g) { g.classList.remove('collapsed'); });
             var headers = document.querySelectorAll('.menu-group-header');
             headers.forEach(function(h) { h.classList.remove('collapsed'); });
+            // 从服务商城（独立打开时）跳转过来：直接拉起服务咨询对话
+            try {
+                var qs = new URLSearchParams(location.search);
+                if (qs.get('chatSvc')) openServiceChat(qs.get('chatSvc'), qs.get('chatName') || '');
+            } catch (e) {}
         });
     </script>
 </body>

@@ -41,7 +41,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <button onclick="window.print()" class="px-3.5 py-2 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-500 transition-all"><i class="fa fa-print mr-1"></i>打印 / 存 PDF</button>
-                <button onclick="goBack()" class="px-3.5 py-2 rounded-lg text-[11px] font-bold text-white transition-all" style="background:linear-gradient(135deg,#6d28d9,#4f46e5);"><i class="fa fa-arrow-left mr-1"></i>返回会员中心</button>
+                <button id="backBtn" onclick="goBack()" class="px-3.5 py-2 rounded-lg text-[11px] font-bold text-white transition-all" style="background:linear-gradient(135deg,#6d28d9,#4f46e5);"><i class="fa fa-arrow-left mr-1"></i>返回会员中心</button>
             </div>
         </div>
     </header>
@@ -54,9 +54,8 @@
     </div>
 
     <!-- 报告主体：左正文 + 右侧栏 -->
-    <main id="reportBox" class="hidden max-w-6xl mx-auto px-6 py-6 grid grid-cols-3 gap-5 items-start">
-        <div class="col-span-2 space-y-5">
-            <!-- 标题卡 -->
+    <main id="reportBox" class="max-w-6xl mx-auto px-6 py-6 space-y-5">
+        <!-- 标题卡 -->
             <section class="sec-card">
                 <div class="flex items-start justify-between gap-4">
                     <div>
@@ -85,44 +84,12 @@
                 <div class="sec-title"><i class="fa fa-lightbulb-o text-indigo-400"></i>申报建议</div>
                 <div class="prose" id="rAdvice"></div>
             </section>
-        </div>
 
-        <!-- 右侧栏 -->
-        <aside class="space-y-5 sticky top-[72px]">
-            <!-- 科创诊断 -->
-            <section class="sec-card">
-                <div class="sec-title"><i class="fa fa-stethoscope text-indigo-400"></i>科创诊断</div>
-                <div class="flex items-center gap-4">
-                    <div class="w-16 h-16 rounded-2xl flex flex-col items-center justify-center text-white flex-shrink-0" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);">
-                        <span class="text-2xl font-black leading-none" id="rScore">—</span>
-                        <span class="text-[9px] opacity-80 mt-0.5" id="rGrade"></span>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-[10px] text-slate-400 font-bold mb-1.5">待补齐短板</p>
-                        <div id="rWeak" class="space-y-1"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 本次匹配条件 -->
-            <section class="sec-card" id="condCard" style="display:none">
-                <div class="sec-title"><i class="fa fa-sliders text-indigo-400"></i>本次匹配条件</div>
-                <div id="rConds"></div>
-            </section>
-
-            <!-- 顾问卡 -->
-            <section class="sec-card" style="background:linear-gradient(160deg,#4f46e5,#7c3aed);border:0;color:#fff;">
-                <div class="flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center font-black">张</div>
-                    <div>
-                        <p class="text-sm font-black">张销售 · 专属顾问</p>
-                        <p class="text-[10px] opacity-75">对本报告有疑问？随时联系</p>
-                    </div>
-                </div>
-                <button onclick="toast('已为您转接专属顾问（在线客服占位）')" class="w-full mt-3.5 py-2.5 rounded-xl bg-white text-indigo-600 text-xs font-black hover:bg-indigo-50 transition-all"><i class="fa fa-comments mr-1"></i>咨询顾问</button>
-                <p class="text-[9px] opacity-60 mt-2 text-center">工作时间 9:00 - 18:00 · 报告编号 <span id="rShareId"></span></p>
-            </section>
-        </aside>
+        <!-- 本次匹配条件 -->
+        <section class="sec-card" id="condCard" style="display:none">
+            <div class="sec-title"><i class="fa fa-sliders text-indigo-400"></i>本次匹配条件</div>
+            <div id="rConds"></div>
+        </section>
     </main>
 
     <div id="toast" class="fixed left-1/2 -translate-x-1/2 top-16 z-50 px-4 py-2.5 rounded-full text-xs font-bold text-white opacity-0 transition-opacity pointer-events-none" style="background:rgba(15,23,42,.88);"></div>
@@ -142,13 +109,19 @@
             clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.style.opacity = 0; }, 2400);
         };
         window.goBack = function () {
-            // iframe 壳内打开时回会员中心；独立窗口打开时关闭
-            try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage('member-center.html?sec=reports', null); return; } } catch (e) {}
-            window.location.href = 'member-center.html';
+            // 销售端「智能报告」列表进入（owner=1）→ 回报告列表；会员中心进入 → 回会员中心
+            var owner = /[?&]owner=1(&|$)/.test(location.search);
+            var target = owner ? 'report-list.html' : 'member-center.html?sec=reports';
+            try { if (parent && parent.window && parent.window.switchPage) { parent.window.switchPage(target, null); return; } } catch (e) {}
+            window.location.href = target;
         };
 
         // ---------- 定位报告与分享记录 ----------
         var params = new URLSearchParams(location.search);
+        if (params.get('owner') === '1') {
+            var backBtn = $('backBtn');
+            if (backBtn) backBtn.innerHTML = '<i class="fa fa-arrow-left mr-1"></i>返回报告列表';
+        }
         var reports = (DB.loadSalesReports ? DB.loadSalesReports() : []) || [];
         var report = null, share = null;
         reports.forEach(function (r) {
@@ -178,20 +151,12 @@
         document.title = report.title + ' - 策源易答';
         if (share) {
             $('shareMeta').textContent = '张销售推送于 ' + (share.createdAt || '—');
-            $('rShareId').textContent = share.shareId;
         }
         $('rTitle').textContent = report.title;
         $('rMeta').textContent = report.customerName + ' · 生成于 ' + report.createdAt + ' · 报告编号 ' + report.id;
         $('rType').textContent = report.type || '政策匹配';
         $('rSummary').textContent = report.summary || '——';
         $('rProfile').textContent = report.profile || '——';
-        // 科创诊断
-        var dg = report.diagnosis || {};
-        $('rScore').textContent = dg.avg != null ? dg.avg : '—';
-        $('rGrade').textContent = dg.grade ? dg.grade + ' 级' : '';
-        $('rWeak').innerHTML = (dg.weak && dg.weak.length)
-            ? dg.weak.map(function (w) { return '<p class="text-[11px] text-slate-600 leading-snug"><i class="fa fa-exclamation-circle text-amber-400 mr-1"></i>' + esc(w) + '</p>'; }).join('')
-            : '<p class="text-[11px] text-emerald-600 font-bold"><i class="fa fa-check-circle mr-1"></i>无明显短板</p>';
         // 匹配条件（按来源三色）
         var mc = report.matchConditions;
         if (mc && Object.keys(mc).length) {

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -77,11 +77,14 @@
             } catch (e) {}
         })();
     </script>
+    <!-- PDF 生成：html2canvas-pro（支持 oklch 等现代颜色函数）+ jsPDF，前端生成真实 PDF 字节流并下载（不弹打印框） -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro/dist/html2canvas-pro.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <!-- 顶部导航 -->
     <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div class="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="w-full px-6 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center">
                     <i class="fa fa-file-text-o text-white text-xl"></i>
@@ -101,7 +104,7 @@
         </div>
     </header>
 
-    <main class="max-w-[1600px] mx-auto px-6 py-6">
+    <main class="w-full px-6 py-6">
         <!-- 步骤条 -->
         <div id="stepbar" class="bg-white rounded-xl shadow-sm border border-gray-100 px-8 py-4 mb-6">
             <div class="flex items-center justify-between max-w-2xl mx-auto">
@@ -122,9 +125,9 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- 左侧：向导主体 -->
-            <div class="lg:col-span-2">
+        <div class="grid grid-cols-1 gap-6">
+            <!-- 向导主体 -->
+            <div>
                 <!-- Step 1: 选择企业 -->
                 <div id="panel1" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="ai-gradient p-6 text-white">
@@ -229,7 +232,7 @@
                         <div class="flex items-center space-x-2 no-print">
                             <button onclick="gotoStep(2)" class="px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50"><i class="fa fa-arrow-left mr-1"></i>上一步</button>
                             <button onclick="saveReport()" class="px-3 py-1.5 border border-brand-600 text-brand-600 rounded-lg text-xs hover:bg-brand-50 font-bold"><i class="fa fa-save mr-1"></i>保存报告</button>
-                            <button onclick="exportPDF()" class="px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 font-bold"><i class="fa fa-file-pdf-o mr-1"></i>一键生成 PDF</button>
+                            <button onclick="exportPDF(this)" class="px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs hover:bg-brand-700 font-bold"><i class="fa fa-file-pdf-o mr-1"></i>一键生成 PDF</button>
                             <button onclick="copyLink()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 font-bold"><i class="fa fa-link mr-1"></i>生成链接</button>
                         </div>
                     </div>
@@ -240,7 +243,7 @@
                         </div>
                         <div class="grid grid-cols-4 gap-3" id="kpiRow"></div>
                         <div>
-                            <label class="rep-label">本次匹配条件 <span class="text-xs font-normal text-gray-400 ml-2">（来自企业档案与销售补充，与 H5 智能报告同口径）</span></label>
+                            <label class="rep-label">本次匹配条件 <span class="pdf-hide text-xs font-normal text-gray-400 ml-2">（来自企业档案与销售补充，与 H5 智能报告同口径）</span></label>
                             <div id="rConditions" class="flex flex-wrap gap-1.5"></div>
                         </div>
                         <div>
@@ -248,7 +251,7 @@
                             <div id="rProfileBox" class="border border-gray-100 rounded-lg p-4 bg-gray-50/60"></div>
                         </div>
                         <div>
-                            <label class="rep-label">二、政策机会 <span class="text-xs font-normal text-gray-400 ml-2">（点击 × 可移除，数据来源于政策匹配）</span></label>
+                            <label class="rep-label">二、政策机会 <span class="pdf-hide text-xs font-normal text-gray-400 ml-2">（点击 × 可移除，数据来源于政策匹配）</span></label>
                             <div id="rPolicies" class="space-y-2 mb-2"></div>
                             <div class="flex items-center gap-2">
                                 <input id="npTitle" type="text" placeholder="手动补充政策名称" class="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-brand-500">
@@ -256,24 +259,22 @@
                             </div>
                         </div>
                         <div>
-                            <label class="rep-label">三、申报建议 <span class="text-xs font-normal text-gray-400 ml-2">（每行一条）</span></label>
-                            <textarea id="rAdvice" rows="5" class="rep-textarea"></textarea>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="rep-label mb-0">三、申报建议 <span class="text-xs font-normal text-gray-400 ml-2">（每行一条，可编辑）</span></label>
+                                <div class="flex items-center gap-2">
+                                    <span id="adviceGenBadge"></span>
+                                    <button type="button" id="btnRegenAdvice" onclick="regenerateAdvice()" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-[10px] font-bold hover:bg-purple-100 transition-colors"><i class="fa fa-magic"></i>AI 重新生成</button>
+                                </div>
+                            </div>
+                            <textarea id="rAdvice" rows="5" class="rep-textarea" oninput="syncAdviceFromEditor()" placeholder="AI 生成后可直接在此修改，每行一条建议"></textarea>
+                            <div id="rAdviceNote" class="mt-2 px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-[11px] text-slate-500 leading-relaxed"></div>
                         </div>
-                        <div>
+                        <div class="pdf-hide">
                             <label class="rep-label">四、下一步待补齐 <span class="text-xs font-normal text-gray-400 ml-2">（销售跟进时向企业确认）</span></label>
                             <div id="rTodo" class="text-xs text-gray-500 leading-relaxed bg-amber-50 border border-amber-100 rounded-lg p-3"></div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- 右侧：已生成报告 -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-fit" id="reportSide">
-                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <h2 class="font-semibold text-gray-800">已生成报告</h2>
-                    <span class="text-xs text-gray-400" id="reportCount"></span>
-                </div>
-                <div class="divide-y divide-gray-100 max-h-[680px] overflow-y-auto scrollbar-thin" id="reportList"></div>
             </div>
         </div>
     </main>
@@ -325,6 +326,7 @@
         var STEP = 1;
         var DRAFT = null;      // 当前草稿 {company, diagnosis, policies, summary, profile, advice}
         var EDIT_ID = null;    // 正在编辑的已生成报告 id（null=新报告）
+        var CURRENT_SALES = '张敏'; // 当前登录销售（演示账号，后续对接真实登录态）
 
         // ===== 工具 =====
         function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -516,7 +518,9 @@
             REPORTS = DataBridge.loadSalesReports();
             var dl = document.getElementById('customerList');
             dl.innerHTML = CUSTOMERS.filter(function(c) { return c.type !== 'personal'; }).map(function(c) { return '<option value="' + esc(c.name) + '">'; }).join('');
-            renderReportList();
+            // 从报告列表页带 ?id= 进入时，直接载入该报告到微调页
+            var m = /[?&]id=([^&]+)/.exec(location.search);
+            if (m) { try { editReport(decodeURIComponent(m[1])); } catch (e) {} }
         }
 
         // ===== 步骤切换 =====
@@ -593,6 +597,72 @@
             });
         }
 
+        // 申报建议生成来源：演示可用 ?ai=off 或 localStorage.ceyuan_ai_report=off 模拟 AI 不可用
+        function getAdviceGenSource() {
+            try {
+                if (new URLSearchParams(location.search).get('ai') === 'off') return 'engine';
+                if (localStorage.getItem('ceyuan_ai_report') === 'off') return 'engine';
+            } catch (e) {}
+            return 'ai';
+        }
+
+        // 文案生成只负责表达，政策清单、匹配度与条件差距均沿用规则引擎结果
+        function buildAdviceItems(co, policies, diag, source) {
+            var ai = source === 'ai';
+            var items = [];
+            policies.slice(0, 3).forEach(function(p) {
+                var basis = ['政策库匹配：《' + p.title + '》', '匹配结果：' + (p.level || '推荐') + (p.match ? ' · ' + p.match + '%' : '')];
+                if (p.level === '高匹配') {
+                    items.push({
+                        text: ai
+                            ? '建议将「' + p.title + '」作为本轮优先申报项目，按“条件已满足—材料归集—批次提交”推进，优先整理研发、审计与知识产权证明材料。'
+                            : '优先申报「' + p.title + '」：条件已全部满足，建议尽快准备申报材料。',
+                        basis: basis
+                    });
+                } else if (p.level === '部分匹配') {
+                    var gaps = (p.unmet || []).join('、');
+                    items.push({
+                        text: ai
+                            ? '建议先围绕' + gaps + '制定补齐计划，再启动「' + p.title + '」申报；补齐后重新运行政策雷达复核，避免带缺口申报。'
+                            : '「' + p.title + '」：未满足 ' + gaps + '，建议补齐后再申报。',
+                        basis: basis.concat(['条件差距：' + gaps])
+                    });
+                } else {
+                    var pending = (p.pending || []).join('、') || '企业关键条件';
+                    items.push({
+                        text: ai
+                            ? '建议先向企业核实' + pending + '，确认后再为「' + p.title + '」安排申报排期，避免因信息不完整误判政策机会。'
+                            : '「' + p.title + '」：' + pending + '尚待确认，建议向企业核实后复核。',
+                        basis: basis.concat(['档案待核实：' + pending])
+                    });
+                }
+            });
+            if (!policies.length) {
+                items.push({
+                    text: ai
+                        ? '建议先补充企业成立年限、研发投入、营业收入和知识产权等档案字段，再重新生成政策机会与申报排期。'
+                        : '政策库暂无匹配结果，建议先完善企业档案（成立年限、研发投入、营业收入、知识产权等）后重新生成。',
+                    basis: ['企业档案：关键字段待完善', '政策库匹配：暂无结果']
+                });
+            }
+            if (diag && diag.weak && diag.weak.length) {
+                var weak = diag.weak.join('、');
+                items.push({
+                    text: ai
+                        ? '结合科创测评结果，申报前优先补强' + weak + '对应的证明材料与管理制度，再提交相关政策申请。'
+                        : '针对' + weak + '短板，建议在申报前补充相关证明材料，提升评审通过率。',
+                    basis: ['科创测评：' + weak + '为待补短板']
+                });
+            }
+            items.push({
+                text: ai
+                    ? '建议按政策批次截止时间倒排材料准备，明确专人统筹，预留 2-4 周完成审计、归集与内部复核。'
+                    : '申报材料建议由专人统筹，提前预留 2-4 周准备期。',
+                basis: ['申报准备：材料统筹与批次排期']
+            });
+            return items;
+        }
+
         // ===== AI 草稿生成 =====
         function buildDraft(c, type) {
             var co = {
@@ -637,23 +707,16 @@
                 (co.quals.length ? '已获' + co.quals.join('、') + '资质认定。' : '暂无已获资质认定，建议从科技型中小企业评价切入。') +
                 (diag ? '科创能力综合得分 ' + diag.avg + ' 分（评级 ' + diag.grade + '）' + (diag.weak && diag.weak.length ? '，' + diag.weak.join('、') + '为当前待补短板。' : '。') : '');
 
-            // 申报建议（按匹配结果逐条给出）
-            var tips = [];
-            policies.slice(0, 3).forEach(function(p, i) {
-                var dept = p.dept ? '（' + p.dept + '·匹配 ' + p.match + '%）' : '（匹配 ' + p.match + '%）';
-                if (p.level === '高匹配') tips.push((i + 1) + '. 优先申报「' + p.title + '」' + dept + '：条件已全部满足，建议尽快准备申报材料。');
-                else if (p.level === '部分匹配') tips.push((i + 1) + '. 「' + p.title + '」' + dept + '：未满足 ' + p.unmet.join('、') + '，建议补齐后再申报。');
-                else tips.push((i + 1) + '. 「' + p.title + '」' + dept + '：' + p.pending.join('、') + '尚待确认，建议向企业核实后复核。');
-            });
-            if (!policies.length) tips.push('1. 政策库暂无匹配结果，建议先完善企业档案（成立年限、研发投入、营业收入、知识产权等）后重新生成。');
-            if (diag && diag.weak && diag.weak.length) tips.push((tips.length + 1) + '. 针对' + diag.weak.join('、') + '短板，建议在申报前补充相关证明材料，提升评审通过率。');
-            tips.push((tips.length + 1) + '. 申报材料建议由专人统筹，提前预留 2-4 周准备期。');
-            var advice = tips.join('\n');
+            // 申报建议：AI 优先、规则引擎兜底；匹配与门槛结论始终来自政策雷达
+            var adviceSource = getAdviceGenSource();
+            var adviceItems = buildAdviceItems(co, policies, diag, adviceSource);
+            var advice = adviceItems.map(function(x, i) { return (i + 1) + '. ' + x.text; }).join('\n');
 
             co._policies = policies;
             return {
                 company: co, diagnosis: diag, policies: policies,
                 summary: summary, profile: profile, advice: advice,
+                adviceItems: adviceItems, adviceSource: adviceSource, adviceGeneratedAt: now(),
                 conditions: condChips(co), todo: todoItems(co),
                 matchAvg: matchAvg, highCount: highCount, pendCount: pendCount, type: type
             };
@@ -793,12 +856,73 @@
                 DRAFT.company.name + '企业分析报告';
             renderConditions();
             renderProfileBox();
-            document.getElementById('rAdvice').value = DRAFT.advice;
+            renderAdvice();
             document.getElementById('rTodo').innerHTML = (DRAFT.todo && DRAFT.todo.length)
                 ? DRAFT.todo.map(function(t, i) { return '<p class="mb-1 last:mb-0">' + (i + 1) + '. ' + esc(t) + '</p>'; }).join('')
                 : '<p class="text-gray-400">匹配所需条件已全部覆盖，可直接进入申报准备。</p>';
             renderPolicyList();
             renderKpi();
+        }
+
+        function renderAdvice() {
+            document.getElementById('rAdvice').value = DRAFT.advice || '';
+            var src = DRAFT.adviceSource;
+            var isAi = src === 'ai';
+            var isEngine = src === 'engine';
+            var badge = document.getElementById('adviceGenBadge');
+            if (isAi) {
+                badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-[10px] font-bold';
+                badge.innerHTML = '<i class="fa fa-magic"></i>AI 辅助生成';
+                badge.title = '申报建议由 AI 生成，政策匹配与门槛判定由规则引擎计算';
+            } else if (isEngine) {
+                badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold';
+                badge.innerHTML = '<i class="fa fa-cogs"></i>规则引擎生成';
+                badge.title = 'AI 服务不可用，本次已回退至规则引擎生成；可点击右侧「AI 重新生成」';
+            } else {
+                // 旧报告未记录生成来源，不再误报“AI 服务不可用”
+                badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold';
+                badge.innerHTML = '<i class="fa fa-file-text-o"></i>历史报告';
+                badge.title = '该报告未记录生成来源，可点击右侧「AI 重新生成」基于当前信息刷新';
+            }
+
+            var sources = '企业档案 + 政策库匹配结果' + (DRAFT.diagnosis ? ' + 科创测评' : '');
+            var noteLine = isAi
+                ? '申报建议由 AI 结合上述内容生成；政策清单、匹配度与门槛判定始终采用规则引擎结果。'
+                : (isEngine
+                    ? 'AI 服务不可用，本次建议已回退至规则引擎生成；可点击「AI 重新生成」基于当前信息刷新。'
+                    : '可点击「AI 重新生成」基于当前企业信息与政策匹配结果刷新申报建议。');
+            document.getElementById('rAdviceNote').innerHTML =
+                '<p><i class="fa fa-database mr-1 text-slate-400"></i>数据来源：' + esc(sources) + ' · 生成时间：' + esc(DRAFT.adviceGeneratedAt || now()) + '</p>' +
+                '<p class="mt-1">' + noteLine + '内容仅供参考，请以官方申报要求为准。</p>';
+        }
+
+        // AI 重新生成：基于当前上方信息（企业画像 + 政策机会 + 科创测评）强制走 AI 表达，无视演示降级开关
+        function regenerateAdvice() {
+            if (!DRAFT) { toast('请先生成报告草稿', false); return; }
+            var btn = document.getElementById('btnRegenAdvice');
+            if (btn) { btn.disabled = true; btn.classList.add('ai-loading'); btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>生成中…'; }
+            setTimeout(function() {
+                var adviceItems = buildAdviceItems(DRAFT.company || {}, DRAFT.policies || [], DRAFT.diagnosis || null, 'ai');
+                DRAFT.advice = adviceItems.map(function(x, i) { return (i + 1) + '. ' + x.text; }).join('\n');
+                DRAFT.adviceItems = adviceItems;
+                DRAFT.adviceSource = 'ai';
+                DRAFT.adviceGeneratedAt = now();
+                renderAdvice();
+                if (btn) { btn.disabled = false; btn.classList.remove('ai-loading'); btn.innerHTML = '<i class="fa fa-magic"></i>AI 重新生成'; }
+                toast('已由 AI 重新生成申报建议，可继续修改');
+            }, 450);
+        }
+
+        // 编辑器实时同步：手动修改文案后同步到草稿数据，保存时落库
+        function syncAdviceFromEditor() {
+            if (!DRAFT) return;
+            var text = document.getElementById('rAdvice').value;
+            DRAFT.advice = text;
+            var lines = text.split('\n').filter(function(x) { return x.trim(); });
+            var old = DRAFT.adviceItems || [];
+            DRAFT.adviceItems = lines.map(function(line, i) {
+                return { text: line.replace(/^\d+[.、]\s*/, ''), basis: (old[i] && old[i].basis) ? old[i].basis : ['手动编辑'] };
+            });
         }
 
         function renderConditions() {
@@ -906,6 +1030,7 @@
                 customerName: DRAFT.company.name,
                 type: DRAFT.type || '政策匹配',
                 createdAt: now(),
+                createdBy: (EDIT_ID && findReport(EDIT_ID) ? findReport(EDIT_ID).createdBy : null) || CURRENT_SALES,
                 views: (EDIT_ID ? (findReport(EDIT_ID) || {}).views || 0 : 0),
                 shares: (EDIT_ID ? (findReport(EDIT_ID) || {}).shares || 0 : 0),
                 company: DRAFT.company,
@@ -916,7 +1041,10 @@
                 todo: DRAFT.todo || [],
                 cond: { fields: JSON.parse(JSON.stringify(COND)), tags: JSON.parse(JSON.stringify(COND_TAGS)) },
                 policies: DRAFT.policies,
-                advice: document.getElementById('rAdvice').value.trim()
+                advice: document.getElementById('rAdvice').value.trim(),
+                adviceItems: DRAFT.adviceItems || [],
+                adviceSource: DRAFT.adviceSource,
+                adviceGeneratedAt: DRAFT.adviceGeneratedAt || now()
             };
         }
 
@@ -930,25 +1058,115 @@
                 EDIT_ID = r.id;
             }
             DataBridge.saveSalesReports(REPORTS);
-            renderReportList();
             if (!silent) toast('报告已保存');
             return r;
         }
 
-        // 一键生成 PDF：本地打印导出，不跳转页面
-        function exportPDF() {
-            saveReport(true);
-            toast('正在生成 PDF，请在打印窗口选择「另存为 PDF」');
-            setTimeout(function() { window.print(); }, 350);
+        // 构造用于 PDF 的干净报告副本：剥离编辑 UI（标题栏/按钮/输入框），转为交付件样式
+        function buildPdfClone() {
+            var src = document.getElementById('panel3');
+            var clone = src.cloneNode(true);
+            clone.id = 'pdfClone';
+            clone.style.cssText = 'position:absolute;left:-9999px;top:0;width:794px;background:#fff;box-shadow:none;border:none;overflow:visible;';
+            // 安全删除：仅当节点确为其父节点的子节点时才移除，避免“not a child”报错
+            var rm = function(node) {
+                if (node && node.parentNode && node.parentNode.contains(node)) {
+                    try { node.parentNode.removeChild(node); } catch (e) {}
+                }
+            };
+            // 移除顶部“报告微调”标题栏（含操作按钮）
+            var h2 = clone.querySelector('h2');
+            if (h2) rm(h2.parentNode);
+            // 移除所有 no-print 元素
+            var noPrints = clone.querySelectorAll('.no-print');
+            for (var i = 0; i < noPrints.length; i++) rm(noPrints[i]);
+            // 移除仅编辑界面需要、不希望出现在 PDF 中的元素（灰色辅助说明、待补齐区块等）
+            var pdfHides = clone.querySelectorAll('.pdf-hide');
+            for (var k = 0; k < pdfHides.length; k++) rm(pdfHides[k]);
+            // 报告标题：input 转大标题
+            var title = clone.querySelector('#rTitle');
+            if (title && title.parentNode) {
+                var h = document.createElement('div');
+                h.style.cssText = 'font-size:22px;font-weight:700;color:#111827;padding:14px 0 12px;border-bottom:2px solid #16a34a;margin-bottom:14px;';
+                h.textContent = title.value || ((DRAFT.company && DRAFT.company.name) || '企业') + '企业分析报告';
+                try { title.parentNode.replaceChild(h, title); } catch (e) {}
+            }
+            // 政策机会：移除“手动补充政策”输入行与每个政策卡片的删除按钮
+            var np = clone.querySelector('#npTitle');
+            if (np) rm(np.parentNode);
+            var pol = clone.querySelector('#rPolicies');
+            if (pol) {
+                var btns = pol.querySelectorAll('button');
+                for (var j = 0; j < btns.length; j++) rm(btns[j]);
+            }
+            // 申报建议：移除徽章与“AI 重新生成”按钮所在容器
+            var regen = clone.querySelector('#btnRegenAdvice');
+            if (regen) rm(regen.parentNode);
+            var badge = clone.querySelector('#adviceGenBadge');
+            if (badge) rm(badge);
+            // 申报建议 textarea 转纯文本块（保留换行）
+            var ta = clone.querySelector('#rAdvice');
+            if (ta && ta.parentNode) {
+                var pre = document.createElement('div');
+                pre.style.cssText = 'white-space:pre-wrap;font-size:13px;line-height:1.8;color:#374151;';
+                pre.textContent = ta.value;
+                try { ta.parentNode.replaceChild(pre, ta); } catch (e) {}
+            }
+            return clone;
         }
 
-        // 打印前展开多行文本，避免内容被滚动区域截断
-        window.addEventListener('beforeprint', function() {
-            document.querySelectorAll('#panel3 textarea').forEach(function(t) { t.dataset.h0 = t.style.height; t.style.height = t.scrollHeight + 'px'; });
-        });
-        window.addEventListener('afterprint', function() {
-            document.querySelectorAll('#panel3 textarea').forEach(function(t) { t.style.height = t.dataset.h0 || ''; });
-        });
+        // 一键生成 PDF：html2canvas-pro 渲染报告副本为画布 → jsPDF 分页拼接 → 下载真实 PDF（不弹打印框）
+        function exportPDF(btn) {
+            saveReport(true);
+            if (!window.html2canvas || !(window.jspdf && window.jspdf.jsPDF)) {
+                toast('PDF 生成库加载失败，请检查网络后重试', false);
+                return;
+            }
+            if (btn) { btn.disabled = true; btn.classList.add('opacity-60'); }
+            toast('正在生成 PDF…');
+            var clone = null;
+            var cleanup = function() {
+                if (btn) { btn.disabled = false; btn.classList.remove('opacity-60'); }
+                if (clone && clone.parentNode && clone.parentNode.contains(clone)) {
+                    try { clone.parentNode.removeChild(clone); } catch (e) {}
+                }
+            };
+            try {
+                clone = buildPdfClone();
+                document.body.appendChild(clone);
+                var titleVal = (document.getElementById('rTitle').value || ((DRAFT.company && DRAFT.company.name) || '企业') + '企业分析报告');
+                var fileName = (titleVal + '.pdf').replace(/[\\/:*?"<>|]/g, '_');
+                window.html2canvas(clone, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false }).then(function(canvas) {
+                    var jsPDF = window.jspdf.jsPDF;
+                    var pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+                    var pageWidth = pdf.internal.pageSize.getWidth();
+                    var pageHeight = pdf.internal.pageSize.getHeight();
+                    var margin = 8;
+                    var imgWidth = pageWidth - margin * 2;
+                    var imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    var heightLeft = imgHeight;
+                    var position = margin;
+                    var imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
+                    heightLeft -= (pageHeight - margin * 2);
+                    while (heightLeft > 0) {
+                        position = heightLeft - imgHeight + margin;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
+                        heightLeft -= (pageHeight - margin * 2);
+                    }
+                    pdf.save(fileName);
+                    toast('PDF 已生成并下载');
+                    cleanup();
+                }).catch(function(e) {
+                    toast('PDF 生成失败：' + (e && e.message ? e.message : e), false);
+                    cleanup();
+                });
+            } catch (e) {
+                toast('PDF 生成失败：' + (e && e.message ? e.message : e), false);
+                cleanup();
+            }
+        }
 
         // ===== 分享报告（站内推送 / 外链，与 H5 同口径） =====
         var SHARE_REPORT = null;
@@ -990,7 +1208,6 @@
                 channel: channel, createdAt: createdAt, expireAt: expireAt, views: []
             });
             DataBridge.saveSalesReports(REPORTS);
-            renderReportList();
 
             var url = location.origin + location.pathname.replace(/[^/]*$/, '') + 'report-viewer.html?id=' + r.id + '&shareId=' + shareId;
             document.getElementById('shareUrl').value = url;
@@ -1018,36 +1235,6 @@
             return null;
         }
 
-        // ===== 报告列表 =====
-        function renderReportList() {
-            var box = document.getElementById('reportList');
-            document.getElementById('reportCount').textContent = '共 ' + REPORTS.length + ' 份';
-            if (!REPORTS.length) {
-                box.innerHTML = '<p class="p-8 text-center text-sm text-gray-400"><i class="fa fa-inbox mr-1"></i>暂无报告，左侧生成第一份</p>';
-                return;
-            }
-            var typeColors = { '政策匹配': 'bg-brand-50 text-brand-700', '能力诊断': 'bg-blue-50 text-blue-700', '行业分析': 'bg-orange-50 text-orange-700' };
-            box.innerHTML = REPORTS.map(function(r) {
-                var sh = Array.isArray(r.shares) ? r.shares : [];
-                var totalViews = 0;
-                sh.forEach(function(s) { if (Array.isArray(s.views)) totalViews += s.views.length; });
-                var totalShares = sh.length;
-                return '<div class="p-4 hover:bg-brand-50/40 cursor-pointer" onclick="editReport(\'' + r.id + '\')">' +
-                    '<div class="flex items-start justify-between mb-1.5">' +
-                    '<h4 class="text-sm font-medium text-gray-800 flex-1">' + esc(r.title) + '</h4>' +
-                    '<span class="px-2 py-0.5 rounded text-xs flex-shrink-0 ml-2 ' + (typeColors[r.type] || 'bg-gray-100 text-gray-600') + '">' + esc(r.type) + '</span></div>' +
-                    '<p class="text-xs text-gray-400 mb-2">' + esc(r.customerName) + '</p>' +
-                    '<div class="flex items-center justify-between text-xs text-gray-500">' +
-                    '<span><i class="fa fa-clock-o mr-1"></i>' + esc(r.createdAt) + '</span>' +
-                    '<div class="flex items-center space-x-2">' +
-                    '<span title="浏览"><i class="fa fa-eye mr-0.5"></i>' + totalViews + '</span>' +
-                    '<span title="分享"><i class="fa fa-share-alt mr-0.5"></i>' + totalShares + '</span>' +
-                    '<button title="查看/分享页" class="hover:text-brand-600" onclick="event.stopPropagation();viewReport(\'' + r.id + '\')"><i class="fa fa-external-link"></i></button>' +
-                    '<button title="删除" class="hover:text-red-500" onclick="event.stopPropagation();deleteReport(\'' + r.id + '\')"><i class="fa fa-trash"></i></button>' +
-                    '</div></div></div>';
-            }).join('');
-        }
-
         function editReport(id) {
             var r = findReport(id);
             if (!r) return;
@@ -1057,6 +1244,9 @@
                 diagnosis: r.diagnosis ? JSON.parse(JSON.stringify(r.diagnosis)) : null,
                 policies: JSON.parse(JSON.stringify(r.policies || [])),
                 summary: r.summary, profile: r.profile, advice: r.advice, type: r.type,
+                adviceItems: JSON.parse(JSON.stringify(r.adviceItems || [])),
+                adviceSource: r.adviceSource,
+                adviceGeneratedAt: r.adviceGeneratedAt || r.createdAt || '',
                 conditions: JSON.parse(JSON.stringify(r.conditions || [])),
                 todo: JSON.parse(JSON.stringify(r.todo || []))
             };
@@ -1072,21 +1262,6 @@
             fillCompanyForm(DRAFT);
             fillStep3();
             gotoStep(3);
-        }
-
-        function viewReport(id) {
-            var url = 'report-viewer.html?id=' + id;
-            if (parent && parent.window && parent.window.switchPage) parent.window.switchPage(url, null);
-            else window.location.href = url;
-        }
-
-        function deleteReport(id) {
-            if (!confirm('确定删除该报告？')) return;
-            REPORTS = REPORTS.filter(function(x) { return x.id !== id; });
-            DataBridge.saveSalesReports(REPORTS);
-            if (EDIT_ID === id) { EDIT_ID = null; gotoStep(1); }
-            renderReportList();
-            toast('已删除');
         }
 
         document.addEventListener('DOMContentLoaded', load);

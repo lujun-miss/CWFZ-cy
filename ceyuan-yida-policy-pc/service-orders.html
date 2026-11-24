@@ -115,7 +115,7 @@
         </div>
     </header>
 
-    <main class="max-w-4xl mx-auto px-6 py-8">
+    <main class="max-w-6xl mx-auto px-6 py-8">
         <!-- 标题 -->
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-black text-slate-800 flex items-center">
@@ -192,6 +192,17 @@
                 <button onclick="closeReview()" class="flex-1 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold">取消</button>
                 <button onclick="submitReview()" class="flex-1 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-sm font-bold">提交评价</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 订单详情弹窗 -->
+    <div id="orderDetailModal" class="fixed inset-0 modal-mask z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full overflow-hidden flex flex-col" style="max-width:720px;max-height:90vh">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+                <h3 class="text-base font-black text-slate-800"><i class="fa fa-file-text-o text-orange-500 mr-2"></i>订单详情</h3>
+                <button onclick="closeOrderDetail()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500"><i class="fa fa-times"></i></button>
+            </div>
+            <div id="orderDetailBody" class="p-6 overflow-y-auto flex-1"></div>
         </div>
     </div>
 
@@ -286,6 +297,11 @@
         let starVal = 5;
 
         function fmtMoney(n) { return (Number(n) || 0).toLocaleString('zh-CN'); }
+        // 分类图标（后台无图标字段，按分类自动匹配）
+        function categoryIcon(cat) {
+            const m = { '政策咨询': 'fa-file-text-o', '申报代理': 'fa-pencil-square-o', '知识产权': 'fa-copyright', '财务审计': 'fa-calculator', '技术转移': 'fa-exchange', '检验检测': 'fa-flask', '专属服务': 'fa-file-text-o' };
+            return m[cat] || 'fa-file-text-o';
+        }
 
         const STATUS = {
             unpaid:   { text: '待付款', cls: 'bg-red-50 text-red-600' },
@@ -324,7 +340,218 @@
             return FALLBACK_STEPS;
         }
 
-        function load() { ORDERS = (typeof DataBridge !== 'undefined') ? DataBridge.loadServiceOrders() : []; }
+        function load() {
+            ORDERS = (typeof DataBridge !== 'undefined') ? DataBridge.loadServiceOrders() : [];
+            // 顾问推送但历史数据尚未建单的专属订单，也归入订单列表（待付款）
+            try {
+                var bundles = (typeof DataBridge !== 'undefined' && DataBridge.loadServiceBundles) ? (DataBridge.loadServiceBundles() || []) : [];
+                var linked = {};
+                ORDERS.forEach(function (o) { if (o.bundleId) linked[o.bundleId] = 1; });
+                bundles.forEach(function (b) {
+                    if (linked[b.id] || b.status !== 'pushed') return;
+                    ORDERS.unshift({
+                        id: 'ZD' + String(b.id).slice(-6), svcName: b.title, provider: '策源易答服务顾问',
+                        icon: 'fa-file-text-o', category: '专属服务', amount: b.totalPrice, originalAmount: b.originalTotal,
+                        bundleId: b.id, items: b.items, milestones: b.milestones, includes: b.includes || [],
+                        status: 'unpaid', payMethod: '', payStatus: 'waiting',
+                        createTime: b.pushedAt || b.at || '', progress: 0
+                    });
+                });
+            } catch (e) {}
+        }
+        function openBundleOrder(bid) {
+            var b = (typeof DataBridge !== 'undefined' && DataBridge.loadServiceBundles)
+                ? (DataBridge.loadServiceBundles() || []).find(function (x) { return x.id === bid; }) : null;
+            if (b && b.token) { location.href = 'service-bundle.html?token=' + encodeURIComponent(b.token); }
+            else { alert('订单链接已失效，请联系顾问重新推送'); }
+        }
+
+        // ===== 订单详情 =====
+        function openOrderDetail(id) {
+            const o = ORDERS.find(x => x.id === id);
+            if (!o) return;
+            const st = statusOf(o);
+
+            // 定制订单若订单上缺少明细，从对应服务包补齐
+            let items = o.items || [];
+            let includes = o.includes || [];
+            let mils = o.milestones || [];
+            if ((!items.length || !includes.length || !mils.length) && o.bundleId && window.DataBridge && DataBridge.getServiceBundle) {
+                const b = DataBridge.getServiceBundle(o.bundleId);
+                if (b) {
+                    if (!items.length) items = b.items || [];
+                    if (!includes.length) includes = b.includes || [];
+                    if (!mils.length) mils = b.milestones || [];
+                }
+            }
+            // 历史定制订单没有内容清单时，取首个服务商品在后台维护的服务内容
+            if (!includes.length && items.length) {
+                const pid = (items.find(it => it.svcId) || {}).svcId;
+                const p = (pid && window.DataBridge && DataBridge.loadServiceProducts)
+                    ? (DataBridge.loadServiceProducts() || []).find(x => x.id === pid) : null;
+                if (p && Array.isArray(p.includes)) includes = p.includes;
+            }
+
+            // 服务项
+            let itemsHtml = '';
+            if (items.length) {
+                itemsHtml = items.map((it, i) => `
+                    <div class="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+                        <span class="text-xs text-slate-700 min-w-0 truncate"><span class="text-slate-300 mr-1">${i + 1}.</span>${it.svcName || '定制服务项'}</span>
+                        <span class="text-xs text-slate-500 flex-shrink-0 ml-3">${it.originalPrice > 0 ? '¥' + fmtMoney(it.originalPrice) : '面议'}</span>
+                    </div>`).join('');
+            } else {
+                itemsHtml = `
+                    <div class="flex items-center justify-between py-2">
+                        <span class="text-xs text-slate-700"><i class="fa fa-check-circle text-orange-400 mr-2"></i>${o.svcName}</span>
+                        <span class="text-xs text-slate-500">${o.originalAmount > 0 ? '¥' + fmtMoney(o.originalAmount) : (o.amount > 0 ? '¥' + fmtMoney(o.amount) : '面议')}</span>
+                    </div>`;
+            }
+
+            // 服务内容清单（顾问配置）
+            let incHtml = '';
+            if (includes.length) {
+                incHtml = `
+                <div class="mt-5">
+                    <p class="text-xs font-bold text-slate-600 mb-1.5"><i class="fa fa-check-square-o text-orange-500 mr-1.5"></i>服务内容清单</p>
+                    <div class="p-3 bg-slate-50 rounded-xl space-y-1.5">
+                        ${includes.map(x => `<div class="text-[11px] text-slate-600 leading-relaxed"><i class="fa fa-check-circle text-indigo-400 mr-1.5"></i>${x}</div>`).join('')}
+                    </div>
+                </div>`;
+            }
+
+            // 服务流程
+            let processHtml = '';
+            if (mils.length) {
+                processHtml = `
+                <div class="mt-5">
+                    <p class="text-xs font-bold text-slate-600 mb-2.5"><i class="fa fa-tasks text-orange-500 mr-1.5"></i>服务流程</p>
+                    <div class="space-y-2">
+                        ${mils.map((m, i) => `
+                        <div class="flex items-start gap-2.5 p-2.5 bg-slate-50 rounded-xl">
+                            <span class="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] font-black flex-shrink-0">${i + 1}</span>
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold text-slate-700">${m.name || '服务阶段'}</p>
+                                ${m.desc ? `<p class="text-[11px] text-slate-500 mt-0.5">${m.desc}</p>` : ''}
+                            </div>
+                        </div>`).join('')}
+                    </div>
+                </div>`;
+            }
+
+            // 金额明细
+            const orig = o.originalAmount || 0;
+            const discount = orig > o.amount ? orig - o.amount : 0;
+            const amountHtml = `
+                <div class="mt-5 p-3.5 bg-orange-50/60 border border-orange-100 rounded-2xl">
+                    ${orig > 0 ? `<div class="flex items-center justify-between text-xs text-slate-500 mb-1"><span>服务原价</span><span>¥${fmtMoney(orig)}</span></div>` : ''}
+                    ${discount > 0 ? `<div class="flex items-center justify-between text-xs text-orange-600 mb-1"><span>${o.bundleId ? '专属优惠' : '客服改价优惠'}</span><span>-¥${fmtMoney(discount)}</span></div>` : ''}
+                    <div class="flex items-center justify-between pt-1.5 border-t border-orange-100">
+                        <span class="text-xs font-bold text-slate-700">应付金额</span>
+                        <span class="text-lg font-black text-orange-600">¥${fmtMoney(o.amount)}</span>
+                    </div>
+                </div>`;
+
+            // 服务进度（服务中/已完成/已评价）
+            let progressHtml = '';
+            if (o.status === 'serving' || o.status === 'done' || o.status === 'reviewed') {
+                const steps = getOrderSteps(o);
+                const pg = Math.max(0, Math.min(100, o.progress || 0));
+                progressHtml = `
+                <div class="mt-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-xs font-bold text-slate-600"><i class="fa fa-tasks text-orange-500 mr-1.5"></i>服务进度</p>
+                        <span class="text-[11px] font-bold ${pg >= 100 ? 'text-emerald-600' : 'text-orange-600'}">${pg}%</span>
+                    </div>
+                    <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2.5">
+                        <div class="h-full ${pg >= 100 ? 'bg-emerald-500' : 'bg-orange-500'} rounded-full" style="width:${pg}%"></div>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                        ${steps.map((s, i) => {
+                            const done = pg >= ((i + 1) / steps.length) * 100;
+                            const cur = !done && pg >= (i / steps.length) * 100;
+                            return `<span class="text-[10px] px-2 py-1 rounded-md ${done ? 'bg-emerald-50 text-emerald-600' : cur ? 'bg-orange-50 text-orange-600 font-bold' : 'bg-slate-50 text-slate-400'}">${i + 1}. ${s}</span>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+            }
+
+            // 订单信息
+            const infoHtml = `
+                <div class="mt-5 grid grid-cols-2 gap-2 text-[11px]">
+                    <div class="p-2.5 bg-slate-50 rounded-xl"><span class="text-slate-400">下单时间</span><p class="font-bold text-slate-700 mt-0.5">${o.createTime || '-'}</p></div>
+                    <div class="p-2.5 bg-slate-50 rounded-xl"><span class="text-slate-400">服务商</span><p class="font-bold text-slate-700 mt-0.5 truncate">${o.provider || '-'}</p></div>
+                    <div class="p-2.5 bg-slate-50 rounded-xl"><span class="text-slate-400">服务对象</span><p class="font-bold text-slate-700 mt-0.5 truncate">${o.company || o.contact || '-'}</p></div>
+                    <div class="p-2.5 bg-slate-50 rounded-xl"><span class="text-slate-400">联系人</span><p class="font-bold text-slate-700 mt-0.5 truncate">${o.contact || '-'}${o.phone ? ' · ' + o.phone : ''}</p></div>
+                </div>`;
+
+            // 评价与回复
+            let reviewHtml = '';
+            if (o.reviewText || o.rating > 0) {
+                const stars = o.rating > 0 ? '★'.repeat(o.rating) + '☆'.repeat(Math.max(0, 5 - o.rating)) : '';
+                reviewHtml = `
+                <div class="mt-5 p-3.5 bg-amber-50/60 border border-amber-100 rounded-2xl">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <p class="text-xs font-bold text-slate-700"><i class="fa fa-star text-amber-500 mr-1.5"></i>服务评价</p>
+                        <span class="text-amber-500 text-xs tracking-wider">${stars}</span>
+                    </div>
+                    ${o.reviewText ? `<p class="text-[11px] text-slate-600 leading-relaxed">${o.reviewText}</p>` : '<p class="text-[11px] text-slate-400">客户暂未填写评价内容</p>'}
+                    ${o.reviewTime ? `<p class="text-[10px] text-slate-400 mt-1">${o.reviewTime}</p>` : ''}
+                    ${o.replyText ? `<div class="mt-2 p-2.5 bg-white rounded-xl border border-amber-100"><p class="text-[10px] font-bold text-slate-500 mb-1">服务商回复</p><p class="text-[11px] text-slate-600 leading-relaxed">${o.replyText}</p>${o.replyTime ? `<p class="text-[10px] text-slate-400 mt-1">${o.replyTime}</p>` : ''}</div>` : ''}
+                </div>`;
+            }
+
+            // 转账凭证
+            let voucherHtml = '';
+            if (o.voucher) {
+                voucherHtml = `
+                <div class="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-xl text-[11px] text-slate-600">
+                    <p class="font-bold text-slate-700 mb-1"><i class="fa fa-file-o mr-1.5"></i>对公转账凭证</p>
+                    <p>付款方：${o.voucher.payer || '-'} · 转账日期：${o.voucher.payDate || '-'}</p>
+                    <p class="mt-0.5">凭证文件：${o.voucher.fileName || '-'}${o.voucher.uploadTime ? ' · 上传于 ' + o.voucher.uploadTime : ''}</p>
+                </div>`;
+            }
+
+            document.getElementById('orderDetailBody').innerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <div class="text-[11px] text-slate-400 leading-relaxed">
+                        <p>订单号：${o.id}</p>
+                        <p class="mt-0.5">下单时间：${o.createTime || '-'}</p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-md text-xs font-bold ${st.cls}">${st.text}</span>
+                </div>
+
+                <div class="flex items-center gap-3 p-3.5 border border-slate-100 rounded-2xl">
+                    <div class="w-12 h-12 gradient-orange rounded-xl flex items-center justify-center text-orange-500 flex-shrink-0"><i class="fa ${categoryIcon(o.category)} text-xl"></i></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-bold text-sm text-slate-800 truncate">${o.svcName}</p>
+                        <p class="text-[11px] text-slate-400 mt-1 truncate">${o.provider ? o.provider + ' · ' : ''}${o.category || '服务'}${o.bundleId ? ' · <span class="text-indigo-600 font-bold">专属服务</span>' : ''}</p>
+                    </div>
+                </div>
+
+                <div class="mt-5">
+                    <p class="text-xs font-bold text-slate-600 mb-1.5"><i class="fa fa-list-ul text-orange-500 mr-1.5"></i>服务项（共 ${items.length || 1} 项）</p>
+                    <div>${itemsHtml}</div>
+                </div>
+
+                ${incHtml}
+                ${processHtml}
+                ${progressHtml}
+                ${amountHtml}
+                ${infoHtml}
+                ${reviewHtml}
+
+                <div class="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+                    <div class="p-2.5 bg-slate-50 rounded-xl"><span class="text-slate-400">支付方式</span><p class="font-bold text-slate-700 mt-0.5">${o.payMethod || '未选择'}</p></div>
+                    <div class="p-2.5 bg-slate-50 rounded-xl"><span class="text-slate-400">支付状态</span><p class="font-bold text-slate-700 mt-0.5">${o.payStatus === 'pending' ? '凭证审核中' : o.payStatus === 'rejected' ? '凭证被驳回' : o.payStatus === 'confirmed' ? '已支付' : '未支付'}</p></div>
+                </div>
+                ${voucherHtml}
+
+                ${o.priceAdjustReason ? `<div class="mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-[11px] text-indigo-700"><i class="fa fa-comment-o mr-1"></i>顾问说明：${o.priceAdjustReason}</div>` : ''}
+            `;
+            show('orderDetailModal');
+        }
+        function closeOrderDetail() { hide('orderDetailModal'); }
 
         function setTab(t) {
             curTab = t;
@@ -374,6 +601,8 @@
                         </div>
                         <div class="mt-2 text-[10px] text-slate-400 flex items-center gap-1"><i class="fa fa-info-circle"></i>服务全部完成后可评价</div>
                     </div>`;
+            } else if (o.status === 'unpaid' && o.bundleId && o.payMethod !== '对公转账') {
+                body = `<div class="mt-3 text-[11px] text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl px-3.5 py-2.5 font-bold flex items-center"><i class="fa fa-file-text-o mr-1.5"></i>顾问为您定制的专属订单，含服务清单与服务流程，确认后支付</div>`;
             } else if (o.status === 'unpaid' && o.payMethod === '对公转账') {
                 const v = o.voucher;
                 const audit = o.voucherAudit;
@@ -404,7 +633,11 @@
 
             // 操作按钮
             let acts = '';
-            if (o.status === 'unpaid' && o.payMethod === '对公转账') {
+            if (o.status === 'unpaid' && o.bundleId && o.payMethod !== '对公转账') {
+                acts = `
+                    <button onclick="openOrderDetail('${o.id}')" class="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50">查看详情</button>
+                    <button onclick="openBundleOrder('${o.bundleId}')" class="px-5 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl text-xs font-bold"><i class="fa fa-credit-card mr-1"></i>去支付</button>`;
+            } else if (o.status === 'unpaid' && o.payMethod === '对公转账') {
                 if (o.payStatus === 'pending') {
                     acts = `
                     <button onclick="openVoucher('${o.id}', true)" class="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50">查看凭证</button>
@@ -431,6 +664,10 @@
                     <button onclick="goPage('service-market.html')" class="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50">再次购买</button>`;
             }
 
+            if (acts.indexOf('openOrderDetail') === -1) {
+                acts = `<button onclick="openOrderDetail('${o.id}')" class="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50">查看详情</button>` + acts;
+            }
+
             return `
             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden card-hover transition-all">
                 <div class="px-5 py-3 bg-slate-50/70 flex items-center justify-between border-b border-slate-100">
@@ -443,18 +680,28 @@
                 </div>
                 <div class="p-5 flex items-center space-x-4">
                     <div class="w-14 h-14 gradient-orange rounded-2xl flex items-center justify-center flex-shrink-0 text-orange-500">
-                        <i class="fa ${o.icon} text-2xl"></i>
+                        <i class="fa ${categoryIcon(o.category)} text-2xl"></i>
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="font-bold text-slate-800 truncate">${o.svcName}</p>
-                        <p class="text-xs text-slate-400 mt-1"><i class="fa fa-building-o mr-1"></i>${o.provider} · ${o.category}${o.tierName ? ` · <span class="text-orange-500 font-bold"><i class="fa fa-signal mr-0.5"></i>${o.tierName}</span>` : ''}${o.bundleId ? ' · <span class="text-indigo-600 font-bold"><i class="fa fa-cubes mr-0.5"></i>服务包</span>' : ''}</p>
-                        ${o.bundleId && o.items && o.items.length ? `<p class="text-[11px] text-slate-400 mt-1 truncate">含：${o.items.map(it => it.svcName + (it.tierName ? '（' + it.tierName + '）' : '')).join('、')}</p>` : ''}
+                        <p class="text-xs text-slate-400 mt-1"><i class="fa fa-building-o mr-1"></i>${o.provider} · ${o.category}${o.bundleId ? ' · <span class="text-indigo-600 font-bold"><i class="fa fa-file-text-o mr-0.5"></i>专属服务</span>' : ''}</p>
                     </div>
                     <div class="text-right flex-shrink-0">
                         <p class="text-orange-600 font-black">¥${fmtMoney(o.amount)}</p>
-                        ${o.originalAmount && o.originalAmount > 0 ? `<p class="text-[10px] text-slate-400"><span class="line-through">¥${fmtMoney(o.originalAmount)}</span><span class="text-orange-500 ml-1">${o.bundleId ? '打包优惠' : '客服已改价'}</span></p>` : ''}
+                        ${o.originalAmount && o.originalAmount > 0 ? `<p class="text-[10px] text-slate-400"><span class="line-through">¥${fmtMoney(o.originalAmount)}</span><span class="text-orange-500 ml-1">${o.bundleId ? '专属优惠' : '客服已改价'}</span></p>` : ''}
                     </div>
                 </div>
+                ${o.bundleId && o.items && o.items.length ? `
+                <div class="px-5 pb-4">
+                    <div class="p-3 bg-slate-50 rounded-xl space-y-1.5">
+                        <p class="text-[10px] font-bold text-slate-400 mb-1">服务项（共 ${o.items.length} 项）</p>
+                        ${o.items.map((it, i) => `
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-[11px] text-slate-600 min-w-0 truncate"><span class="text-slate-300 mr-1">${i + 1}.</span>${it.svcName}</span>
+                            <span class="text-[11px] text-slate-400 flex-shrink-0">${it.originalPrice > 0 ? '¥' + fmtMoney(it.originalPrice) : '面议'}</span>
+                        </div>`).join('')}
+                    </div>
+                </div>` : ''}
                 ${body ? `<div class="px-5 pb-4">${body}</div>` : ''}
                 <div class="px-5 py-3 border-t border-slate-50 flex items-center justify-end space-x-2">${acts}</div>
             </div>`;

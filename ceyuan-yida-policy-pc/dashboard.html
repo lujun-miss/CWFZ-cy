@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -137,7 +137,7 @@
             </div>
 
             <!-- Hero 搜索区 -->
-            <div class="mx-auto px-6 pt-6 pb-4 relative" id="heroSection" style="overflow:visible;max-width:1400px;">
+            <div class="w-full px-6 pt-6 pb-4 relative" id="heroSection" style="overflow:visible;">
                 <!-- 顶部呼吸灯 + 扫描线 -->
                 <div class="flex items-center justify-center gap-1.5 mb-2">
                     <span class="hero-pulse-dot"></span><span class="hero-pulse-dot" style="animation-delay:.2s"></span><span class="hero-pulse-dot" style="animation-delay:.4s"></span>
@@ -191,7 +191,7 @@
             </div>
 
             <!-- 布局：上排 政策快讯（宽列）+ 申报日历；底部 热门服务通栏 -->
-            <div id="defaultSection" class="mx-auto px-6 pb-4 flex flex-col gap-4" style="max-width:1400px;">
+            <div id="defaultSection" class="w-full px-6 pb-4 flex flex-col gap-4">
                 <div class="flex gap-4 items-stretch">
                     <!-- 左：政策快讯 -->
                     <div class="flex-1" style="min-width:0;">
@@ -240,7 +240,7 @@
             </div>
 
             <!-- 页脚：仅服务热线 -->
-            <div class="mx-auto px-6 pb-3" style="max-width:1400px;">
+            <div class="w-full px-6 pb-3">
                 <div class="border-t border-white/60 pt-3 text-center">
                     <i class="fa fa-headphones text-slate-400 text-xs mr-1"></i>
                     <span class="text-[11px] text-slate-400">服务热线</span>
@@ -468,7 +468,10 @@
                 '<button onclick="calShiftMonth(-1)" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 text-xs"><i class="fa fa-chevron-left"></i></button>' +
                 '<span class="text-sm font-black text-slate-700">' + cy + '年' + (cm + 1) + '月' + (isCurMonth ? '' : ' <a onclick="calBackToday()" class="text-[11px] text-indigo-500 font-bold cursor-pointer">回今天</a>') + '</span>' +
                 '<button onclick="calShiftMonth(1)" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 text-xs"><i class="fa fa-chevron-right"></i></button></div>' +
-                '<div class="text-[11px] text-slate-400 mb-1.5 text-right"><span style="color:#ef4444;">●</span> 有可申报项目 <span class="text-slate-300">· 点日期看当日项目</span></div>' +
+                '<div class="text-[11px] text-slate-400 mb-1.5 flex items-center justify-between gap-2">' +
+                    '<span><span style="color:#ef4444;">●</span> 有可申报项目 <span class="text-slate-300">· 点日期看当日项目</span></span>' +
+                    '<span class="font-bold text-slate-500 whitespace-nowrap"><i class="fa fa-map-marker mr-0.5 text-rose-400"></i>' + curCityName() + '</span>' +
+                '</div>' +
                 '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;">';
             '日一二三四五六'.split('').forEach(function(w) { cal += '<div class="text-[11px] text-slate-400 font-bold py-1">' + w + '</div>'; });
             for (var wi = 0; wi < firstW; wi++) cal += '<div></div>';
@@ -489,12 +492,25 @@
             document.getElementById('calendarBody').innerHTML = cal;
         }
 
+        /** 当前所选城市是否适用该政策：全国级通用；省级需省份一致；市级/区县级需城市一致 */
+        function calCityCovered(p) {
+            var c = loadCity();
+            var city = (c && c.name) ? c.name : '成都市';
+            var prov = (c && c.province) ? c.province : findProv(city);
+            var r = p.region || {};
+            if (!r.province || r.province === '全国') return true;
+            if (prov && r.province !== prov) return false;
+            if (r.city && r.city !== city) return false;
+            return true;
+        }
+
         /** 汇总某年某月的日历标记：当日处于某批次申报期内即标红点（与政策雷达申报日历同口径） */
         function calMarks(cy, cm) {
             var marks = {};
             var RED = '#ef4444';
             POLICIES.forEach(function(p) {
                 if (!DataBridge.isDeclaration(p)) return;
+                if (!calCityCovered(p)) return;
                 (p.batches || []).forEach(function(b) {
                     if (!b.end) return;
                     var ea = String(b.end).split('-');
@@ -514,6 +530,7 @@
                                 color: RED,
                                 label: p.name + ' · ' + (b.name || ''),
                                 name: p.name, bname: b.name || '', dept: p.dept || '', level: p.level || '',
+                                region: (!p.region || p.region.province === '全国') ? '全国' : [p.region.province, p.region.city, p.region.district].filter(Boolean).join(' · '),
                                 end: b.end
                             });
                         }
@@ -553,7 +570,8 @@
             // 头部
             document.getElementById('calModalTitle').innerHTML =
                 cy + '年' + (cm + 1) + '月 · 可申报项目 ' + monthCount + ' 个' +
-                '<span class="text-[10px] text-slate-400 font-normal ml-2"><span style="color:#ef4444;">●</span> 当日在申报期内</span>';
+                '<span class="text-[10px] text-slate-400 font-normal ml-2"><span style="color:#ef4444;">●</span> 当日在申报期内</span>' +
+                '<span class="text-[10px] text-slate-400 font-normal ml-2"><i class="fa fa-map-marker text-rose-400 mr-0.5"></i>仅含 ' + curCityName() + ' 适用政策</span>';
             document.getElementById('calModalMonth').textContent = cy + '年' + (cm + 1) + '月';
             document.getElementById('calTodayBtn').style.display = (cy === ty && cm === tm) ? 'none' : '';
             // 月历网格
@@ -596,6 +614,7 @@
                         '<div class="flex-1" style="min-width:0;">' +
                             '<div class="text-[12px] font-bold text-slate-700 truncate">' + it.name + '</div>' +
                             '<div class="text-[10px] text-slate-400 truncate">' + (it.bname ? it.bname + ' · ' : '') + (it.dept || '') + ' · ' + it.end + ' 截止</div>' +
+                            '<div class="text-[10px] text-rose-400 truncate"><i class="fa fa-map-marker mr-0.5"></i>' + (it.region || '全国') + '</div>' +
                         '</div>' +
                         (it.level ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold flex-shrink-0">' + it.level + '</span>' : '') +
                         '<span class="text-[10px] font-black flex-shrink-0" style="color:' + stColor + '">' + stTxt + '</span>' +
@@ -846,6 +865,9 @@
             try { localStorage.setItem(CITY_KEY, JSON.stringify({ name: name, province: prov, t: Date.now() })); } catch (e) {}
             renderCityLabel();
             toggleCityPanel();
+            // 切换城市后同步刷新申报日历（右栏小日历 + 已打开的政策月历弹窗）
+            renderCalendar();
+            if (!document.getElementById('calMask').classList.contains('hidden')) renderCalModal();
             toast('已切换至 ' + name + '，将为您推荐当地政策');
         }
         function showToast(msg) {

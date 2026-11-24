@@ -217,8 +217,9 @@
     if (report) (report.shares || []).forEach(function (s) { if (s.shareId === shareId) share = s; });
 
     // 销售本人导出 PDF / 预览：不校验分享编号，也不计入浏览追踪
-    var isOwnerPreview = params.get('print') === '1';
-    if (isOwnerPreview && report) share = { shareId: '本人预览', toName: '（本人预览）', views: [] };
+    var isOwnerPreview = params.get('print') === '1';   // 导出：解锁 + 自动唤起打印
+    var isOwnerView = params.get('owner') === '1';      // 内部查看：解锁，但不自动打印
+    if ((isOwnerPreview || isOwnerView) && report) share = { shareId: '本人预览', toName: '（本人预览）', views: [] };
 
     if (!report || !share) { $('invalidBox').style.display = 'block'; return; }
 
@@ -339,11 +340,13 @@
         if (withToast) showToast('注册成功！完整报告已解锁，张销售已收到查阅提醒');
     }
 
-    // 销售本人导出 PDF：解锁完整内容并自动唤起打印（浏览器可另存为 PDF）
-    if (isOwnerPreview) {
+    // 销售本人导出 / 内部查看：解锁完整内容；仅导出场景自动唤起打印
+    if (isOwnerPreview || isOwnerView) {
         unlock(false);
-        setTimeout(function () { window.print(); }, 600);
+        // 内部查看时隐藏面向客户的注册引导条
+        if (isOwnerView) { var cta = $('ctaBar'); if (cta) cta.style.display = 'none'; }
     }
+    if (isOwnerPreview) setTimeout(function () { window.print(); }, 600);
 })();
 </script>
 </body>

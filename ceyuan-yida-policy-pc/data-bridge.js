@@ -781,37 +781,17 @@
 
     // ========== 服务商城商品（后台「服务商品管理」维护，前台商城展示） ==========
     // status: 'on' 已上架 | 'off' 已下架 | 'draft' 草稿；featured: 是否首页推荐位
-    // pricingMode: 'fixed' 一口价 | 'tiered' 按企业规模阶梯计价 | 'quote' 面议报价
-    // tiers: 阶梯档位，按职工人数（人）与年营业收入（万元）划分；上限为 0 表示不限；自动匹配时取较大规模档
-
-    /** 标准四档模板（后台可一键套用后微调价格） */
-    const STANDARD_SERVICE_TIERS = [
-        { id:'t1', name:'微型企业', minEmp:0, maxEmp:20, minRev:0, maxRev:500, price:0, oldPrice:0 },
-        { id:'t2', name:'小型企业', minEmp:21, maxEmp:100, minRev:500, maxRev:2000, price:0, oldPrice:0 },
-        { id:'t3', name:'中型企业', minEmp:101, maxEmp:500, minRev:2000, maxRev:10000, price:0, oldPrice:0 },
-        { id:'t4', name:'大型企业', minEmp:501, maxEmp:0, minRev:10000, maxRev:0, price:0, oldPrice:0 }
-    ];
+    // pricingMode: 'fixed' 一口价 | 'quote' 面议报价（可填参考价区间，留空显示「面议」）
 
     const DEFAULT_SERVICE_PRODUCTS = [
-        { id:'SVC001', name:'高新技术企业认定全程辅导', category:'政策咨询', provider:'北京中科创服咨询有限公司', price:12800, oldPrice:18000, rating:4.9, sales:1280, icon:'fa-trophy', status:'on', featured:true, pricingMode:'tiered',
-          tiers:[
-            { id:'t1', name:'微型企业', minEmp:0, maxEmp:20, minRev:0, maxRev:500, price:12800, oldPrice:18000 },
-            { id:'t2', name:'小型企业', minEmp:21, maxEmp:100, minRev:500, maxRev:2000, price:18800, oldPrice:25000 },
-            { id:'t3', name:'中型企业', minEmp:101, maxEmp:500, minRev:2000, maxRev:10000, price:28800, oldPrice:38000 },
-            { id:'t4', name:'大型企业', minEmp:501, maxEmp:0, minRev:10000, maxRev:0, price:38800, oldPrice:50000 }
-          ],
+        { id:'SVC001', name:'高新技术企业认定全程辅导', category:'政策咨询', provider:'北京中科创服咨询有限公司', price:12800, oldPrice:18000, rating:4.9, sales:1280, icon:'fa-trophy', status:'on', featured:true,
           desc:'资深专家团队全程辅导，覆盖诊断、规划、材料撰写到答辩全流程，助力企业顺利通过高新技术企业认定。',
           tags:['限时特惠','金牌服务'],
           includes:['企业资质诊断与评估','知识产权规划布局','研发费用辅助账搭建','申报材料撰写与审核','专家预审与答辩辅导','后续维护与跟踪服务'],
           process:[{t:'合同签订',d:'付款后签署服务合同'},{t:'需求评估',d:'评估企业情况与申报条件'},{t:'方案制定',d:'定制申报方案'},{t:'材料准备',d:'撰写审核材料'},{t:'提交申报',d:'专家预审答辩'},{t:'跟踪维护',d:'后续政策服务'}],
           cases:[{company:'某智能制造有限公司',year:'2023年成功认定 · 国家级',result:'通过本服务完成高新技术企业认定，获得税收减免优惠累计320万元，并成功获得政府补贴资金80万元。'},{company:'某生物医药科技公司',year:'2023年成功认定 · 国家级',result:'知识产权布局由3项提升至15项，研发费用归集规范化，顺利通过评审。'}] },
-        { id:'SVC002', name:'专精特新企业申报一站式服务', category:'申报代理', provider:'华策企业咨询服务有限公司', price:22000, oldPrice:30000, rating:4.8, sales:860, icon:'fa-star-o', status:'on', featured:true, pricingMode:'tiered',
-          tiers:[
-            { id:'t1', name:'微型企业', minEmp:0, maxEmp:20, minRev:0, maxRev:500, price:22000, oldPrice:30000 },
-            { id:'t2', name:'小型企业', minEmp:21, maxEmp:100, minRev:500, maxRev:2000, price:32000, oldPrice:45000 },
-            { id:'t3', name:'中型企业', minEmp:101, maxEmp:500, minRev:2000, maxRev:10000, price:45000, oldPrice:60000 },
-            { id:'t4', name:'大型企业', minEmp:501, maxEmp:0, minRev:10000, maxRev:0, price:60000, oldPrice:80000 }
-          ],
+        { id:'SVC002', name:'专精特新企业申报一站式服务', category:'申报代理', provider:'华策企业咨询服务有限公司', price:0, oldPrice:0, rating:4.8, sales:860, icon:'fa-star-o', status:'on', featured:true, pricingMode:'quote',
+          priceRange:{ min:22000, max:60000 },
           desc:'梯度培育规划+全案撰写+答辩辅导，三年跟踪维护，助力企业迈入专精特新行列。',
           tags:['金牌服务','品质保证'],
           includes:['专精特新资质评估','梯度培育规划','申报材料全案撰写','专家内审与答辩','政策解读与培训','三年跟踪维护'],
@@ -829,13 +809,7 @@
         { id:'SVC005', name:'软件著作权登记代理', category:'知识产权', provider:'知产天下知识产权代理', price:1200, oldPrice:1800, rating:4.9, sales:2156, icon:'fa-copyright', status:'on', featured:false,
           includes:['源代码与文档整理','软著申请材料撰写','加急/普通通道办理','证书邮寄与归档'],
           process:[{t:'合同签订',d:'签署服务合同'},{t:'材料整理',d:'源代码与操作说明书整理'},{t:'在线申报',d:'向版权保护中心提交申请'},{t:'审查补正',d:'跟进受理审查与补正'},{t:'发证交付',d:'电子/纸质登记证书交付'}] },
-        { id:'SVC006', name:'年度财务审计报告', category:'财务审计', provider:'华信会计师事务所', price:3800, oldPrice:5200, rating:4.7, sales:643, icon:'fa-calculator', status:'on', featured:false, pricingMode:'tiered',
-          tiers:[
-            { id:'t1', name:'微型企业', minEmp:0, maxEmp:20, minRev:0, maxRev:500, price:3800, oldPrice:5200 },
-            { id:'t2', name:'小型企业', minEmp:21, maxEmp:100, minRev:500, maxRev:2000, price:5500, oldPrice:7500 },
-            { id:'t3', name:'中型企业', minEmp:101, maxEmp:500, minRev:2000, maxRev:10000, price:8800, oldPrice:12000 },
-            { id:'t4', name:'大型企业', minEmp:501, maxEmp:0, minRev:10000, maxRev:0, price:12800, oldPrice:18000 }
-          ],
+        { id:'SVC006', name:'年度财务审计报告', category:'财务审计', provider:'华信会计师事务所', price:3800, oldPrice:5200, rating:4.7, sales:643, icon:'fa-calculator', status:'on', featured:false,
           includes:['账务梳理与调整','现场审计与取证','出具年度审计报告','税务师复核'],
           process:[{t:'合同签订',d:'签署审计业务约定书'},{t:'资料准备',d:'发送审计资料清单并收取资料'},{t:'现场审计',d:'进场审计、抽凭与函证'},{t:'报告出具',d:'出具年度财务审计报告'},{t:'报告交付',d:'盖章报告交付与归档'}] },
         { id:'SVC007', name:'技术合同认定登记', category:'技术转移', provider:'科转桥技术转移服务', price:3200, oldPrice:4500, rating:4.6, sales:423, icon:'fa-exchange', status:'on', featured:false,
@@ -853,13 +827,7 @@
         { id:'SVC011', name:'商标注册全程代理', category:'知识产权', provider:'知产天下知识产权代理', price:880, oldPrice:1200, rating:4.7, sales:3256, icon:'fa-copyright', status:'on', featured:false,
           includes:['商标近似查询','申请类别规划','商标申报与受理','驳回/异议应对'],
           process:[{t:'合同签订',d:'签署委托代理协议'},{t:'商标查询',d:'近似检索与注册风险评估'},{t:'类别规划',d:'确定申报类别与方案'},{t:'提交申请',d:'向商标局在线提交'},{t:'审查跟进',d:'跟进受理、审查与答复'},{t:'注册交付',d:'商标注册证交付'}] },
-        { id:'SVC012', name:'高新技术企业审计', category:'财务审计', provider:'华信会计师事务所', price:6800, oldPrice:9000, rating:4.9, sales:456, icon:'fa-calculator', status:'on', featured:false, pricingMode:'tiered',
-          tiers:[
-            { id:'t1', name:'微型企业', minEmp:0, maxEmp:20, minRev:0, maxRev:500, price:6800, oldPrice:9000 },
-            { id:'t2', name:'小型企业', minEmp:21, maxEmp:100, minRev:500, maxRev:2000, price:8800, oldPrice:12000 },
-            { id:'t3', name:'中型企业', minEmp:101, maxEmp:500, minRev:2000, maxRev:10000, price:12800, oldPrice:16000 },
-            { id:'t4', name:'大型企业', minEmp:501, maxEmp:0, minRev:10000, maxRev:0, price:16800, oldPrice:22000 }
-          ],
+        { id:'SVC012', name:'高新技术企业审计', category:'财务审计', provider:'华信会计师事务所', price:6800, oldPrice:9000, rating:4.9, sales:456, icon:'fa-calculator', status:'on', featured:false,
           includes:['研发费用专项审计','高新技术产品收入审计','专项审计报告出具','申报配套财务指导'],
           process:[{t:'合同签订',d:'签署审计业务约定书'},{t:'资料准备',d:'发送研发费审计资料清单'},{t:'专项审计',d:'研发费用与高新收入专项审计'},{t:'报告出具',d:'出具专项审计报告'},{t:'报告交付',d:'盖章报告交付与申报配套指导'}] },
         { id:'SVC013', name:'知识产权贯标（IPMS）辅导', category:'政策咨询', provider:'华策企业咨询服务有限公司', price:0, oldPrice:0, rating:0, sales:0, icon:'fa-certificate', status:'draft', featured:false, pricingMode:'quote',
@@ -903,58 +871,7 @@
         });
     }
 
-    /** 阶梯档位标准化：补齐数值字段，过滤无名档位 */
-    function normalizeServiceTiers(tiers) {
-        if (!Array.isArray(tiers)) return [];
-        return tiers.filter(t => t && String(t.name || '').trim()).map((t, i) => ({
-            id: t.id || ('t' + (i + 1)),
-            name: String(t.name).trim(),
-            minEmp: Number(t.minEmp) || 0,
-            maxEmp: Number(t.maxEmp) || 0,
-            minRev: Number(t.minRev) || 0,
-            maxRev: Number(t.maxRev) || 0,
-            price: Number(t.price) || 0,
-            oldPrice: Number(t.oldPrice) || 0
-        }));
-    }
-
-    /** 阶梯价商品的最低价（用于列表展示与排序） */
-    function lowestTierPrice(tiers) {
-        if (!Array.isArray(tiers) || !tiers.length) return null;
-        const prices = tiers.map(t => Number(t.price) || 0).filter(n => n > 0);
-        return prices.length ? Math.min.apply(null, prices) : 0;
-    }
-
-    /**
-     * 按企业档案自动匹配阶梯档位
-     * 职工人数与年营业收入（万元）任一条件命中即视为匹配；同时命中多档时取规模较大的档位
-     */
-    function matchServiceTier(product, profile) {
-        if (!product || product.pricingMode !== 'tiered') return null;
-        const tiers = normalizeServiceTiers(product.tiers);
-        if (!tiers.length) return null;
-        profile = profile || {};
-        const empRaw = profile.employees;
-        const revRaw = profile.revenue;
-        const hasEmp = empRaw !== undefined && empRaw !== null && empRaw !== '' && !isNaN(Number(empRaw));
-        const hasRev = revRaw !== undefined && revRaw !== null && revRaw !== '' && !isNaN(Number(revRaw));
-        if (!hasEmp && !hasRev) return null;
-        const inRange = function(min, max, v) {
-            const lo = Number(min) || 0, hi = Number(max) || 0;
-            if (v < lo) return false;
-            if (hi > 0 && v > hi) return false;
-            return true;
-        };
-        let hitIdx = -1;
-        tiers.forEach(function(t, i) {
-            const empCfg = Number(t.minEmp) > 0 || Number(t.maxEmp) > 0;
-            const revCfg = Number(t.minRev) > 0 || Number(t.maxRev) > 0;
-            const empHit = hasEmp && empCfg && inRange(t.minEmp, t.maxEmp, Number(empRaw));
-            const revHit = hasRev && revCfg && inRange(t.minRev, t.maxRev, Number(revRaw));
-            if (empHit || revHit) hitIdx = Math.max(hitIdx, i);
-        });
-        return hitIdx >= 0 ? tiers[hitIdx] : null;
-    }
+    // 阶梯计价已下线：旧版本地存储中 pricingMode='tiered' 的商品在读取时统一回退为一口价（取原最低档价）
 
     /** 读取服务商品（后台维护页与前台商城共用） */
     function loadServiceProducts() {
@@ -965,33 +882,33 @@
         // 旧版本地数据补齐新增字段（tags/desc/process/cases）：从默认数据同 id 合并
         const defMap = {};
         DEFAULT_SERVICE_PRODUCTS.forEach(p => { defMap[p.id] = p; });
-        return raw.map(p => {
+        const list = raw.map(p => {
             const d = defMap[p.id] || {};
             // 流程节点迁移：旧版首个节点为"需求沟通"或缺少"合同签订"节点时，升级为内置最新流程
             let proc = Array.isArray(p.process) ? p.process : (Array.isArray(d.process) ? d.process : []);
             if (d.process && proc.length && (proc[0].t === '需求沟通' || !proc.some(s => s.t === '合同签订'))) {
                 proc = d.process;
             }
-            const pricingMode = (p.pricingMode || d.pricingMode) === 'tiered' ? 'tiered'
-                : ((p.pricingMode || d.pricingMode) === 'quote' ? 'quote' : 'fixed');
-            const tiers = normalizeServiceTiers(
-                Array.isArray(p.tiers) ? p.tiers : (Array.isArray(d.tiers) ? d.tiers : [])
-            );
+            // 定价方式归一：仅保留 quote / fixed；历史 tiered 数据回退为一口价（取原最低档价）
+            const rawMode = p.pricingMode || d.pricingMode;
+            let pricingMode = rawMode === 'quote' ? 'quote' : 'fixed';
             let price = Number(p.price) || 0;
-            if (pricingMode === 'tiered') {
-                const low = lowestTierPrice(tiers);
-                if (low != null) price = low;
-            } else if (pricingMode === 'quote') {
-                price = 0;
+            if (rawMode === 'tiered' && Array.isArray(p.tiers) && p.tiers.length) {
+                const prices = p.tiers.map(t => Number(t && t.price) || 0).filter(n => n > 0);
+                if (prices.length) price = Math.min.apply(null, prices);
             }
+            if (pricingMode === 'quote') price = 0;
             return {
                 id: p.id,
                 name: p.name,
                 category: p.category || '',
                 provider: p.provider || '',
                 pricingMode,
-                tiers,
                 price,
+                priceRange: {
+                    min: Number(p.priceRange && p.priceRange.min) || Number(d.priceRange && d.priceRange.min) || 0,
+                    max: Number(p.priceRange && p.priceRange.max) || Number(d.priceRange && d.priceRange.max) || 0
+                },
                 oldPrice: Number(p.oldPrice) || 0,
                 rating: Number(p.rating) || 0,
                 sales: Number(p.sales) || 0,
@@ -1005,29 +922,40 @@
                 cases: Array.isArray(p.cases) ? p.cases : (Array.isArray(d.cases) ? d.cases : [])
             };
         });
+        // 一次性迁移：将专精特新申报服务（SVC002）改为面议报价并展示参考价格区间
+        if (!_read('ceyuan_mig_svc002_quote', null)) {
+            const hit = list.find(x => x.id === 'SVC002');
+            if (hit && hit.pricingMode !== 'quote') {
+                hit.pricingMode = 'quote';
+                hit.price = 0;
+                hit.oldPrice = 0;
+                hit.tiers = [];
+                hit.priceRange = { min: 22000, max: 60000 };
+                saveServiceProducts(list);
+            }
+            _write('ceyuan_mig_svc002_quote', 1);
+        }
+        return list;
     }
 
     /** 保存服务商品 */
     function saveServiceProducts(list) {
         if (!Array.isArray(list)) return false;
         const cleaned = list.filter(p => p && p.id && p.name).map(p => {
-            const pricingMode = p.pricingMode === 'tiered' ? 'tiered' : (p.pricingMode === 'quote' ? 'quote' : 'fixed');
-            const tiers = normalizeServiceTiers(p.tiers);
+            const pricingMode = p.pricingMode === 'quote' ? 'quote' : 'fixed';
             let price = Number(p.price) || 0;
-            if (pricingMode === 'tiered') {
-                const low = lowestTierPrice(tiers);
-                if (low != null) price = low;
-            } else if (pricingMode === 'quote') {
-                price = 0;
-            }
+            if (pricingMode === 'quote') price = 0;
             return {
                 id: p.id,
                 name: p.name,
                 category: p.category || '',
                 provider: p.provider || '',
                 pricingMode,
-                tiers,
                 price,
+                priceRange: {
+                    min: Number(p.priceRange && p.priceRange.min) || 0,
+                    max: Number(p.priceRange && p.priceRange.max) || 0
+                },
                 oldPrice: Number(p.oldPrice) || 0,
                 rating: Number(p.rating) || 0,
                 sales: Number(p.sales) || 0,
@@ -1129,6 +1057,12 @@
               { svcId:'SVC005', svcName:'软件著作权登记代理', tierName:'', originalPrice:1200, custom:false },
               { svcId:'', svcName:'申报材料上门辅导（2次）', tierName:'', originalPrice:3000, custom:true }
           ],
+          milestones:[
+              { name:'需求确认与诊断', desc:'确认服务范围、材料清单与项目排期', days:3 },
+              { name:'材料撰写与内部质控', desc:'提交申报材料初稿并完成两轮审核', days:10 },
+              { name:'申报提交与答辩辅导', desc:'完成系统提交，安排答辩模拟与辅导', days:7 },
+              { name:'结果跟进与验收', desc:'跟进评审结果并交付验收报告', days:5 }
+          ],
           originalTotal:23000, totalPrice:19800, discount:3200,
           note:'老客户年度合作打包价，含诊断、材料撰写、答辩辅导与两次上门辅导',
           expireAt:'2026-12-31', at:'2026-11-20 15:20', pushedAt:'2026-11-20 15:20',
@@ -1139,6 +1073,9 @@
     function loadServiceBundles() {
         const data = _read(KEYS.SERVICE_BUNDLES, null);
         const raw = Array.isArray(data) ? data : DEFAULT_SERVICE_BUNDLES;
+        // 历史缓存里没有里程碑的种子订单，用默认里程碑补齐，保证下单页展示交付计划
+        const defMs = {};
+        DEFAULT_SERVICE_BUNDLES.forEach(d => defMs[d.id] = d.milestones || []);
         return raw.filter(b => b && b.id && b.title).map(b => ({
             id: b.id,
             token: b.token || '',
@@ -1151,6 +1088,10 @@
                 originalPrice: Number(it.originalPrice) || 0,
                 custom: !!it.custom
             })),
+            milestones: ((Array.isArray(b.milestones) && b.milestones.length) ? b.milestones : (defMs[b.id] || [])).map(m => ({
+                name: m.name || '', desc: m.desc || '', days: Number(m.days) || 0
+            })),
+            includes: (Array.isArray(b.includes) ? b.includes : []).filter(x => (x || '').trim()).map(x => String(x).trim()),
             originalTotal: Number(b.originalTotal) || 0,
             totalPrice: Number(b.totalPrice) || 0,
             discount: Number(b.discount) || 0,
@@ -1172,6 +1113,10 @@
                 svcId: it.svcId || '', svcName: it.svcName || '', tierName: it.tierName || '',
                 originalPrice: Number(it.originalPrice) || 0, custom: !!it.custom
             })),
+            milestones: (Array.isArray(b.milestones) ? b.milestones : []).map(m => ({
+                name: m.name || '', desc: m.desc || '', days: Number(m.days) || 0
+            })),
+            includes: (Array.isArray(b.includes) ? b.includes : []).filter(x => (x || '').trim()).map(x => String(x).trim()),
             originalTotal: Number(b.originalTotal) || 0, totalPrice: Number(b.totalPrice) || 0,
             discount: Number(b.discount) || 0, note: b.note || '', expireAt: b.expireAt || '',
             at: b.at || '', pushedAt: b.pushedAt || '', orderId: b.orderId || '',
@@ -1192,12 +1137,17 @@
         }));
         const originalTotal = items.reduce((s, it) => s + it.originalPrice, 0);
         const totalPrice = Number(bundle.totalPrice) || originalTotal;
+        const milestones = (Array.isArray(bundle.milestones) ? bundle.milestones : [])
+            .filter(m => m && (m.name || '').trim())
+            .map(m => ({ name: m.name.trim(), desc: (m.desc || '').trim(), days: Number(m.days) || 0 }));
         const rec = {
             id: 'B' + stamp + String(Date.now()).slice(-5),
             token: 'bnd' + stamp + rand,
             customerName: bundle.customerName || '访客',
             title: bundle.title || '定制服务包',
             items,
+            milestones,
+            includes: (Array.isArray(bundle.includes) ? bundle.includes : []).filter(x => (x || '').trim()).map(x => String(x).trim()),
             originalTotal,
             totalPrice,
             discount: Math.max(0, originalTotal - totalPrice),
@@ -1410,6 +1360,10 @@
                 svcId: it.svcId || '', svcName: it.svcName || '', tierName: it.tierName || '',
                 originalPrice: Number(it.originalPrice) || 0
             })),
+            milestones: (Array.isArray(o.milestones) ? o.milestones : []).map(m => ({
+                name: m.name || '', desc: m.desc || '', days: Number(m.days) || 0
+            })),
+            includes: (Array.isArray(o.includes) ? o.includes : []).filter(x => (x || '').trim()).map(x => String(x).trim()),
             priceAdjustReason: o.priceAdjustReason || '',
             priceAdjustAt: o.priceAdjustAt || '',
             tierId: o.tierId || '',
@@ -1449,6 +1403,10 @@
                 svcId: it.svcId || '', svcName: it.svcName || '', tierName: it.tierName || '',
                 originalPrice: Number(it.originalPrice) || 0
             })),
+            milestones: (Array.isArray(o.milestones) ? o.milestones : []).map(m => ({
+                name: m.name || '', desc: m.desc || '', days: Number(m.days) || 0
+            })),
+            includes: (Array.isArray(o.includes) ? o.includes : []).filter(x => (x || '').trim()).map(x => String(x).trim()),
             priceAdjustReason: o.priceAdjustReason || '', priceAdjustAt: o.priceAdjustAt || '',
             tierId: o.tierId || '', tierName: o.tierName || '', tierMatch: o.tierMatch || '',
             status: o.status || 'unpaid', payMethod: o.payMethod || '', createTime: o.createTime || '',
@@ -1486,6 +1444,10 @@
                 svcId: it.svcId || '', svcName: it.svcName || '', tierName: it.tierName || '',
                 originalPrice: Number(it.originalPrice) || 0
             })),
+            milestones: (Array.isArray(order.milestones) ? order.milestones : []).map(m => ({
+                name: m.name || '', desc: m.desc || '', days: Number(m.days) || 0
+            })),
+            includes: (Array.isArray(order.includes) ? order.includes : []).filter(x => (x || '').trim()).map(x => String(x).trim()),
             priceAdjustReason: order.priceAdjustReason || '',
             priceAdjustAt: order.priceAdjustAt || '',
             tierId: order.tierId || '',
@@ -1677,6 +1639,7 @@
             policyId: msg.policyId || '', policyName: msg.policyName || '',
             svcId: msg.svcId || '', svcName: msg.svcName || '',
             bundleId: msg.bundleId || '', bundleToken: msg.bundleToken || '',
+            quoteId: msg.quoteId || '',
             shareId: msg.shareId || '',
             from: msg.from === 'advisor' ? 'advisor' : 'customer',
             text: String(msg.text || ''),
@@ -3298,6 +3261,18 @@
             _write(SALES_REPORTS_SEED_KEY, SALES_REPORTS_SEED_V);
             if (changed) _write(KEYS.SALES_REPORTS, list);
         }
+        // 生成人回填：历史报告无 createdBy 时，按报告 id 稳定分配演示销售名并持久化（避免每次刷新变化）
+        var DEMO_SALES = ['张敏', '李伟', '王芳', '陈杰', '刘婷', '赵磊'];
+        var cbChanged = false;
+        list.forEach(function(r) {
+            if (!r.createdBy) {
+                var h = 0, idStr = String(r.id || '');
+                for (var ci = 0; ci < idStr.length; ci++) h = (h + idStr.charCodeAt(ci)) % DEMO_SALES.length;
+                r.createdBy = DEMO_SALES[h];
+                cbChanged = true;
+            }
+        });
+        if (cbChanged) _write(KEYS.SALES_REPORTS, list);
         return list;
     }
 
@@ -3396,7 +3371,6 @@
         DEFAULT_CUSTOMERS,
         DEFAULT_SALES_REPORTS,
         DEFAULT_SERVICE_PRODUCTS,
-        STANDARD_SERVICE_TIERS,
         DEFAULT_SERVICE_ORDERS,
         DEFAULT_SERVICE_CONTACT,
         DEFAULT_CLUES,
@@ -3434,8 +3408,6 @@
         loadUserContributions,
         matchPoliciesForEnterprise,
         buildRadarProfileFromEnterprise,
-        matchServiceTier,
-        normalizeServiceTiers,
         evaluatePolicyCondition,
         getSyncStatus,
         // 写入
