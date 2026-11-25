@@ -77,8 +77,8 @@
         .border-3 { border-width: 3px; }
         /* 预约弹窗动画 */
         @keyframes modalIn {
-            from { opacity: 0; transform: translate(-50%, calc(-50% - 12px)) scale(0.97); }
-            to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            from { opacity: 0; transform: scale(0.97); }
+            to   { opacity: 1; transform: scale(1); }
         }
         .animate-modal-in { animation: modalIn 0.18s cubic-bezier(0.4, 0, 0.2, 1) both; }
         /* 输入框聚焦蓝色高亮对齐参考图 */
@@ -87,16 +87,20 @@
         .dict-collapsed { max-height: 22px; overflow: hidden; }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -114,6 +118,10 @@
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-comments text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策问答</span>
                 </button>
+                <button onclick="goPage('policy-center.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
                 <button onclick="goPage('policy-radar.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="政策精准匹配">
                     <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center" style="background:#6366f1;"><i class="fa fa-sitemap text-sm text-white"></i></span>
                     <span class="text-[10px] font-bold" style="color:#4f46e5;">政策雷达</span>
@@ -125,10 +133,6 @@
                 <button onclick="goPage('declaration-butler.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="申报材料自查">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-file-text-o text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">申报管家</span>
-                </button>
-                <button onclick="goPage('policy-center.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
-                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
-                    <span class="text-[10px] font-bold">政策中心</span>
                 </button>
                 <button onclick="goPage('service-market.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
                     <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
@@ -177,7 +181,7 @@
                     </div>
                 </div>
             </div>
-    <div class="mx-auto p-6" style="max-width:1400px;">
+    <div class="w-full p-6">
         <!-- Tab 导航 + 统计内联 -->
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center space-x-1 bg-white rounded-xl p-1 border border-slate-100 shadow-sm">
@@ -869,6 +873,7 @@
         bindIndicatorEvents();
         renderPolicyList();
         renderCalendar(CAL.year, CAL.month);
+        renderServiceContact();
     });
     if (document.readyState !== 'loading') {
         renderIndustries();
@@ -877,6 +882,7 @@
         bindIndicatorEvents();
         renderPolicyList();
         renderCalendar(new Date().getFullYear(), new Date().getMonth() + 1);
+        renderServiceContact();
     }
 
     // 展开 / 收起字典区块
@@ -1342,9 +1348,55 @@
         var m = document.getElementById('bookModal');
         if (m) m.classList.add('hidden');
     }
+    // 读取客服配置（后台「配置中心 → 客服与咨询」维护）
+    function getServiceContact() {
+        try {
+            if (window.DataBridge && DataBridge.loadServiceContact) return DataBridge.loadServiceContact();
+        } catch (e) {}
+        return { phone: '400-1787170', consultType: 'link', consultUrl: '', consultQr: '', workTime: '工作日 9:00-18:00', responseHours: 24 };
+    }
+    // 把客服配置渲染到预约弹窗底部
+    function renderServiceContact() {
+        var cfg = getServiceContact();
+        var phoneEl = document.getElementById('bookPhoneNo');
+        if (phoneEl) phoneEl.innerText = cfg.phone;
+        var timeEl = document.getElementById('bookWorkTime');
+        if (timeEl) timeEl.innerText = cfg.workTime;
+        var qrTimeEl = document.getElementById('consultQrWorkTime');
+        if (qrTimeEl) qrTimeEl.innerText = cfg.workTime;
+    }
+    // 在线咨询：按配置跳外链或弹二维码
+    function openConsult() {
+        var cfg = getServiceContact();
+        // 站内即时会话：交由外层壳页面统一打开聊天窗
+        if (cfg.consultType === 'chat') {
+            try {
+                if (window.parent && window.parent !== window && typeof window.parent.openChat === 'function') {
+                    window.parent.openChat();
+                    return;
+                }
+            } catch (e) {}
+        }
+        if (cfg.consultType === 'qrcode' && cfg.consultQr) {
+            var m = document.getElementById('consultQrModal');
+            var img = document.getElementById('consultQrImg');
+            if (img) img.src = cfg.consultQr;
+            if (m) m.classList.remove('hidden');
+            return;
+        }
+        if (cfg.consultUrl) {
+            window.open(cfg.consultUrl, '_blank');
+            return;
+        }
+        alert('暂未配置在线咨询入口，请拨打客服电话：' + cfg.phone + '（' + cfg.workTime + '）');
+    }
+    function closeConsultQr() {
+        var m = document.getElementById('consultQrModal');
+        if (m) m.classList.add('hidden');
+    }
     // 复制电话
     function copyPhone() {
-        var t = '400-1787170';
+        var t = getServiceContact().phone;
         try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(t);
@@ -1421,7 +1473,36 @@
             localStorage.setItem(key, JSON.stringify(list));
         } catch (e) {}
 
-        // 3) 控制台打印，便于开发联调
+        // 3) 同步写入销售线索池：运营/销售在「线索管理」（PC 端与 H5）中可见，来源标记为「预约申领」
+        try {
+            if (window.DataBridge && DataBridge.loadClues && DataBridge.saveClues) {
+                var clues = DataBridge.loadClues() || [];
+                var isDup = clues.some(function(c) {
+                    return c.phone === phone && c.intent === policyName && c.stage !== '已转化' && c.stage !== '已流失';
+                });
+                if (!isDup) {
+                    var now = new Date();
+                    var p2 = function(n) { return n < 10 ? '0' + n : '' + n; };
+                    var day = '' + now.getFullYear() + p2(now.getMonth() + 1) + p2(now.getDate());
+                    var seq = 1;
+                    clues.forEach(function(c) { if (String(c.id).indexOf('XS' + day) === 0) seq++; });
+                    clues.unshift({
+                        id: 'XS' + day + 'A' + p2(seq),
+                        company: company,
+                        source: '预约申领', sourceIcon: 'fa-calendar-check-o', sourceColor: 'brand',
+                        intent: policyName,
+                        contact: name, phone: phone,
+                        sales: '', salesInitial: '-',
+                        stage: '待跟进', stageColor: 'gray',
+                        enterTime: '刚刚进入',
+                        createTime: now.getFullYear() + '-' + p2(now.getMonth() + 1) + '-' + p2(now.getDate()) + ' ' + p2(now.getHours()) + ':' + p2(now.getMinutes())
+                    });
+                    DataBridge.saveClues(clues);
+                }
+            }
+        } catch (e) {}
+
+        // 4) 控制台打印，便于开发联调
         console.log('[运营端][预约申领] 已生成预约：', payload);
 
         // 兜底定时：如果fetch没响应，2秒后强制完成
@@ -1431,7 +1512,8 @@
             clearTimeout(timer);
             btn.disabled = false;
             btn.innerHTML = '<i class="fa fa-check-circle mr-2"></i><span>预约</span>';
-            alert('✅ 预约提交成功\n\n政策：' + policyName + '\n姓名：' + name + '\n手机：' + phone + '\n企业：' + company + '\n\n预约消息已推送至【运营端后台】，申报顾问将在24小时内与您联系');
+            var cfg = getServiceContact();
+            alert('✅ 预约提交成功\n\n政策：' + policyName + '\n姓名：' + name + '\n手机：' + phone + '\n企业：' + company + '\n\n预约消息已推送至【运营端后台】，申报顾问将在' + cfg.responseHours + '小时内与您联系\n客服电话：' + cfg.phone + '（' + cfg.workTime + '）');
             closeBookModal();
             // 清空表单（保留企业名）
             document.getElementById('bookName').value = '';
@@ -1594,7 +1676,7 @@
                     (highMatch > 0 ? '<li>有 <b>' + highMatch + '</b> 项高匹配度政策(≥80%)，建议重点跟进</li>' : '') +
                     (improvable > 0 ? '<li>有 <b>' + improvable + '</b> 项政策存在企业未填写的条件，补齐企业信息后匹配度可能提升</li>' : '') +
                     '<li>匹配度由政策库申报条件实时计算，仅供参考，最终以政策主管部门审核为准</li>' +
-                    '<li>建议联系申报顾问（400-1787170），获取一对一专业指导</li>' +
+                    '<li>建议联系申报顾问（' + getServiceContact().phone + '），获取一对一专业指导</li>' +
                 '</ul>' +
             '</div>';
 
@@ -1607,7 +1689,7 @@
         if (m) m.classList.add('hidden');
     }
     function downloadReport() {
-        alert('报告下载功能\n\n完整PDF报告正在生成中，生成完成后将发送至您预留的邮箱。\n如需紧急获取，请致电 400-1787170');
+        alert('报告下载功能\n\n完整PDF报告正在生成中，生成完成后将发送至您预留的邮箱。\n如需紧急获取，请致电 ' + getServiceContact().phone);
     }
     // 智能搜索
     function doSearch() {
@@ -2170,7 +2252,7 @@
             </button>
             <!-- 底部联系方式 -->
             <div class="mt-6 flex items-center justify-center space-x-8 text-[13px] text-slate-500">
-                <button class="flex items-center hover:text-blue-600 transition-all">
+                <button onclick="openConsult()" class="flex items-center hover:text-blue-600 transition-all">
                     <i class="fa fa-commenting-o mr-2 text-blue-500"></i>在线咨询
                 </button>
                 <button onclick="copyPhone()" class="flex items-center hover:text-blue-600 transition-all">
@@ -2179,6 +2261,21 @@
                     <span class="ml-2 text-blue-500 font-bold text-xs">复制</span>
                 </button>
             </div>
+            <p class="mt-2 text-center text-[11px] text-slate-400">服务时间：<span id="bookWorkTime">工作日 9:00-18:00</span></p>
+        </div>
+    </div>
+
+    <!-- 在线咨询二维码弹窗 -->
+    <div id="consultQrModal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeConsultQr()"></div>
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[320px] p-6 text-center">
+            <button onclick="closeConsultQr()" class="absolute right-4 top-4 w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all">
+                <i class="fa fa-times"></i>
+            </button>
+            <h3 class="text-base font-black text-slate-800 mb-1">扫码添加专属顾问</h3>
+            <p class="text-[11px] text-slate-400 mb-4">企业微信，一对一解答申报问题</p>
+            <img id="consultQrImg" src="" alt="企业微信二维码" class="w-48 h-48 mx-auto rounded-xl border border-slate-100 object-contain bg-slate-50">
+            <p class="text-[11px] text-slate-400 mt-4">服务时间：<span id="consultQrWorkTime">工作日 9:00-18:00</span></p>
         </div>
     </div>
     <script src="libs/js/topbar.js"></script>

@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线咨询消息 - 策源易答运营管理平台</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <script src="data-bridge.js"></script>
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f8fafc; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+
+        .mc-wrap { display: flex; flex-direction: column; height: 100vh; padding: 22px 24px; box-sizing: border-box; }
+        .mc-main { flex: 1; min-height: 0; display: flex; background: #fff; border: 1px solid #e5eaf1; border-radius: 16px; overflow: hidden; }
+
+        .mc-side { width: 306px; flex: 0 0 306px; display: flex; flex-direction: column; border-right: 1px solid #f1f5f9; }
+        .mc-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .mc-item { padding: 11px 12px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; transition: all .18s; margin-bottom: 4px; }
+        .mc-item:hover { background: #f8fafc; }
+        .mc-item.active { background: #eff6ff; border-color: #bfdbfe; }
+        .mc-avatar { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; background: #f1f5f9; color: #64748b; }
+        .mc-item.active .mc-avatar { background: #dbeafe; color: #2563eb; }
+
+        .mc-chat { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .mc-body { flex: 1; overflow-y: auto; padding: 18px 22px; background: #f8fafc; }
+        .mc-composer { border-top: 1px solid #f1f5f9; padding: 12px 16px; background: #fff; }
+
+        .bubble { max-width: 78%; padding: 9px 13px; border-radius: 14px; font-size: 12.5px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+        .bubble.customer { background: #fff; border: 1px solid #e2e8f0; color: #334155; border-bottom-left-radius: 4px; }
+        .bubble.advisor { background: #2563eb; color: #fff; border-bottom-right-radius: 4px; }
+        .bubble-time { font-size: 9.5px; color: #94a3b8; margin-top: 4px; }
+
+        .mc-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; display: inline-block; }
+    </style>
+    <script>
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
+        (function authGuard() {
+            try {
+                var p = localStorage.getItem('ceyuan_member_profile');
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
+        })();
+    </script>
+</head>
+<body>
+
+<div class="mc-wrap">
+    <!-- 顶部说明 -->
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h1 class="text-xl font-black text-slate-800 flex items-center">
+                <i class="fa fa-commenting text-blue-600 mr-2.5"></i>在线咨询消息
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+                前台「在线咨询」聊天窗与政策详情页咨询的消息汇总至此，可直接回复；与销售赋能中心 H5 消息中心共用同一份数据
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-bold text-slate-500">
+                未读 <span id="statUnread" class="text-rose-500">0</span> 条
+            </span>
+            <span class="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-bold text-slate-500">
+                会话 <span id="statConv" class="text-blue-600">0</span> 个
+            </span>
+            <span class="px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-full text-[11px] font-bold text-emerald-600 flex items-center gap-1.5">
+                <span class="dot"></span>实时接收中
+            </span>
+        </div>
+    </div>
+
+    <div class="mc-main">
+        <!-- 左：会话列表 -->
+        <aside class="mc-side">
+            <div class="p-3 border-b border-slate-100">
+                <div class="relative">
+                    <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                    <input id="convSearch" type="text" placeholder="搜索客户名称" oninput="renderConvList()"
+                           class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-blue-300">
+                </div>
+            </div>
+            <div id="convList" class="mc-list"></div>
+        </aside>
+
+        <!-- 右：聊天区 -->
+        <main class="mc-chat">
+            <div id="chatHeader" class="px-5 py-3 border-b border-slate-100 flex items-center justify-between" style="display:none">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div id="chatAvatar" class="mc-avatar">客</div>
+                    <div class="min-w-0">
+                        <p id="chatName" class="text-sm font-black text-slate-800 truncate">客户</p>
+                        <p id="chatMeta" class="text-[10px] text-slate-400 truncate mt-0.5"></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    <button id="bundleBtn" onclick="openBundleModal()" class="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 text-[11px] font-bold hover:bg-indigo-100 transition-all" disabled>
+                        <i class="fa fa-paper-plane mr-1"></i>推送订单
+                    </button>
+                    <button id="quoteBtn" onclick="openQuoteModal()" class="px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600 border border-orange-100 text-[11px] font-bold hover:bg-orange-100 transition-all" disabled>
+                        <i class="fa fa-tag mr-1"></i>私下定价
+                    </button>
+                    <span class="text-[10px] text-slate-400 flex items-center gap-1.5">
+                        <span class="dot"></span>客户在线咨询
+                    </span>
+                </div>
+            </div>
+
+            <div id="chatEmpty" class="mc-empty">
+                <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                    <i class="fa fa-comments-o text-2xl text-slate-300"></i>
+                </div>
+                <p class="text-sm font-bold text-slate-400">选择左侧会话开始回复</p>
+                <p class="text-[11px] text-slate-300 mt-1">客户在前台发起的咨询会实时出现在这里</p>
+            </div>
+
+            <div id="chatBody" class="mc-body" style="display:none"></div>
+
+            <div id="chatComposer" class="mc-composer" style="display:none">
+                <div class="flex items-end gap-2">
+                    <textarea id="chatInput" rows="2" placeholder="输入回复内容，Enter 发送，Shift + Enter 换行"
+                              onkeydown="chatKeydown(event)"
+                              class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-300 resize-none" style="max-height:96px"></textarea>
+                    <button onclick="sendReply()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex-shrink-0">
+                        <i class="fa fa-paper-plane mr-1"></i>发送
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+    <!-- 客服打包报价 / 定向服务包 -->
+    <div id="bundleModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(15,23,42,0.5)">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col" style="max-height:90vh">
+            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+                <h3 class="text-sm font-black text-slate-800"><i class="fa fa-file-text-o text-indigo-500 mr-1.5"></i>为客户推送定制订单</h3>
+                <button onclick="closeBundleModal()" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400"><i class="fa fa-times text-xs"></i></button>
+            </div>
+            <div class="p-5 space-y-3 overflow-y-auto flex-1">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">客户</label>
+                        <input id="bCustomer" type="text" readonly class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">订单名称 <span class="text-rose-500">*</span></label>
+                        <input id="bTitle" type="text" maxlength="30" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-indigo-300">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-[11px] font-bold text-slate-500">服务项 <span class="text-slate-300 font-normal">（可选后台服务商品，也可自定义增项）</span></label>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="addBundleRow('svc')" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-700"><i class="fa fa-plus mr-1"></i>添加服务商品</button>
+                            <button type="button" onclick="addBundleRow('custom')" class="text-[11px] font-bold text-slate-500 hover:text-slate-700"><i class="fa fa-plus mr-1"></i>添加自定义项</button>
+                        </div>
+                    </div>
+                    <div id="bItems" class="space-y-2"></div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-[11px] font-bold text-slate-500">服务内容清单 <span class="text-slate-300 font-normal">（客户下单页逐条展示，可增删改）</span></label>
+                        <button type="button" onclick="addIncludeRow()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-700"><i class="fa fa-plus mr-1"></i>添加内容</button>
+                    </div>
+                    <div id="bIncludes" class="space-y-2 mb-2"></div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-2">服务流程 <span class="text-slate-300 font-normal">（客户下单页按顺序展示，可增删改）</span></label>
+                    <div id="bMilestones" class="space-y-2 mb-2"></div>
+                    <button type="button" onclick="addMilestoneRow()" class="w-full py-2 border border-dashed border-slate-300 text-slate-500 rounded-lg text-[11px] font-bold hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/40 transition-all flex items-center justify-center">
+                        <i class="fa fa-plus mr-1"></i>添加流程步骤
+                    </button>
+                </div>
+
+                <div class="p-3.5 bg-slate-50 border border-slate-100 rounded-xl space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-500">逐项原价合计</span>
+                        <span class="font-bold text-slate-700">¥<span id="bOrigTotal">0</span></span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-500">整单优惠金额</span>
+                        <span class="font-bold text-emerald-600">-¥<span id="bDiscount">0</span></span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-200">
+                        <span class="text-slate-600 font-bold">整单成交价（元）</span>
+                        <input id="bTotal" type="number" min="0" oninput="recalcBundle()" class="w-32 px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-black text-indigo-600 text-right focus:outline-none focus:border-indigo-400">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">有效期至</label>
+                        <input id="bExpire" type="date" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">说明 <span class="text-slate-300 font-normal">（选填）</span></label>
+                        <input id="bNote" type="text" maxlength="60" placeholder="如：老客户年度合作打包价" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-indigo-300">
+                    </div>
+                </div>
+
+                <p class="text-[10px] text-slate-400 leading-relaxed"><i class="fa fa-info-circle mr-1"></i>订单不会进入公开商城，仅生成本客户专属链接；客户通过链接查看服务清单与服务流程并按成交价付款，订单同步至订单管理。</p>
+            </div>
+            <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end gap-2 flex-shrink-0">
+                <button onclick="closeBundleModal()" class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-100">取消</button>
+                <button onclick="saveBundle()" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white"><i class="fa fa-paper-plane mr-1"></i>生成并发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 客服改价 / 专属报价 -->
+    <div id="quoteModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(15,23,42,0.5)">
+        <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-sm font-black text-slate-800"><i class="fa fa-tag text-orange-500 mr-1.5"></i>为客户申请专属价</h3>
+                <button onclick="closeQuoteModal()" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400"><i class="fa fa-times text-xs"></i></button>
+            </div>
+            <div class="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1">客户</label>
+                    <input id="qCustomer" type="text" readonly class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1">咨询的服务</label>
+                    <select id="qSvc" onchange="onQuoteSvcChange()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-orange-300"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">标准价（元）</label>
+                        <input id="qOriginal" type="number" readonly class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">专属价（元）<span class="text-rose-500">*</span></label>
+                        <input id="qPrice" type="number" min="0" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-orange-600 focus:outline-none focus:border-orange-400">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1">有效期至</label>
+                    <input id="qExpire" type="date" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1">说明 <span class="text-slate-300 font-normal">（选填，会随报价消息发给客户）</span></label>
+                    <input id="qNote" type="text" maxlength="60" placeholder="如：老客户年度合作优惠，含材料撰写与答辩辅导" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-orange-300">
+                </div>
+                <p class="text-[10px] text-slate-400 leading-relaxed"><i class="fa fa-info-circle mr-1"></i>确认后将以顾问消息发送给客户，客户在服务商城看到「专属价」并按此价下单，订单记录原价与成交价。</p>
+            </div>
+            <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                <button onclick="closeQuoteModal()" class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-100">取消</button>
+                <button onclick="saveQuote()" class="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-xs font-bold text-white"><i class="fa fa-paper-plane mr-1"></i>确认并发送</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    var allMsgs = [];
+    var activeName = '';
+    var quoteProducts = [];
+    var bundleProducts = [];
+    var bundleRows = [];
+    var bundleMilestones = [];
+    var bundleIncludes = [];
+    var activeSvc = null;
+
+    function escapeHtml(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /** 拉取全部咨询消息（DataBridge） */
+    function loadMsgs() {
+        try {
+            allMsgs = (window.DataBridge && DataBridge.loadConsultMessages) ? (DataBridge.loadConsultMessages() || []) : [];
+        } catch (e) { allMsgs = []; }
+        renderConvList();
+        renderStats();
+        if (activeName) renderChat(false);
+    }
+
+    /** 按客户聚合会话 */
+    function buildConvs() {
+        var map = {}, order = [];
+        allMsgs.forEach(function (m) {
+            var name = m.customerName || '访客';
+            if (!map[name]) {
+                map[name] = { name: name, lastText: '', lastAt: '', unread: 0, policyName: '' };
+                order.push(name);
+            }
+            var c = map[name];
+            if (m.policyName) c.policyName = m.policyName;
+            if (!c.lastAt || String(m.at || '') >= c.lastAt) {
+                c.lastAt = String(m.at || '');
+                c.lastText = String(m.text || '');
+            }
+            if (m.from === 'customer' && !m.read) c.unread++;
+        });
+        return order.map(function (k) { return map[k]; }).sort(function (a, b) {
+            return String(b.lastAt).localeCompare(String(a.lastAt));
+        });
+    }
+
+    function timeLabel(at) {
+        var s = String(at || '');
+        if (!s) return '';
+        var parts = s.split(' ');
+        return parts.length > 1 ? parts[1] : s;
+    }
+
+    function renderConvList() {
+        var kw = (document.getElementById('convSearch').value || '').trim();
+        var convs = buildConvs();
+        if (kw) convs = convs.filter(function (c) { return c.name.indexOf(kw) > -1; });
+        var box = document.getElementById('convList');
+        if (!convs.length) {
+            box.innerHTML = '<div class="text-center text-[11px] text-slate-300 py-10">'
+                + (kw ? '没有匹配的客户' : '暂无咨询消息') + '</div>';
+            return;
+        }
+        var html = '';
+        convs.forEach(function (c) {
+            var active = c.name === activeName ? ' active' : '';
+            var badge = c.unread > 0
+                ? '<span style="min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:9.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">' + (c.unread > 99 ? '99+' : c.unread) + '</span>'
+                : '';
+            html += '<div class="mc-item' + active + '" data-name="' + escapeHtml(c.name) + '">'
+                + '  <div class="flex items-center gap-2.5">'
+                + '    <div class="mc-avatar">' + escapeHtml(c.name.slice(0, 1)) + '</div>'
+                + '    <div class="flex-1 min-w-0">'
+                + '      <div class="flex items-center justify-between gap-2">'
+                + '        <span class="text-xs font-bold text-slate-700 truncate">' + escapeHtml(c.name) + '</span>'
+                + '        <span class="text-[9.5px] text-slate-300 flex-shrink-0">' + escapeHtml(timeLabel(c.lastAt)) + '</span>'
+                + '      </div>'
+                + '      <div class="flex items-center justify-between gap-2 mt-1">'
+                + '        <span class="text-[10.5px] text-slate-400 truncate">' + escapeHtml(c.lastText) + '</span>'
+                + '        ' + badge
+                + '      </div>'
+                + '    </div>'
+                + '  </div>'
+                + '</div>';
+        });
+        box.innerHTML = html;
+    }
+
+    document.getElementById('convList').addEventListener('click', function (e) {
+        var item = e.target.closest ? e.target.closest('.mc-item') : null;
+        if (item) openConv(item.getAttribute('data-name'));
+    });
+
+    function renderStats() {
+        var convs = buildConvs();
+        var unread = 0;
+        convs.forEach(function (c) { unread += c.unread; });
+        document.getElementById('statUnread').innerText = unread;
+        document.getElementById('statConv').innerText = convs.length;
+    }
+
+    function openConv(name) {
+        activeName = name;
+        // 打开会话即标记为已读，与 H5 消息中心保持一致
+        var changed = false;
+        allMsgs.forEach(function (m) {
+            if ((m.customerName || '访客') === name && m.from === 'customer' && !m.read) {
+                m.read = true;
+                changed = true;
+            }
+        });
+        if (changed && window.DataBridge && DataBridge.saveConsultMessages) {
+            DataBridge.saveConsultMessages(allMsgs);
+        }
+        renderConvList();
+        renderStats();
+        document.getElementById('quoteBtn').disabled = false;
+        document.getElementById('bundleBtn').disabled = false;
+        renderChat(true);
+    }
+
+    function renderChat(toBottom) {
+        var list = allMsgs.filter(function (m) { return (m.customerName || '访客') === activeName; });
+        var body = document.getElementById('chatBody');
+        document.getElementById('chatEmpty').style.display = 'none';
+        document.getElementById('chatHeader').style.display = 'flex';
+        document.getElementById('chatBody').style.display = 'block';
+        document.getElementById('chatComposer').style.display = 'block';
+
+        var policyName = '';
+        var svcCtx = null;
+        for (var i = list.length - 1; i >= 0; i--) {
+            if (!policyName && list[i].policyName) policyName = list[i].policyName;
+            if (!svcCtx && list[i].svcId) svcCtx = { id: list[i].svcId, name: list[i].svcName || '', tierName: list[i].tierName || '' };
+            if (policyName && svcCtx) break;
+        }
+        activeSvc = svcCtx;
+        var prevTop = body.scrollTop;
+        var nearBottom = (body.scrollHeight - body.scrollTop - body.clientHeight) < 80;
+        document.getElementById('chatName').innerText = activeName;
+        document.getElementById('chatAvatar').innerText = activeName.slice(0, 1);
+        document.getElementById('chatMeta').innerText = svcCtx
+            ? '咨询服务：' + (svcCtx.name || '服务商品') + ' · 共 ' + list.length + ' 条消息'
+            : (policyName ? '咨询政策：' + policyName + ' · 共 ' + list.length + ' 条消息' : '在线咨询 · 共 ' + list.length + ' 条消息');
+
+        var html = '';
+        list.forEach(function (m) {
+            var mine = m.from === 'advisor';
+            html += '<div class="flex ' + (mine ? 'justify-end' : 'justify-start') + '" style="margin-bottom:10px">'
+                + '  <div style="max-width:78%">'
+                + '    <div style="display:flex;' + (mine ? 'justify-content:flex-end' : '') + '">'
+                + '      <div class="bubble ' + (mine ? 'advisor' : 'customer') + '">' + escapeHtml(m.text) + '</div>'
+                + '    </div>'
+                + '    <div class="bubble-time" style="text-align:' + (mine ? 'right' : 'left') + '">' + escapeHtml(timeLabel(m.at)) + '</div>'
+                + (m.bundleToken
+                    ? '    <div style="text-align:right;margin-top:4px"><a href="service-bundle.html?token=' + encodeURIComponent(m.bundleToken) + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#4f46e5;color:#fff;border-radius:8px;font-size:11px;font-weight:700"><i class="fa fa-external-link"></i>查看专属订单并支付</a></div>'
+                    : '')
+                + (m.quoteId && m.svcId
+                    ? '    <div style="text-align:right;margin-top:4px"><a href="service-market.html?svc=' + encodeURIComponent(m.svcId) + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#f97316;color:#fff;border-radius:8px;font-size:11px;font-weight:700"><i class="fa fa-tag"></i>查看专属价并下单</a></div>'
+                    : '')
+                + '  </div>'
+                + '</div>';
+        });
+        body.innerHTML = html || '<div class="text-center text-[11px] text-slate-300 py-10">暂无消息</div>';
+        if (toBottom || nearBottom) body.scrollTop = body.scrollHeight;
+        else body.scrollTop = prevTop;
+    }
+
+    function chatKeydown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendReply();
+        }
+    }
+
+    function sendReply() {
+        var ta = document.getElementById('chatInput');
+        var text = (ta.value || '').trim();
+        if (!text || !activeName) return;
+        if (!window.DataBridge || !DataBridge.addConsultMessage) {
+            alert('数据层未加载，无法发送');
+            return;
+        }
+        DataBridge.addConsultMessage({ customerName: activeName, from: 'advisor', text: text,
+            svcId: activeSvc ? activeSvc.id : '', svcName: activeSvc ? activeSvc.name : '' });
+        ta.value = '';
+        loadMsgs();
+        var body = document.getElementById('chatBody');
+        body.scrollTop = body.scrollHeight;
+        ta.focus();
+    }
+
+    // ===== 客服改价：生成客户专属报价并发送给客户 =====
+    function datePlus(days) {
+        var d = new Date();
+        d.setDate(d.getDate() + days);
+        var pd = function (n) { return String(n).padStart(2, '0'); };
+        return d.getFullYear() + '-' + pd(d.getMonth() + 1) + '-' + pd(d.getDate());
+    }
+    function openQuoteModal() {
+        if (!activeName) { alert('请先选择客户会话'); return; }
+        if (!window.DataBridge || !DataBridge.loadServiceProducts) { alert('数据层未加载'); return; }
+        quoteProducts = (DataBridge.loadServiceProducts() || []).filter(function (p) { return p.status === 'on'; });
+        if (!quoteProducts.length) { alert('暂无可报价的服务商品，请先在服务商品管理中上架'); return; }
+        document.getElementById('qCustomer').value = activeName;
+        var sel = document.getElementById('qSvc');
+        sel.innerHTML = quoteProducts.map(function (p) {
+            return '<option value="' + p.id + '">' + escapeHtml(p.name) + '</option>';
+        }).join('');
+        if (activeSvc && quoteProducts.some(function (p) { return p.id === activeSvc.id; })) sel.value = activeSvc.id;
+        document.getElementById('qExpire').value = datePlus(7);
+        document.getElementById('qNote').value = '';
+        document.getElementById('qPrice').value = '';
+        onQuoteSvcChange();
+        var modal = document.getElementById('quoteModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    function closeQuoteModal() {
+        var modal = document.getElementById('quoteModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    function currentQuoteSvc() {
+        var id = document.getElementById('qSvc').value;
+        return quoteProducts.find(function (p) { return p.id === id; }) || null;
+    }
+    function onQuoteSvcChange() {
+        var p = currentQuoteSvc();
+        if (!p) return;
+        var orig = Number(p.price) || 0;
+        if (p.pricingMode === 'quote' && p.priceRange) {
+            orig = Number(p.priceRange.min) || Number(p.priceRange.max) || 0;
+        }
+        document.getElementById('qOriginal').value = orig;
+        document.getElementById('qPrice').value = orig;
+    }
+    function saveQuote() {
+        if (!activeName) return;
+        var p = currentQuoteSvc();
+        if (!p) { alert('请选择服务'); return; }
+        var price = parseFloat(document.getElementById('qPrice').value);
+        if (!(price > 0)) { alert('请填写有效的专属价'); return; }
+        var orig = Number(document.getElementById('qOriginal').value) || Number(p.price) || 0;
+        var expireAt = document.getElementById('qExpire').value || '';
+        var note = document.getElementById('qNote').value.trim();
+        var q = DataBridge.addServiceQuote({
+            customerName: activeName, svcId: p.id, svcName: p.name,
+            originalPrice: orig, quotePrice: price, note: note, expireAt: expireAt
+        });
+        var msg = '已为您申请「' + p.name + '」客服专属价 ¥' + price.toLocaleString('zh-CN')
+            + '（标准价 ¥' + orig.toLocaleString('zh-CN') + '）'
+            + (expireAt ? '，有效期至 ' + expireAt : '')
+            + '。' + (note ? note + '。' : '')
+            + '您可直接在「服务商城」按专属价下单，下单时自动生效。';
+        DataBridge.addConsultMessage({ customerName: activeName, from: 'advisor', text: msg, svcId: p.id, svcName: p.name, quoteId: q ? q.id : '' });
+        closeQuoteModal();
+        loadMsgs();
+        alert('专属价已发送给客户（' + (q ? q.id : '') + '），客户在服务商城下单时自动生效');
+    }
+
+    // ===== 客服打包报价：生成定向服务包并推送专属链接 =====
+    function fmtYuan(n) { return (Number(n) || 0).toLocaleString('zh-CN'); }
+
+    function findBundleProduct(id) {
+        return bundleProducts.find(function (p) { return p.id === id; }) || null;
+    }
+
+    function openBundleModal() {
+        if (!activeName) { alert('请先选择客户会话'); return; }
+        if (!window.DataBridge || !DataBridge.loadServiceProducts) { alert('数据层未加载'); return; }
+        bundleProducts = (DataBridge.loadServiceProducts() || []).filter(function (p) { return p.status === 'on'; });
+        if (!bundleProducts.length) { alert('暂无可选服务商品，请先在服务商品管理中上架'); return; }
+        bundleRows = [];
+        document.getElementById('bCustomer').value = activeName;
+        document.getElementById('bTitle').value = activeName + '定制服务包';
+        document.getElementById('bExpire').value = datePlus(7);
+        document.getElementById('bNote').value = '';
+        var initId = bundleProducts[0].id;
+        if (activeSvc && bundleProducts.some(function (p) { return p.id === activeSvc.id; })) initId = activeSvc.id;
+        bundleRows.push(makeSvcRow(initId));
+        renderBundleRows(true);
+        // 默认给一套里程碑，顾问可按项目实际增删改
+        bundleMilestones = [
+            { name: '需求确认与诊断', desc: '确认服务范围、材料清单与项目排期（面谈后定稿）' },
+            { name: '方案与材料交付', desc: '提交申报材料初稿并完成内部质控' },
+            { name: '成果交付与验收', desc: '完成申报/交付，提供验收报告' }
+        ];
+        renderMilestoneRows();
+        // 服务内容清单默认取所选服务商品维护的内容，可在此基础上增删改
+        var initP = bundleProducts.find(function (p) { return p.id === initId; }) || bundleProducts[0];
+        bundleIncludes = ((initP && Array.isArray(initP.includes)) ? initP.includes : []).slice();
+        if (!bundleIncludes.length) bundleIncludes.push('');
+        renderIncludeRows();
+        // 若该客户对该服务已有私下定价（专属价），直接把整单成交价预填为专属价
+        if (activeSvc && DataBridge.getActiveServiceQuote) {
+            var aq = DataBridge.getActiveServiceQuote(activeName, activeSvc.id);
+            if (aq && aq.quotePrice > 0) document.getElementById('bTotal').value = aq.quotePrice;
+            if (aq && aq.quotePrice > 0) recalcBundle();
+        }
+        var modal = document.getElementById('bundleModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeBundleModal() {
+        var modal = document.getElementById('bundleModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    function makeSvcRow(svcId) {
+        var p = findBundleProduct(svcId);
+        var orig = 0;
+        if (p) {
+            orig = Number(p.price) || 0;
+            if (p.pricingMode === 'quote' && p.priceRange) orig = Number(p.priceRange.min) || Number(p.priceRange.max) || 0;
+        }
+        return { type: 'svc', svcId: svcId, tierId: '', tierName: '', name: p ? p.name : '', orig: orig };
+    }
+
+    function addBundleRow(type) {
+        if (type === 'svc') {
+            if (!bundleProducts[0]) return;
+            bundleRows.push(makeSvcRow(bundleProducts[0].id));
+        } else {
+            bundleRows.push({ type: 'custom', svcId: '', tierId: '', tierName: '', name: '', orig: 0 });
+        }
+        renderBundleRows(true);
+    }
+
+    function removeBundleRow(i) {
+        bundleRows.splice(i, 1);
+        renderBundleRows(true);
+    }
+
+    function renderBundleRows(resetTotal) {
+        var box = document.getElementById('bItems');
+        if (!bundleRows.length) {
+            box.innerHTML = '<p class="text-[11px] text-slate-300 py-2">请先添加服务项</p>';
+        } else {
+            box.innerHTML = bundleRows.map(function (r, i) {
+                var head = r.type === 'svc'
+                    ? '<select onchange="onBundleSvc(' + i + ', this.value)" class="flex-1 min-w-0 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs">'
+                        + bundleProducts.map(function (p) {
+                            return '<option value="' + p.id + '"' + (p.id === r.svcId ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>';
+                        }).join('') + '</select>'
+                    : '<input type="text" value="' + escapeHtml(r.name) + '" placeholder="自定义服务项，如：现场辅导 2 次" oninput="onBundleName(' + i + ', this.value)" class="flex-1 min-w-0 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs">';
+                return '<div class="flex items-center gap-2">' + head
+                    + '<input type="number" min="0" value="' + (r.orig || 0) + '" oninput="onBundleOrig(' + i + ', this.value)" class="w-24 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-right">'
+                    + '<button type="button" onclick="removeBundleRow(' + i + ')" class="w-7 h-7 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 flex-shrink-0"><i class="fa fa-trash-o text-xs"></i></button>'
+                    + '</div>';
+            }).join('');
+        }
+        var sum = bundleRows.reduce(function (s, r) { return s + (Number(r.orig) || 0); }, 0);
+        if (resetTotal) document.getElementById('bTotal').value = sum;
+        recalcBundle();
+    }
+
+    function onBundleSvc(i, svcId) {
+        var row = bundleRows[i]; if (!row) return;
+        var p = findBundleProduct(svcId);
+        var orig = 0;
+        if (p) {
+            orig = Number(p.price) || 0;
+            if (p.pricingMode === 'quote' && p.priceRange) orig = Number(p.priceRange.min) || Number(p.priceRange.max) || 0;
+        }
+        row.svcId = svcId; row.name = p ? p.name : ''; row.tierId = ''; row.tierName = ''; row.orig = orig;
+        renderBundleRows(true);
+    }
+
+    function onBundleName(i, v) { if (bundleRows[i]) bundleRows[i].name = v; }
+    function onBundleOrig(i, v) { if (bundleRows[i]) bundleRows[i].orig = Number(v) || 0; recalcBundle(); }
+
+        // ===== 服务流程步骤编辑 =====
+        function renderMilestoneRows() {
+            var box = document.getElementById('bMilestones');
+            if (!box) return;
+            if (!bundleMilestones.length) {
+                box.innerHTML = '<p class="text-[11px] text-slate-300 py-1">暂未设置流程，客户下单页将不展示服务流程</p>';
+                return;
+            }
+            box.innerHTML = bundleMilestones.map(function (m, i) {
+                return '<div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-2">'
+                    + '<span class="w-6 h-6 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">' + (i + 1) + '</span>'
+                    + '<input type="text" value="' + escapeHtml(m.name) + '" placeholder="步骤名称，如：需求评估" oninput="onMsName(' + i + ', this.value)" class="w-36 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold flex-shrink-0">'
+                    + '<input type="text" value="' + escapeHtml(m.desc) + '" placeholder="步骤说明，如：面谈确认需求、范围与报价" oninput="onMsDesc(' + i + ', this.value)" class="flex-1 min-w-0 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs">'
+                    + '<button type="button" onclick="removeMilestoneRow(' + i + ')" class="w-7 h-7 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 flex-shrink-0"><i class="fa fa-trash-o text-xs"></i></button>'
+                    + '</div>';
+            }).join('');
+        }
+    function addMilestoneRow() {
+        bundleMilestones.push({ name: '', desc: '' });
+        renderMilestoneRows();
+    }
+    function removeMilestoneRow(i) {
+        bundleMilestones.splice(i, 1);
+        renderMilestoneRows();
+    }
+    function onMsName(i, v) { if (bundleMilestones[i]) bundleMilestones[i].name = v; }
+    function onMsDesc(i, v) { if (bundleMilestones[i]) bundleMilestones[i].desc = v; }
+
+    // ===== 服务内容清单 =====
+    function renderIncludeRows() {
+        var box = document.getElementById('bIncludes');
+        box.innerHTML = bundleIncludes.map(function (txt, i) {
+            return '<div class="flex items-center gap-2">'
+                + '<span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-black flex-shrink-0">' + (i + 1) + '</span>'
+                + '<input type="text" value="' + escapeHtml(txt).replace(/"/g, '&quot;') + '" placeholder="如：申报材料撰写与内部质控" oninput="onIncludeChange(' + i + ', this.value)" class="flex-1 min-w-0 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs">'
+                + '<button type="button" onclick="removeIncludeRow(' + i + ')" class="w-7 h-7 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 flex-shrink-0"><i class="fa fa-trash-o text-xs"></i></button>'
+                + '</div>';
+        }).join('');
+    }
+    function addIncludeRow() {
+        bundleIncludes.push('');
+        renderIncludeRows();
+    }
+    function removeIncludeRow(i) {
+        bundleIncludes.splice(i, 1);
+        renderIncludeRows();
+    }
+    function onIncludeChange(i, v) { if (bundleIncludes[i] !== undefined) bundleIncludes[i] = v; }
+
+    function recalcBundle() {
+        var sum = bundleRows.reduce(function (s, r) { return s + (Number(r.orig) || 0); }, 0);
+        var total = Number(document.getElementById('bTotal').value) || 0;
+        document.getElementById('bOrigTotal').innerText = fmtYuan(sum);
+        document.getElementById('bDiscount').innerText = fmtYuan(Math.max(0, sum - total));
+    }
+
+    function saveBundle() {
+        if (!activeName) return;
+        if (!window.DataBridge || !DataBridge.addServiceBundle) { alert('数据层未加载'); return; }
+        var title = (document.getElementById('bTitle').value || '').trim();
+        if (!title) { alert('请填写服务包名称'); return; }
+        var items = bundleRows.filter(function (r) {
+            return r.type === 'svc' ? !!r.svcId : !!(r.name || '').trim();
+        }).map(function (r) {
+            return r.type === 'svc'
+                ? { svcId: r.svcId, svcName: r.name, tierName: r.tierName || '', originalPrice: Number(r.orig) || 0, custom: false }
+                : { svcId: '', svcName: (r.name || '').trim(), tierName: '', originalPrice: Number(r.orig) || 0, custom: true };
+        });
+        if (!items.length) { alert('请至少添加一项服务'); return; }
+        var total = parseFloat(document.getElementById('bTotal').value);
+        if (!(total > 0)) { alert('请填写整单成交价'); return; }
+        var milestones = bundleMilestones
+            .filter(function (m) { return (m.name || '').trim(); })
+            .map(function (m) { return { name: m.name.trim(), desc: (m.desc || '').trim() }; });
+        var includes = bundleIncludes
+            .map(function (x) { return (x || '').trim(); })
+            .filter(function (x) { return !!x; });
+        var rec = DataBridge.addServiceBundle({
+            customerName: activeName, title: title, items: items, totalPrice: total, milestones: milestones,
+            includes: includes,
+            note: (document.getElementById('bNote').value || '').trim(),
+            expireAt: document.getElementById('bExpire').value || ''
+        });
+        // 同时生成一张待付款订单，客户可在「我的订单」中直接看到并支付
+        var firstSvc = items.filter(function (it) { return it.svcId; })[0] || {};
+        var pend = DataBridge.addServiceOrder({
+            svcId: firstSvc.svcId || 'BUNDLE',
+            svcName: title,
+            provider: '策源易答服务顾问',
+            icon: 'fa-file-text-o',
+            category: '专属服务',
+            amount: rec.totalPrice,
+            originalAmount: rec.originalTotal,
+            bundleId: rec.id,
+            items: rec.items,
+            milestones: rec.milestones,
+            includes: rec.includes,
+            status: 'unpaid',
+            payStatus: 'waiting',
+            payMethod: '',
+            company: activeName,
+            contact: activeName
+        });
+        DataBridge.updateServiceBundle(rec.id, { orderId: pend.id });
+        var msg = '已为您推送定制订单「' + title + '」（共 ' + items.length + ' 项服务，逐项原价合计 ¥' + fmtYuan(rec.originalTotal)
+            + '，成交价 ¥' + fmtYuan(rec.totalPrice) + '，优惠 ¥' + fmtYuan(rec.discount)
+            + (milestones.length ? '，含 ' + milestones.length + ' 步服务流程' : '')
+            + (includes.length ? '，' + includes.length + ' 项服务内容' : '')
+            + (rec.expireAt ? '，报价有效期至 ' + rec.expireAt : '') + '）。'
+            + (rec.note ? rec.note + '。' : '')
+            + '点击下方「查看专属订单并支付」可查看服务清单与服务流程，确认无误后直接付款，该链接仅您本人可用。';
+        DataBridge.addConsultMessage({
+            customerName: activeName, from: 'advisor', text: msg,
+            bundleId: rec.id, bundleToken: rec.token,
+            svcId: activeSvc ? activeSvc.id : '', svcName: activeSvc ? activeSvc.name : ''
+        });
+        closeBundleModal();
+        loadMsgs();
+        var link = location.href.replace(/[^\/]*$/, '') + 'service-bundle.html?token=' + encodeURIComponent(rec.token);
+        try { if (navigator.clipboard) navigator.clipboard.writeText(link); } catch (e) {}
+        alert('定制订单已推送给客户（' + rec.id + '）\n专属链接已复制：\n' + link);
+    }
+
+    // 初始加载 + 轮询新消息（客户在前台发消息后无需刷新）
+    loadMsgs();
+    setInterval(loadMsgs, 3000);
+</script>
+</body>
+</html>

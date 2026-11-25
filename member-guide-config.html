@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会员指南维护 - 策源易答</title>
+    <link href="libs/css/tailwind.css" rel="stylesheet">
+    <link href="libs/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); z-index: 60; padding: 8px 16px; border-radius: 9999px; font-size: 12px; font-weight: 700; color: #fff; opacity: 0; transition: opacity .25s ease; pointer-events: none; }
+        .toast.show { opacity: 1; }
+        .tab-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 700; color: #64748b; border: 1px solid transparent; cursor: pointer; transition: all .15s ease; background: transparent; }
+        .tab-btn:hover { background: #f1f5f9; color: #334155; }
+        .tab-btn.active { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }
+        .tab-btn .cnt { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9999px; background: #e2e8f0; color: #64748b; font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+        .tab-btn.active .cnt { background: #4f46e5; color: #fff; }
+        .sub-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; background: rgba(248,250,252,.5); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <!-- 顶栏 -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center">
+                <i class="fa fa-book text-white text-sm"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-black text-slate-900">会员指南维护</h1>
+                <p class="text-[10px] text-slate-400 mt-0.5">按指南页的 8 个模块分级维护，保存后前台「会员注册与策能值指南」页即时生效</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="previewGuide()" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
+                <i class="fa fa-external-link mr-1.5"></i>预览指南
+            </button>
+            <button onclick="restoreDefault()" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
+                <i class="fa fa-rotate-left mr-1.5"></i>恢复默认
+            </button>
+            <button onclick="saveCfg()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-xs font-bold text-white shadow-sm transition-all">
+                <i class="fa fa-check mr-1.5"></i>保存生效
+            </button>
+        </div>
+    </header>
+
+    <div class="max-w-6xl mx-auto px-6 py-6">
+        <!-- 模块分区页签（与指南页锚点一一对应） -->
+        <div class="bg-white rounded-2xl border border-slate-200 px-3 py-2 mb-5 flex flex-wrap gap-1" id="tabBar"></div>
+
+        <!-- ===== 分区1：账号体系 ===== -->
+        <div id="panel-s1" class="tab-panel">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 mb-4">
+                <h3 class="text-sm font-black text-slate-800 mb-1">引言</h3>
+                <p class="text-[10px] text-slate-400 mb-2">模块顶部的引导说明文字</p>
+                <textarea class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" rows="2" oninput="cfg.s1.intro=this.value" id="s1Intro"></textarea>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800">概念卡</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">并排展示的概念卡片，每张卡片含图标、标题、描述与彩色标签</p>
+                    </div>
+                    <button class="text-xs text-indigo-600 font-bold" onclick="addS1Concept()"><i class="fa fa-plus mr-1"></i>新增概念卡</button>
+                </div>
+                <div class="space-y-3" id="s1Concepts"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+                <h3 class="text-sm font-black text-slate-800 mb-1">举例说明</h3>
+                <p class="text-[10px] text-slate-400 mb-2">模块底部高亮框中的举例文字</p>
+                <textarea class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" rows="2" oninput="cfg.s1.example=this.value" id="s1Example"></textarea>
+            </div>
+        </div>
+
+        <!-- ===== 分区2：个人注册流程 ===== -->
+        <div id="panel-s2" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800">流程步骤</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">横向流程图节点，最后一步自动渲染为绿色「成功」样式</p>
+                    </div>
+                    <button class="text-xs text-indigo-600 font-bold" onclick="addS2Step()"><i class="fa fa-plus mr-1"></i>添加步骤</button>
+                </div>
+                <div class="space-y-2" id="s2Steps"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800">字段说明表</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">注册表单字段的必填性与填写说明</p>
+                    </div>
+                    <button class="text-xs text-indigo-600 font-bold" onclick="addS2Field()"><i class="fa fa-plus mr-1"></i>添加字段</button>
+                </div>
+                <div class="space-y-2" id="s2Fields"></div>
+            </div>
+        </div>
+
+        <!-- ===== 分区3：企业注册/升级 ===== -->
+        <div id="panel-s3" class="tab-panel hidden">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="bg-white rounded-2xl border border-slate-200 p-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <h3 class="text-sm font-black text-slate-800">路径 A · 注册即企业</h3>
+                            <p class="text-[10px] text-slate-400 mt-0.5">每行一个步骤，最后一步自动渲染为成功样式</p>
+                        </div>
+                        <button class="text-xs text-indigo-600 font-bold" onclick="addS3Step('pathA')"><i class="fa fa-plus mr-1"></i>添加</button>
+                    </div>
+                    <div class="space-y-2" id="s3PathA"></div>
+                </div>
+                <div class="bg-white rounded-2xl border border-slate-200 p-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <h3 class="text-sm font-black text-slate-800">路径 B · 个人升级企业</h3>
+                            <p class="text-[10px] text-slate-400 mt-0.5">每行一个步骤，最后一步自动渲染为成功样式</p>
+                        </div>
+                        <button class="text-xs text-amber-600 font-bold" onclick="addS3Step('pathB')"><i class="fa fa-plus mr-1"></i>添加</button>
+                    </div>
+                    <div class="space-y-2" id="s3PathB"></div>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800">审核说明</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">底部双列展示的审核规则说明</p>
+                    </div>
+                    <button class="text-xs text-indigo-600 font-bold" onclick="addS3Audit()"><i class="fa fa-plus mr-1"></i>添加说明</button>
+                </div>
+                <div class="space-y-2" id="s3Audit"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+                <h3 class="text-sm font-black text-slate-800 mb-1">底部备注</h3>
+                <textarea class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" rows="2" oninput="cfg.s3.note=this.value" id="s3Note"></textarea>
+            </div>
+        </div>
+
+        <!-- ===== 分区4：权益对比 ===== -->
+        <div id="panel-s4" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800">对比表行</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">「支持/不支持」渲染为图标；选择「自定义文本」可直接显示文字（如 +200）。勾选「差异行」会以琥珀色底高亮</p>
+                    </div>
+                    <button class="text-xs text-indigo-600 font-bold" onclick="addS4Row()"><i class="fa fa-plus mr-1"></i>添加行</button>
+                </div>
+                <div class="space-y-2" id="s4Rows"></div>
+            </div>
+        </div>
+
+        <!-- ===== 分区5：VIP 套餐 ===== -->
+        <div id="panel-vip" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800">套餐卡片</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">「VIP 套餐对比」模块的三张卡片与付费途径表格共用此数据</p>
+                    </div>
+                    <button onclick="addVip()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-xs font-bold text-white shadow-sm transition-all">
+                        <i class="fa fa-plus mr-1.5"></i>新增套餐
+                    </button>
+                </div>
+                <div class="space-y-3" id="vipList"></div>
+            </div>
+        </div>
+
+        <!-- ===== 分区6：策能值用途 ===== -->
+        <div id="panel-s6" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 mb-4">
+                <h3 class="text-sm font-black text-slate-800 mb-1">引言</h3>
+                <p class="text-[10px] text-slate-400 mb-2">「什么是策能值」模块的说明文字</p>
+                <textarea class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" rows="2" oninput="cfg.s6.intro=this.value" id="s6Intro"></textarea>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800">用途卡片</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">消耗策能值的功能场景卡片</p>
+                    </div>
+                    <button class="text-xs text-indigo-600 font-bold" onclick="addS6Use()"><i class="fa fa-plus mr-1"></i>添加用途</button>
+                </div>
+                <div class="space-y-2" id="s6Uses"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+                <h3 class="text-sm font-black text-slate-800 mb-1">底部说明</h3>
+                <textarea class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" rows="2" oninput="cfg.s6.note=this.value" id="s6Note"></textarea>
+            </div>
+        </div>
+
+        <!-- ===== 分区7：获取途径 ===== -->
+        <div id="panel-free" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800">免费获取途径</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">「获取途径」模块的免费途径表格，停用的途径不在指南页展示</p>
+                    </div>
+                    <button onclick="addFree()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-xs font-bold text-white shadow-sm transition-all">
+                        <i class="fa fa-plus mr-1.5"></i>新增途径
+                    </button>
+                </div>
+                <div class="space-y-3" id="freeList"></div>
+            </div>
+        </div>
+
+        <!-- ===== 分区8：常见问题 ===== -->
+        <div id="panel-faq" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800">问答列表</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">「常见问题」模块的折叠问答，指南页默认展开第一条</p>
+                    </div>
+                    <button onclick="addFaq()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-xs font-bold text-white shadow-sm transition-all">
+                        <i class="fa fa-plus mr-1.5"></i>新增问答
+                    </button>
+                </div>
+                <div class="space-y-3" id="faqList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 数据与默认值 =====
+        var KEY = 'ceyuan_member_guide_cfg';
+
+        var DEFAULTS = {
+            s1: {
+                intro: '很多用户会混淆「账号类型」和「VIP 套餐」，它们是两件事，可以自由组合：',
+                concepts: [
+                    {
+                        icon: 'fa-id-card', iconColor: 'text-indigo-500',
+                        title: '账号类型（决定能用什么功能）',
+                        desc: '按主体划分，注册时二选一，个人账号后续可补传营业执照升级：',
+                        items: [
+                            { text: '个人版会员', cls: 'bg-slate-100 text-slate-700' },
+                            { text: '企业版会员（完成企业认证）', cls: 'bg-amber-50 text-amber-700 border border-amber-200' }
+                        ]
+                    },
+                    {
+                        icon: 'fa-diamond', iconColor: 'text-amber-500',
+                        title: 'VIP 套餐（决定策能值额度与有效期）',
+                        desc: '付费增值包，个人版和企业版均可开通，用完即止：',
+                        items: [
+                            { text: '未开通（免费用户，靠任务赚策能值）', cls: 'bg-slate-100 text-slate-600' },
+                            { text: 'VIP1 / VIP2 / VIP3（付费套餐）', cls: 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border border-amber-200' }
+                        ]
+                    }
+                ],
+                example: '举例：一家企业可以是「企业版 + VIP2」；一位个人用户也可以是「个人版 + VIP1」。企业认证解决的是资质与功能权限，VIP 解决的是 AI 用量，互不影响。'
+            },
+            s2: {
+                steps: [
+                    { title: '进入注册页', desc: '选择「个人注册」标签' },
+                    { title: '选择所在地区', desc: '省 / 市 / 区县三级联动，决定默认政策' },
+                    { title: '手机号 + 验证码', desc: '11 位手机号，获取 6 位短信验证码（60 秒重发）' },
+                    { title: '设置密码 + 邀请码', desc: '6-20 位密码；邀请码选填，填了双方有奖' },
+                    { title: '注册成功', desc: '成为个人会员，领取 100 策能值' }
+                ],
+                fields: [
+                    { name: '所在地区', required: true, desc: '省 / 市 / 区县三级选择，注册后平台默认推送该地区政策，可在会员中心修改' },
+                    { name: '手机号', required: true, desc: '即登录账号，一个手机号只能注册一次' },
+                    { name: '短信验证码', required: true, desc: '点击「获取验证码」，演示环境验证码会直接提示；正式环境发送至手机，5 分钟内有效' },
+                    { name: '密码', required: true, desc: '6-20 位，建议字母 + 数字组合' },
+                    { name: '邀请码', required: false, desc: '填写邀请人的 8 位邀请码（CY 开头），好友注册成功后邀请人获得策能值奖励（详见第 7 节）' }
+                ]
+            },
+            s3: {
+                pathA: ['切换「企业注册」标签', '填写企业名称（与营业执照一致）', '填写 18 位统一社会信用代码', '填写联系人姓名', '完成地区 / 手机 / 验证码 / 密码等同个人注册步骤', '注册即企业账号，可直接使用企业功能'],
+                pathB: ['进入「会员中心 → 账号信息」', '点击「切换为企业版 / 上传营业执照」', '核对企业名称、信用代码、联系人', '上传营业执照照片 / 扫描件（加盖公章）', '提交认证（平台通常 1-3 个工作日内完成核验）', '认证通过即升级，额外赠送 200 策能值'],
+                audit: [
+                    { icon: 'fa-check-circle', color: 'text-emerald-500', title: '审核通过', text: '账号自动转为企业版，短信通知联系人，企业名称、统一社会信用代码、联系人与所属行业存入账号资料，并可开具发票，200 策能值到账。' },
+                    { icon: 'fa-id-card', color: 'text-blue-500', title: '提交前置校验', text: '同一手机号、同一营业执照（统一社会信用代码）仅可注册 / 认证一个账号，重复提交会被即时拦截。' }
+                ],
+                note: '演示环境中提交后即时通过；正式环境由运营核验后生效。企业版如需切回个人版（如演示体验），可在账号信息页操作，策能值保留，但将无法再开具发票。'
+            },
+            s4: [
+                { name: 'AI 政策问答（自然语言提问、秒级结论）', personal: 'yes', enterprise: 'yes' },
+                { name: '政策库浏览、搜索、收藏', personal: 'yes', enterprise: 'yes' },
+                { name: '政策雷达精准匹配与推送', personal: 'yes', enterprise: 'yes' },
+                { name: '科创能力诊断（六维测评）', personal: 'yes', enterprise: 'yes' },
+                { name: '服务商城浏览、加购、下单购买', personal: 'yes', enterprise: 'yes' },
+                { name: '申报项目管理（高企、专精特新等项目建档与跟进）', personal: 'yes', enterprise: 'yes', bold: true },
+                { name: '申报管家 · 材料清单与进度管理', personal: 'yes', enterprise: 'yes', bold: true },
+                { name: '申报书模板 / 地区差异材料配置', personal: 'yes', enterprise: 'yes', bold: true },
+                { name: '企业画像匹配（按企业条件算适配度）', personal: 'yes', enterprise: 'yes', bold: true },
+                { name: '订单发票申请与管理（普票 / 专票）', personal: 'no', enterprise: 'yes', bold: true, diff: true },
+                { name: '企业认证奖励策能值', personal: 'none', enterprise: '+200', bold: true, diff: true }
+            ],
+            vip: [
+                { name: 'VIP1', price: 68, energy: 300, months: 1, hot: false, desc: '适合体验型用户：约 300 次 AI 问答，体验完整功能' },
+                { name: 'VIP2', price: 128, energy: 800, months: 3, hot: true, desc: '性价比之选：折合 0.16 元/策能值，覆盖一次申报季' },
+                { name: 'VIP3', price: 299, energy: 2500, months: 12, hot: false, desc: '深度使用：全年AI助手 + 专属客服优先响应' }
+            ],
+            s6: {
+                intro: '策能值是平台 AI 服务的统一用量单位，1 策能值 ≈ 1 次 AI 问答。任务奖励、套餐、兑换码、企业认证奖励获得的都是同一种策能值，在会员中心合并为「总可用策能值」，所有 AI 功能统一扣减。',
+                uses: [
+                    { icon: 'fa-comments', color: 'bg-indigo-50 text-indigo-500', name: 'AI 政策问答', desc: '自然语言提问，每次问答消耗策能值' },
+                    { icon: 'fa-rss', color: 'bg-cyan-50 text-cyan-500', name: '政策雷达匹配', desc: '精准匹配、适配度分析消耗策能值' },
+                    { icon: 'fa-tachometer', color: 'bg-emerald-50 text-emerald-500', name: '科创能力测评', desc: '六维诊断、生成测评报告消耗策能值' },
+                    { icon: 'fa-file-text-o', color: 'bg-purple-50 text-purple-500', name: 'AI 政策解析 / 申报辅助', desc: '政策深度解读、申报书 AI 辅助生成' }
+                ],
+                note: '政策库浏览、收藏、服务商城购物等不消耗策能值；只有调用 AI 能力时才扣减。所有收支可在「会员中心 → 用量明细」中按周 / 月查询。'
+            },
+            free: [
+                { name: '每日签到', reward: '+2 / 天', limit: '每日 1 次', where: '会员中心签到', enabled: true },
+                { name: '完善企业画像', reward: '+20（一次性）', limit: '每账号 1 次', where: '会员中心 → 企业画像', enabled: true },
+                { name: '参与科创测评', reward: '+10 / 次', limit: '每月最多 3 次', where: '科创测评', enabled: true },
+                { name: '邀请好友注册', reward: '+15 / 人', limit: '上不封顶', where: '会员中心 → 邀请有礼', enabled: true },
+                { name: '贡献政策收录', reward: '+20 / 条', limit: '审核通过后发放', where: '政策中心 → 贡献政策', enabled: true },
+                { name: '兑换码兑换', reward: '以券面为准', limit: '每码 1 次', where: '会员中心 → 兑换码', enabled: true }
+            ],
+            faq: [
+                { q: '策能值会过期吗？', a: '任务与活动奖励的策能值长期有效；VIP 套餐包含的策能值在套餐有效期内使用，套餐到期未用完的策能值将清零，建议按需选择套餐档位。' },
+                { q: '个人账号升级企业账号后，策能值和订单还在吗？', a: '在。升级只是在原账号上补充企业资质，策能值余额、收藏、测评记录、订单全部保留，同时额外获得 200 策能值升级奖励。' },
+                { q: '邀请码奖励什么时候到账？', a: '好友使用你的邀请码注册成功后，15 策能值即时到账，可在「会员中心 → 用量明细」中查看每一笔来源。' },
+                { q: 'VIP 套餐可以退款或更换档位吗？', a: '虚拟商品一经购买不支持退款。套餐到期后可任意更换档位续费；有效期内重复购买，策能值与有效期将自动累加。' },
+                { q: '企业认证审核不通过怎么办？', a: '常见原因：营业执照照片不清晰、已过期，或企业名称 / 信用代码与执照不一致。修改后重新提交即可，如有疑问请联系在线客服。' },
+                { q: '一个企业可以注册多个账号吗？', a: '不可以。同一营业执照（统一社会信用代码）仅可认证一个账号；企业员工可注册个人账号使用，企业相关权益统一归属企业账号。' }
+            ]
+        };
+
+        var TABS = [
+            ['s1', '账号体系'],
+            ['s2', '个人注册流程'],
+            ['s3', '企业注册/升级'],
+            ['s4', '权益对比'],
+            ['vip', 'VIP 套餐'],
+            ['s6', '策能值用途'],
+            ['free', '获取途径'],
+            ['faq', '常见问题']
+        ];
+
+        var ICONS = ['fa-id-card', 'fa-diamond', 'fa-comments', 'fa-rss', 'fa-tachometer', 'fa-file-text-o', 'fa-shield', 'fa-gift', 'fa-star', 'fa-bolt', 'fa-lightbulb-o', 'fa-check-circle', 'fa-user', 'fa-building'];
+        var ICON_COLORS = ['text-indigo-500', 'text-amber-500', 'text-emerald-500', 'text-blue-500', 'text-purple-500', 'text-cyan-500', 'text-red-500'];
+        var CHIP_CLS = [
+            ['bg-slate-100 text-slate-700', '灰底'],
+            ['bg-slate-100 text-slate-600', '灰底浅字'],
+            ['bg-amber-50 text-amber-700 border border-amber-200', '琥珀描边'],
+            ['bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border border-amber-200', '琥珀渐变'],
+            ['bg-indigo-50 text-indigo-700 border border-indigo-200', '靛蓝描边'],
+            ['bg-emerald-50 text-emerald-700 border border-emerald-200', '翠绿描边']
+        ];
+        var USE_COLORS = ['bg-indigo-50 text-indigo-500', 'bg-cyan-50 text-cyan-500', 'bg-emerald-50 text-emerald-500', 'bg-purple-50 text-purple-500', 'bg-amber-50 text-amber-500', 'bg-blue-50 text-blue-500'];
+
+        function clone(o) { return JSON.parse(JSON.stringify(o)); }
+        function load() {
+            try {
+                var raw = localStorage.getItem(KEY);
+                if (raw) {
+                    var d = JSON.parse(raw);
+                    if (d && typeof d === 'object') {
+                        var merged = clone(DEFAULTS);
+                        Object.keys(d).forEach(function (k) { merged[k] = d[k]; });
+                        return merged;
+                    }
+                }
+            } catch (e) {}
+            return clone(DEFAULTS);
+        }
+        var cfg = load();
+
+        function persist() {
+            try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch (e) {}
+        }
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        function toast(msg, ok) {
+            var t = document.createElement('div');
+            t.className = 'toast ' + (ok === false ? 'bg-red-500' : 'bg-slate-900');
+            t.textContent = msg;
+            document.body.appendChild(t);
+            requestAnimationFrame(function () { t.classList.add('show'); });
+            setTimeout(function () { t.classList.remove('show'); setTimeout(function () { t.remove(); }, 300); }, 1600);
+        }
+
+        // ===== 页签 =====
+        function tabCount(key) {
+            if (key === 's1') return cfg.s1.concepts.length;
+            if (key === 's2') return cfg.s2.steps.length;
+            if (key === 's3') return cfg.s3.pathA.length + cfg.s3.pathB.length;
+            if (key === 's6') return (cfg.s6.uses || []).length;
+            return (cfg[key] || []).length;
+        }
+        function renderTabs(cur) {
+            document.getElementById('tabBar').innerHTML = TABS.map(function (t) {
+                return '<button class="tab-btn' + (t[0] === cur ? ' active' : '') + '" onclick="switchTab(\'' + t[0] + '\')">' + t[1] +
+                    '<span class="cnt">' + tabCount(t[0]) + '</span></button>';
+            }).join('');
+        }
+        function switchTab(key) {
+            TABS.forEach(function (t) {
+                document.getElementById('panel-' + t[0]).classList.toggle('hidden', t[0] !== key);
+            });
+            renderTabs(key);
+        }
+
+        // ===== 下拉选项辅助 =====
+        function opts(list, cur) {
+            return list.map(function (v) {
+                var val = Array.isArray(v) ? v[0] : v;
+                var label = Array.isArray(v) ? v[1] : v;
+                return '<option value="' + esc(val) + '"' + (val === cur ? ' selected' : '') + '>' + esc(label) + '</option>';
+            }).join('');
+        }
+
+        // ===== s1 账号体系 =====
+        function renderS1() {
+            document.getElementById('s1Intro').value = cfg.s1.intro || '';
+            document.getElementById('s1Example').value = cfg.s1.example || '';
+            document.getElementById('s1Concepts').innerHTML = cfg.s1.concepts.map(function (c, ci) {
+                var items = (c.items || []).map(function (it, ii) {
+                    return '<div class="flex items-center gap-2">' +
+                        '<input class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="标签文字" value="' + esc(it.text) + '" oninput="cfg.s1.concepts[' + ci + '].items[' + ii + '].text=this.value">' +
+                        '<select class="w-32 px-2 py-1.5 border border-slate-300 rounded-lg text-xs" onchange="cfg.s1.concepts[' + ci + '].items[' + ii + '].cls=this.value">' + opts(CHIP_CLS, it.cls) + '</select>' +
+                        '<button class="w-7 h-7 text-slate-400 hover:text-red-500" onclick="delS1Item(' + ci + ',' + ii + ')"><i class="fa fa-trash-o"></i></button></div>';
+                }).join('');
+                return '<div class="sub-card">' +
+                    '<div class="flex items-center justify-between mb-2">' +
+                    '<span class="text-xs font-black text-slate-700">概念卡 ' + (ci + 1) + '</span>' +
+                    '<button class="text-xs text-red-500" onclick="delS1Concept(' + ci + ')"><i class="fa fa-trash-o mr-1"></i>删除卡片</button></div>' +
+                    '<div class="grid grid-cols-4 gap-2 mb-2">' +
+                    '<select class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs" title="图标" onchange="cfg.s1.concepts[' + ci + '].icon=this.value">' + opts(ICONS, c.icon) + '</select>' +
+                    '<select class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs" title="图标颜色" onchange="cfg.s1.concepts[' + ci + '].iconColor=this.value">' + opts(ICON_COLORS, c.iconColor) + '</select>' +
+                    '<input class="col-span-2 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="卡片标题" value="' + esc(c.title) + '" oninput="cfg.s1.concepts[' + ci + '].title=this.value"></div>' +
+                    '<input class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs mb-2" placeholder="卡片描述" value="' + esc(c.desc) + '" oninput="cfg.s1.concepts[' + ci + '].desc=this.value">' +
+                    '<div class="text-[10px] text-slate-400 mb-1.5">卡片内标签</div>' +
+                    '<div class="space-y-1.5">' + items + '</div>' +
+                    '<button class="text-xs text-indigo-600 font-bold mt-2" onclick="addS1Item(' + ci + ')"><i class="fa fa-plus mr-1"></i>添加标签</button></div>';
+            }).join('');
+        }
+        function addS1Concept() { cfg.s1.concepts.push({ icon: 'fa-star', iconColor: 'text-indigo-500', title: '新概念', desc: '', items: [{ text: '标签', cls: CHIP_CLS[0][0] }] }); renderS1(); renderTabs('s1'); }
+        function delS1Concept(ci) { cfg.s1.concepts.splice(ci, 1); renderS1(); renderTabs('s1'); }
+        function addS1Item(ci) { cfg.s1.concepts[ci].items.push({ text: '', cls: CHIP_CLS[0][0] }); renderS1(); }
+        function delS1Item(ci, ii) { cfg.s1.concepts[ci].items.splice(ii, 1); renderS1(); }
+
+        // ===== s2 个人注册流程 =====
+        function renderS2() {
+            document.getElementById('s2Steps').innerHTML = cfg.s2.steps.map(function (st, i) {
+                var last = i === cfg.s2.steps.length - 1;
+                return '<div class="flex items-center gap-2">' +
+                    '<span class="w-6 h-6 flex-shrink-0 rounded-full ' + (last ? 'bg-emerald-500 text-white' : 'bg-indigo-100 text-indigo-600') + ' flex items-center justify-center text-[10px] font-black">' + (last ? '<i class="fa fa-check"></i>' : (i + 1)) + '</span>' +
+                    '<input class="w-44 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="步骤名称" value="' + esc(st.title) + '" oninput="cfg.s2.steps[' + i + '].title=this.value">' +
+                    '<input class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="步骤说明" value="' + esc(st.desc) + '" oninput="cfg.s2.steps[' + i + '].desc=this.value">' +
+                    '<button class="w-7 h-7 text-slate-400 hover:text-red-500" onclick="delS2Step(' + i + ')"><i class="fa fa-trash-o"></i></button></div>';
+            }).join('');
+            document.getElementById('s2Fields').innerHTML = cfg.s2.fields.map(function (f, i) {
+                return '<div class="flex items-center gap-2">' +
+                    '<input class="w-32 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="字段名" value="' + esc(f.name) + '" oninput="cfg.s2.fields[' + i + '].name=this.value">' +
+                    '<label class="flex items-center gap-1 text-xs text-slate-500 flex-shrink-0"><input type="checkbox" class="accent-indigo-600"' + (f.required ? ' checked' : '') + ' onchange="cfg.s2.fields[' + i + '].required=this.checked">必填</label>' +
+                    '<input class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="填写说明" value="' + esc(f.desc) + '" oninput="cfg.s2.fields[' + i + '].desc=this.value">' +
+                    '<button class="w-7 h-7 text-slate-400 hover:text-red-500" onclick="delS2Field(' + i + ')"><i class="fa fa-trash-o"></i></button></div>';
+            }).join('');
+        }
+        function addS2Step() { cfg.s2.steps.push({ title: '', desc: '' }); renderS2(); renderTabs('s2'); }
+        function delS2Step(i) { cfg.s2.steps.splice(i, 1); renderS2(); renderTabs('s2'); }
+        function addS2Field() { cfg.s2.fields.push({ name: '', required: true, desc: '' }); renderS2(); }
+        function delS2Field(i) { cfg.s2.fields.splice(i, 1); renderS2(); }
+
+        // ===== s3 企业注册/升级 =====
+        function renderS3() {
+            document.getElementById('s3Note').value = cfg.s3.note || '';
+            ['pathA', 'pathB'].forEach(function (key) {
+                var elId = key === 'pathA' ? 's3PathA' : 's3PathB';
+                document.getElementById(elId).innerHTML = cfg.s3[key].map(function (t, i) {
+                    var last = i === cfg.s3[key].length - 1;
+                    return '<div class="flex items-center gap-2">' +
+                        '<span class="w-5 h-5 flex-shrink-0 rounded-full ' + (last ? 'bg-emerald-500 text-white' : (key === 'pathA' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600')) + ' flex items-center justify-center text-[10px] font-bold">' + (last ? '<i class="fa fa-check"></i>' : (i + 1)) + '</span>' +
+                        '<input class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" value="' + esc(t) + '" oninput="cfg.s3.' + key + '[' + i + ']=this.value">' +
+                        '<button class="w-7 h-7 text-slate-400 hover:text-red-500" onclick="delS3Step(\'' + key + '\',' + i + ')"><i class="fa fa-trash-o"></i></button></div>';
+                }).join('');
+            });
+            document.getElementById('s3Audit').innerHTML = cfg.s3.audit.map(function (a, i) {
+                return '<div class="flex items-center gap-2">' +
+                    '<select class="w-32 px-2 py-1.5 border border-slate-300 rounded-lg text-xs" onchange="cfg.s3.audit[' + i + '].icon=this.value">' + opts(ICONS, a.icon) + '</select>' +
+                    '<select class="w-32 px-2 py-1.5 border border-slate-300 rounded-lg text-xs" onchange="cfg.s3.audit[' + i + '].color=this.value">' + opts(ICON_COLORS, a.color) + '</select>' +
+                    '<input class="w-28 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="标题" value="' + esc(a.title) + '" oninput="cfg.s3.audit[' + i + '].title=this.value">' +
+                    '<input class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="说明内容" value="' + esc(a.text) + '" oninput="cfg.s3.audit[' + i + '].text=this.value">' +
+                    '<button class="w-7 h-7 text-slate-400 hover:text-red-500" onclick="delS3Audit(' + i + ')"><i class="fa fa-trash-o"></i></button></div>';
+            }).join('');
+        }
+        function addS3Step(key) { cfg.s3[key].push(''); renderS3(); renderTabs('s3'); }
+        function delS3Step(key, i) { cfg.s3[key].splice(i, 1); renderS3(); renderTabs('s3'); }
+        function addS3Audit() { cfg.s3.audit.push({ icon: 'fa-check-circle', color: 'text-emerald-500', title: '', text: '' }); renderS3(); }
+        function delS3Audit(i) { cfg.s3.audit.splice(i, 1); renderS3(); }
+
+        // ===== s4 权益对比 =====
+        var CELL_OPTS = [['yes', '支持'], ['no', '不支持'], ['none', '无（—）'], ['custom', '自定义文本']];
+        function s4CellHtml(idx, side, row) {
+            var v = row[side];
+            var preset = (v === 'yes' || v === 'no' || v === 'none');
+            var selVal = preset ? v : 'custom';
+            var txtVal = preset ? '' : (v || '');
+            return '<select class="w-28 px-2 py-1.5 border border-slate-300 rounded-lg text-xs" id="s4_' + side + '_sel_' + idx + '" onchange="s4CellSet(' + idx + ',\'' + side + '\')">' + opts(CELL_OPTS, selVal) + '</select>' +
+                '<input class="w-24 px-2 py-1.5 border border-slate-300 rounded-lg text-xs' + (selVal === 'custom' ? '' : ' hidden') + '" id="s4_' + side + '_txt_' + idx + '" placeholder="显示文本" value="' + esc(txtVal) + '" oninput="s4CellSet(' + idx + ',\'' + side + '\')">';
+        }
+        function s4CellSet(idx, side) {
+            var sel = document.getElementById('s4_' + side + '_sel_' + idx);
+            var txt = document.getElementById('s4_' + side + '_txt_' + idx);
+            cfg.s4[idx][side] = sel.value === 'custom' ? (txt.value || '') : sel.value;
+            txt.classList.toggle('hidden', sel.value !== 'custom');
+        }
+        function renderS4() {
+            document.getElementById('s4Rows').innerHTML = cfg.s4.map(function (r, i) {
+                return '<div class="flex items-center gap-2">' +
+                    '<input class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="功能名称" value="' + esc(r.name) + '" oninput="cfg.s4[' + i + '].name=this.value">' +
+                    s4CellHtml(i, 'personal', r) + s4CellHtml(i, 'enterprise', r) +
+                    '<label class="flex items-center gap-1 text-[11px] text-slate-500 flex-shrink-0" title="功能名加粗"><input type="checkbox" class="accent-indigo-600"' + (r.bold ? ' checked' : '') + ' onchange="cfg.s4[' + i + '].bold=this.checked">加粗</label>' +
+                    '<label class="flex items-center gap-1 text-[11px] text-amber-600 flex-shrink-0"><input type="checkbox" class="accent-amber-500"' + (r.diff ? ' checked' : '') + ' onchange="cfg.s4[' + i + '].diff=this.checked">差异行</label>' +
+                    '<button class="w-7 h-7 text-slate-400 hover:text-red-500" onclick="delS4Row(' + i + ')"><i class="fa fa-trash-o"></i></button></div>';
+            }).join('');
+        }
+        function addS4Row() { cfg.s4.push({ name: '', personal: 'yes', enterprise: 'yes' }); renderS4(); renderTabs('s4'); }
+        function delS4Row(i) { cfg.s4.splice(i, 1); renderS4(); renderTabs('s4'); }
+
+        // ===== VIP 套餐 =====
+        function renderVip() {
+            document.getElementById('vipList').innerHTML = cfg.vip.map(function (v, i) {
+                return '<div class="border border-slate-200 rounded-xl p-4 bg-slate-50/40">' +
+                    '<div class="flex items-center justify-between mb-3">' +
+                    '<span class="text-sm font-black text-slate-700">套餐 ' + (i + 1) + (v.hot ? ' <span class="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px]">最受欢迎</span>' : '') + '</span>' +
+                    '<button class="text-xs text-red-500 hover:text-red-600" onclick="delVip(' + i + ')"><i class="fa fa-trash-o mr-1"></i>删除</button>' +
+                    '</div>' +
+                    '<div class="grid grid-cols-5 gap-3 mb-3">' +
+                    '<div><label class="block text-[10px] text-slate-400 mb-1">名称</label><input class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs" value="' + esc(v.name) + '" oninput="cfg.vip[' + i + '].name=this.value"></div>' +
+                    '<div><label class="block text-[10px] text-slate-400 mb-1">价格（元）</label><input type="number" min="0" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs" value="' + v.price + '" oninput="cfg.vip[' + i + '].price=+this.value||0"></div>' +
+                    '<div><label class="block text-[10px] text-slate-400 mb-1">策能值</label><input type="number" min="0" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs" value="' + v.energy + '" oninput="cfg.vip[' + i + '].energy=+this.value||0"></div>' +
+                    '<div><label class="block text-[10px] text-slate-400 mb-1">有效期（月）</label><input type="number" min="1" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs" value="' + v.months + '" oninput="cfg.vip[' + i + '].months=+this.value||1"></div>' +
+                    '<div class="flex items-end pb-1"><label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer"><input type="checkbox" class="accent-amber-500" ' + (v.hot ? 'checked' : '') + ' onchange="cfg.vip[' + i + '].hot=this.checked">推荐标记</label></div>' +
+                    '</div>' +
+                    '<div><label class="block text-[10px] text-slate-400 mb-1">一句话描述</label><input class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs" value="' + esc(v.desc) + '" oninput="cfg.vip[' + i + '].desc=this.value"></div>' +
+                    '</div>';
+            }).join('');
+        }
+        function addVip() { cfg.vip.push({ name: 'VIP' + (cfg.vip.length + 1), price: 99, energy: 500, months: 1, hot: false, desc: '' }); renderVip(); renderTabs('vip'); }
+        function delVip(i) { cfg.vip.splice(i, 1); renderVip(); renderTabs('vip'); }
+
+        // ===== s6 策能值用途 =====
+        function renderS6() {
+            document.getElementById('s6Intro').value = cfg.s6.intro || '';
+            document.getElementById('s6Note').value = cfg.s6.note || '';
+            document.getElementById('s6Uses').innerHTML = cfg.s6.uses.map(function (u, i) {
+                return '<div class="flex items-center gap-2">' +
+                    '<select class="w-36 px-2 py-1.5 border border-slate-300 rounded-lg text-xs" onchange="cfg.s6.uses[' + i + '].icon=this.value">' + opts(ICONS, u.icon) + '</select>' +
+                    '<select class="w-44 px-2 py-1.5 border border-slate-300 rounded-lg text-xs" onchange="cfg.s6.uses[' + i + '].color=this.value">' + opts(USE_COLORS, u.color) + '</select>' +
+                    '<input class="w-40 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="用途名称" value="' + esc(u.name) + '" oninput="cfg.s6.uses[' + i + '].name=this.value">' +
+                    '<input class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="用途说明" value="' + esc(u.desc) + '" oninput="cfg.s6.uses[' + i + '].desc=this.value">' +
+                    '<button class="w-7 h-7 text-slate-400 hover:text-red-500" onclick="delS6Use(' + i + ')"><i class="fa fa-trash-o"></i></button></div>';
+            }).join('');
+        }
+        function addS6Use() { cfg.s6.uses.push({ icon: 'fa-star', color: USE_COLORS[0], name: '', desc: '' }); renderS6(); }
+        function delS6Use(i) { cfg.s6.uses.splice(i, 1); renderS6(); }
+
+        // ===== 免费获取途径 =====
+        function renderFree() {
+            document.getElementById('freeList').innerHTML = cfg.free.map(function (f, i) {
+                return '<div class="border border-slate-200 rounded-xl p-4 bg-slate-50/40' + (f.enabled === false ? ' opacity-60' : '') + '">' +
+                    '<div class="flex items-center gap-3 mb-3">' +
+                    '<input class="w-40 px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold" placeholder="任务名称" value="' + esc(f.name) + '" oninput="cfg.free[' + i + '].name=this.value">' +
+                    '<input class="w-36 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="奖励，如 +2 / 天" value="' + esc(f.reward) + '" oninput="cfg.free[' + i + '].reward=this.value">' +
+                    '<input class="w-36 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="上限，如每日 1 次" value="' + esc(f.limit) + '" oninput="cfg.free[' + i + '].limit=this.value">' +
+                    '<input class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs" placeholder="参与入口，如会员中心签到" value="' + esc(f.where) + '" oninput="cfg.free[' + i + '].where=this.value">' +
+                    '<label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer flex-shrink-0"><input type="checkbox" class="accent-emerald-500" ' + (f.enabled !== false ? 'checked' : '') + ' onchange="cfg.free[' + i + '].enabled=this.checked;renderFree()">启用</label>' +
+                    '<button class="w-7 h-7 text-slate-400 hover:text-red-500 flex-shrink-0" onclick="delFree(' + i + ')"><i class="fa fa-trash-o"></i></button>' +
+                    '</div></div>';
+            }).join('');
+        }
+        function addFree() { cfg.free.push({ name: '', reward: '', limit: '', where: '', enabled: true }); renderFree(); renderTabs('free'); }
+        function delFree(i) { cfg.free.splice(i, 1); renderFree(); renderTabs('free'); }
+
+        // ===== 常见问题 =====
+        function renderFaq() {
+            document.getElementById('faqList').innerHTML = cfg.faq.map(function (f, i) {
+                return '<div class="border border-slate-200 rounded-xl p-4 bg-slate-50/40">' +
+                    '<div class="flex items-center gap-3 mb-2">' +
+                    '<span class="text-[10px] font-black text-slate-400 flex-shrink-0">Q' + (i + 1) + '</span>' +
+                    '<input class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold" placeholder="问题" value="' + esc(f.q) + '" oninput="cfg.faq[' + i + '].q=this.value">' +
+                    '<button class="w-7 h-7 text-slate-400 hover:text-red-500 flex-shrink-0" onclick="delFaq(' + i + ')"><i class="fa fa-trash-o"></i></button>' +
+                    '</div>' +
+                    '<textarea class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs" rows="2" placeholder="回答" oninput="cfg.faq[' + i + '].a=this.value">' + esc(f.a) + '</textarea>' +
+                    '</div>';
+            }).join('');
+        }
+        function addFaq() { cfg.faq.push({ q: '', a: '' }); renderFaq(); renderTabs('faq'); }
+        function delFaq(i) { cfg.faq.splice(i, 1); renderFaq(); renderTabs('faq'); }
+
+        // ===== 顶部操作 =====
+        function saveCfg() {
+            // 兜底：固定文本域从 DOM 回读，防止 oninput 未触发导致配置丢失
+            var fixed = [
+                ['s1Intro', function (v) { cfg.s1.intro = v; }],
+                ['s1Example', function (v) { cfg.s1.example = v; }],
+                ['s3Note', function (v) { cfg.s3.note = v; }],
+                ['s6Intro', function (v) { cfg.s6.intro = v; }],
+                ['s6Note', function (v) { cfg.s6.note = v; }]
+            ];
+            fixed.forEach(function (pair) {
+                var el = document.getElementById(pair[0]);
+                if (el) pair[1](el.value);
+            });
+            persist();
+            toast('已保存，指南页刷新后生效');
+        }
+        function restoreDefault() {
+            cfg = clone(DEFAULTS);
+            persist();
+            renderAll();
+            toast('已恢复默认内容');
+        }
+        function previewGuide() {
+            persist();
+            window.open('member-guide.html', '_blank');
+        }
+
+        function renderAll() {
+            renderS1(); renderS2(); renderS3(); renderS4();
+            renderVip(); renderS6(); renderFree(); renderFaq();
+        }
+        renderAll();
+        switchTab('s1');
+    </script>
+</body>
+</html>

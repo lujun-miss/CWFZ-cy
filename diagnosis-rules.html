@@ -24,16 +24,20 @@
         .score-row { display: grid; grid-template-columns: 120px 60px 1fr 60px; gap: 8px; align-items: center; margin-bottom: 6px; }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -41,7 +45,7 @@
 
     <!-- 页面标题 -->
     <div class="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div class="max-w-7xl mx-auto px-8 py-5 flex items-center justify-between">
+        <div class="w-full px-8 py-5 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-black text-slate-800 flex items-center">
                     <i class="fa fa-gavel text-indigo-600 mr-3"></i>测评规则配置
@@ -59,7 +63,7 @@
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-8 py-6">
+    <div class="w-full px-8 py-6">
 
         <!-- 说明条 -->
         <div class="mb-5 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 flex items-start space-x-3">

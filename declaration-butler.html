@@ -166,17 +166,6 @@
         }
         /* 环形进度 */
         .ring-progress { transform: rotate(-90deg); }
-        /* 项目芯片选择 */
-        .project-chip {
-            transition: all 0.25s;
-            cursor: pointer;
-        }
-        .project-chip.active {
-            background: linear-gradient(135deg,#2563eb,#4f46e5);
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 8px 18px -6px rgba(79,70,229,0.55);
-        }
         /* 材料行 hover */
         .mat-row:hover { background: #f8fafc; }
         .mat-badge {
@@ -187,16 +176,20 @@
         }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -214,6 +207,10 @@
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-comments text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策问答</span>
                 </button>
+                <button onclick="goPage('policy-center.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
                 <button onclick="goPage('policy-radar.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策雷达</span>
@@ -225,10 +222,6 @@
                 <button onclick="goPage('declaration-butler.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="申报材料自查">
                     <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center" style="background:#6366f1;"><i class="fa fa-file-text-o text-sm text-white"></i></span>
                     <span class="text-[10px] font-bold" style="color:#4f46e5;">申报管家</span>
-                </button>
-                <button onclick="goPage('policy-center.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
-                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
-                    <span class="text-[10px] font-bold">政策中心</span>
                 </button>
                 <button onclick="goPage('service-market.html')" class="feature-tab flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
                     <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
@@ -255,8 +248,8 @@
                     <span class="text-xs text-slate-500">当前页面：申报管家</span>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <button onclick="tbOpenCity()" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all" title="切换城市，查看当地政策">
-                        <i class="fa fa-map-marker mr-1"></i><span id="tbCity">成都市</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
+                    <button onclick="toggleRegionPanel()" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all" title="切换省/市/县区，筛选当地申报项目">
+                        <i class="fa fa-map-marker mr-1"></i><span id="tbCity">全部地区</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
                     </button>
                     <div class="relative group">
                         <button onclick="goPage('member-center.html')" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all flex items-center gap-1.5">
@@ -277,7 +270,7 @@
                     </div>
                 </div>
             </div>
-    <div class="max-w-[1400px] mx-auto p-6">
+    <div class="w-full p-6">
         <!-- 页面标题 + 快捷操作 -->
         <div class="mb-5 flex items-center justify-between">
             <div>
@@ -295,31 +288,6 @@
             </div>
         </div>
 
-        <!-- 申报项目选择器 -->
-        <div class="bg-white rounded-2xl border border-slate-100 p-5 mb-5">
-            <div class="flex items-center justify-between mb-3">
-                <h3 class="text-xs font-black text-slate-700 flex items-center">
-                    <i class="fa fa-flag text-blue-600 mr-2"></i>选择申报项目（切换查看所需材料清单与完成度）
-                </h3>
-                <div class="flex items-center space-x-2">
-                    <div class="relative">
-                        <i class="fa fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[11px]"></i>
-                        <input type="text" oninput="filterProjects(this.value)" placeholder="搜索项目..." class="pl-7 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none focus:bg-white focus:ring-2 focus:ring-blue-400 w-44">
-                    </div>
-                </div>
-            </div>
-            <!-- 地区切换：与政策问答页城市切换同款（按钮 + 弹层面板，省/市/县区级联） -->
-            <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
-                <button id="regionBtn" onclick="toggleRegionPanel()" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-white/80 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all" title="切换省/市/县区，筛选当地申报项目">
-                    <i class="fa fa-map-marker mr-1"></i><span id="regionLabel">全部地区</span><i class="fa fa-angle-down ml-1 text-[10px]"></i>
-                </button>
-                <span id="regionCountHint" class="text-[10.5px] text-slate-400"></span>
-            </div>
-            <div id="projectChips" class="flex flex-wrap gap-2">
-                <!-- 项目芯片由JS动态渲染 -->
-            </div>
-        </div>
-
         <!-- 地区切换弹层（与政策问答城市切换同款交互） -->
         <div id="regionMask" class="hidden fixed inset-0 z-50 bg-slate-900/40 flex items-start justify-center" onclick="if(event.target===this)toggleRegionPanel()">
             <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 animate-fade-up" style="margin-top:96px;width:680px;max-width:92vw;max-height:78vh;display:flex;flex-direction:column;">
@@ -331,62 +299,76 @@
             </div>
         </div>
 
-        <!-- ===== 双栏输出区 ===== -->
-        <div class="grid grid-cols-12 gap-5">
-            <!-- ===== 左栏：个性化申报材料包 ===== -->
-            <div class="col-span-7">
-                <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-                    <!-- 材料包头部 -->
-                    <div class="p-5 border-b border-slate-100 bg-gradient-to-r from-indigo-50/70 to-blue-50/70">
-                        <div class="flex items-start justify-between mb-3">
-                            <div>
-                                <div class="flex items-center space-x-2 mb-1.5" id="pkgBadges"></div>
-                                <h2 class="text-base font-black text-slate-800" id="pkgTitle">—</h2>
-                                <p class="text-[11px] text-slate-500 mt-0.5" id="pkgSubtitle">—</p>
-                                <div id="regionMatchBar" class="mt-2"></div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-[10px] text-slate-400 mb-1">材料完成度</div>
-                                <div class="text-2xl font-black text-blue-600" id="pkgPercent">—</div>
-                                <div class="text-[10px] text-slate-500 mt-0.5" id="pkgRatio">—</div>
-                            </div>
-                        </div>
-                        <!-- 完成度条 -->
-                        <div class="h-2 bg-white/80 rounded-full overflow-hidden mb-3">
-                            <div id="pkgBar" class="h-full rounded-full transition-all duration-500" style="width:0%; background:linear-gradient(90deg,#6366f1,#3b82f6,#22c55e);"></div>
-                        </div>
-                        <!-- 操作按钮 -->
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-2">
-                                <button onclick="generateApplicationDoc()" class="px-3 py-1.5 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white text-[11px] font-bold rounded-lg transition-all shadow-md shadow-rose-100" title="按当前项目所在省份模板自动生成申报书（HTML 预览+打印 PDF+导出 Word）">
-                                    <i class="fa fa-file-text mr-1"></i>一键生成申报书
-                                </button>
-                                <button onclick="downloadPkg()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-lg transition-all">
-                                    <i class="fa fa-download mr-1"></i>导出材料清单
-                                </button>
-                            </div>
-                            <div class="flex items-center space-x-3 text-[10px]">
-                                <span class="flex items-center"><span class="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>已上传</span>
-                                <span class="flex items-center"><span class="w-2 h-2 bg-rose-500 rounded-full mr-1.5"></span>未上传</span>
-                            </div>
-                        </div>
+        <!-- ===== 三栏工作台：项目列表 / 材料清单 / 进度 ===== -->
+        <div class="flex gap-5">
+            <!-- 左栏：申报项目列表 -->
+            <div class="w-56 flex-shrink-0">
+                <div class="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col" style="max-height:calc(100vh - 200px);">
+                    <div class="flex items-center justify-between mb-2.5 flex-shrink-0">
+                        <h3 class="text-xs font-black text-slate-700 flex items-center">
+                            <i class="fa fa-flag text-blue-600 mr-1.5"></i>申报项目
+                        </h3>
+                        <span id="regionCountHint" class="text-[10px] text-slate-400"></span>
                     </div>
-
-                    <!-- 材料分组列表 -->
-                    <div id="materialGroups" class="p-5 space-y-4 max-h-[680px] overflow-y-auto scroll-thin">
-                        <!-- 材料分组由JS动态渲染 -->
+                    <!-- Tab：全部项目 / 我的申报 -->
+                    <div class="flex items-center bg-slate-100 rounded-lg p-0.5 mb-2.5 flex-shrink-0">
+                        <button onclick="switchTab('all')" id="tabAll" class="flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold transition-all bg-white text-slate-700 shadow-sm">全部项目</button>
+                        <button onclick="switchTab('plan')" id="tabPlan" class="flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold transition-all text-slate-500">我的申报 <span id="planCount" class="ml-0.5 px-1 py-px rounded bg-indigo-100 text-indigo-600 text-[9px]">0</span></button>
+                    </div>
+                    <div class="relative mb-2.5 flex-shrink-0">
+                        <i class="fa fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[11px]"></i>
+                        <input type="text" oninput="filterProjects(this.value)" placeholder="搜索项目..." class="w-full pl-7 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] outline-none focus:bg-white focus:ring-2 focus:ring-blue-400">
+                    </div>
+                    <div id="projectChips" class="space-y-1.5 overflow-y-auto scroll-thin pr-1 flex-1">
+                        <!-- 项目列表由JS动态渲染 -->
                     </div>
                 </div>
             </div>
 
-            <!-- ===== 右栏：进度跟踪看板 ===== -->
-            <div class="col-span-5 space-y-5">
-                <!-- 顶部：环形进度 + 综合信息 -->
+            <!-- 中栏：个性化申报材料包 -->
+            <div class="flex-1 min-w-0">
+                <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                    <!-- 材料包头部 -->
+                    <div class="p-5 border-b border-slate-100 bg-gradient-to-r from-indigo-50/70 to-blue-50/70">
+                        <div class="mb-3">
+                            <div class="flex items-center space-x-2 mb-1.5" id="pkgBadges"></div>
+                            <h2 class="text-base font-black text-slate-800" id="pkgTitle">—</h2>
+                            <p class="text-[11px] text-slate-500 mt-0.5" id="pkgSubtitle">—</p>
+                            <div id="regionMatchBar" class="mt-2"></div>
+                        </div>
+                        <!-- 操作按钮 -->
+                        <div class="flex items-center space-x-2">
+                            <button onclick="openApplyPortal()" class="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white text-[11px] font-bold rounded-lg transition-all shadow-md shadow-blue-100" title="新窗口打开该项目对应的官方申报系统">
+                                <i class="fa fa-external-link mr-1"></i>前往官方申报系统
+                            </button>
+                            <button onclick="downloadPkg()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-lg transition-all">
+                                <i class="fa fa-download mr-1"></i>导出材料清单
+                            </button>
+                        </div>
+                        <!-- 兼容隐藏字段（完成度已移至右栏进度卡） -->
+                        <span id="pkgPercent" class="hidden">—%</span>
+                        <span id="pkgRatio" class="hidden">—</span>
+                        <span id="pkgBar" class="hidden" style="width:0%"></span>
+                    </div>
+
+                    <!-- 材料清单 -->
+                    <div id="materialGroups" class="p-5 space-y-4 overflow-y-auto scroll-thin" style="max-height:calc(100vh - 330px);">
+                        <!-- 材料清单由JS动态渲染 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右栏：进度 + 项目信息 -->
+            <div class="w-72 flex-shrink-0 space-y-5">
+                <!-- 材料准备进度 -->
                 <div class="bg-white rounded-2xl border border-slate-100 p-5">
-                    <div class="flex items-start space-x-5">
+                    <h3 class="text-xs font-black text-slate-700 flex items-center mb-4">
+                        <i class="fa fa-pie-chart text-indigo-600 mr-1.5"></i>材料准备进度
+                    </h3>
+                    <div class="flex items-center gap-4 mb-4">
                         <!-- 环形进度 -->
                         <div class="relative flex-shrink-0">
-                            <svg class="ring-progress w-28 h-28" viewBox="0 0 120 120">
+                            <svg class="ring-progress w-20 h-20" viewBox="0 0 120 120">
                                 <circle cx="60" cy="60" r="52" fill="none" stroke="#e2e8f0" stroke-width="10"/>
                                 <circle id="ringCircle" cx="60" cy="60" r="52" fill="none" stroke="url(#ringGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
                                 <defs>
@@ -398,76 +380,73 @@
                                 </defs>
                             </svg>
                             <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <div class="text-2xl font-black text-slate-800" id="ringPercent">—%</div>
-                                <div class="text-[9px] text-slate-400 mt-0.5">综合进度</div>
+                                <div class="text-lg font-black text-slate-800" id="ringPercent">—%</div>
+                                <div class="text-[9px] text-slate-400">综合进度</div>
                             </div>
                         </div>
-                        <!-- 项目信息摘要 -->
-                        <div class="flex-1 pt-1">
-                            <div class="flex items-center space-x-1.5 mb-1.5" id="boardBadges"></div>
-                            <h3 class="text-sm font-black text-slate-800 mb-2" id="boardTitle">—</h3>
-                            <div class="space-y-1.5 text-[11px]">
-                                <div class="flex items-center justify-between"><span class="text-slate-500">主管部门</span><span class="font-bold text-slate-700" id="boardDept">—</span></div>
-                                <div class="flex items-center justify-between"><span class="text-slate-500">申报截止</span><span class="font-bold text-orange-600" id="boardDeadline">—</span></div>
-                                <div class="flex items-center justify-between"><span class="text-slate-500">预计扶持</span><span class="font-bold text-green-600" id="boardSubsidy">—</span></div>
+                        <div class="flex-1 space-y-2">
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="text-slate-500 flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>已上传</span>
+                                <b class="text-slate-700 text-sm" id="statDone">—</b>
+                            </div>
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="text-slate-500 flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-rose-300 mr-1.5"></span>未上传</span>
+                                <b class="text-slate-700 text-sm" id="statTodo">—</b>
                             </div>
                         </div>
                     </div>
+                    <!-- 已上传 / 未上传 分段堆叠条 -->
+                    <div class="h-2 bg-rose-100 rounded-full overflow-hidden mb-4">
+                        <div id="stackDoneBar" class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-700" style="width:0%"></div>
+                    </div>
+                    <!-- 必填材料 -->
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-bold text-slate-600">必填材料</span>
+                        <span class="text-[11px] font-black text-rose-500"><span id="requiredRatio2" class="text-slate-400 font-bold mr-1.5">—</span><span id="requiredPct">—</span></span>
+                    </div>
+                    <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
+                        <div id="requiredBar" class="h-full rounded-full bg-gradient-to-r from-rose-400 to-rose-500 transition-all duration-700" style="width:0%"></div>
+                    </div>
+                    <!-- 全部材料 -->
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-bold text-slate-600">全部材料</span>
+                        <span class="text-[11px] font-black text-indigo-600"><span id="totalRatio2" class="text-slate-400 font-bold mr-1.5">—</span><span id="totalPct">—</span></span>
+                    </div>
+                    <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div id="totalBar" class="h-full rounded-full bg-gradient-to-r from-indigo-400 via-blue-400 to-green-400 transition-all duration-700" style="width:0%"></div>
+                    </div>
+                    <!-- 兼容隐藏字段（供旧逻辑写入，不展示） -->
+                    <span id="requiredRatio" class="hidden">—</span>
+                    <span id="totalRatio" class="hidden">—</span>
                 </div>
 
-                <!-- 材料准备完成度看板 -->
+                <!-- 项目信息 -->
                 <div class="bg-white rounded-2xl border border-slate-100 p-5">
-                    <h3 class="text-xs font-black text-slate-700 flex items-center mb-4">
-                        <i class="fa fa-pie-chart text-indigo-600 mr-2"></i>材料准备完成度
+                    <h3 class="text-xs font-black text-slate-700 flex items-center mb-3">
+                        <i class="fa fa-info-circle text-slate-400 mr-1.5"></i>项目信息
                     </h3>
-                    <!-- 二色统计卡 -->
-                    <div class="grid grid-cols-2 gap-2 mb-4">
-                        <div class="text-center p-2.5 rounded-xl bg-green-50 border border-green-100">
-                            <div class="text-lg font-black text-green-600" id="statDone">—</div>
-                            <div class="text-[9px] text-slate-500 mt-0.5">已上传</div>
-                        </div>
-                        <div class="text-center p-2.5 rounded-xl bg-rose-50 border border-rose-100">
-                            <div class="text-lg font-black text-rose-500" id="statTodo">—</div>
-                            <div class="text-[9px] text-slate-500 mt-0.5">未上传</div>
-                        </div>
+                    <div class="space-y-2.5 text-[11px]">
+                        <div class="flex items-start justify-between gap-3"><span class="text-slate-500 flex-shrink-0">主管部门</span><span class="font-bold text-slate-700 text-right" id="boardDept">—</span></div>
+                        <div class="flex items-center justify-between"><span class="text-slate-500">申报截止</span><span class="font-bold text-orange-600" id="boardDeadline">—</span></div>
+                        <div class="flex items-center justify-between"><span class="text-slate-500">预计扶持</span><span class="font-bold text-green-600" id="boardSubsidy">—</span></div>
                     </div>
-                    <!-- 必填材料完成度 -->
-                    <div class="mb-4">
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-[11px] font-bold text-slate-600">必填材料完成度</span>
-                            <span class="text-[11px] font-black text-rose-500" id="requiredPct">—</span>
-                        </div>
-                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div id="requiredBar" class="h-full rounded-full bg-gradient-to-r from-rose-400 to-rose-500 transition-all duration-700" style="width:0%"></div>
-                        </div>
-                        <div class="text-[10px] text-slate-400 mt-1" id="requiredRatio">—</div>
-                    </div>
-                    <!-- 全部材料完成度 -->
-                    <div class="mb-4">
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-[11px] font-bold text-slate-600">全部材料完成度</span>
-                            <span class="text-[11px] font-black text-indigo-600" id="totalPct">—</span>
-                        </div>
-                        <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div id="totalBar" class="h-full rounded-full bg-gradient-to-r from-indigo-400 via-blue-400 to-green-400 transition-all duration-700" style="width:0%"></div>
-                        </div>
-                        <div class="text-[10px] text-slate-400 mt-1" id="totalRatio">—</div>
-                    </div>
+                    <div class="flex items-center space-x-1.5 mt-3 pt-3 border-t border-slate-100" id="boardBadges"></div>
+                    <span id="boardTitle" class="hidden">—</span>
                 </div>
-
-                <!-- 各分组完成度 -->
+                <!-- 申报小贴士 -->
                 <div class="bg-white rounded-2xl border border-slate-100 p-5">
-                    <h3 class="text-xs font-black text-slate-700 flex items-center mb-4">
-                        <i class="fa fa-list-ul text-blue-600 mr-2"></i>各分组完成度
+                    <h3 class="text-xs font-black text-slate-700 flex items-center mb-3">
+                        <i class="fa fa-lightbulb-o text-amber-500 mr-1.5"></i>申报小贴士
                     </h3>
-                    <div id="groupBars" class="space-y-3">
-                        <!-- 分组进度条由JS动态渲染 -->
+                    <div class="space-y-2.5 text-[11px] text-slate-600 leading-relaxed" id="tipsList">
+                        <div class="flex items-start gap-2"><i class="fa fa-check-circle text-emerald-500 mt-0.5 flex-shrink-0 text-[10px]"></i><span>材料按重要程度排序，优先准备必填的基础资质文件</span></div>
+                        <div class="flex items-start gap-2"><i class="fa fa-check-circle text-emerald-500 mt-0.5 flex-shrink-0 text-[10px]"></i><span>上传附件后自动标记完成，支持随时替换更新</span></div>
+                        <div class="flex items-start gap-2"><i class="fa fa-check-circle text-emerald-500 mt-0.5 flex-shrink-0 text-[10px]"></i><span>点击「样例」可查看参考模板，减少填写错误</span></div>
+                        <div class="flex items-start gap-2"><i class="fa fa-check-circle text-emerald-500 mt-0.5 flex-shrink-0 text-[10px]"></i><span>切换地区后自动匹配当地补充材料要求</span></div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-        </main>
     </div>
 
 <script src="data-bridge.js"></script>
@@ -710,9 +689,7 @@
     (function() {
         var dbData = null;
         try { dbData = DataBridge.loadDeclarationProjects(); } catch(e) {}
-        var dbDefault = JSON.stringify(DataBridge.DEFAULT_DECLARATION_PROJECTS);
-        var dbCurrent = JSON.stringify(dbData);
-        if (dbData && dbData.length > 0 && dbCurrent !== dbDefault) {
+        if (dbData && dbData.length > 0) {
             PROJECTS = dbData;
         } else {
             PROJECTS = JSON.parse(JSON.stringify(_HARDCODED_FALLBACK));
@@ -725,12 +702,86 @@
     var CURRENT_PROVINCE = '全部'; // 省级筛选，默认全部
     var CURRENT_CITY = '全部';     // 市级筛选
     var CURRENT_DISTRICT = '全部'; // 区县级筛选
+    var CURRENT_TAB = 'plan';      // 当前 Tab：all=全部项目，plan=我的申报
+
+    // 读取/保存申报计划
+    function getPlanIds() {
+        try { return JSON.parse(localStorage.getItem('yida_decl_plan') || '[]'); } catch(e) { return []; }
+    }
+    function savePlanIds(ids) {
+        try { localStorage.setItem('yida_decl_plan', JSON.stringify(ids)); } catch(e) {}
+    }
+    function isInPlan(pid) { return getPlanIds().indexOf(pid) > -1; }
+    function togglePlan(pid, event) {
+        if (event) { event.stopPropagation(); event.preventDefault(); }
+        var ids = getPlanIds();
+        var idx = ids.indexOf(pid);
+        if (idx > -1) { ids.splice(idx, 1); } else { ids.push(pid); }
+        savePlanIds(ids);
+        updatePlanCount();
+        renderProjectChips();
+        if (CURRENT_TAB === 'plan') {
+            var planProjects = PROJECTS.filter(function(p){ return isInPlan(p.id); });
+            if (planProjects.length > 0 && !isInPlan(CURRENT_PROJECT_ID)) {
+                switchProject(planProjects[0].id);
+            } else if (planProjects.length === 0) {
+                document.getElementById('pkgTitle').innerText = '暂无申报项目';
+                document.getElementById('pkgSubtitle').innerText = '请在「全部项目」中点击「加入申报」添加要申报的项目';
+                document.getElementById('materialGroups').innerHTML = '<div class="py-12 text-center text-slate-400"><i class="fa fa-inbox text-3xl mb-3"></i><p class="text-sm">还没有加入申报计划的项目</p><p class="text-[11px] mt-1">点击左侧「全部项目」，选择要申报的项目加入计划</p></div>';
+                renderEmptyProgress();
+            } else {
+                switchProject(CURRENT_PROJECT_ID);
+            }
+        }
+    }
+    function switchTab(tab) {
+        CURRENT_TAB = tab;
+        var allBtn = document.getElementById('tabAll');
+        var planBtn = document.getElementById('tabPlan');
+        if (tab === 'all') {
+            allBtn.className = 'flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold transition-all bg-white text-slate-700 shadow-sm';
+            planBtn.className = 'flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold transition-all text-slate-500';
+        } else {
+            planBtn.className = 'flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold transition-all bg-white text-slate-700 shadow-sm';
+            allBtn.className = 'flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold transition-all text-slate-500';
+        }
+        filterProjects('');
+    }
+    function updatePlanCount() {
+        var n = getPlanIds().length;
+        var el = document.getElementById('planCount');
+        if (el) el.innerText = n;
+    }
+    function renderEmptyProgress() {
+        document.getElementById('ringPercent').innerText = '—%';
+        document.getElementById('statDone').innerText = '—';
+        document.getElementById('statTodo').innerText = '—';
+        document.getElementById('requiredPct').innerText = '—';
+        document.getElementById('requiredRatio2').innerText = '—';
+        document.getElementById('totalPct').innerText = '—';
+        document.getElementById('totalRatio2').innerText = '—';
+        document.getElementById('boardDept').innerText = '—';
+        document.getElementById('boardDeadline').innerText = '—';
+        document.getElementById('boardSubsidy').innerText = '—';
+        document.getElementById('boardBadges').innerHTML = '';
+        document.getElementById('stackDoneBar').style.width = '0%';
+        document.getElementById('requiredBar').style.width = '0%';
+        document.getElementById('totalBar').style.width = '0%';
+        var circle = document.getElementById('ringCircle');
+        if (circle) circle.setAttribute('stroke-dashoffset', '326.7');
+    }
 
     // ========== 2. 页面初始化 + 项目切换 ==========
     document.addEventListener('DOMContentLoaded', function() {
         renderRegionButton();
-        renderProjectChips();
-        switchProject(CURRENT_PROJECT_ID);
+        updatePlanCount();
+        // 默认显示「我的申报」Tab
+        switchTab('plan');
+        // 如果没有计划项目，自动切换到「全部项目」并提示
+        if (getPlanIds().length === 0) {
+            switchTab('all');
+            showToast('请先从全部项目中选择要申报的项目加入计划', 'info');
+        }
         updateStats();
     });
 
@@ -771,6 +822,8 @@
     function renderRegionButton() {
         var label = document.getElementById('regionLabel');
         if (label) label.textContent = regionLabelText();
+        var tb = document.getElementById('tbCity');
+        if (tb) tb.textContent = regionLabelText();
         var hint = document.getElementById('regionCountHint');
         if (hint) {
             var n = regionFilteredProjects().length;
@@ -903,27 +956,57 @@
         showToast('已切换至 ' + regionLabelText(), 'success');
     }
 
+    // 按当前材料清单实时计算完成度（自动生成的项目没有静态 progress 字段）
+    function projectDonePct(p) {
+        var gs = (MERGED_VIEW && MERGED_VIEW._pid === p.id) ? MERGED_VIEW.groups : (p.groups || []);
+        var t = 0, d = 0;
+        gs.forEach(function(g) {
+            (g.items || []).forEach(function(m) { t++; if (isMatReady(m)) d++; });
+        });
+        return t > 0 ? Math.round(d / t * 100) : 0;
+    }
+
     function renderProjectChips() {
         var box = document.getElementById('projectChips');
         var html = '';
+        var planIds = getPlanIds();
+        var hasItems = false;
         PROJECTS.forEach(function(p) {
             if (FILTERED_IDS.indexOf(p.id) === -1) return;
-            var active = p.id === CURRENT_PROJECT_ID ? 'active' : '';
-            var sc = { green:'bg-green-50 text-green-600', orange:'bg-orange-50 text-orange-500', blue:'bg-blue-50 text-blue-600' }[p.statusColor] || 'bg-slate-100 text-slate-600';
-            var lc = { '国家级':'bg-red-50 text-red-500', '省级':'bg-orange-50 text-orange-500', '市级':'bg-blue-50 text-blue-500' }[p.level];
-            html += '<div class="project-chip '+active+' px-3 py-2 rounded-xl border border-slate-200 bg-white min-w-[200px]" onclick="switchProject(\''+p.id+'\')">';
-            html += '  <div class="flex items-center justify-between mb-1">';
-            html += '    <div class="flex items-center space-x-1.5">';
-            html += '      <span class="w-6 h-6 rounded-lg bg-'+p.iconColor+'-100 text-'+p.iconColor+'-600 flex items-center justify-center"><i class="fa '+p.icon+' text-[11px]"></i></span>';
-            html += '      <span class="px-1.5 py-px rounded '+lc+' text-[9px] font-bold">'+p.level+'</span>';
-            html += '      <span class="px-1.5 py-px rounded '+sc+' text-[9px] font-bold">'+p.status+'</span>';
-            html += '    </div>';
-            html += '    <span class="text-[11px] font-black text-blue-600">'+p.progress+'%</span>';
+            // Tab 过滤：我的申报只显示已加入计划的项目
+            if (CURRENT_TAB === 'plan' && planIds.indexOf(p.id) === -1) return;
+            hasItems = true;
+            var active = p.id === CURRENT_PROJECT_ID;
+            var inPlan = planIds.indexOf(p.id) > -1;
+            var sc = { green:'bg-green-50 text-green-600', orange:'bg-orange-50 text-orange-500', blue:'bg-blue-50 text-blue-600' }[p.statusColor] || 'bg-slate-100 text-slate-500';
+            var lc = { '国家级':'bg-red-50 text-red-500', '省级':'bg-orange-50 text-orange-500', '市级':'bg-blue-50 text-blue-500', '区县级':'bg-cyan-50 text-cyan-600' }[p.level] || 'bg-slate-100 text-slate-500';
+            var pct = projectDonePct(p);
+            // 单行紧凑：名称 + 徽标 + 完成度 + 明确的「加入申报」按钮
+            html += '<div onclick="switchProject(\''+p.id+'\')" class="group relative pl-3 pr-2.5 py-2.5 rounded-lg border cursor-pointer transition-all '+(active?'border-indigo-300 bg-indigo-50/70':'border-transparent bg-slate-50/60 hover:bg-slate-100')+'">';
+            html += '  <span class="absolute left-0 top-2 bottom-2 w-[3px] rounded-full '+(active?'bg-indigo-500':'bg-transparent')+'"></span>';
+            html += '  <div class="flex items-start justify-between gap-1">';
+            html += '    <div class="text-[11.5px] font-bold leading-snug '+(active?'text-indigo-700':'text-slate-700')+' line-clamp-2 flex-1">'+p.name+'</div>';
+            html += '    <span class="text-[10px] font-black flex-shrink-0 mt-0.5 '+(active?'text-indigo-600':'text-slate-400')+'">'+pct+'%</span>';
             html += '  </div>';
-            html += '  <div class="text-[11.5px] font-bold text-slate-700 truncate">'+p.name+'</div>';
-            html += '  <div class="text-[9px] text-slate-400 mt-0.5 truncate">'+p.dept+' · 截止 '+p.deadline.split(' ')[0]+'</div>';
+            html += '  <div class="flex items-center gap-1 mt-1.5">';
+            html += '    <span class="px-1 py-px rounded '+lc+' text-[9px] font-bold flex-shrink-0">'+p.level+'</span>';
+            html += '    <span class="px-1 py-px rounded '+sc+' text-[9px] font-bold flex-shrink-0">'+p.status+'</span>';
+            if (inPlan) html += '    <span class="px-1 py-px rounded bg-indigo-100 text-indigo-600 text-[9px] font-bold flex-shrink-0">计划中</span>';
+            html += '  </div>';
+            if (inPlan) {
+                html += '  <button onclick="togglePlan(\''+p.id+'\', event)" class="mt-2 w-full py-1 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-600 text-[10px] font-bold hover:bg-rose-50 hover:border-rose-200 hover:text-rose-500 transition-all" title="点击移出申报计划"><i class="fa fa-check mr-1"></i>已加入申报 · 点击移出</button>';
+            } else {
+                html += '  <button onclick="togglePlan(\''+p.id+'\', event)" class="mt-2 w-full py-1 rounded-md bg-indigo-600 text-white text-[10px] font-bold hover:bg-indigo-700 transition-all shadow-sm" title="加入后可在「我的申报」中集中管理"><i class="fa fa-plus mr-1"></i>加入我的申报</button>';
+            }
             html += '</div>';
         });
+        if (!hasItems) {
+            if (CURRENT_TAB === 'plan') {
+                html = '<div class="py-8 text-center"><i class="fa fa-inbox text-2xl text-slate-300 mb-2"></i><p class="text-[11px] text-slate-400">还没有加入申报计划</p><p class="text-[10px] text-slate-400 mt-1">点击「全部项目」选择要申报的项目</p></div>';
+            } else {
+                html = '<div class="py-6 text-center text-[11px] text-slate-400">当前地区暂无匹配的申报项目</div>';
+            }
+        }
         box.innerHTML = html;
     }
 
@@ -931,18 +1014,31 @@
         q = (q||'').trim();
         // 先按当前 省/市/区县 筛选
         var base = regionFilteredProjects();
+        // 再按 Tab 筛选
+        if (CURRENT_TAB === 'plan') {
+            var planIds = getPlanIds();
+            base = base.filter(function(p){ return planIds.indexOf(p.id) > -1; });
+        }
         if (!q) { FILTERED_IDS = base.map(function(p){ return p.id; }); }
         else {
             FILTERED_IDS = base.filter(function(p){
                 return p.name.indexOf(q) !== -1 || p.dept.indexOf(q) !== -1;
             }).map(function(p){ return p.id; });
             if (FILTERED_IDS.length === 0) { FILTERED_IDS = base.map(function(p){ return p.id; }); }
-            if (FILTERED_IDS.indexOf(CURRENT_PROJECT_ID) === -1) {
-                CURRENT_PROJECT_ID = FILTERED_IDS[0];
-            }
+        }
+        if (FILTERED_IDS.length > 0 && FILTERED_IDS.indexOf(CURRENT_PROJECT_ID) === -1) {
+            CURRENT_PROJECT_ID = FILTERED_IDS[0];
         }
         renderProjectChips();
-        switchProject(CURRENT_PROJECT_ID);
+        if (FILTERED_IDS.length > 0) {
+            switchProject(CURRENT_PROJECT_ID);
+        } else {
+            // 空状态
+            document.getElementById('pkgTitle').innerText = '暂无申报项目';
+            document.getElementById('pkgSubtitle').innerText = CURRENT_TAB === 'plan' ? '请在「全部项目」中点击「+」加入要申报的项目' : '当前地区暂无匹配的申报项目';
+            document.getElementById('materialGroups').innerHTML = '<div class="py-12 text-center text-slate-400"><i class="fa fa-inbox text-3xl mb-3"></i><p class="text-sm">'+(CURRENT_TAB === 'plan' ? '还没有加入申报计划的项目' : '当前地区暂无匹配的申报项目')+'</p></div>';
+            renderEmptyProgress();
+        }
     }
 
     function getCurrentProject() {
@@ -1122,41 +1218,57 @@
     }
 
     // ========== 3. 个性化材料清单自动生成（基于地区合并视图） ==========
+    // 材料重要程度：0 必填且为基础必备 → 1 其他必填 → 2 选填的基础材料 → 3 其他选填
+    function matTier(m, groupTitle) {
+        var baseRe = /营业执照|统一社会信用代码|法人|身份证|开户许可|审计报告|财务报表|纳税|完税|社保/;
+        var isBase = baseRe.test(m.name || '') || /基础资质|基础材料/.test(groupTitle || '');
+        return (m.required ? 0 : 2) + (isBase ? 0 : 1);
+    }
+
     function renderMaterialGroups(p) {
         var box = document.getElementById('materialGroups');
         var html = '';
         var groups = MERGED_VIEW ? MERGED_VIEW.groups : (p.groups || []);
-        groups.forEach(function(g, gi) {
-            var groupDone = 0, groupTotal = g.items.length;
-            g.items.forEach(function(m){ if (isMatReady(m)) groupDone++; });
-            var groupAtts = 0;
-            g.items.forEach(function(m){ if (m.attName) groupAtts++; });
-            var regionAdds = 0;
-            if (MERGED_VIEW) g.items.forEach(function(m){ var sm = MERGED_VIEW.sourceMap[m.id]; if (sm && sm.added) regionAdds++; });
-            var gpct = Math.round(groupDone / groupTotal * 100);
-            var gcColor = { blue:'blue', orange:'orange', green:'emerald', purple:'purple', indigo:'indigo', amber:'amber', cyan:'cyan' }[g.color] || 'slate';
-            html += '<div class="border border-slate-100 rounded-xl overflow-hidden">';
-            // 分组头部
-            html += '  <div class="px-4 py-3 bg-'+gcColor+'-50/60 border-b border-'+gcColor+'-100 flex items-center justify-between">';
-            html += '    <div class="flex items-center space-x-2">';
-            html += '      <span class="w-7 h-7 rounded-lg bg-'+gcColor+'-100 text-'+gcColor+'-600 flex items-center justify-center"><i class="fa '+g.icon+' text-xs"></i></span>';
-            html += '      <span class="text-xs font-black text-slate-700">'+g.title+'</span>';
-            html += '      <span class="px-1.5 py-px bg-white rounded text-[10px] text-slate-500 font-bold border border-slate-200">'+groupDone+'/'+groupTotal+' · '+gpct+'%</span>';
-            if (groupAtts > 0) html += '      <span class="px-1.5 py-px bg-white rounded text-[10px] text-emerald-600 font-bold border border-emerald-200"><i class="fa fa-paperclip mr-0.5"></i>'+groupAtts+'个附件</span>';
-            if (regionAdds > 0) html += '      <span class="px-1.5 py-px bg-white rounded text-[10px] text-amber-600 font-bold border border-amber-200"><i class="fa fa-map-marker mr-0.5"></i>本地区差异 '+regionAdds+' 项</span>';
-            html += '    </div>';
-            html += '    <div class="flex items-center space-x-1.5">';
-            if (groupAtts > 0) {
-                html += '  <button onclick="downloadGroupAtts(\''+p.id+'\','+gi+')" class="px-2 py-1 rounded-md bg-white border border-slate-300 text-slate-600 text-[10px] font-bold hover:bg-slate-50 transition-all" title="下载本组全部已传附件"><i class="fa fa-download mr-1"></i>本组下载('+groupAtts+')</button>';
-            } else {
-                html += '  <button disabled class="px-2 py-1 rounded-md bg-white border border-slate-200 text-slate-300 text-[10px] font-bold cursor-not-allowed" title="本组暂无已上传附件"><i class="fa fa-download mr-1"></i>本组下载</button>';
-            }
-            html += '      <div class="w-20 h-1.5 bg-white rounded-full overflow-hidden ml-1"><div class="h-full bg-'+gcColor+'-500 rounded-full" style="width:'+gpct+'%"></div></div>';
-            html += '    </div>';
-            html += '  </div>';
-            // 材料行
-            html += '  <div>';
-            g.items.forEach(function(m) {
+        // 不分组展示：所有材料合并为单一清单（AI 识别无法可靠归类，统一罗列）
+        // 排序：必填的基础必备材料 → 其他必填 → 选填的基础材料 → 其他选填
+        var flat = [];
+        groups.forEach(function(g, gi){ (g.items || []).forEach(function(m, mi){ flat.push({ m: m, gi: gi, mi: mi, gt: g.title || '' }); }); });
+        flat.sort(function(a, b) {
+            var ta = matTier(a.m, a.gt), tb = matTier(b.m, b.gt);
+            if (ta !== tb) return ta - tb;
+            if (a.gi !== b.gi) return a.gi - b.gi;
+            return a.mi - b.mi;
+        });
+        flat = flat.map(function(x){ return x.m; });
+        var doneCount = 0, attsCount = 0, regionAdds = 0;
+        flat.forEach(function(m){
+            if (isMatReady(m)) doneCount++;
+            if (m.attName) attsCount++;
+            if (MERGED_VIEW) { var sm = MERGED_VIEW.sourceMap[m.id]; if (sm && sm.added) regionAdds++; }
+        });
+        var pct = flat.length > 0 ? Math.round(doneCount / flat.length * 100) : 0;
+        html += '<div class="border border-slate-100 rounded-xl overflow-hidden">';
+        // 清单头部（统一一个清单，不再分组建头）
+        html += '  <div class="px-4 py-3 bg-indigo-50/60 border-b border-indigo-100 flex items-center justify-between">';
+        html += '    <div class="flex items-center space-x-2">';
+        html += '      <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fa fa-list-ul text-xs"></i></span>';
+        html += '      <span class="text-xs font-black text-slate-700">申报材料清单</span>';
+        html += '      <span class="px-1.5 py-px bg-white rounded text-[10px] text-slate-500 font-bold border border-slate-200">'+doneCount+'/'+flat.length+' · '+pct+'%</span>';
+        if (attsCount > 0) html += '      <span class="px-1.5 py-px bg-white rounded text-[10px] text-emerald-600 font-bold border border-emerald-200"><i class="fa fa-paperclip mr-0.5"></i>'+attsCount+'个附件</span>';
+        if (regionAdds > 0) html += '      <span class="px-1.5 py-px bg-white rounded text-[10px] text-amber-600 font-bold border border-amber-200"><i class="fa fa-map-marker mr-0.5"></i>本地区差异 '+regionAdds+' 项</span>';
+        html += '    </div>';
+        html += '    <div class="flex items-center space-x-1.5">';
+        if (attsCount > 0) {
+            html += '  <button onclick="downloadAllAtts(\''+p.id+'\')" class="px-2 py-1 rounded-md bg-white border border-slate-300 text-slate-600 text-[10px] font-bold hover:bg-slate-50 transition-all" title="下载全部已传附件"><i class="fa fa-download mr-1"></i>附件全部下载('+attsCount+')</button>';
+        } else {
+            html += '  <button disabled class="px-2 py-1 rounded-md bg-white border border-slate-200 text-slate-300 text-[10px] font-bold cursor-not-allowed" title="暂无已上传附件"><i class="fa fa-download mr-1"></i>附件下载</button>';
+        }
+        html += '      <div class="w-20 h-1.5 bg-white rounded-full overflow-hidden ml-1"><div class="h-full bg-indigo-500 rounded-full" style="width:'+pct+'%"></div></div>';
+        html += '    </div>';
+        html += '  </div>';
+        // 材料行
+        html += '  <div>';
+        flat.forEach(function(m) {
                 var ready = isMatReady(m);
                 var statMap = ready
                     ? { dot:'bg-green-500', text:'已上传', badge:'bg-green-50 text-green-600 border-green-200' }
@@ -1204,10 +1316,9 @@
                 }
                 html += '      </div>';
                 html += '    </div>';
-            });
-            html += '  </div>';
-            html += '</div>';
         });
+        html += '  </div>';
+        html += '</div>';
         box.innerHTML = html;
     }
 
@@ -1363,26 +1474,28 @@
     }
 
     // --- 总项（分组）：下载本组全部附件（逐个触发，间隔错开避免浏览器拦截） ---
-    function downloadGroupAtts(pid, gi) {
-        var items = null;
-        if (MERGED_VIEW && MERGED_VIEW._pid === pid && MERGED_VIEW.groups[gi]) items = MERGED_VIEW.groups[gi].items;
+    // 下载全部已传附件（清单已扁平化，不再按组下载）
+    function downloadAllAtts(pid) {
+        var groups = [];
+        if (MERGED_VIEW && MERGED_VIEW._pid === pid) groups = MERGED_VIEW.groups;
         else {
             var p = findProject(pid);
-            if (p && p.groups[gi]) items = p.groups[gi].items;
+            if (p) groups = p.groups || [];
         }
-        if (!items) return;
         var objs = [];
-        items.forEach(function(m) {
-            if (m.attName) {
-                var o = readAttObject(pid, m.id);
-                if (o) objs.push(o);
-            }
+        groups.forEach(function(g) {
+            (g.items || []).forEach(function(m) {
+                if (m.attName) {
+                    var o = readAttObject(pid, m.id);
+                    if (o) objs.push(o);
+                }
+            });
         });
-        if (!objs.length) { showToast('本组暂无可下载的附件', 'info'); return; }
+        if (!objs.length) { showToast('暂无可下载的附件', 'info'); return; }
         objs.forEach(function(o, i) {
             setTimeout(function(){ triggerBrowserDownload(o); }, i * 400);
         });
-        showToast('开始下载本组 ' + objs.length + ' 份附件（如浏览器拦截请允许本站下载多个文件）', 'success');
+        showToast('开始下载 ' + objs.length + ' 份附件（如浏览器拦截请允许本站下载多个文件）', 'success');
     }
 
     // ========== 4. 样例参考弹窗 ==========
@@ -1488,13 +1601,19 @@
     }
     function viewAllSamples() {
         var p = getCurrentProject();
+        var flat = [];
+        (p.groups || []).forEach(function(g, gi){ (g.items || []).forEach(function(m, mi){ flat.push({ m: m, gi: gi, mi: mi, gt: g.title || '' }); }); });
+        flat.sort(function(a, b) {
+            var ta = matTier(a.m, a.gt), tb = matTier(b.m, b.gt);
+            if (ta !== tb) return ta - tb;
+            if (a.gi !== b.gi) return a.gi - b.gi;
+            return a.mi - b.mi;
+        });
         var first = null;
-        for (var gi=0;gi<p.groups.length && !first;gi++) {
-            for (var mi=0;mi<p.groups[gi].items.length && !first;mi++) {
-                if (!isMatReady(p.groups[gi].items[mi])) first = p.groups[gi].items[mi];
-            }
+        for (var i = 0; i < flat.length && !first; i++) {
+            if (!isMatReady(flat[i].m)) first = flat[i].m;
         }
-        if (!first && p.groups.length && p.groups[0].items.length) first = p.groups[0].items[0];
+        if (!first && flat.length) first = flat[0].m;
         if (first) showSample(p.id, first.id);
         showToast('可点击每个材料行右侧「样例」按钮分别查看参考文档', 'info');
     }
@@ -1505,15 +1624,15 @@
     // ========== 5. 材料准备完成度看板渲染 ==========
     function renderProgressBoard(p) {
         // 徽章 + 标题 + 信息
-        var lc = { '国家级':'bg-red-50 text-red-500', '省级':'bg-orange-50 text-orange-500', '市级':'bg-blue-50 text-blue-500' }[p.level];
-        var sc = { green:'bg-green-50 text-green-600', orange:'bg-orange-50 text-orange-500', blue:'bg-blue-50 text-blue-600' }[p.statusColor];
+        var lc = { '国家级':'bg-red-50 text-red-500', '省级':'bg-orange-50 text-orange-500', '市级':'bg-blue-50 text-blue-500', '区县级':'bg-cyan-50 text-cyan-600' }[p.level] || 'bg-slate-100 text-slate-500';
+        var sc = { green:'bg-green-50 text-green-600', orange:'bg-orange-50 text-orange-500', blue:'bg-blue-50 text-blue-600' }[p.statusColor] || 'bg-slate-100 text-slate-500';
         document.getElementById('boardBadges').innerHTML =
             '<span class="px-1.5 py-px rounded '+lc+' text-[9px] font-bold">'+p.level+'</span>'+
-            '<span class="px-1.5 py-px rounded '+sc+' text-[9px] font-bold">'+p.status+'</span>';
+            '<span class="px-1.5 py-px rounded '+sc+' text-[9px] font-bold">'+(p.status||'待申报')+'</span>';
         document.getElementById('boardTitle').innerText = p.name;
-        document.getElementById('boardDept').innerText = p.dept;
-        document.getElementById('boardDeadline').innerText = p.deadline;
-        document.getElementById('boardSubsidy').innerText = p.subsidy.split(' + ')[0];
+        document.getElementById('boardDept').innerText = p.dept || '待补充';
+        document.getElementById('boardDeadline').innerText = p.deadline || '待定';
+        document.getElementById('boardSubsidy').innerText = (p.subsidy || '待确认').split(' + ')[0];
 
         // 统计材料数据（基于地区合并后的清单）
         var total = 0, done = 0, todo = 0;
@@ -1540,59 +1659,21 @@
         circle.style.transition = 'stroke-dashoffset .8s ease';
         setTimeout(function(){ circle.setAttribute('stroke-dashoffset', offset.toFixed(2)); }, 50);
 
-        // 二色统计卡
+        // 已上传 / 未上传 分段堆叠条
         document.getElementById('statDone').innerText = done;
         document.getElementById('statTodo').innerText = todo;
+        setTimeout(function(){ document.getElementById('stackDoneBar').style.width = pct + '%'; }, 50);
 
         // 必填材料完成度
         var reqPct = reqTotal > 0 ? Math.round(reqDone / reqTotal * 100) : 0;
         document.getElementById('requiredPct').innerText = reqPct + '%';
-        document.getElementById('requiredRatio').innerText = '已就绪 ' + reqDone + '/' + reqTotal + ' 项必填材料';
+        document.getElementById('requiredRatio2').innerText = reqDone + '/' + reqTotal;
         setTimeout(function(){ document.getElementById('requiredBar').style.width = reqPct + '%'; }, 50);
 
         // 全部材料完成度
         document.getElementById('totalPct').innerText = pct + '%';
-        document.getElementById('totalRatio').innerText = '已就绪 ' + done + '/' + total + ' 项全部材料';
+        document.getElementById('totalRatio2').innerText = done + '/' + total;
         setTimeout(function(){ document.getElementById('totalBar').style.width = pct + '%'; }, 50);
-
-        // 各分组完成度
-        renderGroupBars(p, boardGroups);
-    }
-
-    function renderGroupBars(p, groups) {
-        var box = document.getElementById('groupBars');
-        var html = '';
-        var colorMap = { blue:'blue', orange:'orange', green:'emerald', purple:'purple', indigo:'indigo', amber:'amber', cyan:'cyan' };
-        (groups || (p.groups || [])).forEach(function(g, idx) {
-            var groupDone = 0, groupTotal = g.items.length;
-            g.items.forEach(function(m){ if (isMatReady(m)) groupDone++; });
-            var gpct = groupTotal > 0 ? Math.round(groupDone / groupTotal * 100) : 0;
-            var gc = colorMap[g.color] || 'slate';
-            html += '<div>';
-            html += '  <div class="flex items-center justify-between mb-1.5">';
-            html += '    <div class="flex items-center space-x-2">';
-            html += '      <span class="w-6 h-6 rounded-lg bg-'+gc+'-100 text-'+gc+'-600 flex items-center justify-center"><i class="fa '+g.icon+' text-[10px]"></i></span>';
-            html += '      <span class="text-[11px] font-bold text-slate-700">'+g.title+'</span>';
-            html += '    </div>';
-            html += '    <span class="text-[11px] font-black text-'+gc+'-600">'+groupDone+'/'+groupTotal+'</span>';
-            html += '  </div>';
-            html += '  <div class="h-2 bg-slate-100 rounded-full overflow-hidden">';
-            html += '    <div class="h-full rounded-full bg-gradient-to-r from-'+gc+'-400 to-'+gc+'-500 transition-all duration-700" style="width:0%"></div>';
-            html += '  </div>';
-            html += '</div>';
-        });
-        box.innerHTML = html;
-        // 进度条动画
-        requestAnimationFrame(function(){
-            var wraps = box.children;
-            p.groups.forEach(function(g, idx) {
-                var groupDone = 0;
-                g.items.forEach(function(m){ if (isMatReady(m)) groupDone++; });
-                var gpct = g.items.length > 0 ? Math.round(groupDone / g.items.length * 100) : 0;
-                var bar = wraps[idx] ? wraps[idx].querySelector('.h-full') : null;
-                if (bar) setTimeout(function(){ bar.style.width = gpct + '%'; }, 80 + idx * 120);
-            });
-        });
     }
 
     // ========== 6. 企业材料库弹窗 ==========
@@ -1722,7 +1803,7 @@
             var ready = isMatReady(m);
             if (ready) done++; else todo++;
             if (m.required) { reqTotal++; if (ready) reqDone++; }
-            detail.push((m.required?'[必填] ':'[选填] ') + m.name + ' — ' + g.title + ' — ' + (ready?'已上传':'未上传'));
+            detail.push((m.required?'[必填] ':'[选填] ') + m.name + ' — ' + (ready?'已上传':'未上传'));
         });});
         var files = [];
         viewGroups(p).forEach(function(g){ g.items.forEach(function(m){
@@ -1899,10 +1980,12 @@
             html += '<h2 class="'+(si===0?'first-sec':'')+'">'+escapeHtml(sec.title||'')+'</h2>';
             var hasMaterialAll = (sec.fields||[]).some(function(f){ return f.source==='material.all'; });
             if(hasMaterialAll){
-                html += '<table><thead><tr><th style="width:22%">材料分组</th><th style="width:40%">材料名称</th><th style="width:12%">是否必填</th><th style="width:26%">填写提示</th></tr></thead><tbody>';
+                html += '<table><thead><tr><th style="width:28%">序号</th><th style="width:48%">材料名称</th><th style="width:12%">是否必填</th><th style="width:12%">状态</th></tr></thead><tbody>';
+                var matIdx = 0;
                 (proj.groups||[]).forEach(function(g){
                     (g.items||[]).forEach(function(m){
-                        html += '<tr><td>'+escapeHtml(g.title||'')+'</td><td>'+escapeHtml(m.name||'')+'</td><td>'+(m.required?'必填':'选填')+'</td><td>'+escapeHtml((m.tip||'').slice(0,80))+'</td></tr>';
+                        matIdx++;
+                        html += '<tr><td>'+matIdx+'</td><td>'+escapeHtml(m.name||'')+'</td><td>'+(m.required?'必填':'选填')+'</td><td>'+(m.attName?'已上传':'待上传')+'</td></tr>';
                     });
                 });
                 html += '</tbody></table>';
@@ -1936,6 +2019,23 @@
             }).join('')
             + '</div>'
             + '<div class="text-[10px] text-slate-400 mt-1.5"><i class="fa fa-info-circle mr-0.5"></i>编辑后点击"打印"或"导出"按钮，将使用最新值重新生成</div>';
+    }
+    // 跳转官方申报系统：优先用项目配置的申报入口，未配置时回落到关联政策的原文链接
+    function openApplyPortal(){
+        var p = getCurrentProject();
+        if(!p){ showToast('请先选择申报项目','error'); return; }
+        var url = (p.applyUrl || '').trim();
+        if(!url){
+            try {
+                var lib = DataBridge.loadPolicyLibrary() || [];
+                var ids = p.policyIds || [];
+                for(var i=0;i<lib.length;i++){
+                    if(ids.indexOf(lib[i].id)>-1 && lib[i].sourceLink && /^https?:/i.test(lib[i].sourceLink)){ url = lib[i].sourceLink; break; }
+                }
+            } catch(e){}
+        }
+        if(!url){ showToast('该项目未配置申报入口链接，请联系运营补充','error'); return; }
+        window.open(url, '_blank');
     }
     function generateApplicationDoc(){
         var p = getCurrentProject();

@@ -32,18 +32,26 @@
         .order-card:hover { box-shadow: 0 10px 24px -12px rgba(99,102,241,.18); }
         /* 用量明细tab */
         .usage-tab { transition: all .15s ease; }
+        /* 充值套餐：个人/企业切换 */
+        .plan-scope-btn { color: #64748b; }
+        .plan-scope-btn:hover { color: #b45309; }
+        .plan-scope-btn.active { background: #fff; color: #b45309; box-shadow: 0 2px 6px rgba(15,23,42,.08); }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -59,6 +67,10 @@
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-comments text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策问答</span>
                 </button>
+                <button onclick="goPage('policy-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
+                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
+                    <span class="text-[10px] font-bold">政策中心</span>
+                </button>
                 <button onclick="goPage('policy-radar.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策精准匹配">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-sitemap text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">政策雷达</span>
@@ -70,10 +82,6 @@
                 <button onclick="goPage('declaration-butler.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="申报材料自查">
                     <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-file-text-o text-sm text-blue-600"></i></span>
                     <span class="text-[10px] font-bold">申报管家</span>
-                </button>
-                <button onclick="goPage('policy-center.html')" class="flex flex-col items-center gap-1 py-1.5 w-full text-slate-600 hover:bg-white/40 transition-all" title="政策中心 · 按地区浏览">
-                    <span class="w-9 h-9 rounded-full bg-white/80 shadow-sm flex items-center justify-center"><i class="fa fa-university text-sm text-blue-600"></i></span>
-                    <span class="text-[10px] font-bold">政策中心</span>
                 </button>
                 <button onclick="goPage('service-market.html')" class="flex flex-col items-center gap-1 py-1.5 w-full transition-all" title="服务一站下单">
                     <span class="w-9 h-9 rounded-full shadow-sm flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600"><i class="fa fa-shopping-bag text-sm text-white"></i></span>
@@ -188,16 +196,15 @@
                                 <span class="text-xs text-slate-400">策能值</span>
                             </div>
                             <div class="mt-3 text-[11px] text-slate-400">有策能值兑换码？<a class="text-indigo-500 font-bold cursor-pointer hover:text-indigo-700" onclick="redeemCode()">兑换策能值</a>
-                                <span class="text-slate-300 mx-1">·</span>
-                                <a class="text-amber-600 font-bold cursor-pointer hover:text-amber-700" onclick="openContribModal()"><i class="fa fa-upload mr-0.5"></i>贡献政策得积分</a>
-                                <span class="text-slate-300 mx-1">·</span>
-                                <a class="text-emerald-600 font-bold cursor-pointer hover:text-emerald-700" onclick="openGuide('member-center.html')"><i class="fa fa-book mr-0.5"></i>注册升级与获取攻略</a>
                             </div>
                         </div>
 
                         <!-- 奖励策能值 -->
                         <div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-5">
-                            <div class="text-xs font-black text-slate-800 mb-3">奖励策能值</div>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="text-xs font-black text-slate-800">奖励策能值</div>
+                                <a class="text-[11px] text-amber-600 font-bold cursor-pointer hover:text-amber-700" onclick="openContribModal()"><i class="fa fa-upload mr-0.5"></i>贡献政策得积分</a>
+                            </div>
                             <div class="rounded-xl border border-slate-200 overflow-hidden" id="rewardList"></div>
                         </div>
 
@@ -218,7 +225,7 @@
                     <!-- ===== 站内消息页（专属顾问站内下发的报告 / 政策收件区，可扩展订单/发票等系统通知） ===== -->
                     <div id="sec-reports" class="p-6 space-y-4 hidden">
                         <div class="flex items-center justify-between">
-                            <div class="text-xs text-slate-500"><i class="fa fa-user-circle text-indigo-400 mr-1"></i>来自专属顾问 · 张销售的推送</div>
+                            <div class="text-xs text-slate-500"><i class="fa fa-user-circle text-indigo-400 mr-1"></i>来自专属顾问 · 张销售的推送<span id="inboxUnreadChip" class="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-red-500 text-white font-black hidden"></span></div>
                             <div class="text-[10px] text-slate-400">报告与政策匹配结果，点击可直接查看</div>
                         </div>
                         <div id="inboxList" class="space-y-3"></div>
@@ -283,8 +290,8 @@
     </div>
 
     <!-- 策能值充值弹窗 -->
-    <div id="planMask" class="hidden fixed inset-0 z-50 bg-slate-900/40" onclick="if(event.target===this)closePlanModal()">
-        <div class="animate-modal-in absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-2xl w-full mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div id="planMask" class="hidden fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4" onclick="if(event.target===this)closePlanModal()">
+        <div class="animate-modal-in-center max-w-2xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden" style="max-height:calc(100vh - 48px);overflow-y:auto;">
             <div class="px-6 py-5 flex items-center justify-between" style="background:linear-gradient(120deg,#fdecc8,#f7d9a0);">
                 <div class="flex items-center gap-3">
                     <div style="position:relative;width:62px;height:28px;"><svg style="position:absolute;top:0;left:0;" width="62" height="14" viewBox="0 0 62 14"><path d="M3 13 C 18 1, 44 -1, 59 7" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round"/></svg><div style="position:absolute;top:5px;left:0;width:62px;text-align:center;font-size:17px;font-weight:900;font-style:italic;letter-spacing:-0.5px;color:#1d4ed8;font-family:Arial,sans-serif;">ELHP</div></div>
@@ -296,12 +303,38 @@
                 <button onclick="closePlanModal()" class="w-7 h-7 rounded-full bg-white/70 text-slate-500 hover:text-slate-700 flex items-center justify-center"><i class="fa fa-times text-xs"></i></button>
             </div>
             <div class="p-6">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="flex items-center bg-slate-100 rounded-xl p-1">
+                        <button onclick="setPlanScope('personal')" class="plan-scope-btn px-5 py-1.5 rounded-lg text-xs font-bold transition-all" data-scope="personal">个人套餐</button>
+                        <button onclick="setPlanScope('enterprise')" class="plan-scope-btn px-5 py-1.5 rounded-lg text-xs font-bold transition-all" data-scope="enterprise">企业套餐</button>
+                    </div>
+                </div>
                 <div class="grid grid-cols-3 gap-4" id="planCards"></div>
                 <div class="mt-5 rounded-xl bg-amber-50 border border-amber-100 p-4 text-[11px] text-amber-800 leading-relaxed">
                     <p class="font-bold mb-1"><i class="fa fa-info-circle mr-1"></i>套餐说明</p>
-                    <p>VIP1：支付 8.9 元享有 300 策能值权益，有效期 3 个月；VIP2：19.9 元 / 700 策能值 / 6 个月；VIP3：29.9 元 / 1100 策能值 / 6 个月。策能值可用于政策问答、雷达精准匹配、科创测评、AI 政策解析等服务，有效期内用完即止。</p>
+                    <p id="planNote"></p>
                 </div>
                 <button onclick="confirmBuyPlan()" class="w-full mt-4 py-3 rounded-xl text-sm font-black text-white transition-all hover:opacity-90" style="background:linear-gradient(90deg,#f87171,#ef4444);"><i class="fa fa-credit-card mr-1"></i>立即支付 ¥<span id="planPayAmount">8.9</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 站内消息详情弹窗 -->
+    <div id="msgMask" class="hidden fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4" onclick="if(event.target===this)closeInboxMsg()">
+        <div class="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-xl">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3" style="min-width:0;">
+                    <div id="msgIcon" class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"></div>
+                    <div style="min-width:0;">
+                        <div id="msgTitle" class="text-sm font-black text-slate-800"></div>
+                        <div id="msgMeta" class="text-[10px] text-slate-400 mt-0.5"></div>
+                    </div>
+                </div>
+                <button onclick="closeInboxMsg()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center flex-shrink-0"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-5">
+                <p id="msgBody" class="text-xs text-slate-600 leading-relaxed"></p>
+                <p class="text-[10px] text-slate-400 mt-4 pt-3 border-t border-dashed border-slate-100">消息由专属顾问推送，如有疑问可在「在线咨询」联系顾问</p>
             </div>
         </div>
     </div>
@@ -333,7 +366,7 @@
                 <!-- Tab 2：上传政策 -->
                 <div id="contribTabUploadPanel" class="hidden">
                     <div class="mb-3 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg text-[11px] text-amber-700 leading-relaxed">
-                        <i class="fa fa-info-circle mr-1"></i>积分规则：国家级 50 · 省级 20 · 市级/通知 10；已入库或他人审核中的政策不可重复提交，最终以运营审核确认的层级发放
+                        <i class="fa fa-info-circle mr-1"></i>积分规则：不区分国家级/省级/市级/区县级，采纳即得，统一 30 策能值；新政策无需审核，提交后直接入库并立即到账，已入库或他人审核中的政策不可重复提交
                     </div>
                     <!-- 贡献渠道切换：上传文件 / 政策链接 / 粘贴全文 -->
                     <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1 mb-3">
@@ -415,14 +448,14 @@
                                 <div>
                                     <label class="text-xs font-bold text-slate-600 mb-1 flex items-center gap-1.5">政策层级 <span class="text-rose-400">*</span> <span class="text-[9px] text-slate-400 font-normal px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded">自动预判，请确认</span></label>
                                     <select id="c_level" class="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
-                                        <option value="国家级">国家级（预计 +50）</option>
-                                        <option value="省级">省级（预计 +20）</option>
-                                        <option value="市级">市级（预计 +10）</option>
-                                        <option value="区县级">区县级（预计 +10）</option>
-                                        <option value="通知公告">通知公告（预计 +10）</option>
+                                        <option value="国家级">国家级</option>
+                                        <option value="省级">省级</option>
+                                        <option value="市级">市级</option>
+                                        <option value="区县级">区县级</option>
+                                        <option value="通知公告">通知公告</option>
                                     </select>
                                 </div>
-                                <div class="mt-1.5 text-[10px] text-slate-400"><i class="fa fa-info-circle mr-0.5"></i>策能值在运营审核通过后发放，以审核确认的政策层级为准</div>
+                                <div class="mt-1.5 text-[10px] text-slate-400"><i class="fa fa-info-circle mr-0.5"></i>策能值不区分政策层级，采纳即得 30；新政策无需审核，提交后直接入库并立即到账</div>
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-slate-600 mb-1">备注（选填）</label>
@@ -434,10 +467,10 @@
                 <!-- 提交成功提示（浮层） -->
                 <div id="contribSuccess" class="hidden text-center py-8">
                     <i class="fa fa-check-circle text-5xl text-emerald-500 mb-3"></i>
-                    <div class="text-base font-black text-slate-800 mb-1">提交成功！</div>
-                    <div class="text-xs text-slate-500">运营审核通过后，按审核确认的政策层级发放策能值</div>
+                    <div id="contribSuccessTitle" class="text-base font-black text-slate-800 mb-1">提交成功！</div>
+                    <div id="contribSuccessMsg" class="text-xs text-slate-500">已自动入库，策能值已到账</div>
                     <div class="mt-4 px-4 py-2 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700 inline-block">
-                        预计可得 <span id="contribPoints" class="font-black">20</span> 策能值
+                        本次获得 <span id="contribPoints" class="font-black">30</span> 策能值
                     </div>
                 </div>
             </div>
@@ -561,6 +594,25 @@
         }
 
         // ===== 站内消息：专属顾问站内下发收件区（报告/政策速递，预留订单/发票/平台公告等类型扩展） =====
+        // 演示消息：无真实站内推送时兜底展示，点击可在弹窗内查看详情
+        var DEMO_INBOX = [
+            { id:'demo-r1', kind:'报告', icon:'fa-file-text-o', color:'#4f46e5', bg:'#eef2ff',
+              title:'高新技术企业认定匹配报告', batch:'企业画像 · 政策机会 · 申报建议', date:'2026-11-22 10:24', isNew:true,
+              desc:'专属顾问基于企业档案与最新政策库生成了匹配报告：当前符合 12 项申报条件，建议优先申报「国家高新技术企业认定」，预计可获奖励 30 万元。' },
+            { id:'demo-p1', kind:'政策', icon:'fa-university', color:'#6d28d9', bg:'#f5f3ff',
+              title:'浙江省专精特新中小企业申报通知', batch:'政策速递 · 截止 2026-12-15', date:'2026-11-21 16:08', isNew:true,
+              desc:'该政策与企业画像匹配度 92%，申报截止 2026-12-15。建议提前准备研发费用专项审计报告与知识产权证明材料。' },
+            { id:'demo-o1', kind:'订单', icon:'fa-shopping-bag', color:'#f97316', bg:'#fff7ed',
+              title:'「高企认定全流程代办」订单已进入服务中', batch:'订单提醒', date:'2026-11-19 14:32', isNew:true,
+              desc:'服务顾问已接单，预计 5 个工作日内完成申报材料初稿，可在「订单管理」或服务商城的「我的订单」中查看服务进度。' },
+            { id:'demo-a1', kind:'公告', icon:'fa-bullhorn', color:'#0ea5e9', bg:'#e0f2fe',
+              title:'11 月会员权益更新公告', batch:'平台公告', date:'2026-11-18 09:00', isNew:false,
+              desc:'新增政策雷达批量匹配、申报材料智能生成两项会员权益，详情可在左侧「会员与策能值指南」中查看。' }
+        ];
+        var DEMO_READ_KEY = 'ceyuan_inbox_demo_read';
+        function loadDemoRead() { try { return JSON.parse(localStorage.getItem(DEMO_READ_KEY) || '[]'); } catch (e) { return []; } }
+        function saveDemoRead(a) { try { localStorage.setItem(DEMO_READ_KEY, JSON.stringify(a)); } catch (e) {} }
+
         /** 汇总站内推送给当前登录客户的报告与政策（按推送时间倒序） */
         function collectInbox() {
             var p = loadProfile();
@@ -599,15 +651,48 @@
                 });
             } catch (e) {}
             items.sort(function(a, b) { return String(b.date).localeCompare(String(a.date)); });
+            // 无真实站内推送时展示演示消息，已读状态本地记忆
+            if (!items.length) {
+                var read = loadDemoRead();
+                items = DEMO_INBOX.map(function(d) {
+                    var o = {};
+                    for (var k in d) o[k] = d[k];
+                    o.demo = true;
+                    o.isNew = d.isNew && read.indexOf(d.id) < 0;
+                    return o;
+                });
+            }
             return items;
         }
+        /** 打开站内消息详情弹窗 */
+        function openInboxMsg(idx) {
+            var it = (window._inboxItems || [])[idx];
+            if (!it) return;
+            var read = loadDemoRead();
+            if (it.demo && read.indexOf(it.id) < 0) { read.push(it.id); saveDemoRead(read); it.isNew = false; }
+            document.getElementById('msgIcon').style.background = it.bg;
+            document.getElementById('msgIcon').style.color = it.color;
+            document.getElementById('msgIcon').innerHTML = '<i class="fa ' + it.icon + '"></i>';
+            document.getElementById('msgTitle').textContent = it.title;
+            document.getElementById('msgMeta').textContent = it.kind + ' · ' + it.batch + ' · 张销售推送于 ' + it.date;
+            document.getElementById('msgBody').textContent = it.desc || '';
+            document.getElementById('msgMask').classList.remove('hidden');
+            renderInbox();
+        }
+        function closeInboxMsg() { document.getElementById('msgMask').classList.add('hidden'); }
         /** 渲染收件区列表 + 导航未读红点（无浏览记录视为未读） */
         function renderInbox() {
             var items = collectInbox();
+            window._inboxItems = items;
             var unread = items.filter(function(it) { return it.isNew; }).length;
             var badge = document.getElementById('navReportCnt');
             badge.textContent = unread;
             badge.classList.toggle('hidden', unread === 0);
+            var chip = document.getElementById('inboxUnreadChip');
+            if (chip) {
+                chip.textContent = unread + ' 条未读';
+                chip.classList.toggle('hidden', unread === 0);
+            }
             var box = document.getElementById('inboxList');
             if (!items.length) {
                 box.innerHTML = '<div class="bg-white/80 rounded-2xl border border-white/60 p-10 text-center">' +
@@ -616,8 +701,9 @@
                     '<p class="text-[10px] text-slate-400 mt-1">专属顾问推送的政策报告与政策速递会出现在这里</p></div>';
                 return;
             }
-            box.innerHTML = items.map(function(it) {
-                return '<div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-4 flex items-center gap-3 cursor-pointer hover:shadow-md transition-all" onclick="goPage(\'' + it.url + '\')">' +
+            box.innerHTML = items.map(function(it, idx) {
+                var click = it.demo ? 'openInboxMsg(' + idx + ')' : "goPage('" + it.url + "')";
+                return '<div class="bg-white/80 backdrop-blur rounded-2xl border border-white/60 shadow-sm p-4 flex items-center gap-3 cursor-pointer hover:shadow-md transition-all" onclick="' + click + '">' +
                     '<div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:' + it.bg + ';color:' + it.color + ';"><i class="fa ' + it.icon + '"></i></div>' +
                     '<div class="flex-1" style="min-width:0;">' +
                         '<div class="flex items-center gap-2">' +
@@ -871,20 +957,49 @@
 
         // ===== 会员状态与策能值 =====
         var MEMBER_KEY = 'ceyuan_member_v2';
-        var PLANS = [
-            { id:'vip1', name:'VIP1', credits:300, price:8.9, months:3 },
-            { id:'vip2', name:'VIP2', credits:700, price:19.9, months:6 },
-            { id:'vip3', name:'VIP3', credits:1100, price:29.9, months:6 }
+        // 默认套餐（后台「基础配置 → 套餐与定价」未配置时兜底）
+        var DEFAULT_PLANS = [
+            { id:'vip1', scope:'personal', name:'个人 VIP1', credits:300, price:8.9, months:3 },
+            { id:'vip2', scope:'personal', name:'个人 VIP2', credits:700, price:19.9, months:6 },
+            { id:'vip3', scope:'personal', name:'个人 VIP3', credits:1100, price:29.9, months:6 },
+            { id:'ent1', scope:'enterprise', name:'企业 VIP1', credits:1500, price:59, months:3, extra:'3 个成员账号' },
+            { id:'ent2', scope:'enterprise', name:'企业 VIP2', credits:3600, price:129, months:6, extra:'5 个成员账号' },
+            { id:'ent3', scope:'enterprise', name:'企业 VIP3', credits:7200, price:239, months:6, extra:'10 个成员账号' }
         ];
-        var PLAN_RANK = { none:0, vip1:1, vip2:2, vip3:3 };
+        // 读取后台「套餐与定价」配置（ceyuan_member_plans），停用的套餐不展示
+        function loadPlans() {
+            try {
+                var d = JSON.parse(localStorage.getItem('ceyuan_member_plans') || 'null');
+                if (d && typeof d === 'object') {
+                    var out = [];
+                    ['personal', 'enterprise'].forEach(function (scope, gi) {
+                        (Array.isArray(d[scope]) ? d[scope] : []).forEach(function (p, i) {
+                            if (p.enabled === false) return;
+                            out.push({
+                                id: p.id || (scope + '_' + i),
+                                scope: scope,
+                                name: p.name || (scope === 'enterprise' ? '企业套餐' : '个人套餐'),
+                                credits: +p.credits || 0,
+                                price: +p.price || 0,
+                                months: +p.months || 1,
+                                extra: scope === 'enterprise' && p.seats ? p.seats + ' 个成员账号' : ''
+                            });
+                        });
+                    });
+                    if (out.length) return out;
+                }
+            } catch (e) {}
+            return DEFAULT_PLANS;
+        }
+        var PLANS = loadPlans();
+        var PLAN_RANK = { none:0, vip1:1, vip2:2, vip3:3, ent1:1, ent2:2, ent3:3 };
         function defaultMember() {
-            var monthEnd = new Date(); monthEnd.setMonth(monthEnd.getMonth() + 1, 0);
             return {
                 plan: 'none', general: 0, ent: 0, expire: '',
                 rewards: [
                     { key:'welcome', name:'注册福利', note:'注册即得，共 1 笔', cur: 0, total: 100, claimable: true },
-                    { key:'signin', name:'每日签到', note:'每日签到领取', cur: 0, total: 300, claimable: true },
-                    { key:'monthly', name:'每月登录赠送', note: monthEnd.toISOString().slice(0,10) + ' 23:59 到期', cur: 0, total: 500, claimable: false }
+                    { key:'contribute', name:'贡献政策', note:'提交政策通过审核后发放，每条约 30 策能值', reward:'30 策能值/条' },
+                    { key:'invite', name:'邀请好友', note:'好友注册后双方各得 50 策能值', reward:'50 策能值/人' }
                 ],
                 usage: []
             };
@@ -893,7 +1008,14 @@
             try {
                 var d = JSON.parse(localStorage.getItem(MEMBER_KEY) || 'null');
                 if (d && typeof d === 'object') {
-                    if (!d.rewards) d.rewards = defaultMember().rewards;
+                    var ok = Array.isArray(d.rewards) && d.rewards.some(function(x){ return x.key === 'contribute'; }) && d.rewards.some(function(x){ return x.key === 'invite'; });
+                    if (!ok) {
+                        var old = Array.isArray(d.rewards) ? d.rewards : [];
+                        var def = defaultMember().rewards;
+                        var oldWelcome = old.filter(function(x){ return x.key === 'welcome'; })[0];
+                        if (oldWelcome) def[0].cur = oldWelcome.cur || 0;
+                        d.rewards = def;
+                    }
                     if (!d.usage) d.usage = [];
                     return d;
                 }
@@ -925,7 +1047,7 @@
                                 '<div class="text-[11px] text-slate-500 mt-0.5">购买后政策问答 · 雷达匹配 · 科创测评畅用</div>' +
                             '</div>' +
                         '</div>' +
-                        '<button onclick="openPlanModal()" class="px-5 py-2.5 rounded-xl text-xs font-black text-white shadow-lg" style="background:linear-gradient(90deg,#f59e0b,#f97316);"><i class="fa fa-bolt mr-1"></i>充值策能值 · 低至 8.9 元</button>' +
+                        '<button onclick="openPlanModal()" class="px-5 py-2.5 rounded-xl text-xs font-black text-white shadow-lg" style="background:linear-gradient(90deg,#f59e0b,#f97316);"><i class="fa fa-bolt mr-1"></i>充值策能值 · 低至 ' + lowestPrice('personal') + ' 元</button>' +
                     '</div>';
             } else {
                 var plan = PLANS.filter(function(p){ return p.id === m.plan; })[0] || PLANS[0];
@@ -963,21 +1085,56 @@
 
         // 套餐弹窗
         var selectedPlan = 'vip1';
+        var planScope = '';
+        // 套餐说明按当前配置动态生成，避免后台改价后文案错位
+        function planNoteText(scope) {
+            var body = plansOf(scope).map(function(p, i) {
+                return 'VIP' + (i + 1) + ' ' + p.price + ' 元 / ' + p.credits + ' 策能值 / ' + p.months + ' 个月' + (p.extra ? '（' + p.extra + '）' : '');
+            }).join('；');
+            var tail = scope === 'enterprise'
+                ? '。企业策能值由团队成员共享，可用于政策问答、雷达精准匹配、科创测评、AI 政策解析等服务，有效期内用完即止。'
+                : '。策能值可用于政策问答、雷达精准匹配、科创测评、AI 政策解析等服务，有效期内用完即止。';
+            return (scope === 'enterprise' ? '企业版：' : '个人版：') + body + tail;
+        }
+        function plansOf(scope) {
+            var list = PLANS.filter(function(p) { return p.scope === scope; });
+            return list.length ? list : DEFAULT_PLANS.filter(function(p) { return p.scope === scope; });
+        }
+        function lowestPrice(scope) {
+            var min = Math.min.apply(null, plansOf(scope).map(function(p) { return p.price; }));
+            return isFinite(min) ? min : 0;
+        }
         function openPlanModal() {
-            document.getElementById('planCards').innerHTML = PLANS.map(function(p) {
+            if (!planScope) planScope = isEnterprise() ? 'enterprise' : 'personal';
+            var cur = PLANS.filter(function(p){ return p.id === selectedPlan; })[0];
+            if (!cur || cur.scope !== planScope) selectedPlan = plansOf(planScope)[0].id;
+            renderPlanCards();
+            document.getElementById('planMask').classList.remove('hidden');
+        }
+        function setPlanScope(scope) {
+            planScope = scope;
+            var cur = PLANS.filter(function(p){ return p.id === selectedPlan; })[0];
+            if (!cur || cur.scope !== scope) selectedPlan = plansOf(scope)[0].id;
+            renderPlanCards();
+        }
+        function renderPlanCards() {
+            document.querySelectorAll('.plan-scope-btn').forEach(function(b) {
+                b.classList.toggle('active', b.dataset.scope === planScope);
+            });
+            document.getElementById('planCards').innerHTML = plansOf(planScope).map(function(p) {
                 var sel = p.id === selectedPlan;
                 return '<div onclick="selectPlan(\'' + p.id + '\')" class="relative cursor-pointer rounded-xl border-2 p-4 text-center transition-all ' + (sel ? 'border-amber-400 bg-amber-50' : 'border-slate-200 hover:border-amber-300') + '">' +
                     (sel ? '<span class="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center"><i class="fa fa-check text-[10px]"></i></span>' : '') +
                     '<div class="text-lg font-black text-slate-800">' + p.credits + '<span class="text-xs font-bold text-slate-400 ml-0.5">答</span></div>' +
                     '<div class="text-xl font-black text-slate-900 my-1.5">' + p.price + '<span class="text-xs">元</span></div>' +
-                    '<div class="text-[11px] text-slate-400 font-bold">' + p.months + '个月</div>' +
+                    '<div class="text-[11px] text-slate-400 font-bold">' + p.months + '个月' + (p.extra ? ' · ' + p.extra : '') + '</div>' +
                 '</div>';
             }).join('');
+            document.getElementById('planNote').textContent = planNoteText(planScope);
             var cur = PLANS.filter(function(p){ return p.id === selectedPlan; })[0];
             document.getElementById('planPayAmount').textContent = cur.price;
-            document.getElementById('planMask').classList.remove('hidden');
         }
-        function selectPlan(id) { selectedPlan = id; openPlanModal(); }
+        function selectPlan(id) { selectedPlan = id; renderPlanCards(); }
         function closePlanModal() { document.getElementById('planMask').classList.add('hidden'); }
         function confirmBuyPlan() {
             var plan = PLANS.filter(function(p){ return p.id === selectedPlan; })[0];
@@ -985,8 +1142,9 @@
             var base = daysLeft(m.expire) > 0 ? new Date(m.expire + 'T23:59:59') : new Date();
             base.setMonth(base.getMonth() + plan.months);
             m.expire = base.toISOString().slice(0, 10);
-            m.general += plan.credits;
-            if (PLAN_RANK[plan.id] > PLAN_RANK[m.plan]) m.plan = plan.id;
+            if (plan.scope === 'enterprise') m.ent += plan.credits; else m.general += plan.credits;
+            var rank = PLAN_RANK[plan.id] || 1;
+            if (rank > (PLAN_RANK[m.plan] || 0)) m.plan = plan.id;
             m.usage.unshift({ date: new Date().toISOString().slice(0,10), item: '购买' + plan.name + '套餐（' + plan.price + '元）', cost: -plan.credits });
             saveMember(m);
             closePlanModal();
@@ -1000,18 +1158,30 @@
             var m = loadMember();
             document.getElementById('creditTotal').textContent = (m.general + m.ent).toLocaleString();
             document.getElementById('rewardList').innerHTML = m.rewards.map(function(r, i) {
-                var pct = Math.min(100, Math.round(r.cur / r.total * 100));
-                var action = r.claimable && r.cur < r.total
-                    ? '<button onclick="claimReward(' + i + ')" class="text-[11px] font-bold text-amber-600 hover:text-amber-700 whitespace-nowrap">领取 <i class="fa fa-angle-right"></i></button>'
-                    : '<span class="text-[11px] font-bold text-slate-400">' + (r.cur >= r.total ? '已领完' : '未开始') + '</span>';
+                var action;
+                if (r.key === 'contribute') {
+                    action = '<button onclick="openContribModal()" class="text-[11px] font-bold text-amber-600 hover:text-amber-700 whitespace-nowrap">去贡献 <i class="fa fa-angle-right"></i></button>';
+                } else if (r.key === 'invite') {
+                    action = '<button onclick="inviteFriend()" class="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 whitespace-nowrap">去邀请 <i class="fa fa-angle-right"></i></button>';
+                } else if (r.claimable && r.cur < r.total) {
+                    action = '<button onclick="claimReward(' + i + ')" class="text-[11px] font-bold text-amber-600 hover:text-amber-700 whitespace-nowrap">领取 <i class="fa fa-angle-right"></i></button>';
+                } else {
+                    action = '<span class="text-[11px] font-bold text-slate-400">' + (r.cur >= r.total ? '已领完' : '未开始') + '</span>';
+                }
+                var progress = r.total > 0
+                    ? '<div class="h-1 bg-slate-100 rounded-full mt-1.5" style="width:160px;"><div class="h-full rounded-full" style="width:' + Math.min(100, Math.round(r.cur / r.total * 100)) + '%;background:#f59e0b;"></div></div>'
+                    : '';
+                var right = r.total > 0
+                    ? '<div class="text-xs font-black text-slate-700">' + r.cur + ' / ' + r.total + '</div>'
+                    : '<div class="text-xs font-black text-amber-600">' + (r.reward || '') + '</div>';
                 return '<div class="flex items-center justify-between px-5 py-3.5 ' + (i > 0 ? 'border-t border-slate-100' : '') + '">' +
                     '<div>' +
                         '<div class="flex items-center gap-2 text-xs font-bold text-slate-700">' + r.name + ' <i class="fa fa-angle-right text-slate-300"></i></div>' +
                         '<div class="text-[10px] text-slate-400 mt-0.5">策能值 · ' + r.note + '</div>' +
-                        '<div class="h-1 bg-slate-100 rounded-full mt-1.5" style="width:160px;"><div class="h-full rounded-full" style="width:' + pct + '%;background:#f59e0b;"></div></div>' +
+                        progress +
                     '</div>' +
                     '<div class="text-right">' +
-                        '<div class="text-xs font-black text-slate-700">' + r.cur + ' / ' + r.total + '</div>' +
+                        right +
                         '<div class="mt-1">' + action + '</div>' +
                     '</div>' +
                 '</div>';
@@ -1019,13 +1189,12 @@
             renderUsage('7d');
         }
 
-        var REWARD_GAIN = { welcome: 100, signin: 10, monthly: 500 };
+        var REWARD_GAIN = { welcome: 100 };
         function claimReward(i) {
             var m = loadMember();
             var r = m.rewards[i];
             if (!r || !r.claimable || r.cur >= r.total) return;
-            var gain = r.key === 'signin' ? 10 : (REWARD_GAIN[r.key] || r.total);
-            gain = Math.min(gain, r.total - r.cur);
+            var gain = Math.min(REWARD_GAIN[r.key] || r.total, r.total - r.cur);
             r.cur += gain;
             m.general += gain;
             m.usage.unshift({ date: new Date().toISOString().slice(0,10), item: r.name + '到账', cost: -gain });
@@ -1318,23 +1487,37 @@
                 level: cLevel, // 自动预判 + 用户确认；运营审核时按确认层级结算并可修正
                 remark: document.getElementById('c_remark').value.trim()
             };
+            var directOk = false;
+            var pts = (DataBridge.CONTRIB_POINTS && DataBridge.CONTRIB_POINTS[payload.level]) || 30;
             try {
-                DataBridge.submitContribution(payload);
+                if (!_contribState.dup) {
+                    // 新政策：无需审核，直接入库并立即发放策能值
+                    var res = DataBridge.submitContributionDirect(payload);
+                    if (res) directOk = true;
+                }
+                if (!directOk) {
+                    // 文号冲突等需运营核实的情况，转人工审核
+                    DataBridge.submitContribution(payload);
+                }
             } catch (e) {
                 var list = JSON.parse(localStorage.getItem('ceyuan_policy_contrib') || '[]');
                 list.unshift({ id:'ctb_'+Date.now(), uploaderId:payload.uploaderId, uploaderName:payload.uploaderName,
                     channel:payload.channel, fileName:payload.fileName, sourceLink:payload.sourceLink, textContent:payload.textContent, ocr:payload.ocr,
-                    level:payload.level, remark:payload.remark, points:DataBridge.CONTRIB_POINTS[payload.level]||10,
+                    level:payload.level, remark:payload.remark, points:pts,
                     status:'pending', createdAt:new Date().toISOString().slice(0,16) });
                 localStorage.setItem('ceyuan_policy_contrib', JSON.stringify(list));
             }
-            document.getElementById('contribPoints').textContent = DataBridge.CONTRIB_POINTS[payload.level] || 10;
+            document.getElementById('contribPoints').textContent = pts;
+            document.getElementById('contribSuccessTitle').textContent = directOk ? '贡献成功，已自动入库！' : '提交成功！';
+            document.getElementById('contribSuccessMsg').textContent = directOk
+                ? '政策已写入政策库并立即生效，策能值已到账'
+                : '与库内政策存在冲突，运营核实后发放策能值';
             // 隐藏上传区，显示成功提示
             document.getElementById('contribTabUploadPanel').classList.add('hidden');
             document.getElementById('contribSuccess').classList.remove('hidden');
             document.getElementById('contribUploadSubmit').classList.add('hidden');
             document.getElementById('contribUploadAgain').classList.remove('hidden');
-            toast('提交成功！审核通过后按确认层级发放策能值');
+            toast(directOk ? '新政策已自动入库，策能值已到账' : '提交成功，运营核实后发放策能值');
         }
 
         // 我的贡献记录（弹窗内）
@@ -1342,22 +1525,22 @@
         var MY_CONTRIB_DEMO = [
             { id:'demo_ctb_1', fileName:'浙江省制造业中小企业研发费用补贴实施细则.pdf', channel:'file',
               ocr:{ name:'浙江省制造业中小企业研发费用补贴实施细则', docNo:'浙经信〔2026〕45号', dept:'浙江省经济和信息化厅', date:'2026-09-01' },
-              province:'浙江省', industry:'制造业', level:'省级', points:20, status:'approved', createdAt:'2026-10-21 14:32' },
+              province:'浙江省', industry:'制造业', level:'省级', points:30, status:'approved', createdAt:'2026-10-21 14:32' },
             { id:'demo_ctb_2', fileName:'嘉兴市企业上云用云补贴申领通知（网页链接）', channel:'link',
               sourceLink:'https://www.jiaxing.gov.cn/rsj/cy-subsidy-2026.html',
               ocr:{ name:'嘉兴市企业上云用云补贴申领通知', docNo:'嘉经信〔2026〕18号', dept:'嘉兴市经济和信息化局', date:'2026-10-10' },
-              province:'浙江省', industry:'信息技术', level:'市级', points:10, status:'pending', createdAt:'2026-10-26 09:47' },
+              province:'浙江省', industry:'信息技术', level:'市级', points:30, status:'pending', createdAt:'2026-10-26 09:47' },
             { id:'demo_ctb_3', fileName:'高新技术企业认定管理工作指引（粘贴全文）', channel:'text',
               ocr:{ name:'高新技术企业认定管理工作指引（2026 年修订）', docNo:'国科发火〔2026〕6号', dept:'科技部 税务总局', date:'2026-08-15' },
-              province:'全国', industry:'全行业', level:'国家级', points:50, status:'approved', createdAt:'2026-10-15 16:08' },
+              province:'全国', industry:'全行业', level:'国家级', points:30, status:'approved', createdAt:'2026-10-15 16:08' },
             { id:'demo_ctb_4', fileName:'分布式光伏发电项目电价补贴政策.docx', channel:'file',
               ocr:{ name:'分布式光伏发电项目电价补贴政策（节选）', docNo:'浙发改能源〔2026〕9号', dept:'浙江省发展和改革委员会', date:'2026-07-20' },
-              province:'浙江省', industry:'新能源', level:'省级', points:20, status:'rejected', rejectReason:'政策正文不完整，仅包含目录与摘要，请补充完整全文后再提交',
+              province:'浙江省', industry:'新能源', level:'省级', points:30, status:'rejected', rejectReason:'政策正文不完整，仅包含目录与摘要，请补充完整全文后再提交',
               createdAt:'2026-10-12 11:20' },
             { id:'demo_ctb_5', fileName:'科技型中小企业研发费用加计扣除公告（网页链接）', channel:'link',
               sourceLink:'https://most.gov.cn/qiyi/cy2026/notice.html',
               ocr:{ name:'科技型中小企业研发费用加计扣除比例提升公告', docNo:'国科发政〔2026〕22号', dept:'科技部 财政部', date:'2026-09-28' },
-              province:'全国', industry:'全行业', level:'国家级', points:50, status:'pending', createdAt:'2026-10-28 10:05' }
+              province:'全国', industry:'全行业', level:'国家级', points:30, status:'pending', createdAt:'2026-10-28 10:05' }
         ];
         function renderContribRecords() {
             var profile = loadProfile();

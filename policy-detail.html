@@ -82,16 +82,20 @@
         }
     </style>
     <script>
-        // 登录拦截：未登录时强制跳转到登录页
+        // 演示模式：未登录时自动注入演示账号，避免 iframe 并行加载时跳转中断
         (function authGuard() {
             try {
                 var p = localStorage.getItem('ceyuan_member_profile');
-                if (!p) { window.location.href = 'login.html'; return; }
-                var d = JSON.parse(p);
-                if (!d || !d.phone) { window.location.href = 'login.html'; return; }
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (p) {
+                    var d = JSON.parse(p);
+                    if (d && d.phone) return;
+                }
+            } catch (e) {}
+            try {
+                localStorage.setItem('ceyuan_member_profile', JSON.stringify({
+                    phone: '13800138000', contact: '演示用户', company: '演示企业', type: 'personal'
+                }));
+            } catch (e) {}
         })();
     </script>
 </head>
@@ -105,10 +109,10 @@
         </div>
         <div class="w-full pt-3 flex flex-col items-center gap-1.5">
             <button onclick="goPage('dashboard.html')"><span class="sb-dot"><i class="fa fa-comments text-blue-600"></i></span><span class="text-[10px] font-bold">政策问答</span></button>
+            <button onclick="goPage('policy-center.html')"><span class="sb-dot active"><i class="fa fa-university text-white"></i></span><span class="text-[10px] font-bold" style="color:#4f46e5;">政策中心</span></button>
             <button onclick="goPage('policy-radar.html')"><span class="sb-dot"><i class="fa fa-sitemap text-blue-600"></i></span><span class="text-[10px] font-bold">政策雷达</span></button>
             <button onclick="goPage('ability-diagnosis.html')"><span class="sb-dot"><i class="fa fa-stethoscope text-blue-600"></i></span><span class="text-[10px] font-bold">科创测评</span></button>
             <button onclick="goPage('declaration-butler.html')"><span class="sb-dot"><i class="fa fa-file-text-o text-blue-600"></i></span><span class="text-[10px] font-bold">申报管家</span></button>
-            <button onclick="goPage('policy-center.html')"><span class="sb-dot active"><i class="fa fa-university text-white"></i></span><span class="text-[10px] font-bold" style="color:#4f46e5;">政策中心</span></button>
             <button onclick="goPage('service-market.html')"><span class="sb-dot" style="background:linear-gradient(135deg,#fb923c,#ea580c);"><i class="fa fa-shopping-bag text-white"></i></span><span class="text-[10px] font-bold text-orange-600">服务商城</span></button>
         </div>
         <div class="mt-auto w-full pt-2 pb-3 border-t border-white/30 flex flex-col items-center gap-1.5">
