@@ -47,9 +47,6 @@
                     <option value="30d">近 30 天</option>
                     <option value="month">本月</option>
                 </select>
-                <button onclick="exportReport()" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all flex items-center shadow-lg shadow-purple-600/20">
-                    <i class="fa fa-download mr-2"></i>导出报表
-                </button>
             </div>
         </div>
 
@@ -353,9 +350,6 @@
             var el = document.getElementById('periodSelect');
             period = el ? el.value : 'all';
             renderAll();
-        };
-        window.exportReport = function(){
-            alert('原型演示：导出报表功能在正式环境对接后端报表服务。');
         };
 
         renderAll();

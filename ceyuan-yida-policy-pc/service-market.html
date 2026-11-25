@@ -934,7 +934,6 @@
                             <span class="text-[10px] bg-orange-50 text-orange-600 px-2 py-1 rounded-md font-medium flex-shrink-0">${s.category}</span>
                         </div>
                         ${(s.tags && s.tags.length) ? `<div class="flex flex-wrap gap-1 mb-2">${s.tags.slice(0,3).map((t,ti)=>`<span class="text-[10px] ${TAG_COLORS[ti%TAG_COLORS.length]} text-white px-2 py-0.5 rounded-full font-bold">${t}</span>`).join('')}</div>` : ''}
-                        <p class="text-xs text-slate-500 mb-3"><i class="fa fa-building-o mr-1"></i>${s.provider}</p>
                         <div class="flex items-center justify-between mb-3 text-xs">
                             <div class="flex items-center space-x-1">
                                 <i class="fa fa-star text-orange-400"></i>
