@@ -268,8 +268,8 @@
             <div class="mt-6 mb-2">
                 <p class="text-sm text-green-400 px-4 font-medium">销售管理</p>
             </div>
-            <!-- 移动端 H5：单个入口，内含 5 模块底栏 TabBar（不拆成 5 个菜单项，避免与上面 PC 端菜单重复） -->
-            <a href="javascript:void(0)" onclick="switchPage('sales-mobile-h5.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
+            <!-- 移动端 H5：已在 PC 左侧导航隐藏（sales-mobile-h5.html 仍可通过地址直接访问） -->
+            <a href="javascript:void(0)" onclick="switchPage('sales-mobile-h5.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group" style="display:none">
                 <i class="fa fa-mobile w-8 text-lg group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium text-sm">销售赋能中心 H5</span>
                 <span style="margin-left:auto;font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px;background:rgba(16,185,129,.18);color:#6ee7b7;white-space:nowrap">移动端</span>
@@ -320,15 +320,6 @@
                     </a>
                 </div>
             </div>
-
-            <!-- 核心闭环流程 -->
-            <div class="mt-6 mb-2">
-                <p class="text-xs text-slate-500 uppercase font-bold tracking-widest px-4">核心业务流程</p>
-            </div>
-            <a href="javascript:void(0)" onclick="switchPage('core-flow.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
-                <i class="fa fa-code-fork w-8 text-lg group-hover:scale-110 transition-transform"></i>
-                <span class="font-medium text-sm">闭环设计总览</span>
-            </a>
         </nav>
 
         <div class="p-4 border-t border-slate-800/50">
