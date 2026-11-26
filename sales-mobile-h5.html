@@ -1379,7 +1379,7 @@
     <script src="libs/js/vue.global.prod.js"></script>
     <script src="libs/js/vant.min.js"></script>
     <script src="libs/js/xlsx.full.min.js"></script>
-    <script src="data-bridge.js?v=20261016g"></script>
+    <script src="data-bridge.js?v=20261126d"></script>
     <script>
     /* ============================================================================
        销售赋能中心 H5 —— 原型逻辑
@@ -1868,7 +1868,7 @@
                     const c = locateCustomerByKeyword();
                     // ===== 企业档案优先：按企业名称匹配，取分组字段拍平后按标签取值 =====
                     const entName = (c && (c.company || c._displayName)) || (reportKeyword.value || '').trim();
-                    const ent = (DB.loadEnterpriseProfile && entName) ? DB.loadEnterpriseProfile(entName) : null;
+                    const ent = (DB.loadEnterpriseProfile && entName) ? DB.loadEnterpriseProfile(entName, c && c.code) : null;
                     const entHit = !!(ent && ent.id);
                     const entItems = [];
                     if (entHit) (ent.fields || []).forEach(function (g) { (g.items || []).forEach(function (it) { entItems.push(it); }); });

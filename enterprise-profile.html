@@ -30,7 +30,7 @@
     </script>
 </head>
 <body class="bg-slate-50 p-8">
-    <script src="data-bridge.js?v=20261126b"></script>
+    <script src="data-bridge.js?v=20261126d"></script>
 
     <div class="flex items-center justify-between mb-6">
         <div>
@@ -201,7 +201,7 @@
         function renderList() {
             var all = getRecords();
             var kw = (document.getElementById('searchInput').value || '').trim();
-            var list = kw ? all.filter(function(r) { return (r.name || '').indexOf(kw) > -1; }) : all;
+            var list = kw ? all.filter(function(r) { return (r.name || '').indexOf(kw) > -1 || String(r.code || '').indexOf(kw) > -1; }) : all;
 
             document.getElementById('totalCount').innerText = all.length;
             var body = document.getElementById('profileBody');
@@ -219,7 +219,10 @@
                     '<td class="px-5 py-3">' +
                         '<div class="flex items-center gap-2">' +
                             '<div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center"><i class="fa fa-building-o"></i></div>' +
-                            '<span class="font-bold text-slate-700">' + escapeHtml(r.name || '未命名企业') + '</span>' +
+                            '<div>' +
+                                '<p class="font-bold text-slate-700 leading-tight">' + escapeHtml(r.name || '未命名企业') + '</p>' +
+                                (r.code ? '<p class="text-[10px] text-slate-400 mt-0.5">' + escapeHtml(r.code) + '</p>' : '') +
+                            '</div>' +
                         '</div>' +
                     '</td>' +
                     '<td class="px-4 py-3 text-slate-500">' + escapeHtml(industryOf(r)) + '</td>' +

@@ -488,6 +488,7 @@
             return {
                 id: r.id || 'ent_legacy',
                 name: String(r.name || '').trim(),
+                code: String(r.code || r.creditCode || '').trim(),
                 fields: _mergeFields(Array.isArray(r.fields) ? r.fields : _legacyFields(r), []),
                 inputs: r.inputs || {},
                 createdAt: r.createdAt || r.updatedAt || '',
@@ -495,13 +496,18 @@
                 updatedAt: r.updatedAt || ''
             };
         });
-        // 旧数据同一企业可能按页签存了多条，读取时按名称合并为一条
+        // 旧数据同一企业可能按页签存了多条，读取时合并：
+        // 双方都有统一社会信用代码时按代码判定同一企业，否则按名称（兼容无代码的雷达档案）
         const merged = [];
         out.forEach(function(rec) {
-            const same = rec.name ? merged.find(function(x) { return x.name === rec.name; }) : null;
+            const same = merged.find(function(x) {
+                if (rec.code && x.code) return String(x.code).toUpperCase() === String(rec.code).toUpperCase();
+                return !!rec.name && x.name === rec.name && (!rec.code || !x.code);
+            });
             if (!same) { merged.push(rec); return; }
             same.fields = _mergeFields(same.fields, rec.fields);
             same.inputs = _mergeInputs(same.inputs, rec.inputs);
+            if (!same.code && rec.code) same.code = rec.code;
             if (String(rec.updatedAt) > String(same.updatedAt)) same.updatedAt = rec.updatedAt;
         });
         return merged;
@@ -603,37 +609,64 @@
         });
     }
 
-    /** 读取单个企业档案：传 id / 企业名称，不传则返回最近更新的一条（供政策雷达/申报管家等模块调取） */
-    function loadEnterpriseProfile(key) {
+    /** 读取单个企业档案：传 id / 企业名称 / 统一社会信用代码，不传则返回最近更新的一条
+     *  关联优先级：id → 统一社会信用代码 → 企业名称（同名时优先未登记代码或代码一致的记录，避免串档） */
+    function loadEnterpriseProfile(key, code) {
         const list = loadEnterpriseList();
         const k = String(key === undefined || key === null ? '' : key).trim();
-        const rec = k
-            ? list.find(function(r) { return r.id === key || r.name === k; })
-            : list[0];
+        const c = String(code === undefined || code === null ? '' : code).trim().toUpperCase();
+        let rec = null;
+        if (k) rec = list.find(function(r) { return r.id === k; });
+        if (!rec && c) rec = list.find(function(r) { return String(r.code || '').toUpperCase() === c; });
+        if (!rec && k) {
+            rec = list.find(function(r) { return r.name === k && (!c || !r.code || String(r.code || '').toUpperCase() === c); }) ||
+                list.find(function(r) { return r.name === k; });
+        }
         return rec
-            ? { id: rec.id, name: rec.name || '', fields: rec.fields || [], inputs: rec.inputs || {}, createdAt: rec.createdAt || '', createdBy: rec.createdBy || '', updatedAt: rec.updatedAt || '' }
-            : { id: '', name: '', fields: [], inputs: {}, createdAt: '', createdBy: '', updatedAt: '' };
+            ? { id: rec.id, name: rec.name || '', code: rec.code || '', fields: rec.fields || [], inputs: rec.inputs || {}, createdAt: rec.createdAt || '', createdBy: rec.createdBy || '', updatedAt: rec.updatedAt || '' }
+            : { id: '', name: '', code: '', fields: [], inputs: {}, createdAt: '', createdBy: '', updatedAt: '' };
     }
 
-    /** 保存企业档案：同一企业按名称合并，字段级更新（后填的非空字段覆盖，新字段追加） */
+    /** 内部：从档案载荷中提取统一社会信用代码（显式字段 → 注册/测评输入 → 字段标签兜底） */
+    function _extractEnterpriseCode(payload) {
+        const direct = payload.code || payload.creditCode ||
+            (payload.inputs && (payload.inputs.formCreditCode || payload.inputs.creditCode));
+        if (direct && String(direct).trim()) return String(direct).trim();
+        let found = '';
+        (payload.fields || []).forEach(function(g) {
+            (g.items || []).forEach(function(it) {
+                if (!found && String(it.label || '').indexOf('信用代码') >= 0 && String(it.value || '').trim()) {
+                    found = String(it.value).trim();
+                }
+            });
+        });
+        return found;
+    }
+
+    /** 保存企业档案：优先按统一社会信用代码关联同一企业，无代码时回退按名称合并 */
     function saveEnterpriseProfile(payload) {
         if (!payload) return false;
         const list = _loadEnterpriseRecords();
         const name = String(payload.name || '').trim();
+        const code = _extractEnterpriseCode(payload);
         let rec = payload.id ? list.find(function(r) { return r.id === payload.id; }) : null;
-        if (!rec && name) rec = list.find(function(r) { return r.name === name; });
+        if (!rec && code) rec = list.find(function(r) { return String(r.code || '').toUpperCase() === code.toUpperCase(); });
+        if (!rec && name) rec = list.find(function(r) {
+            return r.name === name && (!code || !r.code || String(r.code || '').toUpperCase() === code.toUpperCase());
+        });
         if (!rec && !name) return false; // 名称为空不建档
         const operator = String(payload.operator || '') || _currentOperator();
         if (!rec) {
-            rec = { id: 'ent_' + Date.now().toString(36), name: name, fields: [], inputs: {}, createdAt: new Date().toISOString(), updatedAt: '', createdBy: operator };
+            rec = { id: 'ent_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name, code: code, fields: [], inputs: {}, createdAt: new Date().toISOString(), updatedAt: '', createdBy: operator };
             list.push(rec);
         }
         if (name) rec.name = name;
+        if (code) rec.code = code;
         rec.fields = _mergeFields(rec.fields, payload.fields, operator);
         rec.inputs = _mergeInputs(rec.inputs, payload.inputs);
         rec.updatedAt = new Date().toISOString();
         const records = list.map(function(r) {
-            return { id: r.id, name: r.name, fields: r.fields, inputs: r.inputs, createdAt: r.createdAt, createdBy: r.createdBy || '', updatedAt: r.updatedAt };
+            return { id: r.id, name: r.name, code: r.code || '', fields: r.fields, inputs: r.inputs, createdAt: r.createdAt, createdBy: r.createdBy || '', updatedAt: r.updatedAt };
         });
         return _write(KEYS.ENTERPRISE_PROFILE, { records: records });
     }
@@ -653,7 +686,7 @@
         });
         rec.updatedAt = now;
         const records = list.map(function(r) {
-            return { id: r.id, name: r.name, fields: r.fields, inputs: r.inputs, createdAt: r.createdAt, createdBy: r.createdBy || '', updatedAt: r.updatedAt };
+            return { id: r.id, name: r.name, code: r.code || '', fields: r.fields, inputs: r.inputs, createdAt: r.createdAt, createdBy: r.createdBy || '', updatedAt: r.updatedAt };
         });
         return _write(KEYS.ENTERPRISE_PROFILE, { records: records });
     }
@@ -756,15 +789,18 @@
      * 与销售 H5 条件采集保持同一套字段解析规则；未取到的字段留空，引擎会判为「待确认」
      * @returns { hit, name, profile, meta }
      */
-    function buildRadarProfileFromEnterprise(name) {
+    function buildRadarProfileFromEnterprise(name, code) {
         var out = {
             hit: false, name: String(name || '').trim(), profile: {},
-            meta: { items: [], quals: [], foundedYears: null, coreProduct: '', socialStaff: null, scores: {} }
+            meta: { code: String(code || '').trim(), matchedBy: '', items: [], quals: [], foundedYears: null, coreProduct: '', socialStaff: null, scores: {} }
         };
         if (!out.name) return out;
-        var rec = loadEnterpriseProfile(out.name);
+        var rec = loadEnterpriseProfile(out.name, code);
         if (!rec || !rec.id) return out;
         out.hit = true;
+        out.meta.recCode = rec.code || '';
+        var codeKey = String(code || '').trim().toUpperCase();
+        out.meta.matchedBy = (codeKey && String(rec.code || '').toUpperCase() === codeKey) ? 'creditCode' : 'name';
 
         var items = [];
         (rec.fields || []).forEach(function(g) { (g.items || []).forEach(function(it) { items.push(it); }); });

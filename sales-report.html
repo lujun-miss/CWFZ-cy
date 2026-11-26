@@ -325,7 +325,7 @@
         </div>
     </div>
 
-    <script src="data-bridge.js?v=20261126b"></script>
+    <script src="data-bridge.js?v=20261126d"></script>
     <script>
         var CUSTOMERS = [], REPORTS = [];
         var STEP = 1;
@@ -383,7 +383,7 @@
         // 企业档案（科创测评/政策雷达沉淀）优先，缺失字段回退客户档案
         function buildRadarPolicies(c) {
             if (!DataBridge.matchPoliciesForEnterprise) return [];
-            var ent = DataBridge.buildRadarProfileFromEnterprise ? DataBridge.buildRadarProfileFromEnterprise(c.name)
+            var ent = DataBridge.buildRadarProfileFromEnterprise ? DataBridge.buildRadarProfileFromEnterprise(c.name, c.code)
                 : { hit: false, profile: {}, meta: {} };
             var p = ent.hit ? Object.assign({}, ent.profile) : {};
             if (!p.industry) p.industry = c.industry || '';
@@ -592,7 +592,7 @@
 
         // 载入企业档案 → 初始化匹配条件（有值即带入，缺失留空供销售补充）
         function initCondFromArchive(c) {
-            var ent = DataBridge.buildRadarProfileFromEnterprise ? DataBridge.buildRadarProfileFromEnterprise(c.name)
+            var ent = DataBridge.buildRadarProfileFromEnterprise ? DataBridge.buildRadarProfileFromEnterprise(c.name, c.code)
                 : { hit: false, profile: {}, meta: {} };
             var pf = ent.hit ? ent.profile : {};
             var meta = ent.meta || {};
@@ -1086,7 +1086,7 @@
         // 数据来源与确认记录快照：随报告固化，档案后续变更不影响既有报告
         function buildDataTrace() {
             var ent = (window.DataBridge && DataBridge.buildRadarProfileFromEnterprise && DRAFT.company && DRAFT.company.name)
-                ? DataBridge.buildRadarProfileFromEnterprise(DRAFT.company.name) : null;
+                ? DataBridge.buildRadarProfileFromEnterprise(DRAFT.company.name, DRAFT.company.code) : null;
             var items = (ent && ent.meta && ent.meta.items) ? ent.meta.items : [];
             var fields = items.map(function(it) {
                 return {
