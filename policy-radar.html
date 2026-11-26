@@ -318,7 +318,7 @@
                     <select id="regDistrict" class="px-3 py-2 bg-slate-50 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50 mr-3">
                         <option value="">请选择区县</option>
                     </select>
-                    <button onclick="autoFillEnterprise()" class="px-4 py-2 bg-red-50 text-red-500 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-all whitespace-nowrap">
+                    <button onclick="autoFillEnterprise()" title="优先取天眼查工商信息，天眼查没有的条件用上次填报补充" class="px-4 py-2 bg-red-50 text-red-500 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-all whitespace-nowrap">
                         <i class="fa fa-magic mr-1"></i>一键自动填充
                     </button>
                 </div>
@@ -1255,7 +1255,7 @@
         updateIndustryCount();
     }
 
-    // 一键自动填充（模拟企业信息智能识别）
+    // 一键自动填充：天眼查工商信息优先，天眼查没有的条件用最近一次填报补充
     function autoFillEnterprise() {
         var nameInput = document.getElementById('companyNameInput');
         var name = (nameInput && nameInput.value.trim()) || '示例企业';
@@ -1265,17 +1265,39 @@
         PREFILL.id = '';
         PREFILL.confirmedKey = '';
         hidePrefillTip();
-        // 模拟识别：按名称哈希确定性生成画像
-        var pf = simulateEnterpriseProfile(name);
-        STATE.industries = pf.industries;
-        STATE.indicators = pf.indicators;
-        if (pf.province) { STATE.company.province = pf.province; }
+        // 1) 模拟天眼查工商信息（更权威，优先采用）
+        var ty = simulateEnterpriseProfile(name);
+        STATE.industries = (ty.industries || []).slice();
+        STATE.indicators = { basic: [], finance: [], hr: [], ip: [], qual: [] };
+        Object.keys(STATE.indicators).forEach(function(k) {
+            STATE.indicators[k] = (ty.indicators[k] || []).slice();
+        });
+        // 2) 天眼查缺失的条件，参考最近一次填报补充（不与天眼查已有条件重复）
+        var sf = null;
+        try { sf = (window.DataBridge && DataBridge.loadEnterpriseProfile) ? DataBridge.loadEnterpriseProfile(name, '') : null; } catch (e) { sf = null; }
+        var hasRec = !!(sf && sf.id);
+        var addedCount = 0;
+        if (hasRec) {
+            if (!STATE.industries.length && sf.inputs && sf.inputs.formIndustry) {
+                STATE.industries = String(sf.inputs.formIndustry).split('、').filter(Boolean);
+            }
+            Object.keys(STATE.indicators).forEach(function(k) {
+                var recArr = (sf.inputs && Array.isArray(sf.inputs['ind_' + k])) ? sf.inputs['ind_' + k] : [];
+                recArr.forEach(function(v) {
+                    if (STATE.indicators[k].indexOf(v) < 0) { STATE.indicators[k].push(v); addedCount++; }
+                });
+            });
+        }
+        if (ty.province && !STATE.company.province) { STATE.company.province = ty.province; }
         restoreUIFromState();
-        var profile = document.getElementById('companyProfile');
-        if (profile) profile.classList.remove('hidden');
         renderProfileTags();
         renderPolicyList();
-        alert('已自动填充「' + name + '」的企业信息，可在下方调整后点击「保存并匹配政策」');
+        var msg = '已按天眼查工商信息填充「' + name + '」';
+        msg += hasRec
+            ? (addedCount ? '；天眼查未覆盖的 ' + addedCount + ' 项条件已参考上次填报补充' : '；上次填报内容已核对，无新增条件')
+            : '（暂无历史填报可参考）';
+        msg += '。同一条件如有出入以天眼查为准，请核对后点击「保存并匹配政策」。';
+        alert(msg);
     }
 
     // 页面加载完毕渲染一次
