@@ -319,6 +319,13 @@
                 </div>
             </div>
 
+            <!-- 一键填充结果提示 -->
+            <div id="autoFillTip" class="hidden mt-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 flex items-start gap-2">
+                <i class="fa fa-exclamation-circle text-amber-500 mt-0.5"></i>
+                <div class="flex-1 text-[11px] text-amber-700 leading-relaxed">当前数据由大数据推理生成，仅供参考。为提升匹配精准度，请自行核实并调整相关数据标签。</div>
+                <button onclick="hideAutoFillTip()" title="关闭提示" class="text-amber-400 hover:text-amber-600 text-xs flex-shrink-0"><i class="fa fa-times"></i></button>
+            </div>
+
             <!-- 企业核心技术所属产业 -->
             <div class="flex items-start py-2.5 border-b border-slate-100">
                 <span class="w-24 flex-shrink-0 text-xs font-bold text-slate-500 pt-1.5"><span class="text-red-500">*</span> 企业核心技术所属产业</span>
@@ -1187,6 +1194,7 @@
     // 重置表单
     function resetRadarForm() {
         hidePrefillTip();
+        hideAutoFillTip();
         PREFILL.pending = false;
         PREFILL.id = '';
         PREFILL.confirmedKey = '';
@@ -1280,7 +1288,16 @@
         restoreUIFromState();
         renderProfileTags();
         renderPolicyList();
-        alert('已根据大数据等公开渠道自动填入已知企业信息。\n填充内容仅供参考，可能因数据更新时间不同而与实际情况存在出入，请您逐项核实后再点击「匹配政策」。匹配结果仅用于辅助筛选，不作为申报依据。');
+        showAutoFillTip();
+    }
+
+    function showAutoFillTip() {
+        var tip = document.getElementById('autoFillTip');
+        if (tip) tip.classList.remove('hidden');
+    }
+    function hideAutoFillTip() {
+        var tip = document.getElementById('autoFillTip');
+        if (tip) tip.classList.add('hidden');
     }
 
     // 一键自动填充说明
