@@ -3039,6 +3039,8 @@
         // assessmentConditions 兜底：政策匹配条件（科创测评+销售补充），旧数据无则补一个默认空结构
         data.forEach(function(u) {
             if (u && !u.source) u.source = '平台注册';
+            // 账号状态与首次来源分离：registered=true 表示该客户已有平台账号（来源保持不变）
+            if (u && typeof u.registered !== 'boolean') u.registered = (u.source === '平台注册' || u.source === '分享转化');
             if (u && !u.assessmentConditions) {
                 u.assessmentConditions = {
                     rdRatio: null, ipCount: null, sciStaffRatio: null, hiTechRatio: null,
@@ -3057,6 +3059,53 @@
     function saveCustomers(customers) {
         if (!Array.isArray(customers)) return false;
         return _write(KEYS.CUSTOMERS, customers);
+    }
+
+    /**
+     * 注册回写：企业/个人注册后同步客户库
+     * 按统一社会信用代码或企业名称匹配既有客户，命中则标记已注册（保留首次来源与归属销售），未命中则新建一条
+     */
+    function markCustomerRegistered(info) {
+        info = info || {};
+        const list = loadCustomers();
+        const norm = s => String(s || '').replace(/\s+/g, '').trim();
+        const code = norm(info.code);
+        const company = norm(info.company);
+        const regTime = info.regTime || new Date().toISOString().slice(0, 19).replace('T', ' ');
+        let target = null;
+        if (code) target = list.find(u => u && u.code && norm(u.code) === code) || null;
+        if (!target && company) target = list.find(u => u && u.type !== 'personal' && norm(u.name) === company) || null;
+        if (target) {
+            target.registered = true;
+            if (!target.registerTime) target.registerTime = regTime;
+            if (!target.accountPhone && info.phone) target.accountPhone = info.phone;
+            if (!target.code && code) target.code = info.code;
+            target.updatedAt = regTime;
+            saveCustomers(list);
+            return { matched: true, customer: target };
+        }
+        const isEnt = info.type !== 'personal';
+        const rec = {
+            id: 'U' + Date.now(),
+            type: isEnt ? 'enterprise' : 'personal',
+            name: isEnt ? (info.company || '') : '',
+            realName: isEnt ? '' : (info.contact || ''),
+            code: isEnt ? (info.code || '') : '',
+            contact: info.contact || '',
+            phone: info.phone || '',
+            accountPhone: info.phone || '',
+            industry: '',
+            status: isEnt ? '潜在客户' : '潜在用户',
+            source: '平台注册',
+            registered: true,
+            registerTime: regTime,
+            owner: '',
+            createdAt: regTime,
+            updatedAt: regTime
+        };
+        list.unshift(rec);
+        saveCustomers(list);
+        return { matched: false, customer: rec };
     }
 
     // ========== 默认智能报告（含分享记录 shares[]，每条记录 = 一次分享给某个客户的链接） ==========
@@ -3488,6 +3537,7 @@
         saveDiagnosisRules,
         resetDiagnosisRules,
         saveCustomers,
+        markCustomerRegistered,
         saveSalesReports,
         saveServiceProducts,
         saveServiceOrders,
