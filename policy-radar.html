@@ -547,7 +547,7 @@
         </main>
     </div>
 
-<script src="data-bridge.js?v=20261126h"></script>
+<script src="data-bridge.js?v=20261126i"></script>
 <script>
     // ===== 政策数据源：统一由 DataBridge 政策库提供（运营在「政策库」维护申报条件） =====
 
@@ -975,11 +975,13 @@
             var hasSel = g.items.some(function (it) { return STATE.industries.indexOf(it.name) >= 0; });
             html += '<div class="ind-group flex flex-col' + (hasSel ? ' w-full' : '') + '" data-group="' + gi + '">'
                  + '<label class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer hover:text-blue-600">'
-                 + '<input type="checkbox" data-parent-group="' + gi + '" class="accent-blue-600 ind-parent-cb"' + (hasSel ? ' checked' : '') + '>' + g.name + '</label>'
+                 + '<input type="checkbox" data-parent-group="' + gi + '" class="accent-blue-600 ind-parent-cb"' + (hasSel ? ' checked' : '') + '>'
+                 + '<span class="text-slate-400">' + (gi + 1) + '</span>' + g.name + '</label>'
                  + '<div class="ind-children flex flex-wrap gap-x-5 gap-y-2 mt-1.5 pl-6' + (hasSel ? '' : ' hidden') + '">'
-                 + g.items.map(function (item) {
+                 + g.items.map(function (item, ci) {
                      return '<label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer hover:text-blue-600">'
-                          + '<input type="checkbox" data-industry="' + item.name + '" class="accent-blue-600 industry-cb"' + (STATE.industries.indexOf(item.name) >= 0 ? ' checked' : '') + '>' + item.name + '</label>';
+                          + '<input type="checkbox" data-industry="' + item.name + '" class="accent-blue-600 industry-cb"' + (STATE.industries.indexOf(item.name) >= 0 ? ' checked' : '') + '>'
+                          + '<span class="text-slate-400">' + (gi + 1) + '.' + (ci + 1) + '</span>' + item.name + '</label>';
                  }).join('')
                  + '</div></div>';
         });

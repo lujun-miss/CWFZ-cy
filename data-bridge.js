@@ -435,13 +435,13 @@
     const DEFAULT_IND_TREE = [
         ['新一代信息技术产业', ['下一代信息网络产业', '电子核心产业', '人工智能', '数字创意技术设备制造']],
         ['高端装备制造产业', ['智能制造装备产业', '轨道交通装备产业']],
-        ['新材料产业', ['先进钢铁材料', '先进有色金属材料', '先进石化化工新材料', '先进无机非金属材料', '高性能纤维及制品和复合材料', '前沿新材料', '先进煤基化工新材料']],
+        ['新材料产业', ['先进钢铁材料', '先进有色金属材料', '先进石化化工新材料', '先进无机非金属材料', '高性能纤维及制品和复合材料', '前沿新材料', '先进煤基化工新材料制造']],
         ['生物产业', ['生物医药产业', '生物医学工程产业', '生物农业及相关产业', '生物质能产业', '其他生物业']],
         ['新能源汽车产业', ['新能源汽车整车制造', '新能源汽车装置、配件制造', '新能源汽车相关设施制造', '新能源汽车相关服务']],
         ['新能源产业', ['核电产业', '风能产业', '太阳能产业', '生物质能及其他新能源产业', '智能电网产业', '煤基新型燃料制造', '氢能产业']],
         ['绿色环保产业', ['高效节能产业', '先进环保产业', '资源循环利用产业']],
-        ['航空航天产业', ['航空装备', '卫星及应用']],
-        ['海洋装备产业', ['海洋装备制造', '深海石油钻探设备制造', '海洋环境检测与探测装备制造']]
+        ['航空航天产业', ['航空装备产业', '卫星及应用产业']],
+        ['海洋装备产业', ['海洋装备制造', '深海石油钻探设备制造', '其他海洋相关设备与产品制造', '海洋环境监测与探测装备制造', '海水淡化活动']]
     ];
     const DEFAULT_IND_DICT = [];
     DEFAULT_IND_TREE.forEach(function(g) {
@@ -474,6 +474,15 @@
                 qualifications: _normDict(data.qualifications, DEFAULT_QUAL_DICT.map(function(n) { return { name: n, enabled: true }; }))
             });
             _write('ceyuan_mig_ind_tree', 1);
+        }
+        // 产业层级 v2：按最新分类标准修订名称并补充细分类（企业资质保持自定义）
+        if (!_read('ceyuan_mig_ind_tree_v2', null)) {
+            industries = _normDict(DEFAULT_IND_DICT, []);
+            _write(KEYS.PROFILE_DICT, {
+                industries: industries,
+                qualifications: _normDict(data.qualifications, DEFAULT_QUAL_DICT.map(function(n) { return { name: n, enabled: true }; }))
+            });
+            _write('ceyuan_mig_ind_tree_v2', 2);
         }
         return {
             industries: industries,
