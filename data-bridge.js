@@ -431,19 +431,52 @@
     }
 
     // ========== 企业画像字典（所属产业 / 企业资质） ==========
-    const DEFAULT_IND_DICT = ['信息技术','大数据','云计算','软件产业','算法算力','人工智能','脑科学与类脑智能','互联网','电子商务','区块链','元宇宙','量子信息','数字创意','电子竞技','电子技术','半导体与集成电路','5G/6G产业','智能终端','智能机器人','智能传感器','超高清视频显示','网络与通信','可见光通信与光计算','物联网','智能网联汽车','汽车制造业','新能源','节能环保','基因技术','合成生物','生物医药','高端医疗器械','大健康','精密仪器设备','工业母机和装备制造','航空航天','低空经济','海洋产业','深海深海','新材料','激光与增材制造','化学化工','现代农业','采矿业','建筑业','现代物流','贸易与供应链','现代时尚','黄金珠宝','文化产业','体育产业','旅游服务业','教育服务业','高校/研究机构','社会组织/商协会','安全应急预警','军民融合','专业技术服务','检验检测','商务服务业','信用服务业','法律服务','金融业','产业运营','家政服务','其他产业'];
+    // 产业字典改为二级结构：一级产业（isParent）+ 二级细分类（parent 指向一级名称）
+    const DEFAULT_IND_TREE = [
+        ['新一代信息技术产业', ['下一代信息网络产业', '电子核心产业', '人工智能', '数字创意技术设备制造']],
+        ['高端装备制造产业', ['智能制造装备产业', '轨道交通装备产业']],
+        ['新材料产业', ['先进钢铁材料', '先进有色金属材料', '先进石化化工新材料', '先进无机非金属材料', '高性能纤维及制品和复合材料', '前沿新材料', '先进煤基化工新材料']],
+        ['生物产业', ['生物医药产业', '生物医学工程产业', '生物农业及相关产业', '生物质能产业', '其他生物业']],
+        ['新能源汽车产业', ['新能源汽车整车制造', '新能源汽车装置、配件制造', '新能源汽车相关设施制造', '新能源汽车相关服务']],
+        ['新能源产业', ['核电产业', '风能产业', '太阳能产业', '生物质能及其他新能源产业', '智能电网产业', '煤基新型燃料制造', '氢能产业']],
+        ['绿色环保产业', ['高效节能产业', '先进环保产业', '资源循环利用产业']],
+        ['航空航天产业', ['航空装备', '卫星及应用']],
+        ['海洋装备产业', ['海洋装备制造', '深海石油钻探设备制造', '海洋环境检测与探测装备制造']]
+    ];
+    const DEFAULT_IND_DICT = [];
+    DEFAULT_IND_TREE.forEach(function(g) {
+        DEFAULT_IND_DICT.push({ name: g[0], isParent: true, enabled: true });
+        g[1].forEach(function(n) { DEFAULT_IND_DICT.push({ name: n, parent: g[0], enabled: true }); });
+    });
     const DEFAULT_QUAL_DICT = ['高新技术企业','专精特新中小企业','专精特新"小巨人"企业','科技型中小企业','创新型中小企业','单项冠军','技术中心','工业设计中心','工程技术中心','工程实验室','重点实验室','院士专家工作站','博士后工作站','制造业创新中心','技术创新示范企业','获得科研立项/大赛奖励','参展企业','总部企业','参与标准化工作','技术先进型服务企业','工业设计奖','重点软件企业','工业互联网企业','中小企业公共服务示范平台','市科学技术奖','中国500强','世界500强','著名商标','驰名商标','知名品牌','老字号'];
     function _normDict(list, fallback) {
         const arr = Array.isArray(list) && list.length ? list : fallback;
         return arr.filter(function(it) { return it && String(it.name || '').trim(); }).map(function(it) {
-            return { name: String(it.name).trim(), enabled: it.enabled !== false };
+            return {
+                name: String(it.name).trim(),
+                enabled: it.enabled !== false,
+                parent: String(it.parent || '').trim(),
+                isParent: !!it.isParent
+            };
         });
     }
     /** 读取企业画像字典（未配置时返回默认字典） */
     function loadProfileDict() {
         const data = _read(KEYS.PROFILE_DICT, null) || {};
+        let industries = _normDict(data.industries, DEFAULT_IND_DICT);
+        // 旧版为一级平铺列表：升级为二级结构（一次性替换为默认层级，保留企业资质自定义）
+        const legacyFlat = Array.isArray(data.industries) && data.industries.length &&
+            !industries.some(function(x) { return x.isParent || x.parent; });
+        if (legacyFlat && !_read('ceyuan_mig_ind_tree', null)) {
+            industries = _normDict(DEFAULT_IND_DICT, []);
+            _write(KEYS.PROFILE_DICT, {
+                industries: industries,
+                qualifications: _normDict(data.qualifications, DEFAULT_QUAL_DICT.map(function(n) { return { name: n, enabled: true }; }))
+            });
+            _write('ceyuan_mig_ind_tree', 1);
+        }
         return {
-            industries: _normDict(data.industries, DEFAULT_IND_DICT.map(function(n) { return { name: n, enabled: true }; })),
+            industries: industries,
             qualifications: _normDict(data.qualifications, DEFAULT_QUAL_DICT.map(function(n) { return { name: n, enabled: true }; }))
         };
     }

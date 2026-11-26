@@ -548,7 +548,7 @@
         </main>
     </div>
 
-<script src="data-bridge.js?v=20261126f"></script>
+<script src="data-bridge.js?v=20261126h"></script>
 <script>
     // ===== 政策数据源：统一由 DataBridge 政策库提供（运营在「政策库」维护申报条件） =====
 
@@ -556,7 +556,8 @@
     // ===== 企业画像字典：运营在「基础配置」维护，雷达筛选按启用项展示 =====
     var PROFILE_DICT = (window.DataBridge && DataBridge.loadProfileDict) ? DataBridge.loadProfileDict() : { industries: [], qualifications: [] };
     function _enabledNames(list) {
-        return (list || []).filter(function(x) { return x && x.enabled !== false; }).map(function(x) { return x.name; });
+        // 二级结构：一级产业仅作分组标题，不参与勾选
+        return (list || []).filter(function(x) { return x && x.enabled !== false && !x.isParent; }).map(function(x) { return x.name; });
     }
     var INDUSTRIES = _enabledNames(PROFILE_DICT.industries);
 
