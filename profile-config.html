@@ -291,6 +291,7 @@
                     var p = g.parent;
                     var on = selectedItem === p;
                     html += '<div onclick="selectByIndex(' + gi + ',-1)" class="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer ' + (on ? 'bg-indigo-50' : 'hover:bg-slate-50') + '">'
+                        + '<span class="flex-shrink-0 text-[11px] font-black ' + (on ? 'text-indigo-600' : 'text-indigo-500') + '">' + (gi + 1) + '、</span>'
                         + '<i class="fa fa-folder-open-o text-indigo-400 text-xs"></i>'
                         + '<span class="flex-1 text-xs font-bold truncate ' + (on ? 'text-indigo-700' : 'text-slate-700') + '">' + esc(p.name) + '</span>'
                         + '<span class="text-[10px] text-slate-400">' + g.children.length + '</span>'
@@ -302,7 +303,7 @@
                 g.children.forEach(function (c, ci) {
                     var con = selectedItem === c;
                     html += '<div onclick="selectByIndex(' + gi + ',' + ci + ')" class="flex items-center gap-2 pl-7 pr-2 py-1.5 rounded-lg cursor-pointer ' + (con ? 'bg-indigo-50' : 'hover:bg-slate-50') + '">'
-                        + '<i class="fa fa-angle-right text-slate-300 text-[10px]"></i>'
+                        + '<span class="flex-shrink-0 w-7 text-right text-[10px] font-bold ' + (con ? 'text-indigo-500' : 'text-slate-400') + '">' + (g.parent ? (gi + 1) + '.' + (ci + 1) : '-') + '</span>'
                         + '<span class="flex-1 text-xs truncate ' + (con ? 'text-indigo-700 font-bold' : 'text-slate-600') + '">' + esc(c.name) + '</span>'
                         + '<span class="w-1.5 h-1.5 rounded-full ' + (c.enabled !== false ? 'bg-emerald-500' : 'bg-slate-300') + '"></span>'
                         + '</div>';
