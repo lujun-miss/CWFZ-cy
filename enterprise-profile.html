@@ -174,7 +174,7 @@
             var found = '';
             (r.fields || []).forEach(function(g) {
                 (g.items || []).forEach(function(it) {
-                    if (!found && (it.label === '所属行业' || it.label === '核心技术所属产业')) found = it.value;
+                    if (!found && (it.label === '所属行业' || it.label === '企业所属产业' || it.label === '核心技术所属产业')) found = it.value;
                 });
             });
             if (found) return found;
