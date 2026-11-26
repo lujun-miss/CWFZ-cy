@@ -330,11 +330,10 @@
             <div class="flex items-start py-2.5 border-b border-slate-100">
                 <span class="w-24 flex-shrink-0 text-xs font-bold text-slate-500 pt-1.5"><span class="text-red-500">*</span> 企业所属产业</span>
                 <div class="flex-1">
-                    <div id="industryGrid" class="flex flex-wrap gap-x-5 gap-y-2 dict-collapsed"></div>
+                    <div id="industryGrid" class="flex flex-wrap gap-x-5 gap-y-3"></div>
                     <div class="mt-2 flex items-center gap-1 text-[10px] text-slate-400">
-                        <i class="fa fa-info-circle"></i><span>最多选择5项</span>
+                        <i class="fa fa-info-circle"></i><span>勾选一级产业后展开二级细分类，细分类最多选择5项</span>
                         <span id="industryCount" class="ml-1 text-blue-600 font-bold">已选 0/5</span>
-                        <button type="button" id="industryToggle" onclick="toggleDictBlock('industryGrid', this)" class="ml-auto text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline" data-label="展开全部（66 项）">展开全部（66 项）</button>
                     </div>
                 </div>
             </div>
@@ -938,7 +937,6 @@
         el.style.maxHeight = (bottom - firstTop) + 'px';
     }
     window.addEventListener('resize', function() {
-        fitDictFirstRow(document.getElementById('industryGrid'));
         fitDictFirstRow(document.getElementById('qualGrid'));
     });
     // 渲染企业资质复选框（字典由运营在「基础配置」维护）
@@ -960,7 +958,7 @@
         }
         fitDictFirstRow(box);
     }
-    // 渲染产业复选框（字典由运营在「基础配置」维护，一级分组、二级可勾选，限选5）
+    // 渲染产业复选框（字典由运营在「基础配置」维护，勾选一级后展开其二级，二级可勾选，限选5）
     function renderIndustries() {
         var grid = document.getElementById('industryGrid');
         if (!grid) return;
@@ -974,25 +972,43 @@
         }).filter(function (g) { return g.items.length; });
         var html = '';
         groups.forEach(function (g, gi) {
-            html += '<div class="w-full">'
-                 + '<div class="text-[10px] font-bold text-slate-400 mb-1">' + (gi + 1) + '、' + g.name + '</div>'
-                 + '<div class="flex flex-wrap gap-x-5 gap-y-2">'
+            var hasSel = g.items.some(function (it) { return STATE.industries.indexOf(it.name) >= 0; });
+            html += '<div class="w-full ind-group" data-group="' + gi + '">'
+                 + '<label class="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer hover:text-blue-600">'
+                 + '<input type="checkbox" data-parent-group="' + gi + '" class="accent-blue-600 ind-parent-cb"' + (hasSel ? ' checked' : '') + '>' + g.name + '</label>'
+                 + '<div class="ind-children flex flex-wrap gap-x-5 gap-y-2 mt-1.5 pl-6' + (hasSel ? '' : ' hidden') + '">'
                  + g.items.map(function (item) {
                      return '<label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer hover:text-blue-600">'
-                          + '<input type="checkbox" data-industry="' + item.name + '" class="accent-blue-600 industry-cb">' + item.name + '</label>';
+                          + '<input type="checkbox" data-industry="' + item.name + '" class="accent-blue-600 industry-cb"' + (STATE.industries.indexOf(item.name) >= 0 ? ' checked' : '') + '>' + item.name + '</label>';
                  }).join('')
                  + '</div></div>';
         });
-        grid.innerHTML = html;
-        var tbtn = document.getElementById('industryToggle');
-        if (tbtn) {
-            tbtn.dataset.label = '展开全部（' + INDUSTRIES.length + ' 项）';
-            if (grid.classList.contains('dict-collapsed')) tbtn.textContent = tbtn.dataset.label;
-        }
-        fitDictFirstRow(grid);
+        grid.innerHTML = html || '<span class="text-xs text-slate-400">未配置企业所属产业，请到运营后台「基础配置」维护</span>';
         if (grid.dataset.bound === '1') return;
         grid.dataset.bound = '1';
         grid.addEventListener('change', function(e) {
+            // 一级产业：勾选展开二级，取消勾选收起并清除该组已选细分类
+            var pcb = e.target.closest('.ind-parent-cb');
+            if (pcb) {
+                var grp = pcb.closest('.ind-group');
+                var sub = grp ? grp.querySelector('.ind-children') : null;
+                if (sub) {
+                    if (pcb.checked) {
+                        sub.classList.remove('hidden');
+                    } else {
+                        sub.classList.add('hidden');
+                        sub.querySelectorAll('.industry-cb:checked').forEach(function(cb) {
+                            cb.checked = false;
+                            var i = STATE.industries.indexOf(cb.getAttribute('data-industry'));
+                            if (i >= 0) STATE.industries.splice(i, 1);
+                        });
+                        updateIndustryCount();
+                        STATE.page = 1;
+                        renderPolicyList();
+                    }
+                }
+                return;
+            }
             var cb = e.target.closest('.industry-cb');
             if (!cb) return;
             var val = cb.getAttribute('data-industry');
@@ -1231,6 +1247,8 @@
             box.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(function(inp) { inp.checked = false; });
             // 隐藏所有子单选行
             box.querySelectorAll('[data-radio-group]').forEach(function(sub) { sub.classList.add('hidden'); });
+            // 收起所有一级产业下的二级细分类
+            box.querySelectorAll('.ind-children').forEach(function(sub) { sub.classList.add('hidden'); });
         }
         updateIndustryCount();
         var profile = document.getElementById('companyProfile');
@@ -1250,6 +1268,14 @@
         if (box) {
             box.querySelectorAll('.industry-cb').forEach(function(cb) {
                 cb.checked = STATE.industries.indexOf(cb.getAttribute('data-industry')) >= 0;
+            });
+            // 按已选细分类回显一级勾选并展开对应分组
+            box.querySelectorAll('.ind-group').forEach(function(grp) {
+                var pcb = grp.querySelector('.ind-parent-cb');
+                var sub = grp.querySelector('.ind-children');
+                var any = !!grp.querySelector('.industry-cb:checked');
+                if (pcb) pcb.checked = any;
+                if (sub) sub.classList.toggle('hidden', !any);
             });
             box.querySelectorAll('input[data-key]').forEach(function(inp) {
                 var k = inp.getAttribute('data-key');
@@ -1408,7 +1434,7 @@
         // 行业
         var industries = [];
         if (c.industry && INDUSTRIES.indexOf(c.industry) >= 0) industries.push(c.industry);
-        else industries.push('信息技术');
+        else if (INDUSTRIES.length) industries.push(INDUSTRIES[0]);
         return { industries: industries, indicators: ind };
     }
     function _hashName(s) {
@@ -1421,7 +1447,7 @@
         var h = _hashName(name);
         var tier = h % 4;
         var ind = { basic: [], finance: [], hr: [], ip: [], qual: [] };
-        var industries = [INDUSTRIES[h % INDUSTRIES.length]];
+        var industries = INDUSTRIES.length ? [INDUSTRIES[h % INDUSTRIES.length]] : [];
         if (tier === 0) {
             ind.qual = ['高新技术企业', '专精特新中小企业'];
             ind.ip = ['知识产权10件以上', '知识产权50件以上'];
