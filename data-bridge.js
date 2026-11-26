@@ -491,6 +491,7 @@
                 fields: Array.isArray(r.fields) ? r.fields : _legacyFields(r),
                 inputs: r.inputs || {},
                 createdAt: r.createdAt || r.updatedAt || '',
+                createdBy: r.createdBy || '',
                 updatedAt: r.updatedAt || ''
             };
         });
@@ -506,15 +507,27 @@
         return merged;
     }
 
+    /** 内部：当前操作人（取登录态，用于字段确认与变更留痕） */
+    function _currentOperator() {
+        try {
+            const raw = global.localStorage.getItem('ceyuan_member_profile');
+            if (raw) {
+                const d = JSON.parse(raw);
+                if (d && (d.contact || d.phone)) return String(d.contact || d.phone);
+            }
+        } catch (e) {}
+        return '未知用户';
+    }
+
     /** 内部：字段级合并（同名同义字段覆盖，新字段追加，空值不覆盖） */
-    function _mergeFields(existing, incoming) {
+    function _mergeFields(existing, incoming, operator) {
         // 跨模块同义字段/分组归并，避免雷达与测评各存一份
         const ALIAS = { '企业名称': '企业全称', '核心技术所属产业': '所属行业' };
         const GROUP_ALIAS = { '基本信息': '基本情况' };
         const canonLabel = function (l) { return ALIAS[l] || l; };
         const canonGroup = function (g) { return GROUP_ALIAS[g] || g; };
         const groups = (Array.isArray(existing) ? existing : []).map(function(g) {
-            return { group: g.group, items: (g.items || []).map(function(it) { return { label: it.label, value: it.value }; }) };
+            return { group: g.group, items: (g.items || []).map(function(it) { return { label: it.label, value: it.value, status: it.status, source: it.source, confirmedBy: it.confirmedBy, confirmedAt: it.confirmedAt, history: it.history || [] }; }) };
         });
         (Array.isArray(incoming) ? incoming : []).forEach(function(g) {
             if (!g) return;
@@ -530,14 +543,24 @@
                     if (hit) { old = hit; return true; }
                     return false;
                 });
-                if (old) { old.value = val; return; }
+                if (old) {
+                    if (String(old.value) !== val) {
+                        // 值发生变化 → 记录变更留痕，并恢复为待确认
+                        old.history = (old.history || []).concat([{ at: new Date().toISOString(), by: operator || '', from: String(old.value), to: val }]).slice(-20);
+                        old.value = val;
+                        old.status = 'pending';
+                        delete old.confirmedAt;
+                        delete old.confirmedBy;
+                    }
+                    return;
+                }
                 // 无同名字段则追加到对应分组（分组名做同义归并）
                 let target = groups.find(function(x) { return canonGroup(x.group) === canonGroup(g.group); });
                 if (!target) {
                     target = { group: g.group || '其他', items: [] };
                     groups.push(target);
                 }
-                target.items.push({ label: label, value: val });
+                target.items.push({ label: label, value: val, status: it.status || 'pending', source: it.source || '', history: [] });
             });
         });
         return groups.filter(function(g) { return g.items && g.items.length; });
@@ -570,8 +593,8 @@
             ? list.find(function(r) { return r.id === key || r.name === k; })
             : list[0];
         return rec
-            ? { id: rec.id, name: rec.name || '', fields: rec.fields || [], inputs: rec.inputs || {}, updatedAt: rec.updatedAt || '' }
-            : { id: '', name: '', fields: [], inputs: {}, updatedAt: '' };
+            ? { id: rec.id, name: rec.name || '', fields: rec.fields || [], inputs: rec.inputs || {}, createdAt: rec.createdAt || '', createdBy: rec.createdBy || '', updatedAt: rec.updatedAt || '' }
+            : { id: '', name: '', fields: [], inputs: {}, createdAt: '', createdBy: '', updatedAt: '' };
     }
 
     /** 保存企业档案：同一企业按名称合并，字段级更新（后填的非空字段覆盖，新字段追加） */
@@ -582,16 +605,37 @@
         let rec = payload.id ? list.find(function(r) { return r.id === payload.id; }) : null;
         if (!rec && name) rec = list.find(function(r) { return r.name === name; });
         if (!rec && !name) return false; // 名称为空不建档
+        const operator = String(payload.operator || '') || _currentOperator();
         if (!rec) {
-            rec = { id: 'ent_' + Date.now().toString(36), name: name, fields: [], inputs: {}, createdAt: new Date().toISOString(), updatedAt: '' };
+            rec = { id: 'ent_' + Date.now().toString(36), name: name, fields: [], inputs: {}, createdAt: new Date().toISOString(), updatedAt: '', createdBy: operator };
             list.push(rec);
         }
         if (name) rec.name = name;
-        rec.fields = _mergeFields(rec.fields, payload.fields);
+        rec.fields = _mergeFields(rec.fields, payload.fields, operator);
         rec.inputs = _mergeInputs(rec.inputs, payload.inputs);
         rec.updatedAt = new Date().toISOString();
         const records = list.map(function(r) {
-            return { id: r.id, name: r.name, fields: r.fields, inputs: r.inputs, createdAt: r.createdAt, updatedAt: r.updatedAt };
+            return { id: r.id, name: r.name, fields: r.fields, inputs: r.inputs, createdAt: r.createdAt, createdBy: r.createdBy || '', updatedAt: r.updatedAt };
+        });
+        return _write(KEYS.ENTERPRISE_PROFILE, { records: records });
+    }
+
+    /** 确认企业档案字段（labels 省略则确认全部）：确认后报告与匹配才可采用该值 */
+    function confirmEnterpriseFields(id, labels, operator) {
+        const list = _loadEnterpriseRecords();
+        const rec = list.find(function(r) { return r.id === id; });
+        if (!rec) return false;
+        const set = Array.isArray(labels) ? new Set(labels.map(String)) : null;
+        const now = new Date().toISOString();
+        const who = String(operator || '') || _currentOperator();
+        (rec.fields || []).forEach(function(g) {
+            (g.items || []).forEach(function(it) {
+                if (!set || set.has(String(it.label))) { it.status = 'confirmed'; it.confirmedAt = now; it.confirmedBy = who; }
+            });
+        });
+        rec.updatedAt = now;
+        const records = list.map(function(r) {
+            return { id: r.id, name: r.name, fields: r.fields, inputs: r.inputs, createdAt: r.createdAt, createdBy: r.createdBy || '', updatedAt: r.updatedAt };
         });
         return _write(KEYS.ENTERPRISE_PROFILE, { records: records });
     }
@@ -707,6 +751,9 @@
         var items = [];
         (rec.fields || []).forEach(function(g) { (g.items || []).forEach(function(it) { items.push(it); }); });
         out.meta.items = items;
+        out.meta.recId = rec.id;
+        // 未经确认的字段（系统带入/推断值），报告生成前必须核实
+        out.meta.pendingLabels = items.filter(function(x) { return x.status !== 'confirmed'; }).map(function(x) { return x.label; });
 
         var fvAll = function(label) { return items.filter(function(x) { return String(x.label || '').indexOf(label) >= 0; }); };
         var fv = function(label) { var it = fvAll(label)[0]; return it ? String(it.value || '').trim() : ''; };
@@ -3385,6 +3432,7 @@
         loadEnterpriseProfile,
         loadEnterpriseList,
         saveEnterpriseProfile,
+        confirmEnterpriseFields,
         deleteEnterpriseProfile,
         batchStatus,
         isDeclaration: function(p) { return (p && p.policyType === 'declaration'); },

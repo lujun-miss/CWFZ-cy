@@ -90,6 +90,11 @@
             <div class="sec-title"><i class="fa fa-sliders text-indigo-400"></i>本次匹配条件</div>
             <div id="rConds"></div>
         </section>
+        <!-- 数据来源与确认记录 -->
+        <section class="sec-card" id="traceCard" style="display:none">
+            <div class="sec-title"><i class="fa fa-shield text-indigo-400"></i>数据说明</div>
+            <div id="rTrace" class="text-[11.5px] text-slate-500 leading-relaxed"></div>
+        </section>
     </main>
 
     <div id="toast" class="fixed left-1/2 -translate-x-1/2 top-16 z-50 px-4 py-2.5 rounded-full text-xs font-bold text-white opacity-0 transition-opacity pointer-events-none" style="background:rgba(15,23,42,.88);"></div>
@@ -183,6 +188,19 @@
             '</div>';
         }).join('') || '<p class="prose">暂无可申报政策</p>';
         $('rAdvice').textContent = report.advice || '——';
+        // 数据来源与确认记录（生成时快照）
+        var tr = report.dataTrace;
+        if (tr && tr.total) {
+            $('traceCard').style.display = 'block';
+            var who = '';
+            (tr.fields || []).forEach(function (f) { if (f.status === 'confirmed' && f.confirmedBy && !who) who = f.confirmedBy; });
+            var thtml = '匹配条件基于企业档案共 ' + tr.total + ' 项数据，其中已确认 ' + (tr.confirmedCount || 0) + ' 项' + (who ? '（确认人：' + esc(who) + '）' : '');
+            if (tr.pendingLabels && tr.pendingLabels.length) {
+                thtml += '，<span class="text-amber-600">另有 ' + tr.pendingLabels.length + ' 项为企业申报值、尚待材料核实</span>';
+            }
+            thtml += '。以上数据于 ' + esc(tr.capturedAt || '') + ' 生成报告时快照留存，最终申报资格以主管部门审核为准。';
+            $('rTrace').innerHTML = thtml;
+        }
 
         $('reportBox').classList.remove('hidden');
     })();

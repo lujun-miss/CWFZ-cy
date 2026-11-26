@@ -162,6 +162,10 @@
                         <span class="text-xs text-gray-400">企业档案自动读取 · 缺失项可直接补充</span>
                     </div>
                     <div class="p-6">
+                        <div id="entPendingTip" class="hidden mb-4 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-between gap-3">
+                            <p class="text-xs text-amber-700 leading-relaxed"><i class="fa fa-exclamation-triangle mr-1"></i><span id="entPendingText"></span></p>
+                            <button onclick="confirmEntArchive()" class="flex-shrink-0 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold"><i class="fa fa-check mr-1"></i>确认数据无误</button>
+                        </div>
                         <p class="rep-label">一、企业档案 <span class="text-xs font-normal text-emerald-600 ml-2" id="entSourceTip">（数据来源：科创测评 / 精准政策雷达）</span></p>
                         <div class="grid grid-cols-3 gap-4 mb-5">
                             <div><label class="text-xs text-gray-500 mb-1 block">企业名称</label><input id="cName" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></div>
@@ -273,6 +277,7 @@
                             <label class="rep-label">四、下一步待补齐 <span class="text-xs font-normal text-gray-400 ml-2">（销售跟进时向企业确认）</span></label>
                             <div id="rTodo" class="text-xs text-gray-500 leading-relaxed bg-amber-50 border border-amber-100 rounded-lg p-3"></div>
                         </div>
+                        <div id="dataTraceBox" class="text-[11px] text-gray-400 leading-relaxed border-t border-dashed border-gray-100 pt-3"></div>
                     </div>
                 </div>
             </div>
@@ -409,6 +414,25 @@
             });
         }
         var DRAFT_ENT_META = {};
+
+        // 企业档案中待确认（系统带入/推断）字段，未确认前不生成报告
+        var ENT_PENDING = [];
+        function renderEntPendingTip() {
+            var tip = document.getElementById('entPendingTip');
+            if (!tip) return;
+            if (!ENT_PENDING.length) { tip.classList.add('hidden'); return; }
+            var txt = document.getElementById('entPendingText');
+            if (txt) txt.innerText = '企业档案中 ' + ENT_PENDING.length + ' 项数据为系统带入、待核实（' + ENT_PENDING.slice(0, 4).join('、') + (ENT_PENDING.length > 4 ? ' 等' : '') + '），请核实后确认，确认前不生成报告。';
+            tip.classList.remove('hidden');
+        }
+        function confirmEntArchive() {
+            var id = (DRAFT_ENT_META || {}).recId;
+            if (!id || !DataBridge.confirmEnterpriseFields) { toast('未找到企业档案记录', false); return; }
+            DataBridge.confirmEnterpriseFields(id, ENT_PENDING.slice());
+            ENT_PENDING = [];
+            renderEntPendingTip();
+            toast('已确认企业档案数据');
+        }
 
         // ===== 运营指标（与 H5 智能报告 / PC 政策雷达完全同口径） =====
         var TAG_GROUPS = [
@@ -586,6 +610,8 @@
             autoPickTags(meta, pf, c);
             DRAFT_ENT_META = meta;
             DRAFT_ENT_META.__hit = !!ent.hit;
+            ENT_PENDING = (meta.pendingLabels || []).slice();
+            renderEntPendingTip();
         }
 
         // 新企业无匹配数据时，从政策库按资质/行业粗匹配生成候选
@@ -765,6 +791,13 @@
         }
 
         function saveCompanyAndNext() {
+            // 企业档案中系统带入的数据须先核实确认，避免用未验证数据生成报告
+            if (ENT_PENDING.length) {
+                toast('企业档案有 ' + ENT_PENDING.length + ' 项数据待确认，请先确认后生成报告', false);
+                var tip = document.getElementById('entPendingTip');
+                if (tip) tip.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
             var name = document.getElementById('cName').value.trim();
             if (!name) { toast('企业名称不能为空', false); return; }
             collectCond();
@@ -862,6 +895,7 @@
                 : '<p class="text-gray-400">匹配所需条件已全部覆盖，可直接进入申报准备。</p>';
             renderPolicyList();
             renderKpi();
+            renderDataTrace();
         }
 
         function renderAdvice() {
@@ -1044,8 +1078,55 @@
                 advice: document.getElementById('rAdvice').value.trim(),
                 adviceItems: DRAFT.adviceItems || [],
                 adviceSource: DRAFT.adviceSource,
-                adviceGeneratedAt: DRAFT.adviceGeneratedAt || now()
+                adviceGeneratedAt: DRAFT.adviceGeneratedAt || now(),
+                dataTrace: buildDataTrace()
             };
+        }
+
+        // 数据来源与确认记录快照：随报告固化，档案后续变更不影响既有报告
+        function buildDataTrace() {
+            var ent = (window.DataBridge && DataBridge.buildRadarProfileFromEnterprise && DRAFT.company && DRAFT.company.name)
+                ? DataBridge.buildRadarProfileFromEnterprise(DRAFT.company.name) : null;
+            var items = (ent && ent.meta && ent.meta.items) ? ent.meta.items : [];
+            var fields = items.map(function(it) {
+                return {
+                    label: it.label,
+                    value: String(it.value),
+                    source: it.source || '企业档案',
+                    status: it.status === 'confirmed' ? 'confirmed' : 'pending',
+                    confirmedBy: it.confirmedBy || '',
+                    confirmedAt: it.confirmedAt || ''
+                };
+            });
+            var confirmed = fields.filter(function(f) { return f.status === 'confirmed'; });
+            return {
+                capturedAt: now(),
+                capturedBy: CURRENT_SALES,
+                archiveId: (ent && ent.meta && ent.meta.recId) || '',
+                total: fields.length,
+                confirmedCount: confirmed.length,
+                pendingLabels: fields.filter(function(f) { return f.status === 'pending'; }).map(function(f) { return f.label; }),
+                fields: fields
+            };
+        }
+
+        function renderDataTrace() {
+            var box = document.getElementById('dataTraceBox');
+            if (!box) return;
+            var t = buildDataTrace();
+            if (!t.total) {
+                box.innerHTML = '<i class="fa fa-info-circle mr-1"></i>本报告未关联企业档案，匹配条件由销售手工录入。';
+                return;
+            }
+            var confirmer = '';
+            t.fields.forEach(function(f) { if (f.status === 'confirmed' && f.confirmedBy && !confirmer) confirmer = f.confirmedBy; });
+            var html = '<i class="fa fa-shield mr-1"></i>数据来源与确认记录：企业档案共 ' + t.total + ' 项，已确认 ' + t.confirmedCount + ' 项';
+            if (confirmer) html += '（确认人：' + esc(confirmer) + '）';
+            if (t.pendingLabels.length) {
+                html += '；<span class="text-amber-600">待核实 ' + t.pendingLabels.length + ' 项：' + esc(t.pendingLabels.slice(0, 5).join('、')) + (t.pendingLabels.length > 5 ? ' 等' : '') + '</span>';
+            }
+            html += '；快照时间 ' + esc(t.capturedAt) + '。';
+            box.innerHTML = html;
         }
 
         function saveReport(silent) {
