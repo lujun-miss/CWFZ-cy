@@ -485,11 +485,23 @@
             list = [d];
         }
         const out = list.map(function(r) {
+            const fields = _mergeFields(Array.isArray(r.fields) ? r.fields : _legacyFields(r), []);
+            // 信用代码兜底：旧档案可能只在字段项里存了「统一社会信用代码」，读取时回填到记录级
+            let code = String(r.code || r.creditCode || '').trim();
+            if (!code) {
+                fields.forEach(function(g) {
+                    (g.items || []).forEach(function(it) {
+                        if (!code && String(it.label || '').indexOf('信用代码') >= 0 && String(it.value || '').trim()) {
+                            code = String(it.value).trim();
+                        }
+                    });
+                });
+            }
             return {
                 id: r.id || 'ent_legacy',
                 name: String(r.name || '').trim(),
-                code: String(r.code || r.creditCode || '').trim(),
-                fields: _mergeFields(Array.isArray(r.fields) ? r.fields : _legacyFields(r), []),
+                code: code,
+                fields: fields,
                 inputs: r.inputs || {},
                 createdAt: r.createdAt || r.updatedAt || '',
                 createdBy: r.createdBy || '',

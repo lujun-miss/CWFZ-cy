@@ -283,6 +283,14 @@
                 </div>
             </div>
 
+            <!-- 统一社会信用代码（用于与企业档案、客户档案精准关联，避免同名企业串档） -->
+            <div class="flex items-start py-2.5 border-b border-slate-100">
+                <span class="w-24 flex-shrink-0 text-xs font-bold text-slate-500 pt-2">统一社会信用代码</span>
+                <div class="flex-1">
+                    <input type="text" id="companyCodeInput" maxlength="18" placeholder="选填，填写后可与企业档案、客户档案精准关联" class="w-full px-3 py-2 bg-slate-50 rounded-lg text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50">
+                </div>
+            </div>
+
             <!-- 注册地 + 一键自动填充 -->
             <div class="flex items-start py-2.5 border-b border-slate-100">
                 <span class="w-24 flex-shrink-0 text-xs font-bold text-slate-500 pt-2"><span class="text-red-500">*</span> 注册地</span>
@@ -580,7 +588,7 @@
         keyword: '',
         page: 1,
         pageSize: 3,
-        company: { name: '', province: '', city: '', district: '' },
+        company: { name: '', code: '', province: '', city: '', district: '' },
         industries: [],
         indicators: { basic: [], finance: [], hr: [], ip: [], qual: [] }
     };
@@ -1091,6 +1099,7 @@
     // 保存并匹配政策
     function saveAndMatch() {
         STATE.company.name = (document.getElementById('companyNameInput') || {}).value || '';
+        STATE.company.code = ((document.getElementById('companyCodeInput') || {}).value || '').trim();
         STATE.indicators = collectIndicators();
         var profile = document.getElementById('companyProfile');
         if (profile) profile.classList.remove('hidden');
@@ -1105,7 +1114,9 @@
     function resetRadarForm() {
         var nameInput = document.getElementById('companyNameInput');
         if (nameInput) nameInput.value = '';
-        STATE.company = { name: '', province: '', city: '', district: '' };
+        var codeInput = document.getElementById('companyCodeInput');
+        if (codeInput) codeInput.value = '';
+        STATE.company = { name: '', code: '', province: '', city: '', district: '' };
         var pSel = document.getElementById('regProvince');
         var cSel = document.getElementById('regCity');
         var dSel = document.getElementById('regDistrict');
@@ -1130,6 +1141,8 @@
     function restoreUIFromState() {
         var nameInput = document.getElementById('companyNameInput');
         if (nameInput) nameInput.value = STATE.company.name;
+        var codeInput = document.getElementById('companyCodeInput');
+        if (codeInput) codeInput.value = STATE.company.code || '';
         var pSel = document.getElementById('regProvince');
         if (pSel && STATE.company.province) { pSel.value = STATE.company.province; onProvinceChange(); }
         var cSel = document.getElementById('regCity');
@@ -1564,10 +1577,11 @@
             if (!window.DataBridge || !DataBridge.saveEnterpriseProfile) return;
             var name = (STATE.company.name || '').trim();
             if (!name) return;
-            var groups = [{ group: '基本信息', items: [
-                { label: '企业名称', value: name },
-                { label: '核心技术所属产业', value: STATE.industries.length ? STATE.industries.join('、') : '未选择' }
-            ] }];
+            var code = String(STATE.company.code || '').trim();
+            var basicItems = [{ label: '企业名称', value: name }];
+            if (code) basicItems.push({ label: '统一社会信用代码', value: code });
+            basicItems.push({ label: '核心技术所属产业', value: STATE.industries.length ? STATE.industries.join('、') : '未选择' });
+            var groups = [{ group: '基本信息', items: basicItems }];
             var groupNames = { basic: '基础条件', finance: '财务指标', hr: '人力指标', ip: '知识产权', qual: '企业资质' };
             ['basic', 'finance', 'hr', 'ip', 'qual'].forEach(function(k) {
                 var arr = STATE.indicators[k] || [];
@@ -1575,11 +1589,13 @@
                 groups.push({ group: groupNames[k], items: [{ label: groupNames[k], value: arr.join('、') }] });
             });
             var inputs = { formName: name, formIndustry: STATE.industries.join('、') };
+            if (code) inputs.formCreditCode = code;
             Object.keys(STATE.indicators).forEach(function(k) { inputs['ind_' + k] = STATE.indicators[k]; });
             DataBridge.saveEnterpriseProfile({
                 inputs: inputs,
                 fields: groups,
-                name: name
+                name: name,
+                code: code
             });
         } catch (e) {}
     }
