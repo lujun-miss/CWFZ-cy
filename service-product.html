@@ -176,18 +176,8 @@
                         </div>
                     </div>
                     <div id="quoteWrap" class="col-span-2 hidden">
-                        <div class="p-4 bg-amber-50/60 border border-amber-100 rounded-xl space-y-3">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-600 mb-1.5">参考价下限（元，选填）</label>
-                                    <input id="fRangeMin" type="number" min="0" placeholder="留空则前台显示「面议」" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-600 mb-1.5">参考价上限（元，选填）</label>
-                                    <input id="fRangeMax" type="number" min="0" placeholder="如：60000" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
-                                </div>
-                            </div>
-                            <p class="text-xs text-amber-700 leading-relaxed"><i class="fa fa-info-circle mr-1"></i>面议报价不可直接下单：填写上下限后商城展示「¥下限-上限 报价区间」，留空则展示「面议」；客户点击「咨询获取报价」进入在线咨询，由顾问评估后推送专属报价。</p>
+                        <div class="p-4 bg-amber-50/60 border border-amber-100 rounded-xl">
+                            <p class="text-xs text-amber-700 leading-relaxed"><i class="fa fa-info-circle mr-1"></i>面议报价不展示参考价格：商城统一展示「面议」，客户点击「咨询获取报价」进入在线咨询，由顾问评估后推送专属报价。</p>
                         </div>
                     </div>
                     <div>
@@ -259,10 +249,6 @@
         }
         function priceCell(p) {
             if (p.pricingMode === 'quote') {
-                const rg = p.priceRange || {};
-                if (rg.min > 0 && rg.max > 0) {
-                    return `<span class="text-slate-700 font-black">¥${fmtMoney(rg.min)}-${fmtMoney(rg.max)}</span><div class="text-[10px] text-amber-600 mt-0.5"><i class="fa fa-comments-o mr-0.5"></i>报价区间</div>`;
-                }
                 return '<span class="text-slate-700 font-black">面议</span><div class="text-[10px] text-amber-600 mt-0.5"><i class="fa fa-comments-o mr-0.5"></i>定制报价</div>';
             }
             return `<span class="text-orange-600 font-black">¥${fmtMoney(p.price)}</span>
@@ -439,9 +425,6 @@
             setPricingMode(p ? (p.pricingMode || 'fixed') : 'fixed');
             document.getElementById('fPrice').value = p && p.pricingMode !== 'quote' ? (p.price || '') : '';
             document.getElementById('fOldPrice').value = p && p.pricingMode !== 'quote' ? (p.oldPrice || '') : '';
-            const rg = (p && p.priceRange) || {};
-            document.getElementById('fRangeMin').value = rg.min ? rg.min : '';
-            document.getElementById('fRangeMax').value = rg.max ? rg.max : '';
             document.getElementById('fStatus').value = p ? p.status : 'draft';
             document.getElementById('fFeatured').checked = p ? !!p.featured : false;
             document.getElementById('fDesc').value = p ? (p.desc || '') : '';
@@ -543,11 +526,8 @@
                 if (isNaN(price) || price < 0) { alert('请填写正确的售价'); return; }
                 oldPrice = parseFloat(document.getElementById('fOldPrice').value) || 0;
             } else {
+                // 面议报价不设置参考价，前台统一展示「面议」
                 price = 0; oldPrice = 0;
-                const rMin = parseFloat(document.getElementById('fRangeMin').value) || 0;
-                const rMax = parseFloat(document.getElementById('fRangeMax').value) || 0;
-                if ((rMin > 0 && rMax > 0) && rMax < rMin) { alert('参考价上限不能小于下限'); return; }
-                priceRange = { min: Math.max(0, rMin), max: Math.max(0, rMax) };
             }
             const includes = [...document.querySelectorAll('.inc-item')].map(i => i.value.trim()).filter(Boolean);
             const process = [...document.querySelectorAll('.step-row')].map(r => ({

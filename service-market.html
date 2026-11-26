@@ -828,7 +828,7 @@
         // ===== 服务商品数据（由后台「服务商品管理」维护，经数据层同步）=====
         function fmtMoney(n) { return (Number(n) || 0).toLocaleString('zh-CN'); }
 
-        // 价格展示：专属价 > 一口价 > 面议（可展示参考区间）
+        // 价格展示：专属价 > 一口价 > 面议（面议不展示参考价）
         function getCustomerName() {
             try {
                 const p = JSON.parse(localStorage.getItem('ceyuan_member_profile') || '{}') || {};
@@ -852,11 +852,6 @@
                 return `<span class="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded font-bold mr-1 align-middle">专属价</span><span class="text-orange-500 text-xs">¥</span><span class="${sz} font-black text-orange-600">${fmtMoney(q.quotePrice)}</span>${old}`;
             }
             if (s.pricingMode === 'quote') {
-                const sz = large ? 'text-2xl' : 'text-xl';
-                const rg = s.priceRange || {};
-                if (rg.min > 0 && rg.max > 0) {
-                    return `<span class="text-orange-500 text-xs">¥</span><span class="${sz} font-black text-slate-700">${fmtMoney(rg.min)}-${fmtMoney(rg.max)}</span><span class="text-[10px] text-amber-600 ml-1">报价区间</span>`;
-                }
                 return '<span class="text-lg font-black text-slate-700">面议</span><span class="text-[10px] text-amber-600 ml-1">定制报价</span>';
             }
             const sz = large ? 'text-2xl' : 'text-xl';
@@ -1005,13 +1000,11 @@
             banner.classList.add('hidden');
             suffix.classList.add('hidden');
             if (s.pricingMode === 'quote' && !q) {
-                const rg = s.priceRange || {};
-                const hasRange = rg.min > 0 && rg.max > 0;
-                sym.classList.toggle('hidden', !hasRange);
-                priceEl.textContent = hasRange ? (fmtMoney(rg.min) + ' - ' + fmtMoney(rg.max)) : '面议';
+                sym.classList.add('hidden');
+                priceEl.textContent = '面议';
                 priceEl.className = 'text-3xl font-black text-slate-700';
                 oldEl.textContent = '';
-                note.textContent = hasRange ? '以上为参考报价区间，具体以顾问评估后的报价为准' : '按项目需求定制报价，建议先咨询顾问';
+                note.textContent = '面议服务不展示参考价格，具体以顾问评估后的报价为准';
                 return;
             }
             const eff = effectiveUnit(s);
