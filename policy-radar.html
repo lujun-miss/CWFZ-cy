@@ -280,8 +280,8 @@
                 <div class="flex items-start gap-2">
                     <i class="fa fa-circle-info text-amber-500 mt-0.5"></i>
                     <div class="flex-1">
-                        <p class="text-xs font-bold text-amber-700">已默认加载您上次提交的信息</p>
-                        <p id="prefillTipText" class="text-[11px] text-amber-600 mt-0.5 leading-relaxed">请确认信息是否正确，确认后再用于本次匹配。</p>
+                        <p class="text-xs font-bold text-amber-700">已加载该企业上一次的填报信息</p>
+                        <p id="prefillTipText" class="text-[11px] text-amber-600 mt-0.5 leading-relaxed">请核对企业信息与指标是否正确，确认后再用于本次匹配。</p>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
                         <button onclick="confirmPrefill(true)" class="px-2.5 py-1 rounded-lg bg-amber-500 text-white text-[11px] font-bold hover:bg-amber-600">确认无误</button>
@@ -294,14 +294,6 @@
                 <span class="w-24 flex-shrink-0 text-xs font-bold text-slate-500 pt-2"><span class="text-red-500">*</span> 企业名称</span>
                 <div class="flex-1">
                     <input type="text" id="companyNameInput" onblur="maybePrefillFromLast()" placeholder="请输入企业名称" class="w-full px-3 py-2 bg-slate-50 rounded-lg text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50">
-                </div>
-            </div>
-
-            <!-- 统一社会信用代码（用于与企业档案、客户档案精准关联，避免同名企业串档） -->
-            <div class="flex items-start py-2.5 border-b border-slate-100">
-                <span class="w-24 flex-shrink-0 text-xs font-bold text-slate-500 pt-2">统一社会信用代码</span>
-                <div class="flex-1">
-                    <input type="text" id="companyCodeInput" maxlength="18" onblur="maybePrefillFromLast()" placeholder="选填，填写后可精准关联同一企业的上次填报记录" class="w-full px-3 py-2 bg-slate-50 rounded-lg text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50">
                 </div>
             </div>
 
@@ -318,9 +310,12 @@
                     <select id="regDistrict" class="px-3 py-2 bg-slate-50 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50 mr-3">
                         <option value="">请选择区县</option>
                     </select>
-                    <button onclick="autoFillEnterprise()" title="优先取天眼查工商信息，天眼查没有的条件用上次填报补充" class="px-4 py-2 bg-red-50 text-red-500 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-all whitespace-nowrap">
-                        <i class="fa fa-magic mr-1"></i>一键自动填充
-                    </button>
+                    <div class="relative inline-block">
+                        <button onclick="autoFillEnterprise()" class="px-4 py-2 bg-red-50 text-red-500 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-all whitespace-nowrap">
+                            <i class="fa fa-magic mr-1"></i>一键自动填充
+                        </button>
+                        <button onclick="showAutoFillHelp()" title="填充说明" class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white border border-red-300 text-red-500 text-[10px] font-bold leading-none flex items-center justify-center hover:bg-red-50">?</button>
+                    </div>
                 </div>
             </div>
 
@@ -1121,11 +1116,10 @@
     function maybePrefillFromLast() {
         if (!window.DataBridge || !DataBridge.loadEnterpriseProfile) return false;
         var name = ((document.getElementById('companyNameInput') || {}).value || '').trim();
-        var code = ((document.getElementById('companyCodeInput') || {}).value || '').trim();
-        if (!name && !code) return false;
-        var key = (name + '|' + code).toUpperCase();
+        if (!name) return false;
+        var key = name.toUpperCase();
         if (PREFILL.confirmedKey && PREFILL.confirmedKey === key) return false;
-        var rec = DataBridge.loadEnterpriseProfile(name, code);
+        var rec = DataBridge.loadEnterpriseProfile(name, '');
         if (!rec || !rec.id) {
             if (PREFILL.pending) { hidePrefillTip(); PREFILL.pending = false; PREFILL.id = ''; }
             PREFILL.confirmedKey = '';
@@ -1139,7 +1133,7 @@
         var txt = document.getElementById('prefillTipText');
         if (txt) {
             var d = String(rec.updatedAt || '').slice(0, 10);
-            txt.innerText = '「' + (rec.name || name) + '」上次提交于 ' + (d || '—') + '，已默认带入企业信息与指标。请确认是否正确，确认后再用于本次匹配。';
+            txt.innerText = '「' + (rec.name || name) + '」上一次填报于 ' + (d || '—') + '（可能由该企业或其他人员提交），系统已默认带入企业信息与指标。请核对是否正确，确认后再用于本次匹配。';
         }
         if (tip) tip.classList.remove('hidden');
         return true;
@@ -1168,8 +1162,7 @@
 
     function confirmPrefill(ok) {
         var nameEl = document.getElementById('companyNameInput');
-        var codeEl = document.getElementById('companyCodeInput');
-        var key = (((nameEl && nameEl.value) || '').trim() + '|' + ((codeEl && codeEl.value) || '').trim()).toUpperCase();
+        var key = (((nameEl && nameEl.value) || '').trim()).toUpperCase();
         hidePrefillTip();
         PREFILL.pending = false;
         PREFILL.id = '';
@@ -1179,9 +1172,8 @@
 
     // 保存并匹配政策
     function saveAndMatch() {
-        if (PREFILL.pending) { alert('系统已默认加载上次填报的信息，请先确认是否正确，或点击「重新填写」。'); return; }
+        if (PREFILL.pending) { alert('已加载该企业上一次填报的信息，请先核对确认，或点击「重新填写」。'); return; }
         STATE.company.name = (document.getElementById('companyNameInput') || {}).value || '';
-        STATE.company.code = ((document.getElementById('companyCodeInput') || {}).value || '').trim();
         STATE.indicators = collectIndicators();
         var profile = document.getElementById('companyProfile');
         if (profile) profile.classList.remove('hidden');
@@ -1200,8 +1192,6 @@
         PREFILL.confirmedKey = '';
         var nameInput = document.getElementById('companyNameInput');
         if (nameInput) nameInput.value = '';
-        var codeInput = document.getElementById('companyCodeInput');
-        if (codeInput) codeInput.value = '';
         STATE.company = { name: '', code: '', province: '', city: '', district: '' };
         var pSel = document.getElementById('regProvince');
         var cSel = document.getElementById('regCity');
@@ -1227,8 +1217,6 @@
     function restoreUIFromState() {
         var nameInput = document.getElementById('companyNameInput');
         if (nameInput) nameInput.value = STATE.company.name;
-        var codeInput = document.getElementById('companyCodeInput');
-        if (codeInput) codeInput.value = STATE.company.code || '';
         var pSel = document.getElementById('regProvince');
         if (pSel && STATE.company.province) { pSel.value = STATE.company.province; onProvinceChange(); }
         var cSel = document.getElementById('regCity');
@@ -1289,15 +1277,25 @@
             });
         }
         if (ty.province && !STATE.company.province) { STATE.company.province = ty.province; }
+        if (sf && sf.code) STATE.company.code = sf.code;
         restoreUIFromState();
         renderProfileTags();
         renderPolicyList();
         var msg = '已按天眼查工商信息填充「' + name + '」';
         msg += hasRec
-            ? (addedCount ? '；天眼查未覆盖的 ' + addedCount + ' 项条件已参考上次填报补充' : '；上次填报内容已核对，无新增条件')
+            ? (addedCount ? '；天眼查未覆盖的 ' + addedCount + ' 项条件已参考历史填报补充' : '；历史填报内容已核对，无新增条件')
             : '（暂无历史填报可参考）';
         msg += '。同一条件如有出入以天眼查为准，请核对后点击「保存并匹配政策」。';
         alert(msg);
+    }
+
+    // 一键自动填充说明
+    function showAutoFillHelp() {
+        alert('一键自动填充说明：\n' +
+            '1. 优先采用天眼查工商信息：所属产业、注册资本、参保/研发人员、知识产权、已有资质等；\n' +
+            '2. 天眼查未覆盖的申报条件，参考该企业上一次填报记录补充；\n' +
+            '3. 同一条件两边不一致时，以天眼查为准；\n' +
+            '4. 填充结果仅作预填参考，请核对后保存并匹配。');
     }
 
     // 页面加载完毕渲染一次

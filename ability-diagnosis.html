@@ -267,8 +267,8 @@
                 <div class="flex items-start gap-2">
                     <i class="fa fa-circle-info text-amber-500 mt-0.5"></i>
                     <div class="flex-1">
-                        <p class="text-xs font-bold text-amber-700">已默认加载您上次提交的信息</p>
-                        <p id="prefillTipText" class="text-[11px] text-amber-600 mt-0.5 leading-relaxed">请确认信息是否正确，确认后再开始测评。</p>
+                        <p class="text-xs font-bold text-amber-700">已加载该企业上一次的填报信息</p>
+                        <p id="prefillTipText" class="text-[11px] text-amber-600 mt-0.5 leading-relaxed">请核对企业信息与指标是否正确，确认后再开始测评。</p>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
                         <button onclick="confirmPrefill(true)" class="px-2.5 py-1 rounded-lg bg-amber-500 text-white text-[11px] font-bold hover:bg-amber-600">确认无误</button>
@@ -3199,7 +3199,7 @@
         var txt = document.getElementById('prefillTipText');
         if (txt) {
             var d = String(rec.updatedAt || '').slice(0, 10);
-            txt.innerText = '「' + (rec.name || kw) + '」上次提交于 ' + (d || '—') + '，已默认带入表单。请确认是否正确，确认后再开始测评。';
+            txt.innerText = '「' + (rec.name || kw) + '」上一次填报于 ' + (d || '—') + '（可能由该企业或其他人员提交），系统已默认带入表单。请核对是否正确，确认后再开始测评。';
         }
         if (tip) tip.classList.remove('hidden');
         return true;
@@ -3292,7 +3292,7 @@
 
     // ============ 开始测评（按当前 Tab 校验 + 计分 + 展开） ============
     function startDiagnosis() {
-        if (PREFILL.pending) { showToast('已默认加载上次填报信息，请先确认是否正确', 'warn'); return; }
+        if (PREFILL.pending) { showToast('已加载该企业上一次填报信息，请先核对确认', 'warn'); return; }
         var inputs = enrichInputs(collectInputs(), currentTab);
         // 必填校验
         var missing = [];
