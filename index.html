@@ -166,10 +166,9 @@
                 <span class="font-medium text-sm">服务商城</span>
             </a>
 
-            <!-- 后端：运营管理 -->
+            <!-- 后端：后台管理（运营 + 销售） -->
             <div class="mt-6 mb-2">
-                <p class="text-xs text-slate-500 uppercase font-bold tracking-widest px-4">后端</p>
-                <p class="text-sm text-purple-400 px-4 font-medium">运营管理</p>
+                <p class="text-sm text-purple-400 px-4 font-medium">后台管理</p>
             </div>
             <a href="javascript:void(0)" onclick="switchPage('data-dashboard.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
                 <i class="fa fa-tachometer w-8 text-lg group-hover:scale-110 transition-transform"></i>
@@ -196,19 +195,6 @@
                     </a>
                 </div>
             </div>
-            <!-- 二级菜单：客户管理 -->
-            <div class="mt-4">
-                <button onclick="toggleSubGroup('customerCfgGroup', this)" class="w-full flex items-center justify-between px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">
-                    <span class="text-[11px] font-bold tracking-widest">客户管理</span>
-                    <i class="fa fa-angle-down text-xs transition-transform duration-200" data-arrow></i>
-                </button>
-                <div id="customerCfgGroup" class="space-y-1">
-                    <a href="javascript:void(0)" onclick="switchPage('enterprise-profile.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-folder-open-o w-7 text-base group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-[13px]">企业资料库</span>
-                    </a>
-                </div>
-            </div>
             <!-- 二级菜单：商城管理（三级菜单并列展示） -->
             <div class="mt-4">
                 <button onclick="toggleSubGroup('mallCfgGroup', this)" class="w-full flex items-center justify-between px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">
@@ -230,10 +216,53 @@
                     </a>
                 </div>
             </div>
+            <!-- 二级菜单：客户管理 -->
+            <div class="mt-4">
+                <button onclick="toggleSubGroup('customerCfgGroup', this)" class="w-full flex items-center justify-between px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">
+                    <span class="text-[11px] font-bold tracking-widest">客户管理</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-200" data-arrow></i>
+                </button>
+                <div id="customerCfgGroup" class="space-y-1">
+                    <a href="javascript:void(0)" onclick="switchPage('customer-management.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-users w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">客户管理</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('consult-messages.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-commenting-o w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">在线咨询消息</span>
+                        <span id="consultUnreadBadge" style="display:none;margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;align-items:center;justify-content:center"></span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('enterprise-profile.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-folder-open-o w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">企业档案资料库</span>
+                    </a>
+                </div>
+            </div>
+            <!-- 二级菜单：销售管理 -->
+            <div class="mt-4">
+                <button onclick="toggleSubGroup('salesCfgGroup', this)" class="w-full flex items-center justify-between px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">
+                    <span class="text-[11px] font-bold tracking-widest">销售管理</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-200" data-arrow></i>
+                </button>
+                <div id="salesCfgGroup" class="space-y-1">
+                    <a href="javascript:void(0)" onclick="switchPage('report-list.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-file-text w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">智能报告</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('share-management.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-share-alt w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">分享管理</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('clue-management.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-lightbulb-o w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">线索管理</span>
+                    </a>
+                </div>
+            </div>
             <!-- 二级菜单：基础配置（三级菜单为具体配置项） -->
             <div class="mt-4">
                 <button onclick="toggleSubGroup('basicCfgGroup', this)" class="w-full flex items-center justify-between px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">
-                    <span class="text-[11px] font-bold tracking-widest">基础配置</span>
+                    <span class="text-[11px] font-bold tracking-widest">基础配置管理</span>
                     <i class="fa fa-angle-down text-xs transition-transform duration-200" data-arrow></i>
                 </button>
                 <div id="basicCfgGroup" class="space-y-1">
@@ -249,10 +278,6 @@
                         <i class="fa fa-certificate w-7 text-base group-hover:scale-110 transition-transform"></i>
                         <span class="font-medium text-[13px]">企业资质</span>
                     </a>
-                    <a href="javascript:void(0)" onclick="switchPage('redeem-code-management.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-ticket w-7 text-base group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-[13px]">兑换码管理</span>
-                    </a>
                     <a href="javascript:void(0)" onclick="switchPage('member-guide-config.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
                         <i class="fa fa-book w-7 text-base group-hover:scale-110 transition-transform"></i>
                         <span class="font-medium text-[13px]">会员指南维护</span>
@@ -263,60 +288,25 @@
                     </a>
                     <a href="javascript:void(0)" onclick="switchPage('system-settings.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
                         <i class="fa fa-headphones w-7 text-base group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-[13px]">客服与咨询</span>
+                        <span class="font-medium text-[13px]">客服与咨询配置</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="switchPage('redeem-code-management.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-ticket w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">兑换码管理</span>
                     </a>
                 </div>
             </div>
 
-            <!-- 销售管理 -->
-            <div class="mt-6 mb-2">
-                <p class="text-sm text-green-400 px-4 font-medium">销售管理</p>
-            </div>
-            <!-- 移动端 H5：已在 PC 左侧导航隐藏（sales-mobile-h5.html 仍可通过地址直接访问） -->
-            <a href="javascript:void(0)" onclick="switchPage('sales-mobile-h5.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group" style="display:none">
-                <i class="fa fa-mobile w-8 text-lg group-hover:scale-110 transition-transform"></i>
-                <span class="font-medium text-sm">销售赋能中心 H5</span>
-                <span style="margin-left:auto;font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px;background:rgba(16,185,129,.18);color:#6ee7b7;white-space:nowrap">移动端</span>
-            </a>
-            <a href="javascript:void(0)" onclick="switchPage('customer-management.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
-                <i class="fa fa-users w-8 text-lg group-hover:scale-110 transition-transform"></i>
-                <span class="font-medium text-sm">客户管理</span>
-            </a>
-            <a href="javascript:void(0)" onclick="switchPage('report-list.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
-                <i class="fa fa-file-text w-8 text-lg group-hover:scale-110 transition-transform"></i>
-                <span class="font-medium text-sm">智能报告</span>
-            </a>
-            <a href="javascript:void(0)" onclick="switchPage('share-management.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
-                <i class="fa fa-share-alt w-8 text-lg group-hover:scale-110 transition-transform"></i>
-                <span class="font-medium text-sm">分享管理</span>
-            </a>
-            <a href="javascript:void(0)" onclick="switchPage('clue-management.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
-                <i class="fa fa-lightbulb-o w-8 text-lg group-hover:scale-110 transition-transform"></i>
-                <span class="font-medium text-sm">线索管理</span>
-            </a>
-            <a href="javascript:void(0)" onclick="switchPage('consult-messages.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
-                <i class="fa fa-commenting-o w-8 text-lg group-hover:scale-110 transition-transform"></i>
-                <span class="font-medium text-sm">在线咨询消息</span>
-                <span id="consultUnreadBadge" style="display:none;margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;align-items:center;justify-content:center"></span>
-            </a>
-            <a href="javascript:void(0)" onclick="switchPage('sales-dashboard.html', this)" class="sidebar-item flex items-center px-4 py-3 rounded-xl transition-all group">
-                <i class="fa fa-bar-chart w-8 text-lg group-hover:scale-110 transition-transform"></i>
-                <span class="font-medium text-sm">业绩看板</span>
-            </a>
-
-            <!-- 系统管理（二级菜单，与运营管理同色系） -->
-            <div class="mb-1">
-                <div class="menu-group-header flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer hover:bg-white/5 transition-all" onclick="toggleMenuGroup('sysGroup')">
-                    <div class="flex items-center gap-3">
-                        <i class="fa fa-cogs text-purple-400 text-lg w-8"></i>
-                        <span class="font-medium text-sm text-purple-400">系统管理</span>
-                    </div>
-                    <i class="fa fa-angle-down text-purple-300 text-[10px] transition-transform" id="sysGroupIcon"></i>
-                </div>
-                <div class="menu-group-items pl-4 space-y-1" id="sysGroup">
-                    <a href="javascript:void(0)" onclick="switchPage('user-permission.html', this)" class="sidebar-item flex items-center px-3 py-2 rounded-lg transition-all group">
-                        <i class="fa fa-shield w-6 text-sm group-hover:scale-110 transition-transform"></i>
-                        <span class="font-medium text-xs">用户与权限</span>
+            <!-- 二级菜单：系统管理 -->
+            <div class="mt-4">
+                <button onclick="toggleSubGroup('sysGroup', this)" class="w-full flex items-center justify-between px-4 py-2 text-slate-500 hover:text-slate-300 transition-colors">
+                    <span class="text-[11px] font-bold tracking-widest">系统管理</span>
+                    <i class="fa fa-angle-down text-xs transition-transform duration-200" data-arrow></i>
+                </button>
+                <div id="sysGroup" class="space-y-1">
+                    <a href="javascript:void(0)" onclick="switchPage('user-permission.html', this)" class="sidebar-item flex items-center pl-8 pr-4 py-2 rounded-lg transition-all group">
+                        <i class="fa fa-shield w-7 text-base group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium text-[13px]">用户与权限</span>
                     </a>
                 </div>
             </div>
