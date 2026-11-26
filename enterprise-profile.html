@@ -95,7 +95,6 @@
                     <p id="detailMeta" class="text-[11px] text-slate-400 mt-1"></p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button id="confirmAllBtn" onclick="confirmFields(DETAIL_ID)" class="hidden px-3 py-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg hover:bg-amber-100"><i class="fa fa-check mr-1"></i>一键确认全部</button>
                     <button onclick="closeDetail()" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400"><i class="fa fa-times"></i></button>
                 </div>
             </div>
@@ -131,20 +130,12 @@
             return (r.fields || []).reduce(function(n, g) { return n + (g.items || []).length; }, 0);
         }
 
-        // 待确认字段数：由科创测评 / 政策雷达带入的数据默认待确认，确认后才可用于报告匹配
-        function pendingCount(r) {
-            return (r.fields || []).reduce(function(n, g) {
-                return n + (g.items || []).filter(function(it) { return it.status !== 'confirmed'; }).length;
-            }, 0);
-        }
-
         var DETAIL_ID = '';
 
-        // 单字段溯源提示：来源 / 确认人 / 最近一次变更
+        // 单字段溯源提示：来源 / 最近一次变更
         function traceTitle(it) {
             var parts = [];
             if (it.source) parts.push('来源：' + it.source);
-            if (it.status === 'confirmed') parts.push('确认人：' + (it.confirmedBy || '—') + '  ' + fmtTime(it.confirmedAt));
             var hist = it.history || [];
             var last = hist[hist.length - 1];
             if (last) parts.push('最近变更：' + (last.from || '空') + ' → ' + (last.to || '空') + '（' + (last.by || '—') + ' ' + fmtTime(last.at) + '）');
@@ -177,14 +168,6 @@
                     '</div>';
                 }).join('') +
                 '</div></div>';
-        }
-
-        function confirmFields(id, labels) {
-            if (!window.DataBridge || !DataBridge.confirmEnterpriseFields) return;
-            if (!DataBridge.confirmEnterpriseFields(id, labels)) return;
-            renderList();
-            if (DETAIL_ID) openDetail(DETAIL_ID);
-            showToast(labels ? '已确认该字段' : '已确认全部字段');
         }
 
         function industryOf(r) {
@@ -226,8 +209,7 @@
                         '</div>' +
                     '</td>' +
                     '<td class="px-4 py-3 text-slate-500">' + escapeHtml(industryOf(r)) + '</td>' +
-                    '<td class="px-4 py-3"><span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 text-[10px] font-bold">' + fieldCount(r) + ' 项</span>' +
-                        (pendingCount(r) ? '<span class="ml-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-600 text-[10px] font-bold">' + pendingCount(r) + ' 待确认</span>' : '') + '</td>' +
+                    '<td class="px-4 py-3"><span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 text-[10px] font-bold">' + fieldCount(r) + ' 项</span></td>' +
                     '<td class="px-4 py-3 text-slate-400">' + fmtTime(r.updatedAt) + '</td>' +
                     '<td class="px-5 py-3 text-right whitespace-nowrap">' +
                         '<button onclick="openDetail(\'' + r.id + '\')" class="px-3 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 mr-1"><i class="fa fa-eye mr-1"></i>详情</button>' +
@@ -243,10 +225,7 @@
             DETAIL_ID = id;
             var groups = rec.fields || [];
             document.getElementById('detailName').innerText = rec.name || '未命名企业';
-            var pc = pendingCount(rec);
-            document.getElementById('detailMeta').innerText = (rec.source ? rec.source + ' · ' : '') + '已存 ' + fieldCount(rec) + ' 个字段' + (pc ? ' · ' + pc + ' 项待确认' : ' · 已全部确认') + ' · 最近填报：' + fmtTime(rec.updatedAt);
-            var allBtn = document.getElementById('confirmAllBtn');
-            if (allBtn) allBtn.classList.toggle('hidden', !pc);
+            document.getElementById('detailMeta').innerText = (rec.source ? rec.source + ' · ' : '') + '企业自主填报，未经核验 · 已存 ' + fieldCount(rec) + ' 个字段 · 最近填报：' + fmtTime(rec.updatedAt);
 
             var body = document.getElementById('detailBody');
             if (!groups.length) {
@@ -260,10 +239,6 @@
                             return '<div class="flex items-start gap-2 text-[11px] py-0.5" title="' + traceTitle(it) + '">' +
                                 '<span class="text-slate-400 flex-shrink-0 w-32">' + escapeHtml(it.label) + '</span>' +
                                 '<span class="text-slate-700 break-all flex-1">' + escapeHtml(it.value) + '</span>' +
-                                (it.status === 'confirmed'
-                                    ? '<span class="flex-shrink-0 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 text-[10px] font-bold">已确认</span>'
-                                    : '<span class="flex-shrink-0 px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 text-[10px] font-bold">待确认</span>' +
-                                      '<button onclick="confirmFields(DETAIL_ID, [decodeURIComponent(\'' + encodeURIComponent(it.label || '') + '\')])" class="flex-shrink-0 text-[10px] text-indigo-600 hover:underline">确认</button>') +
                             '</div>';
                         }).join('') +
                         '</div></div>';
