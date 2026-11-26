@@ -618,18 +618,6 @@
             if (CURRENT_ID === EDIT_ID) renderDrawer(u);
             showToast('客户资料已更新');
         }
-        function callCustomer() {
-            var u = getCustomer(CURRENT_ID);
-            if (!u || !u.phone) { alert('该客户未填写手机号'); return; }
-            window.location.href = 'tel:' + u.phone;
-        }
-        function sendMaterial() {
-            closeDrawer();
-            var url = 'share-management.html';
-            if (window.parent && window.parent.switchPage) window.parent.switchPage(url, null);
-            else window.location.href = url;
-        }
-
         // ---- 导入名单（Excel / CSV） ----
         var IMPORT_ROWS = [];
         function openImportCustomers() {
@@ -756,10 +744,7 @@
                 '<span class="px-2 py-0.5 rounded text-xs ' + statusColor(u) + '">' + esc(u.status || '—') + '</span>' +
                 '<span class="text-[10px] text-gray-400">' + (hasAccount(u) ? '注册 ' + esc(u.registerTime || '—') : '未注册平台') + '</span>' +
                 '</div>' +
-                '<div class="flex items-center gap-2 mt-2">' +
-                '<button onclick="callCustomer()" class="px-2.5 py-1 bg-brand-50 text-brand-700 rounded text-xs hover:bg-brand-100"><i class="fa fa-phone mr-1"></i>打电话</button>' +
-                '<button onclick="sendMaterial()" class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded text-xs hover:bg-indigo-100"><i class="fa fa-paper-plane mr-1"></i>发资料</button>' +
-                '</div></div>' +
+                '</div>' +
                 '<div class="flex-shrink-0 text-right">' +
                 '<span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600 text-xs font-bold"><i class="fa fa-bolt mr-1"></i>剩余 ' + credits.toLocaleString() + '</span>' +
                 '<p class="text-[10px] text-gray-400 mt-1">策能值</p>' +
@@ -783,37 +768,6 @@
                     '<div class="col-span-2"><span class="text-gray-500">统一社会信用代码：</span><span class="text-gray-700">' + esc(u.code || '—') + '</span></div>';
             }
             html += '</div></div>';
-
-            // 企业档案（来自科创测评 / 精准政策雷达回写，与 H5 条件采集同源）
-            if (!isPer) {
-                var prof = null;
-                try { prof = (DataBridge.buildRadarProfileFromEnterprise) ? DataBridge.buildRadarProfileFromEnterprise(u.name, u.code) : null; } catch (e) { prof = null; }
-                var pf = (prof && prof.hit) ? prof.profile : null;
-                var meta = (prof && prof.hit) ? prof.meta : null;
-                html += '<div class="bg-white border border-gray-100 rounded-lg p-4 mb-5">' +
-                    '<div class="flex items-center justify-between mb-3"><h5 class="text-sm font-semibold text-gray-700"><i class="fa fa-database text-indigo-500 mr-1"></i>企业档案</h5>' +
-                    '<span class="text-[10px] px-2 py-0.5 rounded ' + (pf ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400 bg-gray-50') + '">' + (pf ? '已建档 · 测评/雷达回写' : '未建档') + '</span></div>';
-                if (pf) {
-                    var kv = [
-                        ['员工人数', pf.employees != null ? pf.employees + ' 人' : '—'],
-                        ['社保人数', (meta && meta.socialStaff != null) ? meta.socialStaff + ' 人' : '—'],
-                        ['年营业收入', pf.revenue != null ? pf.revenue.toLocaleString() + ' 万元' : '—'],
-                        ['研发费用', pf.rdInvest != null ? pf.rdInvest.toLocaleString() + ' 万元' : '—'],
-                        ['研发费用占比', pf.rdRatio != null ? pf.rdRatio + '%' : '—'],
-                        ['高新技术产品占比', pf.hiTechRatio != null ? pf.hiTechRatio + '%' : '—'],
-                        ['有效知识产权', pf.ipCount != null ? pf.ipCount + ' 项' : '—'],
-                        ['成立年限', pf.duration != null ? pf.duration + ' 年' : '—']
-                    ];
-                    html += '<div class="grid grid-cols-2 gap-3 text-sm">' + kv.map(function(x) {
-                        return '<div><span class="text-gray-500 text-xs">' + x[0] + '：</span><span class="text-gray-700">' + x[1] + '</span></div>';
-                    }).join('') + '</div>';
-                    html += '<div class="mt-3 pt-3 border-t border-gray-100 text-sm"><span class="text-gray-500 text-xs">已有资质：</span><span class="text-gray-700">' +
-                        ((meta && meta.quals && meta.quals.length) ? esc(meta.quals.join('、')) : '—') + '</span></div>';
-                } else {
-                    html += '<p class="text-xs text-gray-400 leading-relaxed">该企业尚未在「科创测评」或「精准政策雷达」提交数据，暂无档案字段。销售端补录后自动同步至客户档案。</p>';
-                }
-                html += '</div>';
-            }
 
             var orders = [];
             try {
