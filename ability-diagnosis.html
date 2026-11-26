@@ -262,6 +262,21 @@
                 <div id="completenessMsg" class="text-[10px] text-slate-500 leading-relaxed"></div>
             </div>
 
+            <!-- 上次填报回填提示（二次确认） -->
+            <div id="prefillTip" class="hidden mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <div class="flex items-start gap-2">
+                    <i class="fa fa-circle-info text-amber-500 mt-0.5"></i>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold text-amber-700">已默认加载您上次提交的信息</p>
+                        <p id="prefillTipText" class="text-[11px] text-amber-600 mt-0.5 leading-relaxed">请确认信息是否正确，确认后再开始测评。</p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <button onclick="confirmPrefill(true)" class="px-2.5 py-1 rounded-lg bg-amber-500 text-white text-[11px] font-bold hover:bg-amber-600">确认无误</button>
+                        <button onclick="confirmPrefill(false)" class="px-2.5 py-1 rounded-lg bg-white text-amber-600 border border-amber-200 text-[11px] font-bold hover:bg-amber-100">重新填写</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- 动态表单容器（按当前 Tab 渲染不同字段） -->
             <div id="formContainer"></div>
 
@@ -438,7 +453,7 @@
         </main>
     </div>
 
-<script src="data-bridge.js?v=20261126d"></script>
+<script src="data-bridge.js?v=20261126f"></script>
 <script>
     // ============ 规则引擎：DSL 表达式解析器 + RuleInterpreter ============
     // 表达式语法：字段引用 formXxx；数组索引 formRev[2]；聚合 sum(arr)/count(arr)；
@@ -3153,8 +3168,131 @@
         return groups;
     }
 
+    // ============ 上次填报自动回填 + 二次确认 ============
+    var PREFILL = { pending: false, id: '', confirmedKey: '' };
+
+    function hidePrefillTip() {
+        var tip = document.getElementById('prefillTip');
+        if (tip) tip.classList.add('hidden');
+    }
+
+    function maybePrefillFromLast() {
+        if (!window.DataBridge || !DataBridge.loadEnterpriseProfile) return false;
+        var nameEl = document.getElementById('formName');
+        var kw = nameEl ? (nameEl.value || '').trim() : '';
+        if (!kw) return false;
+        if (PREFILL.confirmedKey && PREFILL.confirmedKey === kw) return false;
+        var rec = DataBridge.loadEnterpriseProfile(kw, '');
+        if (!rec || !rec.id) {
+            if (PREFILL.pending) { hidePrefillTip(); PREFILL.pending = false; PREFILL.id = ''; }
+            PREFILL.confirmedKey = '';
+            return false;
+        }
+        if (PREFILL.pending && PREFILL.id === rec.id) return true;
+        if (rec.inputs && rec.inputs.__tab && TABS[rec.inputs.__tab] && rec.inputs.__tab !== currentTab) {
+            switchTab(rec.inputs.__tab);
+        }
+        applyRecordInputs(rec.inputs || {});
+        PREFILL.pending = true;
+        PREFILL.id = rec.id;
+        var tip = document.getElementById('prefillTip');
+        var txt = document.getElementById('prefillTipText');
+        if (txt) {
+            var d = String(rec.updatedAt || '').slice(0, 10);
+            txt.innerText = '「' + (rec.name || kw) + '」上次提交于 ' + (d || '—') + '，已默认带入表单。请确认是否正确，确认后再开始测评。';
+        }
+        if (tip) tip.classList.remove('hidden');
+        return true;
+    }
+
+    function applyRecordInputs(data) {
+        TABS[currentTab].fields.forEach(function(f) {
+            if (f.type === 'section') return;
+            if (f.type === 'text' || f.type === 'number' || f.type === 'select' || f.type === 'month' || f.type === 'textarea' || f.type === 'date' || f.type === 'range') {
+                if (data[f.id] === undefined) return;
+                var el = document.getElementById(f.id);
+                if (el) {
+                    el.value = data[f.id];
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            } else if (f.type === 'radio') {
+                if (!data[f.name]) return;
+                var r = document.querySelector('input[name="' + f.name + '"][value="' + data[f.name] + '"]');
+                if (r) r.click();
+            } else if (f.type === 'multinumber') {
+                (f.items || []).forEach(function(it) {
+                    if (data[it.id] === undefined) return;
+                    var e = document.getElementById(it.id);
+                    if (e) e.value = data[it.id];
+                });
+            } else if (f.type === 'table') {
+                (f.rows || []).forEach(function(r) {
+                    var vals = data[r.id];
+                    if (!Array.isArray(vals)) return;
+                    (f.years || []).forEach(function(y, yi) {
+                        if (vals[yi] === undefined) return;
+                        var e = document.getElementById(r.id + '_' + yi);
+                        if (e) e.value = vals[yi];
+                    });
+                });
+            } else if (f.type === 'checkbox') {
+                var arr = data[f.id];
+                if (!Array.isArray(arr)) return;
+                document.querySelectorAll('#' + f.id + ' input[type=checkbox]').forEach(function(cb) {
+                    cb.checked = arr.indexOf(cb.value) >= 0;
+                });
+            } else if (f.type === 'tags') {
+                var tags = data[f.id];
+                if (!Array.isArray(tags)) return;
+                var root = document.getElementById(f.id);
+                if (!root) return;
+                root.querySelectorAll('.qual-tag').forEach(function(t) {
+                    var txt = t.innerText.replace('✓', '').replace('+', '').trim();
+                    var on = t.classList.contains('qual-on');
+                    if (!on && tags.indexOf(txt) >= 0) t.click();
+                });
+            }
+        });
+        try { checkCompleteness(); } catch (e) {}
+    }
+
+    function clearCurrentTabInputs() {
+        TABS[currentTab].fields.forEach(function(f) {
+            if (f.type === 'section') return;
+            if (f.type === 'text' || f.type === 'number' || f.type === 'select' || f.type === 'month' || f.type === 'textarea' || f.type === 'date') {
+                var el = document.getElementById(f.id);
+                if (el) el.value = '';
+            } else if (f.type === 'radio') {
+                document.querySelectorAll('input[name="' + f.name + '"]').forEach(function(r) { r.checked = false; });
+            } else if (f.type === 'multinumber') {
+                (f.items || []).forEach(function(it) { var e = document.getElementById(it.id); if (e) e.value = ''; });
+            } else if (f.type === 'table') {
+                (f.rows || []).forEach(function(r) {
+                    (f.years || []).forEach(function(y, yi) { var e = document.getElementById(r.id + '_' + yi); if (e) e.value = ''; });
+                });
+            } else if (f.type === 'checkbox') {
+                document.querySelectorAll('#' + f.id + ' input[type=checkbox]').forEach(function(cb) { cb.checked = false; });
+            } else if (f.type === 'tags') {
+                document.querySelectorAll('#' + f.id + ' .qual-tag.qual-on').forEach(function(t) { toggleQual(t); });
+            }
+        });
+        try { checkCompleteness(); } catch (e) {}
+    }
+
+    function confirmPrefill(ok) {
+        var nameEl = document.getElementById('formName');
+        var key = nameEl ? (nameEl.value || '').trim() : '';
+        hidePrefillTip();
+        PREFILL.pending = false;
+        PREFILL.id = '';
+        PREFILL.confirmedKey = ok ? key : '';
+        if (!ok) clearCurrentTabInputs();
+    }
+
     // ============ 开始测评（按当前 Tab 校验 + 计分 + 展开） ============
     function startDiagnosis() {
+        if (PREFILL.pending) { showToast('已默认加载上次填报信息，请先确认是否正确', 'warn'); return; }
         var inputs = enrichInputs(collectInputs(), currentTab);
         // 必填校验
         var missing = [];
@@ -3180,10 +3318,12 @@
         // 企业信息落库：供其他模块（政策雷达/申报管家等）调取
         try {
             if (window.DataBridge && DataBridge.saveEnterpriseProfile) {
+                inputs.__tab = currentTab;
                 DataBridge.saveEnterpriseProfile({
                     inputs: inputs,
                     fields: buildProfileFields(inputs),
-                    name: inputs.formName || ''
+                    name: inputs.formName || '',
+                    source: '科创测评'
                 });
             }
         } catch (e) {}
@@ -3215,6 +3355,9 @@
     }
 
     // ============ 初始化 ============
+    document.addEventListener('focusout', function(e) {
+        if (e.target && e.target.id === 'formName') maybePrefillFromLast();
+    }, true);
     switchTab('hightech');
 </script>
     <script src="libs/js/topbar.js"></script>

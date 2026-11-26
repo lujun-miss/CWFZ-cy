@@ -275,11 +275,25 @@
 
         <!-- 企业信息 + 运营指标查询条件（参考图全面版） -->
         <div id="advFilterBox" class="bg-white rounded-2xl px-5 py-4 border border-slate-100 shadow-sm mb-4">
+            <!-- 上次填报回填提示（二次确认） -->
+            <div id="prefillTip" class="hidden mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+                <div class="flex items-start gap-2">
+                    <i class="fa fa-circle-info text-amber-500 mt-0.5"></i>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold text-amber-700">已默认加载您上次提交的信息</p>
+                        <p id="prefillTipText" class="text-[11px] text-amber-600 mt-0.5 leading-relaxed">请确认信息是否正确，确认后再用于本次匹配。</p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <button onclick="confirmPrefill(true)" class="px-2.5 py-1 rounded-lg bg-amber-500 text-white text-[11px] font-bold hover:bg-amber-600">确认无误</button>
+                        <button onclick="confirmPrefill(false)" class="px-2.5 py-1 rounded-lg bg-white text-amber-600 border border-amber-200 text-[11px] font-bold hover:bg-amber-100">重新填写</button>
+                    </div>
+                </div>
+            </div>
             <!-- 企业名称 -->
             <div class="flex items-start py-2.5 border-b border-slate-100">
                 <span class="w-24 flex-shrink-0 text-xs font-bold text-slate-500 pt-2"><span class="text-red-500">*</span> 企业名称</span>
                 <div class="flex-1">
-                    <input type="text" id="companyNameInput" placeholder="请输入企业名称" class="w-full px-3 py-2 bg-slate-50 rounded-lg text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50">
+                    <input type="text" id="companyNameInput" onblur="maybePrefillFromLast()" placeholder="请输入企业名称" class="w-full px-3 py-2 bg-slate-50 rounded-lg text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50">
                 </div>
             </div>
 
@@ -287,7 +301,7 @@
             <div class="flex items-start py-2.5 border-b border-slate-100">
                 <span class="w-24 flex-shrink-0 text-xs font-bold text-slate-500 pt-2">统一社会信用代码</span>
                 <div class="flex-1">
-                    <input type="text" id="companyCodeInput" maxlength="18" placeholder="选填，填写后可与企业档案、客户档案精准关联" class="w-full px-3 py-2 bg-slate-50 rounded-lg text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50">
+                    <input type="text" id="companyCodeInput" maxlength="18" onblur="maybePrefillFromLast()" placeholder="选填，填写后可精准关联同一企业的上次填报记录" class="w-full px-3 py-2 bg-slate-50 rounded-lg text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400/50">
                 </div>
             </div>
 
@@ -532,7 +546,7 @@
         </main>
     </div>
 
-<script src="data-bridge.js?v=20261126d"></script>
+<script src="data-bridge.js?v=20261126f"></script>
 <script>
     // ===== 政策数据源：统一由 DataBridge 政策库提供（运营在「政策库」维护申报条件） =====
 
@@ -1096,8 +1110,76 @@
         return result;
     }
 
+    // ---- 上次填报自动回填 + 二次确认 ----
+    var PREFILL = { pending: false, id: '', confirmedKey: '' };
+
+    function hidePrefillTip() {
+        var tip = document.getElementById('prefillTip');
+        if (tip) tip.classList.add('hidden');
+    }
+
+    function maybePrefillFromLast() {
+        if (!window.DataBridge || !DataBridge.loadEnterpriseProfile) return false;
+        var name = ((document.getElementById('companyNameInput') || {}).value || '').trim();
+        var code = ((document.getElementById('companyCodeInput') || {}).value || '').trim();
+        if (!name && !code) return false;
+        var key = (name + '|' + code).toUpperCase();
+        if (PREFILL.confirmedKey && PREFILL.confirmedKey === key) return false;
+        var rec = DataBridge.loadEnterpriseProfile(name, code);
+        if (!rec || !rec.id) {
+            if (PREFILL.pending) { hidePrefillTip(); PREFILL.pending = false; PREFILL.id = ''; }
+            PREFILL.confirmedKey = '';
+            return false;
+        }
+        if (PREFILL.pending && PREFILL.id === rec.id) return true;
+        applyRecordToForm(rec);
+        PREFILL.pending = true;
+        PREFILL.id = rec.id;
+        var tip = document.getElementById('prefillTip');
+        var txt = document.getElementById('prefillTipText');
+        if (txt) {
+            var d = String(rec.updatedAt || '').slice(0, 10);
+            txt.innerText = '「' + (rec.name || name) + '」上次提交于 ' + (d || '—') + '，已默认带入企业信息与指标。请确认是否正确，确认后再用于本次匹配。';
+        }
+        if (tip) tip.classList.remove('hidden');
+        return true;
+    }
+
+    function applyRecordToForm(rec) {
+        var inputs = rec.inputs || {};
+        STATE.company.name = inputs.formName || rec.name || STATE.company.name;
+        STATE.company.code = rec.code || inputs.formCreditCode || STATE.company.code || '';
+        STATE.company.province = inputs.formProvince || '';
+        STATE.company.city = inputs.formCity || '';
+        STATE.company.district = inputs.formDistrict || '';
+        if (inputs.formIndustry) {
+            STATE.industries = String(inputs.formIndustry).split('、').filter(Boolean);
+        }
+        STATE.indicators = { basic: [], finance: [], hr: [], ip: [], qual: [] };
+        Object.keys(STATE.indicators).forEach(function(k) {
+            var v = inputs['ind_' + k];
+            if (Array.isArray(v)) STATE.indicators[k] = v.slice();
+        });
+        restoreUIFromState();
+        var dSel = document.getElementById('regDistrict');
+        if (dSel && STATE.company.district) dSel.value = STATE.company.district;
+        updateIndustryCount();
+    }
+
+    function confirmPrefill(ok) {
+        var nameEl = document.getElementById('companyNameInput');
+        var codeEl = document.getElementById('companyCodeInput');
+        var key = (((nameEl && nameEl.value) || '').trim() + '|' + ((codeEl && codeEl.value) || '').trim()).toUpperCase();
+        hidePrefillTip();
+        PREFILL.pending = false;
+        PREFILL.id = '';
+        PREFILL.confirmedKey = ok ? key : '';
+        if (!ok) resetRadarForm();
+    }
+
     // 保存并匹配政策
     function saveAndMatch() {
+        if (PREFILL.pending) { alert('系统已默认加载上次填报的信息，请先确认是否正确，或点击「重新填写」。'); return; }
         STATE.company.name = (document.getElementById('companyNameInput') || {}).value || '';
         STATE.company.code = ((document.getElementById('companyCodeInput') || {}).value || '').trim();
         STATE.indicators = collectIndicators();
@@ -1112,6 +1194,10 @@
 
     // 重置表单
     function resetRadarForm() {
+        hidePrefillTip();
+        PREFILL.pending = false;
+        PREFILL.id = '';
+        PREFILL.confirmedKey = '';
         var nameInput = document.getElementById('companyNameInput');
         if (nameInput) nameInput.value = '';
         var codeInput = document.getElementById('companyCodeInput');
@@ -1175,6 +1261,10 @@
         var name = (nameInput && nameInput.value.trim()) || '示例企业';
         if (nameInput) nameInput.value = name;
         STATE.company.name = name;
+        PREFILL.pending = false;
+        PREFILL.id = '';
+        PREFILL.confirmedKey = '';
+        hidePrefillTip();
         // 模拟识别：按名称哈希确定性生成画像
         var pf = simulateEnterpriseProfile(name);
         STATE.industries = pf.industries;
@@ -1250,7 +1340,7 @@
         // 同步到下方企业名称输入框
         var nameInput = document.getElementById('companyNameInput');
         if (nameInput) nameInput.value = kw;
-        autoFillEnterprise();
+        if (!maybePrefillFromLast()) autoFillEnterprise();
     }
     // 从客户库企业数据推导指标画像
     function profileFromCustomer(c) {
@@ -1571,7 +1661,7 @@
             document.getElementById('bookPhone').value = '';
         }
     }
-    // 企业条件画像落库：供运营后台「企业档案」调取（同一企业按名称合并）
+    // 企业填报记录落库：供下次查询自动回填（同一企业按信用代码优先、名称兜底，只留最近一次）
     function saveEnterpriseToArchive() {
         try {
             if (!window.DataBridge || !DataBridge.saveEnterpriseProfile) return;
@@ -1581,6 +1671,8 @@
             var basicItems = [{ label: '企业名称', value: name }];
             if (code) basicItems.push({ label: '统一社会信用代码', value: code });
             basicItems.push({ label: '核心技术所属产业', value: STATE.industries.length ? STATE.industries.join('、') : '未选择' });
+            var region = [STATE.company.province, STATE.company.city, STATE.company.district].filter(Boolean).join(' ');
+            if (region) basicItems.push({ label: '注册地', value: region });
             var groups = [{ group: '基本信息', items: basicItems }];
             var groupNames = { basic: '基础条件', finance: '财务指标', hr: '人力指标', ip: '知识产权', qual: '企业资质' };
             ['basic', 'finance', 'hr', 'ip', 'qual'].forEach(function(k) {
@@ -1590,12 +1682,16 @@
             });
             var inputs = { formName: name, formIndustry: STATE.industries.join('、') };
             if (code) inputs.formCreditCode = code;
+            inputs.formProvince = STATE.company.province || '';
+            inputs.formCity = STATE.company.city || '';
+            inputs.formDistrict = STATE.company.district || '';
             Object.keys(STATE.indicators).forEach(function(k) { inputs['ind_' + k] = STATE.indicators[k]; });
             DataBridge.saveEnterpriseProfile({
                 inputs: inputs,
                 fields: groups,
                 name: name,
-                code: code
+                code: code,
+                source: '政策雷达'
             });
         } catch (e) {}
     }

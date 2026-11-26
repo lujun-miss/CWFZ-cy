@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>企业档案资料库 - 策源易答运营平台</title>
+    <title>企业填报记录 - 策源易答运营平台</title>
     <link href="libs/css/tailwind.css" rel="stylesheet">
     <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
@@ -30,14 +30,14 @@
     </script>
 </head>
 <body class="bg-slate-50 p-8">
-    <script src="data-bridge.js?v=20261126d"></script>
+    <script src="data-bridge.js?v=20261126f"></script>
 
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-black text-slate-800 flex items-center">
-                <i class="fa fa-folder-open-o text-indigo-500 mr-3"></i>企业档案资料库
+                <i class="fa fa-folder-open-o text-indigo-500 mr-3"></i>企业填报记录
             </h1>
-            <p class="text-sm text-slate-400 mt-1">后台管理 / 客户管理 / 企业档案资料库 · 数据来源：政策雷达 / 科创测评</p>
+            <p class="text-sm text-slate-400 mt-1">后台管理 / 客户管理 / 企业填报记录 · 数据来源：政策雷达 / 科创测评</p>
         </div>
         <div class="flex items-center space-x-3">
             <div class="relative">
@@ -53,17 +53,17 @@
     <div class="mb-5 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 flex items-start space-x-3">
         <i class="fa fa-info-circle text-indigo-500 mt-0.5"></i>
         <div class="text-xs text-slate-600 leading-relaxed space-y-1">
-            <p class="font-bold text-indigo-700">建档与合并规则</p>
-            <p><b>唯一键：</b>企业名称（去除首尾空格后完全相同）。名称相同即视为同一家企业，不论来自「科创测评」还是「精准政策雷达」，都合并到同一条档案。</p>
-            <p><b>字段合并：</b>同名字段用后填的非空值覆盖，原档案没有的字段直接追加；二者均为空时不写入，不会清空已有值。</p>
-            <p><b>名称不同：</b>即使其他信息完全一致也分别建档；简称与全称视为不同企业，建议统一填写工商全称。</p>
-            <p><b>名称留空：</b>不建档。删除档案后不可恢复。</p>
+            <p class="font-bold text-indigo-700">填报记录说明</p>
+            <p><b>定位：</b>这里只保留企业自主填报的记录，用于下次查询/测评时默认回填，不作为已核验的企业档案对外提供。</p>
+            <p><b>唯一键：</b>优先按统一社会信用代码归并同一企业；无代码时按企业全称（去除首尾空格后完全相同）归并，每家企业只保留最近一次填报。</p>
+            <p><b>二次确认：</b>企业再次输入同一企业时，系统默认加载上次提交的信息，并提示企业确认是否正确。</p>
+            <p><b>名称留空：</b>不记录。删除记录后不可恢复。</p>
         </div>
     </div>
 
     <div class="flex items-center justify-between mb-4">
-        <span class="text-xs text-slate-500">共 <b id="totalCount" class="text-indigo-600">0</b> 家企业</span>
-        <span class="text-[10px] text-slate-400">名称相同自动合并，后填非空值覆盖、新字段追加</span>
+        <span class="text-xs text-slate-500">共 <b id="totalCount" class="text-indigo-600">0</b> 家企业填报记录</span>
+        <span class="text-[10px] text-slate-400">每家企业只保留最近一次，下次填报自动回填并提示确认</span>
     </div>
 
     <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
@@ -221,7 +221,7 @@
                             '<div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center"><i class="fa fa-building-o"></i></div>' +
                             '<div>' +
                                 '<p class="font-bold text-slate-700 leading-tight">' + escapeHtml(r.name || '未命名企业') + '</p>' +
-                                (r.code ? '<p class="text-[10px] text-slate-400 mt-0.5">' + escapeHtml(r.code) + '</p>' : '') +
+                                ((r.code || r.source) ? '<p class="text-[10px] text-slate-400 mt-0.5">' + (r.code ? escapeHtml(r.code) : '') + (r.code && r.source ? ' · ' : '') + (r.source ? '<span class="px-1 py-0.5 rounded bg-indigo-50 text-indigo-500">' + escapeHtml(r.source) + '</span>' : '') + '</p>' : '') +
                             '</div>' +
                         '</div>' +
                     '</td>' +
@@ -244,13 +244,13 @@
             var groups = rec.fields || [];
             document.getElementById('detailName').innerText = rec.name || '未命名企业';
             var pc = pendingCount(rec);
-            document.getElementById('detailMeta').innerText = '已存 ' + fieldCount(rec) + ' 个字段' + (pc ? ' · ' + pc + ' 项待确认' : ' · 已全部确认') + ' · 最近更新：' + fmtTime(rec.updatedAt);
+            document.getElementById('detailMeta').innerText = (rec.source ? rec.source + ' · ' : '') + '已存 ' + fieldCount(rec) + ' 个字段' + (pc ? ' · ' + pc + ' 项待确认' : ' · 已全部确认') + ' · 最近填报：' + fmtTime(rec.updatedAt);
             var allBtn = document.getElementById('confirmAllBtn');
             if (allBtn) allBtn.classList.toggle('hidden', !pc);
 
             var body = document.getElementById('detailBody');
             if (!groups.length) {
-                body.innerHTML = '<div class="py-10 text-center text-xs text-slate-400">该企业暂无档案字段</div>';
+                body.innerHTML = '<div class="py-10 text-center text-xs text-slate-400">该企业暂无填报字段</div>';
             } else {
                 body.innerHTML = groups.map(function(g) {
                     return '<div class="border border-slate-100 rounded-xl p-4">' +

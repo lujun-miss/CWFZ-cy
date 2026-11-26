@@ -501,6 +501,7 @@
                 id: r.id || 'ent_legacy',
                 name: String(r.name || '').trim(),
                 code: code,
+                source: String(r.source || '').trim(),
                 fields: fields,
                 inputs: r.inputs || {},
                 createdAt: r.createdAt || r.updatedAt || '',
@@ -635,8 +636,8 @@
                 list.find(function(r) { return r.name === k; });
         }
         return rec
-            ? { id: rec.id, name: rec.name || '', code: rec.code || '', fields: rec.fields || [], inputs: rec.inputs || {}, createdAt: rec.createdAt || '', createdBy: rec.createdBy || '', updatedAt: rec.updatedAt || '' }
-            : { id: '', name: '', code: '', fields: [], inputs: {}, createdAt: '', createdBy: '', updatedAt: '' };
+            ? { id: rec.id, name: rec.name || '', code: rec.code || '', source: rec.source || '', fields: rec.fields || [], inputs: rec.inputs || {}, createdAt: rec.createdAt || '', createdBy: rec.createdBy || '', updatedAt: rec.updatedAt || '' }
+            : { id: '', name: '', code: '', source: '', fields: [], inputs: {}, createdAt: '', createdBy: '', updatedAt: '' };
     }
 
     /** 内部：从档案载荷中提取统一社会信用代码（显式字段 → 注册/测评输入 → 字段标签兜底） */
@@ -669,16 +670,17 @@
         if (!rec && !name) return false; // 名称为空不建档
         const operator = String(payload.operator || '') || _currentOperator();
         if (!rec) {
-            rec = { id: 'ent_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name, code: code, fields: [], inputs: {}, createdAt: new Date().toISOString(), updatedAt: '', createdBy: operator };
+            rec = { id: 'ent_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name, code: code, source: String(payload.source || ''), fields: [], inputs: {}, createdAt: new Date().toISOString(), updatedAt: '', createdBy: operator };
             list.push(rec);
         }
         if (name) rec.name = name;
         if (code) rec.code = code;
+        if (payload.source) rec.source = String(payload.source);
         rec.fields = _mergeFields(rec.fields, payload.fields, operator);
         rec.inputs = _mergeInputs(rec.inputs, payload.inputs);
         rec.updatedAt = new Date().toISOString();
         const records = list.map(function(r) {
-            return { id: r.id, name: r.name, code: r.code || '', fields: r.fields, inputs: r.inputs, createdAt: r.createdAt, createdBy: r.createdBy || '', updatedAt: r.updatedAt };
+            return { id: r.id, name: r.name, code: r.code || '', source: r.source || '', fields: r.fields, inputs: r.inputs, createdAt: r.createdAt, createdBy: r.createdBy || '', updatedAt: r.updatedAt };
         });
         return _write(KEYS.ENTERPRISE_PROFILE, { records: records });
     }
