@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>企业档案 - 策源易答运营平台</title>
+    <title>企业资料库 - 策源易答运营平台</title>
     <link href="libs/css/tailwind.css" rel="stylesheet">
     <link href="libs/css/font-awesome.min.css" rel="stylesheet">
     <style>
@@ -35,9 +35,9 @@
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-black text-slate-800 flex items-center">
-                <i class="fa fa-folder-open-o text-indigo-500 mr-3"></i>企业档案
+                <i class="fa fa-folder-open-o text-indigo-500 mr-3"></i>企业资料库
             </h1>
-            <p class="text-sm text-slate-400 mt-1">运营管理平台 / 客户管理 / 企业档案</p>
+            <p class="text-sm text-slate-400 mt-1">运营管理平台 / 企业资料库 · 数据来源：政策雷达 / 科创测评</p>
         </div>
         <div class="flex items-center space-x-3">
             <div class="relative">
@@ -81,7 +81,7 @@
         </table>
         <div id="emptyState" class="hidden py-16 text-center">
             <i class="fa fa-folder-open-o text-4xl text-slate-200 mb-3 block"></i>
-            <p class="text-sm text-slate-400">暂无企业档案</p>
+            <p class="text-sm text-slate-400">暂无企业资料</p>
             <p class="text-[11px] text-slate-400 mt-1">企业在「科创测评」提交表单后会自动出现在这里</p>
         </div>
     </div>
@@ -280,9 +280,9 @@
         function removeRecord(id) {
             var rec = getRecords().find(function(r) { return r.id === id; });
             if (!rec) return;
-            if (!confirm('确定删除「' + (rec.name || '该企业') + '」的企业档案？删除后不可恢复。')) return;
+            if (!confirm('确定删除「' + (rec.name || '该企业') + '」的企业资料？删除后不可恢复。')) return;
             if (window.DataBridge && DataBridge.deleteEnterpriseProfile) DataBridge.deleteEnterpriseProfile(id);
-            showToast('已删除企业档案');
+            showToast('已删除企业资料');
             renderList();
         }
 
