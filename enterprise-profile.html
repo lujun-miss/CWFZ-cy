@@ -30,7 +30,7 @@
     </script>
 </head>
 <body class="bg-slate-50 p-8">
-    <script src="data-bridge.js?v=20261126a"></script>
+    <script src="data-bridge.js?v=20261126b"></script>
 
     <div class="flex items-center justify-between mb-6">
         <div>
@@ -88,8 +88,8 @@
 
     <!-- 企业档案详情 -->
     <div id="detailModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 items-center justify-center p-6">
-        <div class="bg-white rounded-[20px] w-full max-w-4xl max-h-[86vh] flex flex-col shadow-2xl">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div class="bg-white rounded-[20px] w-full max-w-4xl flex flex-col shadow-2xl" style="max-height:90vh;">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
                 <div>
                     <h3 id="detailName" class="text-lg font-black text-slate-800">企业名称</h3>
                     <p id="detailMeta" class="text-[11px] text-slate-400 mt-1"></p>
@@ -99,8 +99,8 @@
                     <button onclick="closeDetail()" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400"><i class="fa fa-times"></i></button>
                 </div>
             </div>
-            <div id="detailBody" class="p-6 overflow-y-auto space-y-4"></div>
-            <div class="px-6 py-4 border-t border-slate-100 flex justify-end">
+            <div id="detailBody" class="p-6 overflow-y-auto space-y-4 flex-1" style="min-height:0;"></div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end flex-shrink-0">
                 <button onclick="closeDetail()" class="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200">关闭</button>
             </div>
         </div>
@@ -159,7 +159,12 @@
                     (it.history || []).forEach(function(h) { rows.push({ label: it.label, h: h }); });
                 });
             });
-            if (!rows.length) return '';
+            if (!rows.length) {
+                return '<div class="border border-slate-100 rounded-xl p-4">' +
+                    '<p class="text-xs font-black text-slate-800 mb-2"><i class="fa fa-history text-indigo-500 mr-1.5"></i>变更记录</p>' +
+                    '<p class="text-[11px] text-slate-400">暂无变更记录。字段值被写入不同内容时会自动留痕（旧值 → 新值、操作人、时间）。</p>' +
+                    '</div>';
+            }
             rows.sort(function(a, b) { return String(b.h.at || '').localeCompare(String(a.h.at || '')); });
             return '<div class="border border-slate-100 rounded-xl p-4">' +
                 '<p class="text-xs font-black text-slate-800 mb-3"><i class="fa fa-history text-indigo-500 mr-1.5"></i>变更记录 <span class="text-[10px] font-normal text-slate-400">（最近 ' + Math.min(rows.length, 10) + ' 条）</span></p>' +

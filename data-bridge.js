@@ -488,7 +488,7 @@
             return {
                 id: r.id || 'ent_legacy',
                 name: String(r.name || '').trim(),
-                fields: Array.isArray(r.fields) ? r.fields : _legacyFields(r),
+                fields: _mergeFields(Array.isArray(r.fields) ? r.fields : _legacyFields(r), []),
                 inputs: r.inputs || {},
                 createdAt: r.createdAt || r.updatedAt || '',
                 createdBy: r.createdBy || '',
@@ -526,9 +526,27 @@
         const GROUP_ALIAS = { '基本信息': '基本情况' };
         const canonLabel = function (l) { return ALIAS[l] || l; };
         const canonGroup = function (g) { return GROUP_ALIAS[g] || g; };
-        const groups = (Array.isArray(existing) ? existing : []).map(function(g) {
+        let groups = (Array.isArray(existing) ? existing : []).map(function(g) {
             return { group: g.group, items: (g.items || []).map(function(it) { return { label: it.label, value: it.value, status: it.status, source: it.source, confirmedBy: it.confirmedBy, confirmedAt: it.confirmedAt, history: it.history || [] }; }) };
         });
+        // 归并历史数据中重复的分组/字段（同名分组合并，同名字段保留已有值并合并变更记录）
+        const dedup = [];
+        groups.forEach(function(g) {
+            let target = dedup.find(function(x) { return canonGroup(x.group || '其他') === canonGroup(g.group || '其他'); });
+            if (!target) { target = { group: canonGroup(g.group || '其他'), items: [] }; dedup.push(target); }
+            (g.items || []).forEach(function(it) {
+                const lab = canonLabel(it.label);
+                const ex = target.items.find(function(y) { return canonLabel(y.label) === lab; });
+                if (!ex) { target.items.push(Object.assign({}, it, { label: lab })); return; }
+                const nv = String(it.value === undefined || it.value === null ? '' : it.value).trim();
+                if (nv && nv !== '未选择' && String(ex.value) !== nv) ex.value = it.value;
+                if (it.status === 'confirmed' && ex.status !== 'confirmed') {
+                    ex.status = 'confirmed'; ex.confirmedBy = it.confirmedBy; ex.confirmedAt = it.confirmedAt;
+                }
+                ex.history = (ex.history || []).concat(it.history || []).slice(-20);
+            });
+        });
+        groups = dedup;
         (Array.isArray(incoming) ? incoming : []).forEach(function(g) {
             if (!g) return;
             (g.items || []).forEach(function(it) {
