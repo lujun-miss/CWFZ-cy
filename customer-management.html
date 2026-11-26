@@ -77,9 +77,19 @@
         <!-- 搜索筛选与操作 -->
         <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-6">
             <div class="flex flex-wrap items-center gap-3">
-                <div class="flex-1 min-w-[240px] relative">
-                    <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="搜索企业名称 / 统一社会信用代码 / 手机号 / 联系人..."
+                <div class="w-56 relative">
+                    <i class="fa fa-building-o absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="filterName" oninput="renderTable()" placeholder="企业名称 / 姓名"
+                        class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                </div>
+                <div class="w-56 relative">
+                    <i class="fa fa-id-card-o absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="filterCode" oninput="renderTable()" placeholder="统一社会信用代码"
+                        class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                </div>
+                <div class="w-48 relative">
+                    <i class="fa fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="filterPhone" oninput="renderTable()" placeholder="手机号"
                         class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                 </div>
                 <select id="filterIndustry" onchange="renderTable()" class="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-gray-700">
@@ -303,7 +313,7 @@
             return customerSource(u) === '平台注册';
         }
         // 来源多选筛选（复选框式，可多选；未选中任何项 = 全部）
-        var SOURCE_OPTIONS = [['__registered', '已注册账号'], ['天眼查', '天眼查'], ['平台注册', '平台注册'], ['客服录入', '客服录入'], ['批量导入', '批量导入']];
+        var SOURCE_OPTIONS = [['__registered', '已注册账号'], ['天眼查', '天眼查'], ['客服录入', '客服录入'], ['批量导入', '批量导入']];
         var SOURCE_FILTER = [];
         function renderSourceChips() {
             var box = document.getElementById('sourceFilter');
@@ -411,15 +421,19 @@
 
         // ===== 列表渲染 =====
         function filteredCustomers() {
-            var kw = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+            var kwName = (document.getElementById('filterName').value || '').trim().toLowerCase();
+            var kwCode = (document.getElementById('filterCode').value || '').trim().toLowerCase();
+            var kwPhone = (document.getElementById('filterPhone').value || '').trim().toLowerCase();
             var ind = document.getElementById('filterIndustry').value;
             return CUSTOMERS.filter(function(c) {
                 if (CURRENT_TAB !== 'all' && c.type !== CURRENT_TAB) return false;
-                if (kw) {
-                    // 企业：搜 企业名称/统一社会信用代码/联系人/手机号；个人：搜 姓名/手机号/职业
-                    var hay = c.type === 'personal' ? ((c.realName || '') + ' ' + (c.phone || '') + ' ' + (c.occupation || '')) : ((c.name || '') + ' ' + (c.code || '') + ' ' + (c.contact || '') + ' ' + (c.phone || ''));
-                    if (hay.toLowerCase().indexOf(kw) === -1 && !phoneMatch(c.phone, kw)) return false;
+                if (kwName) {
+                    // 企业按名称+联系人，个人按姓名匹配
+                    var nameHay = c.type === 'personal' ? (c.realName || '') : ((c.name || '') + ' ' + (c.contact || ''));
+                    if (nameHay.toLowerCase().indexOf(kwName) === -1) return false;
                 }
+                if (kwCode && String(c.code || '').toLowerCase().indexOf(kwCode) === -1) return false;
+                if (kwPhone && !phoneMatch(c.phone, kwPhone)) return false;
                 if (ind) {
                     // 行业筛选只对企业生效
                     if (c.type === 'enterprise' && c.industry !== ind) return false;
@@ -486,7 +500,7 @@
         }
 
         function resetFilters() {
-            document.getElementById('searchInput').value = '';
+            ['filterName', 'filterCode', 'filterPhone'].forEach(function(id) { document.getElementById(id).value = ''; });
             document.getElementById('filterIndustry').value = '';
             SOURCE_FILTER = [];
             renderSourceChips();
