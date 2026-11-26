@@ -195,7 +195,7 @@
             return t === 'qualification' ? 'qualification' : 'industry';
         })();
         var DICT = DataBridge.loadProfileDict();
-        var LIST = DICT[DICT_KEY] ? DICT[DICT_KEY].slice() : [];
+        var LIST = (DICT_KEY === 'industry' ? DICT.industries : DICT.qualifications || []).slice();
         var editingIndex = -1;
 
         var META = {
