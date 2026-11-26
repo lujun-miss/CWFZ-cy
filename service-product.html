@@ -142,7 +142,7 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1.5">服务分类</label>
                         <select id="fCategory" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
-                            <option>政策咨询</option><option>申报代理</option><option>知识产权</option>
+                            <option>政策咨询</option><option>资质辅导</option><option>知识产权</option>
                             <option>财务审计</option><option>技术转移</option><option>检验检测</option><option>政策培训</option>
                         </select>
                     </div>
@@ -475,7 +475,7 @@
             row.className = 'flex items-center gap-2';
             row.innerHTML = `
                 <i class="fa fa-check-circle text-orange-400"></i>
-                <input type="text" value="${esc(val)}" placeholder="如：申报材料撰写与审核" class="inc-item flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white">
+                <input type="text" value="${esc(val)}" placeholder="如：认定材料撰写与审核" class="inc-item flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white">
                 <button class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"><i class="fa fa-trash-o"></i></button>`;
             row.querySelector('button').onclick = () => row.remove();
             box.appendChild(row);

@@ -989,6 +989,40 @@
 
     // 阶梯计价已下线：旧版本地存储中 pricingMode='tiered' 的商品在读取时统一回退为一口价（取原最低档价）
 
+    // 服务商城合规文案：对外展示不出现「申报」字样，统一替换为认定 / 办理等表述
+    const DECLARE_TEXT_RULES = [
+        ['申报代理', '资质辅导'],
+        ['专精特新企业申报', '专精特新企业认定'],
+        ['科技型中小企业评价申报', '科技型中小企业评价服务'],
+        ['高企申报', '高企认定'],
+        ['申报材料', '认定材料'],
+        ['申报条件', '认定条件'],
+        ['申报方案', '认定方案'],
+        ['申报配套', '认定配套'],
+        ['评价申报', '评价服务'],
+        ['汇算清缴申报', '汇算清缴'],
+        ['提交申报', '提交材料'],
+        ['材料申报', '材料提交'],
+        ['申报跟踪', '流程跟踪'],
+        ['申报', '办理']
+    ];
+    function _noDeclareText(s) {
+        if (typeof s !== 'string' || s.indexOf('申报') === -1) return s;
+        let out = s;
+        DECLARE_TEXT_RULES.forEach(function(r) { out = out.split(r[0]).join(r[1]); });
+        return out;
+    }
+    function _sanitizeServiceProduct(p) {
+        return Object.assign({}, p, {
+            name: _noDeclareText(p.name),
+            category: _noDeclareText(p.category || ''),
+            desc: _noDeclareText(p.desc || ''),
+            includes: (p.includes || []).map(_noDeclareText),
+            process: (p.process || []).map(function(s) { return { t: _noDeclareText(s.t), d: _noDeclareText(s.d) }; }),
+            cases: (p.cases || []).map(function(c) { return { company: c.company, year: _noDeclareText(c.year), result: _noDeclareText(c.result) }; })
+        });
+    }
+
     /** 读取服务商品（后台维护页与前台商城共用） */
     function loadServiceProducts() {
         const data = _read(KEYS.SERVICE_PRODUCTS, null);
@@ -1051,7 +1085,7 @@
             }
             _write('ceyuan_mig_svc002_quote', 1);
         }
-        return list;
+        return list.map(_sanitizeServiceProduct);
     }
 
     /** 保存服务商品 */
