@@ -79,7 +79,7 @@
             <div class="flex flex-wrap items-center gap-3">
                 <div class="flex-1 min-w-[240px] relative">
                     <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="搜索企业名称、联系人、手机号..."
+                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="搜索企业名称 / 统一社会信用代码 / 手机号 / 联系人..."
                         class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                 </div>
                 <select id="filterIndustry" onchange="renderTable()" class="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-gray-700">
@@ -296,14 +296,14 @@
         var DRAWER_TAB = 'credits'; // 抽屉内选项卡：credits 策能值记录 / orders 服务商城订单 / reports 报告存档 / leads 线索记录 / records 分配与转化
 
         // 客户来源（首次获取渠道）与账号状态分离：registered=true 表示已有平台账号
-        var SOURCE_COLORS = { '平台注册': 'bg-blue-50 text-blue-700', '客服录入': 'bg-orange-50 text-orange-700', '销售录入': 'bg-orange-50 text-orange-700', '批量导入': 'bg-gray-100 text-gray-600', '分享转化': 'bg-emerald-50 text-emerald-700', '天眼查': 'bg-purple-50 text-purple-700' };
+        var SOURCE_COLORS = { '平台注册': 'bg-blue-50 text-blue-700', '客服录入': 'bg-orange-50 text-orange-700', '销售录入': 'bg-orange-50 text-orange-700', '批量导入': 'bg-gray-100 text-gray-600', '天眼查': 'bg-purple-50 text-purple-700' };
         function customerSource(u) { return u.source || '平台注册'; }
         function hasAccount(u) {
             if (typeof u.registered === 'boolean') return u.registered;
-            var s = customerSource(u); return s === '平台注册' || s === '分享转化';
+            return customerSource(u) === '平台注册';
         }
         // 来源多选筛选（复选框式，可多选；未选中任何项 = 全部）
-        var SOURCE_OPTIONS = [['__registered', '已注册账号'], ['天眼查', '天眼查'], ['平台注册', '平台注册'], ['客服录入', '客服录入'], ['批量导入', '批量导入'], ['分享转化', '分享转化']];
+        var SOURCE_OPTIONS = [['__registered', '已注册账号'], ['天眼查', '天眼查'], ['平台注册', '平台注册'], ['客服录入', '客服录入'], ['批量导入', '批量导入']];
         var SOURCE_FILTER = [];
         function renderSourceChips() {
             var box = document.getElementById('sourceFilter');
@@ -320,6 +320,19 @@
             if (i === -1) SOURCE_FILTER.push(v); else SOURCE_FILTER.splice(i, 1);
             renderSourceChips();
             renderTable();
+        }
+
+        // 手机号匹配：直接包含；若库里是脱敏号码（138****1234），用前段+后段校验完整号码
+        function phoneMatch(phone, kw) {
+            var p = String(phone || '').toLowerCase();
+            if (!p) return false;
+            if (p.indexOf(kw) !== -1) return true;
+            if (!/^\d{7,}$/.test(kw)) return false;
+            var star = p.indexOf('*');
+            if (star === -1) return false;
+            var pre = p.slice(0, star).replace(/[^0-9]/g, '');
+            var suf = p.slice(p.lastIndexOf('*') + 1).replace(/[^0-9]/g, '');
+            return kw.indexOf(pre) === 0 && kw.slice(-suf.length) === suf;
         }
 
         var AVATAR_COLORS = ['bg-brand-100 text-brand-700', 'bg-blue-100 text-blue-700', 'bg-purple-100 text-purple-700', 'bg-orange-100 text-orange-700', 'bg-teal-100 text-teal-700', 'bg-pink-100 text-pink-700'];
@@ -403,9 +416,9 @@
             return CUSTOMERS.filter(function(c) {
                 if (CURRENT_TAB !== 'all' && c.type !== CURRENT_TAB) return false;
                 if (kw) {
-                    // 企业：搜 name/contact/phone；个人：搜 realName/phone/occupation
-                    var hay = c.type === 'personal' ? (c.realName + ' ' + c.phone + ' ' + (c.occupation || '')) : (c.name + ' ' + (c.contact || '') + ' ' + (c.phone || ''));
-                    if (hay.toLowerCase().indexOf(kw) === -1) return false;
+                    // 企业：搜 企业名称/统一社会信用代码/联系人/手机号；个人：搜 姓名/手机号/职业
+                    var hay = c.type === 'personal' ? ((c.realName || '') + ' ' + (c.phone || '') + ' ' + (c.occupation || '')) : ((c.name || '') + ' ' + (c.code || '') + ' ' + (c.contact || '') + ' ' + (c.phone || ''));
+                    if (hay.toLowerCase().indexOf(kw) === -1 && !phoneMatch(c.phone, kw)) return false;
                 }
                 if (ind) {
                     // 行业筛选只对企业生效
@@ -447,7 +460,7 @@
                     var src = customerSource(u);
                     var srcBadge = '<span class="px-2 py-0.5 rounded text-xs ' + (SOURCE_COLORS[src] || 'bg-gray-100 text-gray-600') + '">' + esc(src) + '</span>' +
                         (hasAccount(u)
-                            ? ((src === '平台注册' || src === '分享转化') ? '' : '<span class="text-[10px] text-emerald-600 ml-1" title="' + esc('首次来源：' + src + (u.registerTime ? ' · ' + u.registerTime + ' 注册' : '')) + '">已注册</span>')
+                            ? (src === '平台注册' ? '' : '<span class="text-[10px] text-emerald-600 ml-1" title="' + esc('首次来源：' + src + (u.registerTime ? ' · ' + u.registerTime + ' 注册' : '')) + '">已注册</span>')
                             : '<span class="text-[10px] text-gray-400 ml-1">仅外链触达</span>');
                     return '<tr class="hover:bg-brand-50/40 cursor-pointer" onclick="openDrawer(\'' + u.id + '\')">' +
                         '<td class="px-6 py-3.5">' + typeLabel + '</td>' +
@@ -876,7 +889,7 @@
             var myLeads = leadsOf(u);
             html += '<div id="drawerPanelLeads"' + (DRAWER_TAB === 'leads' ? '' : ' class="hidden"') + '>';
             html += '<div class="flex items-center justify-between mb-3"><h5 class="text-sm font-semibold text-gray-700"><i class="fa fa-lightbulb-o text-rose-500 mr-1"></i>线索记录</h5>' +
-                '<span class="text-[10px] text-gray-400">来源：政策查询 / 问答触发 / 测评触发 / 分享转化</span></div>';
+                '<span class="text-[10px] text-gray-400">来源：政策查询 / 问答触发 / 测评触发</span></div>';
             if (myLeads.length) {
                 html += '<div class="space-y-2">' + myLeads.map(function(c) {
                     var stageColor = c.stage === '已转化' ? 'bg-emerald-50 text-emerald-600' : c.stage === '已流失' ? 'bg-gray-100 text-gray-500' : c.stage === '跟进中' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-700';

@@ -3040,7 +3040,7 @@
         data.forEach(function(u) {
             if (u && !u.source) u.source = '平台注册';
             // 账号状态与首次来源分离：registered=true 表示该客户已有平台账号（来源保持不变）
-            if (u && typeof u.registered !== 'boolean') u.registered = (u.source === '平台注册' || u.source === '分享转化');
+            if (u && typeof u.registered !== 'boolean') u.registered = (u.source === '平台注册');
             if (u && !u.assessmentConditions) {
                 u.assessmentConditions = {
                     rdRatio: null, ipCount: null, sciStaffRatio: null, hiTechRatio: null,
