@@ -811,6 +811,7 @@
         if (!rec || !rec.id) return out;
         out.hit = true;
         out.meta.recCode = rec.code || '';
+        out.meta.updatedAt = rec.updatedAt || '';
         var codeKey = String(code || '').trim().toUpperCase();
         out.meta.matchedBy = (codeKey && String(rec.code || '').toUpperCase() === codeKey) ? 'creditCode' : 'name';
 

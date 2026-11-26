@@ -42,7 +42,7 @@
         <div class="flex items-center space-x-3">
             <div class="relative">
                 <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
-                <input id="searchInput" oninput="renderList()" placeholder="搜索企业名称" class="pl-8 pr-3 py-2.5 w-52 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input id="searchInput" oninput="renderList()" placeholder="搜索企业名称 / 信用代码" class="pl-8 pr-3 py-2.5 w-52 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
             <button onclick="renderList()" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
                 <i class="fa fa-refresh mr-2"></i>刷新
@@ -352,7 +352,24 @@
             } catch (e) {}
         }
 
+        // 从客户详情跳转而来：按企业名称/信用代码过滤，命中唯一一条时直接打开详情
+        function applyUrlFilter() {
+            try {
+                var sp = new URLSearchParams(location.search || '');
+                var kw = (sp.get('kw') || '').trim();
+                if (!kw) return;
+                document.getElementById('searchInput').value = kw;
+                if (sp.get('auto') === '1') {
+                    var hits = getRecords().filter(function(r) {
+                        return (r.name || '').indexOf(kw) > -1 || String(r.code || '').indexOf(kw) > -1;
+                    });
+                    if (hits.length === 1) setTimeout(function() { openDetail(hits[0].id); }, 0);
+                }
+            } catch (e) {}
+        }
+
         seedDemoData();
+        applyUrlFilter();
         renderList();
     </script>
 </body>

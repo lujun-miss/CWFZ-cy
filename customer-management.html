@@ -298,7 +298,7 @@
     </div>
 
     <script src="libs/js/xlsx.full.min.js"></script>
-    <script src="data-bridge.js?v=20261126d"></script>
+    <script src="data-bridge.js?v=20261126e"></script>
     <script>
         var CUSTOMERS = [];
         var CURRENT_ID = null;   // 抽屉当前用户
@@ -724,6 +724,15 @@
             document.getElementById('overlay').classList.add('hidden');
             document.getElementById('drawer').classList.add('translate-x-full');
         }
+        // 企业档案不在客户详情内展开，跳转到「企业档案资料库」并按企业名称定位
+        function openEnterpriseProfileById(id) {
+            var u = getCustomer(id);
+            var url = 'enterprise-profile.html?kw=' + encodeURIComponent(u ? (u.name || '') : '') + '&auto=1';
+            try {
+                if (window.parent && window.parent.switchPage) { window.parent.switchPage(url, null); return; }
+            } catch (e) {}
+            window.location.href = url;
+        }
 
         function renderDrawer(u) {
             var html = '';
@@ -768,6 +777,20 @@
                     '<div class="col-span-2"><span class="text-gray-500">统一社会信用代码：</span><span class="text-gray-700">' + esc(u.code || '—') + '</span></div>';
             }
             html += '</div></div>';
+
+            // 企业档案：不在详情内展开，提供跳转入口
+            if (!isPer) {
+                var entProf = null;
+                try { entProf = (DataBridge.buildRadarProfileFromEnterprise) ? DataBridge.buildRadarProfileFromEnterprise(u.name, u.code) : null; } catch (e) { entProf = null; }
+                if (entProf && entProf.hit) {
+                    var entUpdated = String((entProf.meta && entProf.meta.updatedAt) || '').slice(0, 10);
+                    html += '<div class="bg-white border border-gray-100 rounded-lg px-4 py-3 mb-5 flex items-center justify-between">' +
+                        '<div><p class="text-sm font-semibold text-gray-700"><i class="fa fa-database text-indigo-500 mr-1"></i>企业档案</p>' +
+                        '<p class="text-[11px] text-gray-400 mt-0.5">已建档 · 测评/雷达回写' + (entUpdated ? ' · 最近更新 ' + entUpdated : '') + '</p></div>' +
+                        '<button onclick="openEnterpriseProfileById(\'' + u.id + '\')" class="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-bold hover:bg-indigo-100 whitespace-nowrap">查看档案 <i class="fa fa-arrow-right ml-0.5"></i></button>' +
+                        '</div>';
+                }
+            }
 
             var orders = [];
             try {
