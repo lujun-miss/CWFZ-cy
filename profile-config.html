@@ -79,7 +79,61 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+    <div class="grid gap-5 items-start" id="treeLayout" style="grid-template-columns: 320px minmax(0, 1fr);">
+        <!-- 左侧产业树 -->
+        <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                <span class="text-sm font-black text-slate-800"><i class="fa fa-sitemap text-indigo-500 mr-2"></i>产业结构</span>
+                <span class="text-[10px] text-slate-400">点击节点编辑</span>
+            </div>
+            <div id="indTree" class="p-2 overflow-y-auto" style="max-height: calc(100vh - 330px);"></div>
+        </div>
+        <!-- 右侧编辑区 -->
+        <div class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+            <div id="indEmpty" class="py-24 text-center text-xs text-slate-400">
+                <i class="fa fa-hand-o-left text-2xl block mb-3 text-slate-300"></i>
+                请在左侧选择一个一级产业或细分类进行编辑
+            </div>
+            <div id="indEditor" class="hidden">
+                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-black text-slate-800">编辑</span>
+                        <span id="selType" class="px-2 py-0.5 text-[10px] font-bold rounded bg-indigo-50 text-indigo-600">一级产业</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="moveSelected(-1)" id="selUpBtn" class="px-2 py-1 text-[11px] font-bold text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50"><i class="fa fa-arrow-up mr-1"></i>上移</button>
+                        <button onclick="moveSelected(1)" id="selDownBtn" class="px-2 py-1 text-[11px] font-bold text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50"><i class="fa fa-arrow-down mr-1"></i>下移</button>
+                    </div>
+                </div>
+                <div class="px-5 py-5 space-y-4">
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 block mb-1">名称</label>
+                        <input id="selName" maxlength="30" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400">
+                    </div>
+                    <div id="selParentWrap">
+                        <label class="text-[11px] font-bold text-slate-500 block mb-1">所属一级产业</label>
+                        <select id="selParent" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-400 bg-white"></select>
+                    </div>
+                    <div class="flex items-center justify-between py-2 border-t border-slate-100">
+                        <div>
+                            <p class="text-xs font-bold text-slate-700">启用</p>
+                            <p class="text-[10px] text-slate-400 mt-0.5">停用后雷达不展示该项</p>
+                        </div>
+                        <div id="selSwitch" class="switch on" onclick="toggleSelEnabled()"></div>
+                    </div>
+                </div>
+                <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between">
+                    <button onclick="removeSelected()" class="px-3 py-2 text-xs font-bold text-red-500 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100">删除</button>
+                    <div class="flex items-center gap-2">
+                        <button id="selAddChildBtn" onclick="addChildForSelected()" class="px-3 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100">新增细分类</button>
+                        <button onclick="saveSelected()" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">保存修改</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tableWrap" class="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
         <table class="w-full text-xs">
             <thead class="bg-slate-50 text-slate-500">
                 <tr>
@@ -172,6 +226,8 @@
             document.getElementById('btnAddParent').classList.toggle('hidden', !ind);
             document.getElementById('btnAddChild').classList.toggle('hidden', !ind);
             document.getElementById('btnAddFlat').classList.toggle('hidden', ind);
+            document.getElementById('treeLayout').classList.toggle('hidden', !ind);
+            document.getElementById('tableWrap').classList.toggle('hidden', ind);
         }
 
         function statusHtml(it) {
@@ -202,57 +258,168 @@
         }
         function idxOf(obj) { return LIST.indexOf(obj); }
 
+        var selectedItem = null;
+
         function render() {
-            var body = document.getElementById('dictBody');
-            if (isIndustry()) renderIndustry(body); else renderFlat(body);
+            if (isIndustry()) {
+                renderTree();
+                renderEditor();
+            } else {
+                renderFlat(document.getElementById('dictBody'));
+            }
             updateCounts();
         }
 
-        function renderIndustry(body) {
+        function selectByIndex(gi, ci) {
+            var groups = indGroups();
+            var g = groups[gi];
+            if (!g) return;
+            selectedItem = ci < 0 ? g.parent : g.children[ci];
+            render();
+        }
+
+        function renderTree() {
+            var box = document.getElementById('indTree');
+            var keepTop = box.scrollTop;
             if (!LIST.length) {
-                body.innerHTML = '<tr><td colspan="4" class="px-4 py-12 text-center text-slate-400 text-xs"><i class="fa fa-inbox text-2xl block mb-2"></i>暂无产业配置，点击右上角「新增一级产业」添加</td></tr>';
+                box.innerHTML = '<div class="py-10 text-center text-xs text-slate-400">暂无产业配置，请点击右上角「新增一级产业」</div>';
                 return;
             }
-            var rows = '';
-            var groups = indGroups();
-            groups.forEach(function (g, gi) {
+            var html = '';
+            indGroups().forEach(function (g, gi) {
                 if (g.parent) {
-                    var p = g.parent, pi = idxOf(p);
-                    var isLast = gi === groups.length - 1 || !groups[gi + 1].parent;
-                    rows += '<tr class="border-t border-slate-100 bg-indigo-50/40' + (p.enabled === false ? ' opacity-60' : '') + '">'
-                        + '<td class="px-4 py-3 text-indigo-500 font-black">' + (gi + 1) + '</td>'
-                        + '<td class="px-4 py-3"><span class="font-black text-slate-700">' + esc(p.name) + '</span>'
-                        + '<span class="ml-2 px-1.5 py-0.5 text-[10px] rounded bg-indigo-100 text-indigo-600 font-bold">一级产业</span>'
-                        + '<span class="ml-2 text-[10px] text-slate-400">' + g.children.length + ' 个细分类</span></td>'
-                        + '<td class="px-4 py-3">' + statusHtml(p) + '</td>'
-                        + '<td class="px-4 py-3 text-right whitespace-nowrap">'
-                        + '<button onclick="openAddChild(decodeURIComponent(\'' + encodeURIComponent(p.name) + '\'))" class="px-2 py-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700">新增细分类</button>'
-                        + '<button onclick="moveGroup(' + gi + ',-1)" class="px-1.5 py-1 text-slate-400 hover:text-indigo-600 ' + disabledCls(gi === 0) + '" title="上移"><i class="fa fa-arrow-up"></i></button>'
-                        + '<button onclick="moveGroup(' + gi + ',1)" class="px-1.5 py-1 text-slate-400 hover:text-indigo-600 ' + disabledCls(isLast) + '" title="下移"><i class="fa fa-arrow-down"></i></button>'
-                        + '<button onclick="toggleItem(' + pi + ')" class="px-2 py-1 text-[11px] font-bold ' + toggleCls(p) + '">' + toggleText(p) + '</button>'
-                        + '<button onclick="openEdit(' + pi + ')" class="px-2 py-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700">编辑</button>'
-                        + '<button onclick="removeIndItem(' + pi + ')" class="px-2 py-1 text-[11px] font-bold text-red-500 hover:text-red-600">删除</button>'
-                        + '</td></tr>';
+                    var p = g.parent;
+                    var on = selectedItem === p;
+                    html += '<div onclick="selectByIndex(' + gi + ',-1)" class="flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer ' + (on ? 'bg-indigo-50' : 'hover:bg-slate-50') + '">'
+                        + '<i class="fa fa-folder-open-o text-indigo-400 text-xs"></i>'
+                        + '<span class="flex-1 text-xs font-bold truncate ' + (on ? 'text-indigo-700' : 'text-slate-700') + '">' + esc(p.name) + '</span>'
+                        + '<span class="text-[10px] text-slate-400">' + g.children.length + '</span>'
+                        + '<span class="w-1.5 h-1.5 rounded-full ' + (p.enabled !== false ? 'bg-emerald-500' : 'bg-slate-300') + '"></span>'
+                        + '</div>';
                 } else {
-                    rows += '<tr class="border-t border-slate-100 bg-amber-50/40"><td class="px-4 py-3 text-amber-500 font-black">-</td>'
-                        + '<td class="px-4 py-3" colspan="3"><span class="font-bold text-amber-600">未归入一级产业的细分类</span><span class="ml-2 text-[10px] text-slate-400">请在编辑中指定所属一级产业</span></td></tr>';
+                    html += '<div class="px-2 pt-3 pb-1 text-[10px] font-bold text-amber-500">未归入一级产业的细分类</div>';
                 }
                 g.children.forEach(function (c, ci) {
-                    var i = idxOf(c);
-                    rows += '<tr class="border-t border-slate-100' + (c.enabled === false ? ' opacity-60' : '') + '">'
-                        + '<td class="px-4 py-3 text-slate-400 font-bold pl-8">' + (g.parent ? (gi + 1) + '.' + (ci + 1) : '-') + '</td>'
-                        + '<td class="px-4 py-3"><span class="text-slate-300 mr-2"><i class="fa fa-level-up fa-rotate-90"></i></span><span class="font-bold text-slate-600">' + esc(c.name) + '</span></td>'
-                        + '<td class="px-4 py-3">' + statusHtml(c) + '</td>'
-                        + '<td class="px-4 py-3 text-right whitespace-nowrap">'
-                        + '<button onclick="moveChild(' + gi + ',' + ci + ',-1)" class="px-1.5 py-1 text-slate-400 hover:text-indigo-600 ' + disabledCls(ci === 0) + '" title="上移"><i class="fa fa-arrow-up"></i></button>'
-                        + '<button onclick="moveChild(' + gi + ',' + ci + ',1)" class="px-1.5 py-1 text-slate-400 hover:text-indigo-600 ' + disabledCls(ci === g.children.length - 1) + '" title="下移"><i class="fa fa-arrow-down"></i></button>'
-                        + '<button onclick="toggleItem(' + i + ')" class="px-2 py-1 text-[11px] font-bold ' + toggleCls(c) + '">' + toggleText(c) + '</button>'
-                        + '<button onclick="openEdit(' + i + ')" class="px-2 py-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700">编辑</button>'
-                        + '<button onclick="removeIndItem(' + i + ')" class="px-2 py-1 text-[11px] font-bold text-red-500 hover:text-red-600">删除</button>'
-                        + '</td></tr>';
+                    var con = selectedItem === c;
+                    html += '<div onclick="selectByIndex(' + gi + ',' + ci + ')" class="flex items-center gap-2 pl-7 pr-2 py-1.5 rounded-lg cursor-pointer ' + (con ? 'bg-indigo-50' : 'hover:bg-slate-50') + '">'
+                        + '<i class="fa fa-angle-right text-slate-300 text-[10px]"></i>'
+                        + '<span class="flex-1 text-xs truncate ' + (con ? 'text-indigo-700 font-bold' : 'text-slate-600') + '">' + esc(c.name) + '</span>'
+                        + '<span class="w-1.5 h-1.5 rounded-full ' + (c.enabled !== false ? 'bg-emerald-500' : 'bg-slate-300') + '"></span>'
+                        + '</div>';
                 });
             });
-            body.innerHTML = rows;
+            box.innerHTML = html;
+            box.scrollTop = keepTop;
+        }
+
+        function renderEditor() {
+            var empty = document.getElementById('indEmpty');
+            var ed = document.getElementById('indEditor');
+            var it = selectedItem;
+            if (!it || LIST.indexOf(it) < 0) {
+                selectedItem = null;
+                empty.classList.remove('hidden');
+                ed.classList.add('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+            ed.classList.remove('hidden');
+            document.getElementById('selType').textContent = it.isParent ? '一级产业' : '二级细分类';
+            document.getElementById('selName').value = it.name;
+            var child = !it.isParent;
+            document.getElementById('selParentWrap').style.display = child ? '' : 'none';
+            if (child) {
+                var parents = LIST.filter(function (x) { return x.isParent; });
+                var sel = document.getElementById('selParent');
+                sel.innerHTML = '<option value="">请选择一级产业</option>' + parents.map(function (p) {
+                    return '<option value="' + esc(p.name) + '">' + esc(p.name) + '</option>';
+                }).join('');
+                sel.value = it.parent || '';
+            }
+            document.getElementById('selSwitch').className = 'switch' + (it.enabled !== false ? ' on' : '');
+            document.getElementById('selAddChildBtn').style.display = it.isParent ? '' : 'none';
+            // 排序按钮状态
+            var groups = indGroups(), gi = -1, ci = -1;
+            groups.forEach(function (g, i) {
+                if (g.parent === it) gi = i;
+                var j = g.children.indexOf(it);
+                if (j >= 0) { gi = i; ci = j; }
+            });
+            var canUp = it.isParent ? (gi > 0 && !!groups[gi - 1].parent) : ci > 0;
+            var canDown = it.isParent ? (gi >= 0 && gi < groups.length - 1 && !!groups[gi + 1].parent) : (ci >= 0 && ci < groups[gi].children.length - 1);
+            var up = document.getElementById('selUpBtn'), down = document.getElementById('selDownBtn');
+            up.disabled = !canUp; up.classList.toggle('opacity-40', !canUp);
+            down.disabled = !canDown; down.classList.toggle('opacity-40', !canDown);
+        }
+
+        function insertAfterLastChild(child) {
+            var pIdx = -1;
+            LIST.forEach(function (x, i) { if (x.isParent && x.name === child.parent) pIdx = i; });
+            var at = pIdx >= 0 ? pIdx + 1 : LIST.length;
+            while (at < LIST.length && !LIST[at].isParent && LIST[at].parent === child.parent) at++;
+            LIST.splice(at, 0, child);
+        }
+
+        function saveSelected() {
+            var it = selectedItem;
+            if (!it) return;
+            var name = document.getElementById('selName').value.trim();
+            if (!name) { toast('请输入名称', false); return; }
+            var enabled = document.getElementById('selSwitch').classList.contains('on');
+            if (it.isParent) {
+                var dup = LIST.some(function (x) { return x !== it && x.isParent && x.name === name; });
+                if (dup) { toast('一级产业名称已存在', false); return; }
+                LIST.forEach(function (x) { if (!x.isParent && x.parent === it.name) x.parent = name; });
+                it.name = name;
+                it.enabled = enabled;
+            } else {
+                var parentName = document.getElementById('selParent').value;
+                if (!parentName) { toast('请选择所属一级产业', false); return; }
+                var dup2 = LIST.some(function (x) { return x !== it && !x.isParent && x.parent === parentName && x.name === name; });
+                if (dup2) { toast('该一级产业下已存在同名细分类', false); return; }
+                var moved = it.parent !== parentName;
+                it.name = name;
+                it.enabled = enabled;
+                if (moved) {
+                    LIST.splice(LIST.indexOf(it), 1);
+                    it.parent = parentName;
+                    insertAfterLastChild(it);
+                }
+            }
+            render();
+            toast('已修改，记得点击「保存并同步」');
+        }
+
+        function toggleSelEnabled() {
+            if (!selectedItem) return;
+            selectedItem.enabled = selectedItem.enabled === false;
+            render();
+        }
+
+        function removeSelected() {
+            if (!selectedItem) return;
+            var i = LIST.indexOf(selectedItem);
+            if (i < 0) return;
+            removeIndItem(i);
+            selectedItem = null;
+            render();
+        }
+
+        function moveSelected(dir) {
+            if (!selectedItem) return;
+            var groups = indGroups(), gi = -1, ci = -1;
+            groups.forEach(function (g, i) {
+                if (g.parent === selectedItem) gi = i;
+                var j = g.children.indexOf(selectedItem);
+                if (j >= 0) { gi = i; ci = j; }
+            });
+            if (selectedItem.isParent) moveGroup(gi, dir); else moveChild(gi, ci, dir);
+            render();
+        }
+
+        function addChildForSelected() {
+            if (!selectedItem) return;
+            openAddChild(selectedItem.isParent ? selectedItem.name : (selectedItem.parent || ''));
         }
 
         function renderFlat(body) {
@@ -438,7 +605,9 @@
                         }
                     }
                 } else if (kind === 'parent') {
-                    LIST.push({ name: name, enabled: enabled, isParent: true, parent: '' });
+                    var newParent = { name: name, enabled: enabled, isParent: true, parent: '' };
+                    LIST.push(newParent);
+                    selectedItem = newParent;
                 } else {
                     var newChild = { name: name, enabled: enabled, isParent: false, parent: parentName };
                     var pIdx2 = -1;
@@ -446,6 +615,7 @@
                     var insertAt2 = pIdx2 >= 0 ? pIdx2 + 1 : LIST.length;
                     while (insertAt2 < LIST.length && !LIST[insertAt2].isParent && LIST[insertAt2].parent === parentName) insertAt2++;
                     LIST.splice(insertAt2, 0, newChild);
+                    selectedItem = newChild;
                 }
                 closeEdit();
                 render();
