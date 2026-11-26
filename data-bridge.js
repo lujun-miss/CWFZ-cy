@@ -2988,6 +2988,24 @@
                 { type: '微信沟通', date: '2026-09-02', content: '客户打开分享的政策匹配报告多次，对省新能源产业专项兴趣浓厚，询问申报窗口期。', plan: '2026-09-10' }
             ]
         },
+        // ========== 客服录入的客户后来注册平台（来源仍为客服录入，账号状态为已注册） ==========
+        {
+            id: 'U008', type: 'enterprise', registerTime: '2026-11-18 10:26:00',
+            name: '云帆数据科技有限公司', code: '91330106MA2XXXX8K', industry: '电子信息',
+            contact: '周雅琴', phone: '137****4521', accountPhone: '137****4521', region: '浙江省 杭州市 西湖区',
+            employees: 96, revenue: 5300, quals: ['科技型中小企业'],
+            status: '意向客户', source: '客服录入', registered: true, owner: '张销售',
+            createdAt: '2026-10-12 15:40:00', updatedAt: '2026-11-18 10:26:00',
+            assessmentConditions: { rdRatio: 6.1, ipCount: 4, sciStaffRatio: 12, hiTechRatio: 60, loss3y: false, rndProject: true, industryUni: false, fundPref: '补贴+资质认定', windowPref: 'Q1', __measured: false },
+            credits: 100,
+            creditHistory: [
+                { date: '2026-11-18', item: '注册赠送', amount: 100 }
+            ],
+            followups: [
+                { type: '电话沟通', date: '2026-10-12', content: '客服首次外呼建档，企业关注研发费用补贴。', plan: '2026-10-20' },
+                { type: '微信沟通', date: '2026-11-18', content: '客户通过客服发送的链接完成平台注册，已转为注册客户。', plan: '' }
+            ]
+        },
         // ========== 个人用户（type:personal） ==========
         {
             id: 'U004', type: 'personal', registerTime: '2026-09-15',
