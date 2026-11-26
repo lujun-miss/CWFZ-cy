@@ -973,8 +973,8 @@
         var html = '';
         groups.forEach(function (g, gi) {
             var hasSel = g.items.some(function (it) { return STATE.industries.indexOf(it.name) >= 0; });
-            html += '<div class="w-full ind-group" data-group="' + gi + '">'
-                 + '<label class="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer hover:text-blue-600">'
+            html += '<div class="ind-group flex flex-col' + (hasSel ? ' w-full' : '') + '" data-group="' + gi + '">'
+                 + '<label class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer hover:text-blue-600">'
                  + '<input type="checkbox" data-parent-group="' + gi + '" class="accent-blue-600 ind-parent-cb"' + (hasSel ? ' checked' : '') + '>' + g.name + '</label>'
                  + '<div class="ind-children flex flex-wrap gap-x-5 gap-y-2 mt-1.5 pl-6' + (hasSel ? '' : ' hidden') + '">'
                  + g.items.map(function (item) {
@@ -994,8 +994,10 @@
                 var sub = grp ? grp.querySelector('.ind-children') : null;
                 if (sub) {
                     if (pcb.checked) {
+                        if (grp) grp.classList.add('w-full');
                         sub.classList.remove('hidden');
                     } else {
+                        if (grp) grp.classList.remove('w-full');
                         sub.classList.add('hidden');
                         sub.querySelectorAll('.industry-cb:checked').forEach(function(cb) {
                             cb.checked = false;
@@ -1249,6 +1251,7 @@
             box.querySelectorAll('[data-radio-group]').forEach(function(sub) { sub.classList.add('hidden'); });
             // 收起所有一级产业下的二级细分类
             box.querySelectorAll('.ind-children').forEach(function(sub) { sub.classList.add('hidden'); });
+            box.querySelectorAll('.ind-group').forEach(function(grp) { grp.classList.remove('w-full'); });
         }
         updateIndustryCount();
         var profile = document.getElementById('companyProfile');
@@ -1276,6 +1279,7 @@
                 var any = !!grp.querySelector('.industry-cb:checked');
                 if (pcb) pcb.checked = any;
                 if (sub) sub.classList.toggle('hidden', !any);
+                grp.classList.toggle('w-full', any);
             });
             box.querySelectorAll('input[data-key]').forEach(function(inp) {
                 var k = inp.getAttribute('data-key');
