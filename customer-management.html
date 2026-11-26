@@ -127,7 +127,6 @@
                 <button id="tabAll" onclick="switchUserTab('all')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors bg-brand-600 text-white">全部用户 <span id="cntAll" class="ml-1 opacity-75">0</span></button>
                 <button id="tabEnt" onclick="switchUserTab('enterprise')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors text-gray-600 hover:bg-gray-50">🟢 企业用户 <span id="cntEnt" class="ml-1 opacity-60">0</span></button>
                 <button id="tabPer" onclick="switchUserTab('personal')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors text-gray-600 hover:bg-gray-50">🔵 个人用户 <span id="cntPer" class="ml-1 opacity-60">0</span></button>
-                <button id="tabReg" onclick="switchUserTab('registered')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors text-gray-600 hover:bg-gray-50"><i class="fa fa-id-card-o mr-1"></i>注册客户 <span id="cntReg" class="ml-1 opacity-60">0</span></button>
             </div>
             <!-- 状态筛选：带数量角标（与 H5 客户列表同口径） -->
             <div class="px-6 py-2.5 border-b border-gray-100 flex items-center gap-2 flex-wrap" id="statusChips"></div>
@@ -387,7 +386,6 @@
             document.getElementById('tabAll').className = 'px-4 py-2 rounded-lg text-sm font-bold transition-colors ' + (tab === 'all' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50');
             document.getElementById('tabEnt').className = 'px-4 py-2 rounded-lg text-sm font-bold transition-colors ' + (tab === 'enterprise' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50');
             document.getElementById('tabPer').className = 'px-4 py-2 rounded-lg text-sm font-bold transition-colors ' + (tab === 'personal' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50');
-            document.getElementById('tabReg').className = 'px-4 py-2 rounded-lg text-sm font-bold transition-colors ' + (tab === 'registered' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50');
             renderTable();
         }
 
@@ -401,7 +399,6 @@
             var opts = statusOptions();
             var base = CUSTOMERS.filter(function(c) {
                 if (!inScope(c)) return false;
-                if (CURRENT_TAB === 'registered') return hasAccount(c);
                 return CURRENT_TAB === 'all' || c.type === CURRENT_TAB;
             });
             document.getElementById('statusChips').innerHTML = opts.map(function(o) {
@@ -421,9 +418,7 @@
             var src = document.getElementById('filterSource').value;
             return CUSTOMERS.filter(function(c) {
                 if (!inScope(c)) return false;
-                if (CURRENT_TAB === 'registered') {
-                    if (!hasAccount(c)) return false;
-                } else if (CURRENT_TAB !== 'all' && c.type !== CURRENT_TAB) return false;
+                if (CURRENT_TAB !== 'all' && c.type !== CURRENT_TAB) return false;
                 if (kw) {
                     // 企业：搜 name/contact/phone；个人：搜 realName/phone/occupation
                     var hay = c.type === 'personal' ? (c.realName + ' ' + c.phone + ' ' + (c.occupation || '')) : (c.name + ' ' + (c.contact || '') + ' ' + (c.phone || ''));
@@ -452,11 +447,10 @@
             var perCnt = scopeList.filter(function(u){ return u.type === 'personal'; }).length;
             document.getElementById('cntEnt').textContent = entCnt;
             document.getElementById('cntPer').textContent = perCnt;
-            document.getElementById('cntReg').textContent = CUSTOMERS.filter(function(u) { return hasAccount(u) && inScope(u); }).length;
             var list = filteredCustomers();
             var tbody = document.getElementById('customerTable');
             if (!list.length) {
-                tbody.innerHTML = '<tr><td colspan="10" class="px-6 py-10 text-center text-gray-400 text-sm"><i class="fa fa-inbox mr-1"></i>暂无' + (CURRENT_TAB === 'enterprise' ? '企业' : CURRENT_TAB === 'personal' ? '个人' : CURRENT_TAB === 'registered' ? '注册' : '') + '客户</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="px-6 py-10 text-center text-gray-400 text-sm"><i class="fa fa-inbox mr-1"></i>暂无' + (CURRENT_TAB === 'enterprise' ? '企业' : CURRENT_TAB === 'personal' ? '个人' : '') + '客户</td></tr>';
             } else {
                 tbody.innerHTML = list.map(function(u, i) {
                     var typeLabel = u.type === 'personal' ? '<span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-bold">🔵 个人</span>' : '<span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-bold">🟢 企业</span>';
