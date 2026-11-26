@@ -141,6 +141,7 @@
                         <tr class="bg-gray-50 text-gray-500 text-left">
                             <th class="px-6 py-3 font-medium">类型</th>
                             <th class="px-6 py-3 font-medium">名称</th>
+                            <th class="px-6 py-3 font-medium">手机号</th>
                             <th class="px-6 py-3 font-medium">客户来源</th>
                             <th class="px-6 py-3 font-medium">行业/职业</th>
                             <th class="px-6 py-3 font-medium">转化状态</th>
@@ -469,7 +470,8 @@
                 tbody.innerHTML = list.map(function(u, i) {
                     var typeLabel = u.type === 'personal' ? '<span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-bold">🔵 个人</span>' : '<span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-bold">🟢 企业</span>';
                     var mainName = u.type === 'personal' ? (u.realName || '—') : u.name;
-                    var subLine = u.type === 'personal' ? (u.phone || '—') : (u.code || '—');
+                    var subLine = u.type === 'personal' ? (u.region || '—') : (u.code || '—');
+                    var phoneText = u.accountPhone || u.phone || '—';
                     var indOrJob = u.type === 'personal' ? (u.occupation || '—') : (u.industry || '—');
                     var src = customerSource(u);
                     var srcBadge = '<span class="px-2 py-0.5 rounded text-xs ' + (SOURCE_COLORS[src] || 'bg-gray-100 text-gray-600') + '">' + esc(src) + '</span>' +
@@ -482,6 +484,7 @@
                             '<div class="w-9 h-9 ' + AVATAR_COLORS[i % 6] + ' rounded-lg flex items-center justify-center font-semibold text-sm">' + esc((u.type === 'personal' ? u.realName : u.name) || '—').charAt(0) + '</div>' +
                             '<div><p class="font-medium text-gray-800">' + esc(mainName) + '</p><p class="text-xs text-gray-400">' + esc(subLine) + '</p></div>' +
                         '</div></td>' +
+                        '<td class="px-6 py-3.5"><span class="text-gray-600 text-xs">' + esc(phoneText) + '</span></td>' +
                         '<td class="px-6 py-3.5">' + srcBadge + '</td>' +
                         '<td class="px-6 py-3.5"><span class="text-gray-600">' + esc(indOrJob) + '</span></td>' +
                         '<td class="px-6 py-3.5"><span class="px-2.5 py-1 rounded-full text-xs ' + statusColor(u) + '">' + esc(u.status || '—') + '</span></td>' +
@@ -775,6 +778,7 @@
                 html += '<div><span class="text-gray-500">企业名称：</span><span class="text-gray-700">' + esc(u.name || '—') + '</span></div>' +
                     '<div><span class="text-gray-500">联系人：</span><span class="text-gray-700">' + esc(u.contact || '—') + '</span></div>' +
                     '<div><span class="text-gray-500">手机号：</span><span class="text-gray-700">' + esc(u.phone || '—') + '</span></div>' +
+                    (u.accountPhone && u.accountPhone !== u.phone ? '<div><span class="text-gray-500">登录手机号：</span><span class="text-gray-700">' + esc(u.accountPhone) + '</span></div>' : '') +
                     '<div><span class="text-gray-500">所在地区：</span><span class="text-gray-700">' + esc(u.region || '—') + '</span></div>' +
                     '<div class="col-span-2"><span class="text-gray-500">统一社会信用代码：</span><span class="text-gray-700">' + esc(u.code || '—') + '</span></div>';
             }
