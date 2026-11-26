@@ -105,15 +105,13 @@
                     <option>王销售</option>
                     <option>李销售</option>
                 </select>
+                <button onclick="renderTable()" class="px-5 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700">
+                    <i class="fa fa-search mr-1"></i>查询
+                </button>
                 <button onclick="resetFilters()" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
                     <i class="fa fa-refresh mr-1"></i>重置
                 </button>
                 <div class="flex items-center gap-2 ml-auto">
-                    <div class="flex items-center bg-gray-50 rounded-lg p-1" title="全量客户=运营视图；我的客户=销售视图">
-                        <button id="scopeAll" onclick="setViewScope('all')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-600 text-white">全量客户</button>
-                        <button id="scopeMine" onclick="setViewScope('mine')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50">我的客户</button>
-                    </div>
-                    <span id="scopeHint" class="text-xs text-gray-400">运营视图：全部客户</span>
                     <button onclick="openNewCustomer()" class="px-4 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700"><i class="fa fa-plus mr-1"></i>录入企业</button>
                     <button onclick="openImportCustomers()" class="px-4 py-2.5 border border-brand-600 text-brand-600 rounded-lg text-sm font-medium hover:bg-brand-50"><i class="fa fa-upload mr-1"></i>导入名单</button>
                     <button onclick="openAssignLog()" class="px-4 py-2.5 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50"><i class="fa fa-exchange mr-1"></i>分配记录</button>
@@ -305,36 +303,6 @@
         function customerSource(u) { return u.source || '平台注册'; }
         function hasAccount(u) { var s = customerSource(u); return s === '平台注册' || s === '分享转化'; }
 
-        // 视图范围：all = 全量客户（运营视角）；mine = 我的客户（销售视角）。同一份客户数据，不重复建库。
-        var VIEW_SCOPE = 'all';
-        function currentOperator() {
-            try {
-                var p = JSON.parse(localStorage.getItem('ceyuan_member_profile') || 'null') || {};
-                return p.contact || p.name || '张销售';
-            } catch (e) { return '张销售'; }
-        }
-        function inScope(u) {
-            if (VIEW_SCOPE !== 'mine') return true;
-            return (u.owner || '') === currentOperator();
-        }
-        function setViewScope(s) {
-            VIEW_SCOPE = s;
-            var on = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-600 text-white';
-            var off = 'px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50';
-            document.getElementById('scopeAll').className = s === 'all' ? on : off;
-            document.getElementById('scopeMine').className = s === 'mine' ? on : off;
-            document.getElementById('scopeHint').textContent = s === 'all' ? '运营视图：全部客户' : '销售视图：仅本人负责的客户';
-            var ownerSel = document.getElementById('filterOwner');
-            if (s === 'mine') {
-                var me = currentOperator();
-                var opt = Array.prototype.slice.call(ownerSel.options).some(function(o) { return o.value === me; });
-                if (opt) ownerSel.value = me;
-            } else {
-                ownerSel.value = '';
-            }
-            renderTable();
-        }
-
         var AVATAR_COLORS = ['bg-brand-100 text-brand-700', 'bg-blue-100 text-blue-700', 'bg-purple-100 text-purple-700', 'bg-orange-100 text-orange-700', 'bg-teal-100 text-teal-700', 'bg-pink-100 text-pink-700'];
         // 企业状态色
         var ENT_STATUS_COLORS = { '潜在客户': 'bg-blue-50 text-blue-700', '意向客户': 'bg-orange-50 text-orange-700', '成交客户': 'bg-emerald-50 text-emerald-700', '流失客户': 'bg-gray-100 text-gray-500' };
@@ -359,9 +327,7 @@
                 if (!Array.isArray(u.assignHistory)) u.assignHistory = [];
                 if (!Array.isArray(u.statusHistory)) u.statusHistory = [];
             });
-            var scopeParam = 'all';
-            try { if (new URLSearchParams(location.search).get('scope') === 'mine') scopeParam = 'mine'; } catch (e) {}
-            setViewScope(scopeParam);
+            renderTable();
         }
 
         // ===== 工具 =====
@@ -398,7 +364,6 @@
         function renderStatusChips() {
             var opts = statusOptions();
             var base = CUSTOMERS.filter(function(c) {
-                if (!inScope(c)) return false;
                 return CURRENT_TAB === 'all' || c.type === CURRENT_TAB;
             });
             document.getElementById('statusChips').innerHTML = opts.map(function(o) {
@@ -417,7 +382,6 @@
             var ind = document.getElementById('filterIndustry').value;
             var src = document.getElementById('filterSource').value;
             return CUSTOMERS.filter(function(c) {
-                if (!inScope(c)) return false;
                 if (CURRENT_TAB !== 'all' && c.type !== CURRENT_TAB) return false;
                 if (kw) {
                     // 企业：搜 name/contact/phone；个人：搜 realName/phone/occupation
@@ -441,10 +405,9 @@
 
         function renderTable() {
             // 更新 tab 徽章
-            var scopeList = CUSTOMERS.filter(inScope);
-            document.getElementById('cntAll').textContent = scopeList.length;
-            var entCnt = scopeList.filter(function(u){ return u.type === 'enterprise'; }).length;
-            var perCnt = scopeList.filter(function(u){ return u.type === 'personal'; }).length;
+            document.getElementById('cntAll').textContent = CUSTOMERS.length;
+            var entCnt = CUSTOMERS.filter(function(u){ return u.type === 'enterprise'; }).length;
+            var perCnt = CUSTOMERS.filter(function(u){ return u.type === 'personal'; }).length;
             document.getElementById('cntEnt').textContent = entCnt;
             document.getElementById('cntPer').textContent = perCnt;
             var list = filteredCustomers();
