@@ -90,15 +90,6 @@
                     <option>高端装备</option>
                     <option>新能源</option>
                 </select>
-                <select id="filterSource" onchange="renderTable()" class="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-gray-700">
-                    <option value="">全部来源</option>
-                    <option value="__registered">已注册账号</option>
-                    <option>天眼查</option>
-                    <option>平台注册</option>
-                    <option>客服录入</option>
-                    <option>批量导入</option>
-                    <option>分享转化</option>
-                </select>
                 <select id="filterOwner" onchange="renderTable()" class="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm text-gray-700">
                     <option value="">全部销售员</option>
                     <option value="__none">未分配</option>
@@ -117,6 +108,11 @@
                     <button onclick="openImportCustomers()" class="px-4 py-2.5 border border-brand-600 text-brand-600 rounded-lg text-sm font-medium hover:bg-brand-50"><i class="fa fa-upload mr-1"></i>导入名单</button>
                     <button onclick="openAssignLog()" class="px-4 py-2.5 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50"><i class="fa fa-exchange mr-1"></i>分配记录</button>
                 </div>
+            </div>
+            <!-- 客户来源多选（复选框式） -->
+            <div class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                <span class="text-xs text-gray-500 font-medium mr-1">客户来源：</span>
+                <div id="sourceFilter" class="flex flex-wrap items-center gap-2"></div>
             </div>
         </div>
 
@@ -306,6 +302,25 @@
             if (typeof u.registered === 'boolean') return u.registered;
             var s = customerSource(u); return s === '平台注册' || s === '分享转化';
         }
+        // 来源多选筛选（复选框式，可多选；未选中任何项 = 全部）
+        var SOURCE_OPTIONS = [['__registered', '已注册账号'], ['天眼查', '天眼查'], ['平台注册', '平台注册'], ['客服录入', '客服录入'], ['批量导入', '批量导入'], ['分享转化', '分享转化']];
+        var SOURCE_FILTER = [];
+        function renderSourceChips() {
+            var box = document.getElementById('sourceFilter');
+            if (!box) return;
+            box.innerHTML = SOURCE_OPTIONS.map(function(o) {
+                var on = SOURCE_FILTER.indexOf(o[0]) !== -1;
+                return '<button type="button" onclick="toggleSource(\'' + o[0] + '\')" class="px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ' +
+                    (on ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-600') + '">' +
+                    (on ? '<i class="fa fa-check mr-1"></i>' : '') + o[1] + '</button>';
+            }).join('');
+        }
+        function toggleSource(v) {
+            var i = SOURCE_FILTER.indexOf(v);
+            if (i === -1) SOURCE_FILTER.push(v); else SOURCE_FILTER.splice(i, 1);
+            renderSourceChips();
+            renderTable();
+        }
 
         var AVATAR_COLORS = ['bg-brand-100 text-brand-700', 'bg-blue-100 text-blue-700', 'bg-purple-100 text-purple-700', 'bg-orange-100 text-orange-700', 'bg-teal-100 text-teal-700', 'bg-pink-100 text-pink-700'];
         // 企业状态色
@@ -331,6 +346,7 @@
                 if (!Array.isArray(u.assignHistory)) u.assignHistory = [];
                 if (!Array.isArray(u.statusHistory)) u.statusHistory = [];
             });
+            renderSourceChips();
             renderTable();
         }
 
@@ -384,7 +400,6 @@
         function filteredCustomers() {
             var kw = (document.getElementById('searchInput').value || '').trim().toLowerCase();
             var ind = document.getElementById('filterIndustry').value;
-            var src = document.getElementById('filterSource').value;
             return CUSTOMERS.filter(function(c) {
                 if (CURRENT_TAB !== 'all' && c.type !== CURRENT_TAB) return false;
                 if (kw) {
@@ -396,9 +411,11 @@
                     // 行业筛选只对企业生效
                     if (c.type === 'enterprise' && c.industry !== ind) return false;
                 }
-                if (src) {
-                    if (src === '__registered') { if (!hasAccount(c)) return false; }
-                    else if (customerSource(c) !== src) return false;
+                if (SOURCE_FILTER.length) {
+                    var srcHit = SOURCE_FILTER.some(function(f) {
+                        return f === '__registered' ? hasAccount(c) : customerSource(c) === f;
+                    });
+                    if (!srcHit) return false;
                 }
                 var ownerF = (document.getElementById('filterOwner') || {}).value || '';
                 if (ownerF) {
@@ -458,7 +475,8 @@
         function resetFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('filterIndustry').value = '';
-            document.getElementById('filterSource').value = '';
+            SOURCE_FILTER = [];
+            renderSourceChips();
             document.getElementById('filterOwner').value = '';
             STATUS_FILTER = '全部';
             renderTable();
