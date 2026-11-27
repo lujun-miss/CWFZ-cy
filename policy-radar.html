@@ -2128,6 +2128,7 @@
         for (var d=1; d<=days; d++) counts[prefix+String(d).padStart(2,'0')]=0;
         var byDate={};
         var total=0;
+        var ids={};
         _calVisiblePolicies().forEach(function(p){
             var hit=false;
             (p.batches||[]).forEach(function(b){
@@ -2151,10 +2152,12 @@
                     }
                 }
             });
-            if (hit) total++;
+            if (hit) { total++; ids[_calPolicyKey(p)]=1; }
         });
-        return { counts:counts, byDate:byDate, total:total, refYear:0 };
+        return { counts:counts, byDate:byDate, total:total, ids:ids, refYear:0 };
     }
+    // 项目唯一键：优先政策 id，缺失时用名称（用于判断当年是否已发布）
+    function _calPolicyKey(p) { return String((p&&(p.id||p.name))||''); }
 
     function _calShiftYearStr(ds, delta) {
         if (!ds) return '';
@@ -2163,18 +2166,21 @@
         return _calFmt(d);
     }
 
-    // 参考数据：把往年同月数据按年份差平移到目标年（仅作参考展示）
-    function _calShiftToYear(src, fromYear, toYear, month) {
+    // 参考数据：把往年同月数据平移到目标年；当年已发布的项目（skipIds）不再作为参考
+    function _calShiftToYear(src, fromYear, toYear, month, skipIds) {
         var delta=toYear-fromYear;
         var counts={}, byDate={};
+        var ids={};
         Object.keys(src.byDate).forEach(function(ds){
             var d=_calParse(ds);
             d.setFullYear(d.getFullYear()+delta);
             // 闰日等平移后不在目标月则跳过
             if (d.getMonth()+1!==month) return;
             var nds=_calFmt(d);
-            counts[nds]=src.counts[ds]||0;
-            byDate[nds]=src.byDate[ds].map(function(it){
+            var list=src.byDate[ds].filter(function(it){
+                return !(skipIds&&skipIds[_calPolicyKey(it.policy)]);
+            }).map(function(it){
+                ids[_calPolicyKey(it.policy)]=1;
                 return {
                     policy:it.policy,
                     batch:{
@@ -2187,31 +2193,60 @@
                     refYear:fromYear
                 };
             });
+            if (!list.length) return;
+            counts[nds]=list.length;
+            byDate[nds]=list;
         });
-        return { counts:counts, byDate:byDate, total:src.total, refYear:fromYear };
+        return { counts:counts, byDate:byDate, total:Object.keys(ids).length, ids:ids, refYear:fromYear };
     }
 
-    // 解析某月展示数据：真实数据优先；该月暂无数据时参考上一年同期（最多回溯3年）
+    // 合并真实与参考数据（按项目替换：已发布项目只保留真实数据）
+    function _calMergeMonths(real, ref) {
+        var counts={}, byDate={}, dayRef={};
+        Object.keys(real.counts).forEach(function(ds){
+            counts[ds]=real.counts[ds]||0;
+            byDate[ds]=(real.byDate[ds]||[]).slice();
+            if (counts[ds]>0) dayRef[ds]=false;
+        });
+        Object.keys(ref.counts).forEach(function(ds){
+            counts[ds]=(counts[ds]||0)+(ref.counts[ds]||0);
+            byDate[ds]=(byDate[ds]||[]).concat(ref.byDate[ds]||[]);
+            // 当天没有真实项目时才标记为「仅参考」
+            if (!real.counts[ds]) dayRef[ds]=true;
+        });
+        return {
+            counts:counts, byDate:byDate, dayRef:dayRef,
+            total:real.total+ref.total,
+            realTotal:real.total, refTotal:ref.total,
+            refYear:ref.refYear
+        };
+    }
+
+    // 解析某月展示数据：真实数据优先；缺失的项目用上一年同期补充（最多回溯3年）
     function _calResolveMonth(year, month) {
         var real=_calMonthReal(year, month);
-        if (real.total>0) return real;
+        var ref=null;
         for (var i=1; i<=3; i++) {
             var ry=year-i;
             if (ry<2000) break;
             var src=_calMonthReal(ry, month);
-            if (src.total>0) return _calShiftToYear(src, ry, year, month);
+            if (src.total>0) { ref=_calShiftToYear(src, ry, year, month, real.ids); break; }
         }
-        return real;
+        if (!ref||!ref.total) return real;
+        return _calMergeMonths(real, ref);
     }
 
-    // 获取某日可申报项目列表（真实数据优先，缺失时展示上一年同期参考）
+    // 获取某日可申报项目列表（真实数据在前，参考数据在后）
     function _calItemsOnDate(dateStr) {
         var d=_calParse(dateStr);
         var data=_calResolveMonth(d.getFullYear(), d.getMonth()+1);
         var items=(data.byDate[dateStr]||[]).slice();
-        // 按紧急程度排序
         var order={rose:0,orange:1,emerald:2,blue:3,amber:4,slate:5};
-        items.sort(function(a,b){ return (order[a.urgency.color]||9)-(order[b.urgency.color]||9); });
+        items.sort(function(a,b){
+            var ra=a.refYear?1:0, rb=b.refYear?1:0;
+            if (ra!==rb) return ra-rb;
+            return (order[a.urgency.color]||9)-(order[b.urgency.color]||9);
+        });
         return items;
     }
 
@@ -2229,7 +2264,9 @@
         var prevDays=new Date(year, month-1, 0).getDate();
         var resolved=_calResolveMonth(year, month);
         var counts=resolved.counts;
+        var dayRef=resolved.dayRef||{};
         var isRef=!!resolved.refYear;
+        var hasMixed=isRef&&resolved.realTotal>0;
         var today=new Date(); today.setHours(0,0,0,0);
         var selDs=CAL.selectedDate;
 
@@ -2247,14 +2284,15 @@
             }
             var ds=cellYear+'-'+String(cellMonth).padStart(2,'0')+'-'+String(cellDate).padStart(2,'0');
             var cnt=counts[ds]||0;
+            var refDay=!!dayRef[ds]&&cnt>0;
             var dayDt=_calParse(ds); dayDt.setHours(0,0,0,0);
             var isToday=dayDt.getTime()===today.getTime();
             var isSel=ds===selDs;
 
-            // 样式：申报日浅粉底+右上角红色数量角标，选中日深红实底
+            // 样式：申报日浅粉底+右上角红色数量角标，选中日深红实底；仅含参考数据的日期用琥珀色
             var cls='calendar-day relative h-16 rounded-lg p-1 cursor-pointer transition-all';
             if (isSel) cls='cal-selected-day relative h-16 rounded-lg p-1 cursor-pointer transition-all bg-rose-600 border-2 border-rose-600';
-            else if (inMonth&&cnt>0) cls+=(isRef?' cal-ref-day border border-amber-100':' cal-declaration-day border border-rose-100');
+            else if (inMonth&&cnt>0) cls+=(refDay?' cal-ref-day border border-amber-100':' cal-declaration-day border border-rose-100');
             else if (inMonth) cls+=' bg-white border border-slate-100 hover:border-rose-200 hover:shadow-sm';
             else cls+=' bg-slate-50/50 text-slate-300 border border-slate-50';
             if (isToday&&!isSel) cls+=' border-2 border-blue-500'+(cnt>0?'':' bg-blue-50');
@@ -2268,7 +2306,7 @@
             html+='<div class="'+cls+'" onclick="_calSelectDate(\''+ds+'\')">';
             html+='<div class="text-[11px] font-bold" style="color:'+dateColor+'">'+cellDate+'</div>';
             if (cnt>0) {
-                html+='<span class="absolute top-0.5 right-1 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-black leading-4 text-center '+(inMonth?(isRef?'text-amber-500':'text-rose-600'):'text-rose-300')+'">'+cnt+'</span>';
+                html+='<span class="absolute top-0.5 right-1 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-black leading-4 text-center '+(inMonth?(refDay?'text-amber-500':'text-rose-600'):'text-rose-300')+'">'+cnt+'</span>';
             }
             if (isToday&&!isSel) {
                 html+='<span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-blue-500"></span>';
@@ -2277,19 +2315,29 @@
         }
         body.innerHTML=html;
 
-        // 本月汇总：真实数据；该月暂无数据时展示上一年同期参考
+        // 本月汇总：真实数据 + 未发布项目用上一年同期补充
         var sumEl=document.getElementById('calSummary');
         if (sumEl) {
-            sumEl.innerText=isRef
-                ? '参考 '+resolved.refYear+' 年同期，共 '+resolved.total+' 个可申报项目'
-                : '本月共 '+resolved.total+' 个可申报项目';
-            sumEl.className=isRef?'text-amber-500 font-bold':'text-rose-500 font-bold';
+            if (hasMixed) {
+                sumEl.innerText='本月共 '+resolved.total+' 个可申报项目（其中 '+resolved.refTotal+' 个参考 '+resolved.refYear+' 年同期）';
+                sumEl.className='text-amber-500 font-bold';
+            } else if (isRef) {
+                sumEl.innerText='参考 '+resolved.refYear+' 年同期，共 '+resolved.total+' 个可申报项目';
+                sumEl.className='text-amber-500 font-bold';
+            } else {
+                sumEl.innerText='本月共 '+resolved.total+' 个可申报项目';
+                sumEl.className='text-rose-500 font-bold';
+            }
         }
         var noteEl=document.getElementById('calNote');
         if (noteEl) {
-            noteEl.innerHTML=isRef
-                ? '<i class="fa fa-info-circle mr-1"></i>注：'+year+'年'+month+'月暂无官方申报数据，以下为 '+resolved.refYear+' 年同期项目，仅供参考'
-                : '<i class="fa fa-info-circle mr-1"></i>注：角标代表当日可申报项目数量（点击日期查看详情）';
+            if (hasMixed) {
+                noteEl.innerHTML='<i class="fa fa-info-circle mr-1"></i>注：本月部分项目尚未发布，已用 '+resolved.refYear+' 年同期项目补充，带「参考」的仅作排期参考';
+            } else if (isRef) {
+                noteEl.innerHTML='<i class="fa fa-info-circle mr-1"></i>注：'+year+'年'+month+'月暂无官方申报数据，以下为 '+resolved.refYear+' 年同期项目，仅供参考';
+            } else {
+                noteEl.innerHTML='<i class="fa fa-info-circle mr-1"></i>注：角标代表当日可申报项目数量（点击日期查看详情）';
+            }
         }
     }
 
@@ -2316,11 +2364,12 @@
 
         var items=_calItemsOnDate(CAL.selectedDate);
         var dt=_calParse(CAL.selectedDate);
-        var isRefDay=!!(items.length&&items[0].refYear);
-        var refYear=isRefDay?items[0].refYear:0;
+        var refItems=items.filter(function(it){ return it.refYear; });
+        var isAllRef=items.length>0&&refItems.length===items.length;
         var weekDays=['日','一','二','三','四','五','六'];
-        titleEl.innerHTML='<i class="fa fa-list-ul text-blue-600 mr-2"></i>'+(dt.getMonth()+1)+'月'+dt.getDate()+'日 · 周'+weekDays[dt.getDay()]+' 可申报项目'+(isRefDay?'<span class="ml-1 text-[9px] font-bold text-amber-600">参考</span>':'');
-        countEl.innerText='共 '+items.length+' 个'+(isRefDay?'（参考）':'');
+        var refTip=isAllRef?refItems[0].refYear+'年同期参考':(refItems.length?'含 '+refItems.length+' 个同期参考':'');
+        titleEl.innerHTML='<i class="fa fa-list-ul text-blue-600 mr-2"></i>'+(dt.getMonth()+1)+'月'+dt.getDate()+'日 · 周'+weekDays[dt.getDay()]+' 可申报项目'+(refTip?'<span class="ml-1 text-[9px] font-bold text-amber-600">'+refTip+'</span>':'');
+        countEl.innerText='共 '+items.length+' 个'+(isAllRef?'（参考）':(refItems.length?'（含参考）':''));
 
         if (!items.length) {
             listEl.innerHTML='<div class="text-center py-4 text-slate-400"><i class="fa fa-info-circle mr-1"></i>当日无可申报项目</div>';
@@ -2610,37 +2659,40 @@
                     </ul>
                 </section>
                 <section>
-                    <h4 class="text-xs font-black text-slate-800 mb-1.5"><span class="inline-flex w-4 h-4 rounded bg-rose-50 text-rose-600 items-center justify-center mr-1">2</span>真实数据优先</h4>
+                    <h4 class="text-xs font-black text-slate-800 mb-1.5"><span class="inline-flex w-4 h-4 rounded bg-rose-50 text-rose-600 items-center justify-center mr-1">2</span>真实数据优先（按项目替换）</h4>
                     <ul class="list-disc pl-5 space-y-1">
-                        <li>当前浏览月份若存在<b>任意</b>真实批次，直接展示真实数据（玫瑰色角标与浅粉底色），不混入任何参考数据。</li>
-                        <li>真实数据以整月为单位生效，参考数据不会与之逐条混排，避免两条时间线交叉造成误读。</li>
+                        <li>判断与替换均<b>以「申报项目」为单位</b>（政策 id，缺失时用名称），而不是整月一刀切。</li>
+                        <li>某项目当年该月已有真实批次 → 该项目只展示真实数据，不再出现同期参考。</li>
+                        <li>某项目当年该月尚未发布 → 继续用上一年同期数据作为参考补充，不影响其它已完成替换的项目。</li>
+                        <li>因此同一月份可能同时出现真实项目（玫瑰色）与参考项目（琥珀色/「参考」标签）。</li>
                     </ul>
                 </section>
                 <section>
                     <h4 class="text-xs font-black text-slate-800 mb-1.5"><span class="inline-flex w-4 h-4 rounded bg-amber-50 text-amber-600 items-center justify-center mr-1">3</span>参考规则（未来或空档月份）</h4>
                     <ul class="list-disc pl-5 space-y-1">
-                        <li><b>触发条件</b>：当前月份没有任何真实批次（例如尚未发布政策的未来月份，或库中暂无该月批次）。</li>
+                        <li><b>触发条件</b>：当前月份存在当年尚未发布的项目（如未来月份），且往年同月有对应项目数据。</li>
                         <li><b>取数方式</b>：回溯上一年「同月」数据，最多向前回溯 3 年；找到后把批次日期按年份差平移到当前年份展示（闰日等跨月异常自动跳过）。</li>
-                        <li><b>展示标记</b>：角标与日期底色改为琥珀色；汇总显示「参考 XXXX 年同期，共 N 个可申报项目」；底部提示该月暂无官方数据；右侧列表每条带「参考」标签，悬浮可看参考年份。</li>
+                        <li><b>展示标记</b>：仅含参考项目的日期为琥珀色；汇总显示「参考 XXXX 年同期」或在真实项目中标注「其中 N 个参考」；右侧列表每条参考项带「参考」标签，悬浮可看参考年份。</li>
                         <li>参考数据同样受地区筛选与申报型过滤约束，<b>仅用于排期参考，不作为申报依据</b>。</li>
-                        <li>若目标月份无真实数据、往年同期也无数据，则保持空白，不生成任何模拟数据。</li>
+                        <li>若项目当年未发布、往年同期也无数据，则该部分保持空白，不生成任何模拟数据。</li>
                     </ul>
                 </section>
                 <section>
                     <h4 class="text-xs font-black text-slate-800 mb-1.5"><span class="inline-flex w-4 h-4 rounded bg-emerald-50 text-emerald-600 items-center justify-center mr-1">4</span>替换规则（新政策上传后）</h4>
                     <ul class="list-disc pl-5 space-y-1">
-                        <li>目标月份一旦有新政策批次入库，该月立即走真实数据分支，参考数据、琥珀样式与「参考」标签<b>自动整体消失</b>，无需人工清理。</li>
-                        <li>替换以「整月」为单位判断：只要该月有真实批次，即视为已发布，不再显示上一年同期。</li>
+                        <li>新政策批次入库后，<b>对应项目</b>立即改为展示真实数据，其参考条目、琥珀样式与「参考」标签自动消失，无需人工清理。</li>
+                        <li>同一月份中，未发布的项目仍保留参考展示，已发布的项目不再显示上一年同期，两者互不影响。</li>
                         <li>参考数据为运行时实时计算，不写入政策库，不参与政策匹配与申报结论。</li>
                     </ul>
                 </section>
                 <section class="bg-slate-50 rounded-xl px-4 py-3">
                     <h4 class="text-xs font-black text-slate-800 mb-1.5"><i class="fa fa-code text-slate-400 mr-1"></i>代码位置（开发查看）</h4>
                     <ul class="space-y-0.5 text-[10px] text-slate-500">
-                        <li><code>_calMonthReal(year, month)</code>：按月收集真实批次并按日聚合（计数 + 当日明细）</li>
-                        <li><code>_calResolveMonth(year, month)</code>：真实优先；为空时回溯最多 3 年同月参考</li>
-                        <li><code>_calShiftToYear(src, fromYear, toYear, month)</code>：参考批次日期平移与标记</li>
-                        <li><code>_calItemsOnDate(dateStr)</code>：取某日明细（含参考标记与排序）</li>
+                        <li><code>_calMonthReal(year, month)</code>：按月收集真实批次并按日聚合（计数 + 当日明细 + 已发布项目 id）</li>
+                        <li><code>_calResolveMonth(year, month)</code>：真实优先；未发布项目回溯最多 3 年同月参考，并按项目合并</li>
+                        <li><code>_calShiftToYear(src, fromYear, toYear, month, skipIds)</code>：参考日期平移，跳过当年已发布项目</li>
+                        <li><code>_calMergeMonths(real, ref)</code>：真实与参考按项目合并，标记仅含参考的日期</li>
+                        <li><code>_calItemsOnDate(dateStr)</code>：取某日明细（真实在前、参考在后，含参考标记）</li>
                         <li><code>renderCalendar()</code> / <code>_calRenderDayList()</code>：日历样式、参考提示与列表「参考」标签</li>
                     </ul>
                 </section>
