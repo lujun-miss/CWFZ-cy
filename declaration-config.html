@@ -453,11 +453,25 @@
             box.innerHTML = '<div class="p-8 text-center text-slate-400 text-sm">暂无项目，点击上方「新增项目」开始</div>';
             return;
         }
+        // 关联政策名称（用于左侧「依据《政策名称》」提示）
+        var _polMap = {};
+        try { (DataBridge.loadPolicyLibrary() || []).forEach(function(x){ _polMap[x.id] = x; }); } catch (e) {}
+        function _srcPolicyName(p) {
+            if (!p.policyIds || !p.policyIds.length) return '';
+            var names = p.policyIds.map(function(id){ var x=_polMap[id]; return x && x.name ? x.name : ''; }).filter(Boolean);
+            return names.length ? names[0] : '';
+        }
+        function _srcPolicyCount(p) {
+            if (!p.policyIds || !p.policyIds.length) return 0;
+            return p.policyIds.filter(function(id){ return !!_polMap[id]; }).length;
+        }
         box.innerHTML = PROJECTS.map(p => {
             const statusCfg = STATUS_OPTIONS.find(s => s.v === p.status) || STATUS_OPTIONS[0];
             const active = p.id === CURRENT_ID ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-slate-50 border-l-4 border-transparent';
             const totalItems = (p.groups || []).reduce((s, g) => s + (g.items || []).length, 0);
             const uploadedItems = (p.groups || []).reduce((s, g) => s + (g.items || []).filter(i => i.attName).length, 0);
+            const srcPol = _srcPolicyName(p);
+            const srcPolCnt = _srcPolicyCount(p);
             const policyCnt = (p.policyIds || []).length;
             const srcBadge = p.source === 'policy'
                 ? `<span class="px-1 py-0.5 rounded bg-purple-50 text-purple-600 text-[9px] font-bold flex-shrink-0 ml-1" title="由政策库申报类政策自动生成">政策库${policyCnt > 1 ? '·' + policyCnt + '份' : ''}</span>`
@@ -470,6 +484,7 @@
                     ${srcBadge}
                     <span class="px-1.5 py-0.5 rounded ${statusCfg.c} text-[10px] font-bold ml-2 flex-shrink-0">${p.status}</span>
                 </div>
+                ${srcPol ? `<div class="text-[10px] text-slate-400 truncate mb-1" title="依据政策：${srcPol}${srcPolCnt>1 ? ' 等 '+srcPolCnt+' 份' : ''}">依据《${srcPol}》${srcPolCnt>1 ? ' 等 '+srcPolCnt+' 份政策' : ''}</div>` : ''}
                 <div class="flex items-center space-x-2 text-[10.5px] text-slate-500">
                     <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold">${p.level}</span>
                     <span>${String(p.deadline || '').split(' ')[0]}</span>
