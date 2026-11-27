@@ -248,7 +248,7 @@
                 <div class="grid grid-cols-7 gap-1" id="calendarBody"></div>
                 <!-- 角标说明 + 本月汇总 -->
                 <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 text-[10px]">
-                    <span class="text-slate-400"><i class="fa fa-info-circle mr-1"></i>注：角标代表当日可申报项目数量（点击日期查看详情）</span>
+                    <span id="calNote" class="text-slate-400"><i class="fa fa-info-circle mr-1"></i>注：角标代表当日可申报项目数量（点击日期查看详情）</span>
                     <span id="calSummary" class="text-rose-500 font-bold">本月共 0 个可申报项目</span>
                 </div>
 
@@ -2119,48 +2119,97 @@
         });
     }
 
-    // 计算某月每日的可申报项目数（按批次区间 [start, end] 聚合）
-    function _calDailyCounts(year, month) {
-        var counts={};
-        var policies=_calVisiblePolicies();
+    // 收集指定年月的真实申报数据（按日聚合，含当日项目明细）
+    function _calMonthReal(year, month) {
         var days=new Date(year, month, 0).getDate();
-        for (var d=1; d<=days; d++) counts[year+'-'+String(month).padStart(2,'0')+'-'+String(d).padStart(2,'0')]=0;
-        policies.forEach(function(p){
+        var prefix=year+'-'+String(month).padStart(2,'0')+'-';
+        var counts={};
+        for (var d=1; d<=days; d++) counts[prefix+String(d).padStart(2,'0')]=0;
+        var byDate={};
+        var total=0;
+        _calVisiblePolicies().forEach(function(p){
+            var hit=false;
             (p.batches||[]).forEach(function(b){
                 if (!b.end) return;
                 var start=b.start?_calParse(b.start):null;
                 var end=_calParse(b.end);
+                if (start) start.setHours(0,0,0,0);
                 end.setHours(0,0,0,0);
                 for (var d=1; d<=days; d++) {
-                    var ds=year+'-'+String(month).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+                    var ds=prefix+String(d).padStart(2,'0');
                     var day=_calParse(ds); day.setHours(0,0,0,0);
                     if (day.getTime()<=end.getTime()&&(!start||day.getTime()>=start.getTime())) {
-                        counts[ds]=(counts[ds]||0)+1;
+                        counts[ds]++;
+                        (byDate[ds]=byDate[ds]||[]).push({
+                            policy:p, batch:b,
+                            urgency:_calUrgency(b.end),
+                            regionText:_calRegionText(p),
+                            refYear:0
+                        });
+                        hit=true;
                     }
                 }
             });
+            if (hit) total++;
         });
-        return counts;
+        return { counts:counts, byDate:byDate, total:total, refYear:0 };
     }
 
-    // 获取某日可申报项目列表（批次展开）
-    function _calItemsOnDate(dateStr) {
-        var policies=_calVisiblePolicies();
-        var items=[];
-        policies.forEach(function(p){
-            (p.batches||[]).forEach(function(b){
-                if (!b.end) return;
-                var start=b.start?_calParse(b.start):null;
-                var end=_calParse(b.end);
-                var day=_calParse(dateStr);
-                day.setHours(0,0,0,0); end.setHours(0,0,0,0);
-                if (start) start.setHours(0,0,0,0);
-                if (day.getTime()>end.getTime()||(start&&day.getTime()<start.getTime())) return;
-                items.push({policy:p, batch:b, urgency:_calUrgency(b.end), regionText:_calRegionText(p)});
+    function _calShiftYearStr(ds, delta) {
+        if (!ds) return '';
+        var d=_calParse(ds);
+        d.setFullYear(d.getFullYear()+delta);
+        return _calFmt(d);
+    }
+
+    // 参考数据：把往年同月数据按年份差平移到目标年（仅作参考展示）
+    function _calShiftToYear(src, fromYear, toYear, month) {
+        var delta=toYear-fromYear;
+        var counts={}, byDate={};
+        Object.keys(src.byDate).forEach(function(ds){
+            var d=_calParse(ds);
+            d.setFullYear(d.getFullYear()+delta);
+            // 闰日等平移后不在目标月则跳过
+            if (d.getMonth()+1!==month) return;
+            var nds=_calFmt(d);
+            counts[nds]=src.counts[ds]||0;
+            byDate[nds]=src.byDate[ds].map(function(it){
+                return {
+                    policy:it.policy,
+                    batch:{
+                        name:it.batch.name,
+                        start:_calShiftYearStr(it.batch.start, delta),
+                        end:_calShiftYearStr(it.batch.end, delta)
+                    },
+                    urgency:{label:'参考', color:'amber'},
+                    regionText:it.regionText,
+                    refYear:fromYear
+                };
             });
         });
+        return { counts:counts, byDate:byDate, total:src.total, refYear:fromYear };
+    }
+
+    // 解析某月展示数据：真实数据优先；该月暂无数据时参考上一年同期（最多回溯3年）
+    function _calResolveMonth(year, month) {
+        var real=_calMonthReal(year, month);
+        if (real.total>0) return real;
+        for (var i=1; i<=3; i++) {
+            var ry=year-i;
+            if (ry<2000) break;
+            var src=_calMonthReal(ry, month);
+            if (src.total>0) return _calShiftToYear(src, ry, year, month);
+        }
+        return real;
+    }
+
+    // 获取某日可申报项目列表（真实数据优先，缺失时展示上一年同期参考）
+    function _calItemsOnDate(dateStr) {
+        var d=_calParse(dateStr);
+        var data=_calResolveMonth(d.getFullYear(), d.getMonth()+1);
+        var items=(data.byDate[dateStr]||[]).slice();
         // 按紧急程度排序
-        var order={rose:0,orange:1,emerald:2,blue:3,slate:4};
+        var order={rose:0,orange:1,emerald:2,blue:3,amber:4,slate:5};
         items.sort(function(a,b){ return (order[a.urgency.color]||9)-(order[b.urgency.color]||9); });
         return items;
     }
@@ -2177,7 +2226,9 @@
         var offset=(firstWeek+6)%7;
         var daysInMonth=new Date(year, month, 0).getDate();
         var prevDays=new Date(year, month-1, 0).getDate();
-        var counts=_calDailyCounts(year, month);
+        var resolved=_calResolveMonth(year, month);
+        var counts=resolved.counts;
+        var isRef=!!resolved.refYear;
         var today=new Date(); today.setHours(0,0,0,0);
         var selDs=CAL.selectedDate;
 
@@ -2202,7 +2253,7 @@
             // 样式：申报日浅粉底+右上角红色数量角标，选中日深红实底
             var cls='calendar-day relative h-16 rounded-lg p-1 cursor-pointer transition-all';
             if (isSel) cls='cal-selected-day relative h-16 rounded-lg p-1 cursor-pointer transition-all bg-rose-600 border-2 border-rose-600';
-            else if (inMonth&&cnt>0) cls+=' cal-declaration-day border border-rose-100';
+            else if (inMonth&&cnt>0) cls+=(isRef?' cal-ref-day border border-amber-100':' cal-declaration-day border border-rose-100');
             else if (inMonth) cls+=' bg-white border border-slate-100 hover:border-rose-200 hover:shadow-sm';
             else cls+=' bg-slate-50/50 text-slate-300 border border-slate-50';
             if (isToday&&!isSel) cls+=' border-2 border-blue-500'+(cnt>0?'':' bg-blue-50');
@@ -2216,7 +2267,7 @@
             html+='<div class="'+cls+'" onclick="_calSelectDate(\''+ds+'\')">';
             html+='<div class="text-[11px] font-bold" style="color:'+dateColor+'">'+cellDate+'</div>';
             if (cnt>0) {
-                html+='<span class="absolute top-0.5 right-1 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-black leading-4 text-center '+(inMonth?'text-rose-600':'text-rose-300')+'">'+cnt+'</span>';
+                html+='<span class="absolute top-0.5 right-1 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-black leading-4 text-center '+(inMonth?(isRef?'text-amber-500':'text-rose-600'):'text-rose-300')+'">'+cnt+'</span>';
             }
             if (isToday&&!isSel) {
                 html+='<span class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-blue-500"></span>';
@@ -2225,15 +2276,20 @@
         }
         body.innerHTML=html;
 
-        // 本月汇总：本月内存在可申报批次的去重项目数
-        var ms=year+'-'+String(month).padStart(2,'0')+'-01';
-        var me=year+'-'+String(month).padStart(2,'0')+'-'+String(daysInMonth).padStart(2,'0');
-        var uniq=0;
-        _calVisiblePolicies().forEach(function(p){
-            if ((p.batches||[]).some(function(b){ return b.end && b.end>=ms && (b.start||'0000-01-01')<=me; })) uniq++;
-        });
+        // 本月汇总：真实数据；该月暂无数据时展示上一年同期参考
         var sumEl=document.getElementById('calSummary');
-        if (sumEl) sumEl.innerText='本月共 '+uniq+' 个可申报项目';
+        if (sumEl) {
+            sumEl.innerText=isRef
+                ? '参考 '+resolved.refYear+' 年同期，共 '+resolved.total+' 个可申报项目'
+                : '本月共 '+resolved.total+' 个可申报项目';
+            sumEl.className=isRef?'text-amber-500 font-bold':'text-rose-500 font-bold';
+        }
+        var noteEl=document.getElementById('calNote');
+        if (noteEl) {
+            noteEl.innerHTML=isRef
+                ? '<i class="fa fa-info-circle mr-1"></i>注：'+year+'年'+month+'月暂无官方申报数据，以下为 '+resolved.refYear+' 年同期项目，仅供参考'
+                : '<i class="fa fa-info-circle mr-1"></i>注：角标代表当日可申报项目数量（点击日期查看详情）';
+        }
     }
 
     // 点击日期 → 渲染右侧列表
@@ -2259,15 +2315,17 @@
 
         var items=_calItemsOnDate(CAL.selectedDate);
         var dt=_calParse(CAL.selectedDate);
+        var isRefDay=!!(items.length&&items[0].refYear);
+        var refYear=isRefDay?items[0].refYear:0;
         var weekDays=['日','一','二','三','四','五','六'];
-        titleEl.innerHTML='<i class="fa fa-list-ul text-blue-600 mr-2"></i>'+(dt.getMonth()+1)+'月'+dt.getDate()+'日 · 周'+weekDays[dt.getDay()]+' 可申报项目';
-        countEl.innerText='共 '+items.length+' 个';
+        titleEl.innerHTML='<i class="fa fa-list-ul text-blue-600 mr-2"></i>'+(dt.getMonth()+1)+'月'+dt.getDate()+'日 · 周'+weekDays[dt.getDay()]+' 可申报项目'+(isRefDay?'<span class="ml-1 text-[9px] font-bold text-amber-600">参考</span>':'');
+        countEl.innerText='共 '+items.length+' 个'+(isRefDay?'（参考）':'');
 
         if (!items.length) {
             listEl.innerHTML='<div class="text-center py-4 text-slate-400"><i class="fa fa-info-circle mr-1"></i>当日无可申报项目</div>';
             return;
         }
-        var urgColor={rose:'bg-rose-50 border-rose-200 text-rose-600',orange:'bg-orange-50 border-orange-200 text-orange-600',emerald:'bg-emerald-50 border-emerald-200 text-emerald-600',blue:'bg-blue-50 border-blue-200 text-blue-600',slate:'bg-slate-50 border-slate-200 text-slate-500'};
+        var urgColor={rose:'bg-rose-50 border-rose-200 text-rose-600',orange:'bg-orange-50 border-orange-200 text-orange-600',emerald:'bg-emerald-50 border-emerald-200 text-emerald-600',blue:'bg-blue-50 border-blue-200 text-blue-600',amber:'bg-amber-50 border-amber-200 text-amber-600',slate:'bg-slate-50 border-slate-200 text-slate-500'};
         var itemsPerPage=10;
         var page=CAL.page||1;
         var totalPages=Math.max(1,Math.ceil(items.length/itemsPerPage));
@@ -2278,18 +2336,19 @@
         pageItems.forEach(function(it){
             var p=it.policy, b=it.batch, u=it.urgency;
             var lvlColor={'国家级':'bg-rose-500 text-white','省级':'bg-orange-500 text-white','市级':'bg-blue-500 text-white','区县级':'bg-purple-500 text-white'}[p.level]||'bg-slate-500 text-white';
-            html+='<div class="flex items-start gap-2 p-2 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all">';
-            html+='<span class="text-rose-500 font-black text-xs leading-none mt-1 flex-shrink-0">◆</span>';
+            html+='<div class="flex items-start gap-2 p-2 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all"'+(it.refYear?' title="该条为 '+it.refYear+' 年同期项目，仅供参考"':'')+'>';
+            html+='<span class="'+(it.refYear?'text-amber-500':'text-rose-500')+' font-black text-xs leading-none mt-1 flex-shrink-0">◆</span>';
             html+='<div class="flex-1 min-w-0">';
             html+='<div class="flex items-center gap-1.5 flex-wrap mb-0.5">';
             html+='<span class="font-bold text-slate-800 truncate">'+p.name+'</span>';
             html+='<span class="px-1 py-px rounded text-[9px] font-bold '+lvlColor+'">'+p.level+'</span>';
             html+='<span class="px-1 py-px rounded text-[9px] font-bold bg-slate-100 text-slate-600">'+b.name+'</span>';
+            if (it.refYear) html+='<span class="px-1 py-px rounded text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-200">参考</span>';
             html+='</div>';
             html+='<div class="flex items-center gap-x-3 gap-y-0.5 flex-wrap text-[10px] text-slate-500">';
-            html+='<span><i class="fa fa-clock-o mr-0.5 text-rose-400"></i>'+(b.start||'随时')+' ~ '+b.end+'</span>';
-            html+='<span><i class="fa fa-map-marker mr-0.5 text-rose-400"></i>'+it.regionText+'</span>';
-            html+='<span><i class="fa fa-university mr-0.5 text-rose-400"></i>'+p.dept+'</span>';
+            html+='<span><i class="fa fa-clock-o mr-0.5 '+(it.refYear?'text-amber-400':'text-rose-400')+'"></i>'+(b.start||'随时')+' ~ '+b.end+'</span>';
+            html+='<span><i class="fa fa-map-marker mr-0.5 '+(it.refYear?'text-amber-400':'text-rose-400')+'"></i>'+it.regionText+'</span>';
+            html+='<span><i class="fa fa-university mr-0.5 '+(it.refYear?'text-amber-400':'text-rose-400')+'"></i>'+p.dept+'</span>';
             html+='</div>';
             html+='</div>';
             html+='<span class="flex-shrink-0 px-1.5 py-0.5 rounded border text-[9px] font-bold '+urgColor[u.color]+'">'+u.label+'</span>';
@@ -2383,7 +2442,9 @@
             '.cal-selected-day .text-\\[11px\\]{color:#ffffff !important;}' +
             '.cal-selected-day span{background:#ffffff !important;color:#C41E3A !important;}' +
             '.cal-declaration-day{background:#fdf2f5 !important;border-color:#fbe0e7 !important;}' +
-            '.cal-declaration-day:hover{background:#fce7ee !important;}';
+            '.cal-declaration-day:hover{background:#fce7ee !important;}' +
+            '.cal-ref-day{background:#fffbeb !important;border-color:#fde68a !important;}' +
+            '.cal-ref-day:hover{background:#fef3c7 !important;}';
         document.head.appendChild(css);
     })();
 
