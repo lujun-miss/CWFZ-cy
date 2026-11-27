@@ -392,7 +392,7 @@
             if (matched) {
                 matched.policyIds = pids;
                 if (matched.source === 'policy') {
-                    matched.name = _projDisplayName(first.name) || matched.name;
+                    matched.name = first.declName || _projDisplayName(first.name) || matched.name;
                     matched.level = level;
                     matched.type = _inferProjectType(first.name);
                     matched.region = region;
@@ -411,7 +411,7 @@
             if (_removedPolicyProjectIds().indexOf(id) > -1) return; // 运营主动删除过的自动项目不再重建
             PROJECTS.push({
                 id: id,
-                name: _projDisplayName(first.name) || first.name,
+                name: first.declName || _projDisplayName(first.name) || first.name,
                 level: level,
                 type: _inferProjectType(first.name),
                 status: bi.status,
@@ -706,7 +706,7 @@
 
         return `
             <div class="grid grid-cols-2 gap-4">
-                ${field('项目名称', 'f_name', p.name)}
+                ${field('项目名称（申报名称）', 'f_name', p.name)}
                 ${field('项目ID', 'f_id', p.id)}
                 ${field('主管部门', 'f_dept', p.dept)}
                 ${field('申报截止', 'f_deadline', p.deadline)}
@@ -744,7 +744,7 @@
             {v:'enterprise.revenue', t:'年营收'}
         ]},
         { label:'项目信息', options:[
-            {v:'project.name', t:'项目名称'}, {v:'project.level', t:'项目级别'},
+            {v:'project.name', t:'项目/申报名称'}, {v:'project.level', t:'项目级别'},
             {v:'project.dept', t:'主管部门'}, {v:'project.subsidy', t:'预计扶持'},
             {v:'project.deadline', t:'申报截止'}, {v:'project.progress', t:'申报进度'},
             {v:'project.type', t:'政策类型'}
